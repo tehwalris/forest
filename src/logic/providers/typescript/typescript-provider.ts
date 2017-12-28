@@ -66,7 +66,7 @@ export class RootNode extends StructNode<FileNode, WorkingSet> {
     );
     const program = ts.createProgram(state.rootFiles, { lib: ["es5"] }, host);
     const children = state.rootFiles.map(name => ({
-      key: name,
+      key: name.split("/")[name.split("/").length - 1],
       node: FileNode.fromFile(program.getSourceFile(name)),
     }));
     return new RootNode(children, state);

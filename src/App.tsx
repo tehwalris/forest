@@ -25,6 +25,18 @@ export default class App extends React.Component {
         <Home />
         <Entity
           primitive="a-plane"
+          material={{ color: "green", opacity: 0.2 }}
+          text={{
+            value: "walrus",
+            align: "center",
+          }}
+          position="0 5 -3"
+          rotation="65 0 0"
+          height="6"
+          width="6"
+        />
+        <Entity
+          primitive="a-plane"
           src="#groundTexture"
           rotation="-90 0 0"
           height="100"

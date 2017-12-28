@@ -12,7 +12,7 @@ import {
   nodesFromDisplayNode,
 } from "../logic/tree/display";
 import VrTreeDisplay from "./tree/vr-tree-display";
-// import * as prettier from "prettier";
+import * as prettier from "prettier";
 interface PrettyPrintResult {
   node: FileNode;
   text: string;
@@ -34,11 +34,9 @@ interface SavedState {
   filePath: string;
   selection: DisplayPath;
 }
-/*
 const PRETTIER_OPTIONS = {
   parser: "typescript" as "typescript",
 };
-*/
 const INITIAL_FILE: string = "app/logic/providers/typescript/convert.ts";
 
 export default class Home extends React.Component<{}, State> {
@@ -320,8 +318,7 @@ export default class Home extends React.Component<{}, State> {
   ): PrettyPrintResult | undefined {
     const fileNode: FileNode = oldTree.children[0].node as any;
     return fileNode
-      .prettyPrint
-      /*
+      .prettyPrint(
       disablePrettier
         ? undefined
         : t => {
@@ -332,8 +329,7 @@ export default class Home extends React.Component<{}, State> {
             }
             return t;
           },
-          */
-      ();
+      );
   }
   getSelectedRange(printed: PrettyPrintResult): [number, number] | undefined {
     const displayTarget = this.getDeepestPossibleByDisplayPath(
@@ -362,7 +358,13 @@ export default class Home extends React.Component<{}, State> {
   render() {
     const { tree, selection } = this.state;
     const displayTree = buildDisplayTree(tree);
-    return <VrTreeDisplay root={displayTree} highlightPath={selection} />;
+    return (
+      <VrTreeDisplay
+        root={displayTree}
+        highlightPath={selection}
+        radius={1.5}
+      />
+    );
     /*
     return (
       <div style={styles.wrapper as any}>
