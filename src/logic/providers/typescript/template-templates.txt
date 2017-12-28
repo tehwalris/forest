@@ -1,0 +1,717 @@
+SECTION unions
+Expression ...UnaryExpression
+  BinaryExpression ArrowFunction ConditionalExpression AsExpression
+  SpreadElement
+UnaryExpression ...UpdateExpression TypeOfExpression
+UpdateExpression ...LeftHandSideExpression
+  PrefixUnaryExpression PostfixUnaryExpression 
+LeftHandSideExpression ...MemberExpression
+  CallExpression NonNullExpression
+MemberExpression ...PrimaryExpression
+  PropertyAccessExpression ElementAccessExpression TaggedTemplateExpression
+PrimaryExpression ...LiteralExpression
+  Identifier
+  ThisExpression SuperExpression
+  ImportExpression FunctionExpression TemplateExpression
+  NullLiteral BooleanLiteral
+  ArrayLiteralExpression ObjectLiteralExpression JsxAttributes
+  ParenthesizedExpression 
+  NewExpression MetaProperty
+  JsxElement JsxSelfClosingElement
+  ClassExpression
+LiteralExpression
+  StringLiteral NumericLiteral RegularExpressionLiteral NoSubstitutionTemplateLiteral
+Statement ...DeclarationStatement ...IterationStatement
+  EmptyStatement VariableStatement ExpressionStatement
+  ReturnStatement ThrowStatement TryStatement
+  ImportDeclaration IfStatement Block
+DeclarationStatement
+  FunctionDeclaration ClassDeclaration ModuleDeclaration
+  InterfaceDeclaration TypeAliasDeclaration EnumDeclaration
+  ImportEqualsDeclaration NamespaceExportDeclaration ExportDeclaration ExportAssignment
+IterationStatement DoStatement WhileStatement ForStatement ForInStatement ForOfStatement
+ForInitializer ...Expression VariableDeclarationList
+ModuleName Identifier StringLiteral
+ModuleBody ...NamespaceBody
+NamespaceBody ModuleBlock NamespaceDeclaration
+ModuleReference ...EntityName ExternalModuleReference
+ClassElement
+  PropertyDeclaration
+  MethodDeclaration ConstructorDeclaration
+  GetAccessorDeclaration SetAccessorDeclaration
+  IndexSignatureDeclaration
+  SemicolonClassElement
+ObjectLiteralElementLike
+  PropertyAssignment ShorthandPropertyAssignment SpreadAssignment
+  MethodDeclaration GetAccessorDeclaration SetAccessorDeclaration
+BindingName Identifier ...BindingPattern
+FunctionBody Block
+ConciseBody ...FunctionBody ...Expression
+BindingPattern ArrayBindingPattern ObjectBindingPattern
+ArrayBindingElement BindingElement OmittedExpression
+PropertyName Identifier StringLiteral NumericLiteral ComputedPropertyName
+EntityName Identifier QualifiedName
+NamedImportBindings NamespaceImport NamedImports
+JsxChild JsxText JsxExpression JsxElement JsxSelfClosingElement
+JsxAttributeLike JsxAttribute JsxSpreadAttribute
+JsxTagNameExpression ...PrimaryExpression PropertyAccessExpression
+JsxAttributeInitializer StringLiteral JsxExpression
+TypeNode ...KeywordTypeNode
+  ThisTypeNode TypeLiteralNode 
+  FunctionTypeNode ConstructorTypeNode
+  TypeReferenceNode TypeQueryNode
+  ArrayTypeNode TupleTypeNode ParenthesizedTypeNode
+  UnionTypeNode IntersectionTypeNode
+  TypeOperatorNode IndexedAccessTypeNode MappedTypeNode
+  LiteralTypeNode NullLiteral BooleanLiteral
+  ExpressionWithTypeArguments TypePredicateNode
+KeywordTypeNode
+  AnyKeyword NumberKeyword ObjectKeyword
+  BooleanKeyword StringKeyword SymbolKeyword
+  ThisKeyword VoidKeyword UndefinedKeyword
+  NullKeyword NeverKeyword
+TypeElement CallSignatureDeclaration ConstructSignatureDeclaration PropertySignature MethodSignature IndexSignatureDeclaration
+TypePredicateNodeParameterName Identifier ThisTypeNode
+LiteralTypeNodeLiteral BooleanLiteral ...LiteralExpression PrefixUnaryExpression
+TemplateSpanLiteral TemplateMiddle TemplateTail
+ExponentiationOperatorToken AsteriskAsteriskToken
+MultiplicativeOperatorToken AsteriskToken SlashToken PercentToken
+MultiplicativeOperatorOrHigher ...MultiplicativeOperatorToken ...ExponentiationOperatorToken 
+AdditiveOperatorToken PlusToken MinusToken
+AdditiveOperatorOrHigher ...MultiplicativeOperatorOrHigher ...AdditiveOperatorToken
+ShiftOperatorToken LessThanLessThanToken GreaterThanGreaterThanToken GreaterThanGreaterThanGreaterThanToken
+ShiftOperatorOrHigher ...AdditiveOperatorOrHigher ...ShiftOperatorToken
+RelationalOperatorToken LessThanToken LessThanEqualsToken GreaterThanToken GreaterThanEqualsToken InstanceOfKeyword InKeyword
+RelationalOperatorOrHigher ...ShiftOperatorOrHigher ...RelationalOperatorToken
+EqualityOperatorToken EqualsEqualsToken EqualsEqualsEqualsToken ExclamationEqualsEqualsToken ExclamationEqualsToken
+EqualityOperatorOrHigher ...RelationalOperatorOrHigher ...EqualityOperatorToken
+BitwiseOperatorToken AmpersandToken BarToken CaretToken
+BitwiseOperatorOrHigher ...EqualityOperatorOrHigher ...BitwiseOperatorToken
+LogicalOperatorToken AmpersandAmpersandToken BarBarToken
+LogicalOperatorOrHigher ...BitwiseOperatorOrHigher ...LogicalOperatorToken
+CompoundAssignmentOperatorToken
+  PlusEqualsToken MinusEqualsToken AsteriskAsteriskEqualsToken AsteriskEqualsToken
+  SlashEqualsToken PercentEqualsToken AmpersandEqualsToken BarEqualsToken CaretEqualsToken
+  LessThanLessThanEqualsToken GreaterThanGreaterThanGreaterThanEqualsToken GreaterThanGreaterThanEqualsToken
+AssignmentOperatorToken ...CompoundAssignmentOperatorToken EqualsToken 
+AssignmentOperatorOrHigher ...LogicalOperatorOrHigher ...AssignmentOperatorToken
+BinaryOperatorToken ...AssignmentOperatorOrHigher CommaToken
+PrefixUnaryOperator PlusPlusToken MinusMinusToken PlusToken MinusToken TildeToken ExclamationToken
+PostfixUnaryOperator PlusPlusToken MinusMinusToken
+
+SECTION plainTypes
+NumericLiteral - ts.createLiteral(0)
+StringLiteral - ts.createLiteral("")
+ArrayLiteralExpression - ts.createArrayLiteral([])
+VariableDeclaration - ts.createVariableDeclaration("")
+VariableDeclarationList - ts.createVariableDeclarationList([])
+EmptyStatement - ts.createEmptyStatement()
+ThrowStatement - ts.createThrow(ts.createLiteral(""))
+VariableStatement - ts.createVariableStatement(undefined, ts.createVariableDeclarationList([]))
+Identifier - ts.createIdentifier("")
+FunctionDeclaration - ts.createFunctionDeclaration(undefined, undefined, undefined, undefined, undefined, [], undefined, undefined)
+Block - ts.createBlock([])
+ExpressionStatement - ts.createStatement(ts.createLiteral(""))
+ParameterDeclaration ts.isParameter ts.createParameter(undefined, undefined, undefined, "", undefined, undefined, undefined)
+ArrayBindingPattern - ts.createArrayBindingPattern([])
+ObjectBindingPattern - ts.createObjectBindingPattern([])
+OmittedExpression - ts.createOmittedExpression()
+BindingElement - ts.createBindingElement(undefined, undefined, "", undefined)
+ComputedPropertyName - ts.createComputedPropertyName(ts.createLiteral(""))
+RegularExpressionLiteral - { ...(ts.createTemplateHead("") as any), kind: ts.SyntaxKind.RegularExpressionLiteral }
+NoSubstitutionTemplateLiteral - ts.createNoSubstitutionTemplateLiteral("")
+FunctionExpression - ts.createFunctionExpression(undefined, undefined, undefined, undefined, [], undefined, ts.createBlock([]))
+TemplateExpression - ts.createTemplateExpression(ts.createTemplateHead(""), [])
+ObjectLiteralExpression - ts.createObjectLiteral()
+ParenthesizedExpression - ts.createParen(ts.createLiteral(""))
+NewExpression - ts.createNew(ts.createIdentifier("Object"), undefined, undefined)
+MetaProperty - ts.createMetaProperty(ts.SyntaxKind.NewKeyword, ts.createIdentifier(""))
+JsxElement - ts.createJsxElement(ts.createJsxOpeningElement(ts.createIdentifier(""), ts.createJsxAttributes([])), [], ts.createJsxClosingElement(ts.createIdentifier("")))
+JsxSelfClosingElement - ts.createJsxSelfClosingElement(ts.createIdentifier(""), ts.createJsxAttributes([]))
+JsxOpeningElement - ts.createJsxOpeningElement(ts.createIdentifier(""), ts.createJsxAttributes([]))
+JsxClosingElement - ts.createJsxClosingElement(ts.createIdentifier(""))
+JsxAttribute - ts.createJsxAttribute(ts.createIdentifier(""), ts.createJsxExpression(undefined, undefined))
+JsxAttributes - ts.createJsxAttributes([])
+JsxSpreadAttribute - ts.createJsxSpreadAttribute(ts.createIdentifier(""))
+JsxExpression - ts.createJsxExpression(undefined, undefined)
+JsxText - { ...(ts.createLiteral("") as any), kind: ts.SyntaxKind.JsxText, containsOnlyWhiteSpaces: true }
+ClassExpression - ts.createClassExpression(undefined, undefined, undefined, [], [])
+PropertyAccessExpression - ts.createPropertyAccess(ts.createObjectLiteral(), "")
+ElementAccessExpression - ts.createElementAccess(ts.createArrayLiteral(), 0)
+TaggedTemplateExpression - ts.createTaggedTemplate(ts.createIdentifier(""), ts.createTemplateExpression(ts.createTemplateHead(""), []))
+CallExpression - ts.createCall(ts.createIdentifier(""), undefined, [])
+NonNullExpression - ts.createNonNullExpression(ts.createLiteral(""))
+ImportDeclaration - ts.createImportDeclaration(undefined, undefined, undefined, ts.createLiteral(""))
+ImportClause - ts.createImportClause(undefined, undefined)
+NamespaceImport - ts.createNamespaceImport(ts.createIdentifier(""))
+NamedImports - ts.createNamedImports([])
+NamedExports - ts.createNamedExports([])
+ImportSpecifier - ts.createImportSpecifier(undefined, ts.createIdentifier(""))
+ExportSpecifier - ts.createExportSpecifier(undefined, ts.createIdentifier(""))
+ClassDeclaration - ts.createClassDeclaration(undefined, undefined, undefined, undefined, [], [])
+HeritageClause - ts.createHeritageClause(ts.SyntaxKind.ExtendsKeyword, [])
+ExpressionWithTypeArguments - ts.createExpressionWithTypeArguments([], ts.createIdentifier(""))
+PropertyDeclaration - ts.createProperty(undefined, undefined, ts.createIdentifier(""), undefined, undefined, undefined)
+MethodDeclaration - ts.createMethod(undefined, undefined, undefined, ts.createIdentifier(""), undefined, undefined, [], undefined, undefined)
+ConstructorDeclaration - ts.createConstructor(undefined, undefined, [], undefined)
+GetAccessorDeclaration - ts.createGetAccessor(undefined, undefined, ts.createIdentifier(""), [], undefined, undefined)
+SetAccessorDeclaration - ts.createSetAccessor(undefined, undefined, ts.createIdentifier(""), [], undefined)
+IndexSignatureDeclaration - ts.createIndexSignature(undefined, undefined, [], ts.createThisTypeNode())
+SemicolonClassElement - ts.createSemicolonClassElement()
+PropertyAssignment - ts.createPropertyAssignment("", ts.createLiteral(""))
+ShorthandPropertyAssignment - ts.createShorthandPropertyAssignment("", undefined)
+SpreadAssignment - ts.createSpreadAssignment(ts.createIdentifier(""))
+ArrowFunction - ts.createArrowFunction(undefined, undefined, [], undefined, ts.createToken(ts.SyntaxKind.EqualsGreaterThanToken), ts.createLiteral(""))
+ReturnStatement - ts.createReturn(undefined)
+IfStatement - ts.createIf(ts.createLiteral(""), ts.createEmptyStatement(), undefined)
+ConditionalExpression - ts.createConditional(ts.createLiteral(""), ts.createLiteral(""), ts.createLiteral(""))
+BinaryExpression - ts.createBinary(ts.createLiteral(""), ts.SyntaxKind.PlusToken, ts.createLiteral(""))
+PrefixUnaryExpression - ts.createPrefix(ts.SyntaxKind.ExclamationToken, ts.createLiteral(""))
+PostfixUnaryExpression - ts.createPostfix(ts.createLiteral(""), ts.SyntaxKind.PlusPlusToken)
+TemplateHead - ts.createTemplateHead("")
+TemplateMiddle - ts.createTemplateMiddle("")
+TemplateTail - ts.createTemplateTail("")
+TemplateSpan - ts.createTemplateSpan(ts.createLiteral(""), ts.createTemplateMiddle(""))
+AsExpression - ts.createAsExpression(ts.createLiteral(""), ts.createThisTypeNode())
+TypeParameterDeclaration - ts.createTypeParameterDeclaration("", undefined, undefined)
+FunctionTypeNode - ts.createFunctionTypeNode(undefined, [], undefined)
+ConstructorTypeNode - ts.createConstructorTypeNode(undefined, [], undefined)
+QualifiedName - ts.createQualifiedName(ts.createIdentifier(""), "")
+TypeReferenceNode - ts.createTypeReferenceNode("", undefined)
+TypePredicateNode - ts.createTypePredicateNode("", ts.createThisTypeNode())
+TypeQueryNode - ts.createTypeQueryNode(ts.createIdentifier(""))
+CallSignatureDeclaration - ts.createCallSignature(undefined, [], undefined)
+ConstructSignatureDeclaration - ts.createConstructSignature(undefined, [], undefined)
+PropertySignature - ts.createPropertySignature(undefined, "", undefined, undefined, undefined)
+MethodSignature - ts.createMethodSignature(undefined, [], undefined, "", undefined)
+TypeLiteralNode - ts.createTypeLiteralNode([])
+ArrayTypeNode - ts.createArrayTypeNode(ts.createThisTypeNode())
+TupleTypeNode - ts.createTupleTypeNode([])
+UnionTypeNode - ts.createUnionTypeNode([])
+IntersectionTypeNode - ts.createIntersectionTypeNode([])
+ParenthesizedTypeNode - ts.createParenthesizedType(ts.createThisTypeNode())
+TypeOperatorNode - ts.createTypeOperatorNode(ts.createThisTypeNode())
+IndexedAccessTypeNode - ts.createIndexedAccessTypeNode(ts.createThisTypeNode(), ts.createThisTypeNode())
+MappedTypeNode - ts.createMappedTypeNode(undefined, ts.createTypeParameterDeclaration(""), undefined, undefined)
+LiteralTypeNode - ts.createLiteralTypeNode(ts.createLiteral(""))
+InterfaceDeclaration - ts.createInterfaceDeclaration(undefined, undefined, "", undefined, undefined, [])
+TypeAliasDeclaration - ts.createTypeAliasDeclaration(undefined, undefined, "", undefined, ts.createThisTypeNode())
+EnumDeclaration - ts.createEnumDeclaration(undefined, undefined, "", [])
+ModuleDeclaration - ts.createModuleDeclaration(undefined, undefined, ts.createIdentifier(""), undefined, undefined)
+ImportEqualsDeclaration - ts.createImportEqualsDeclaration(undefined, undefined, "", ts.createIdentifier(""))
+NamespaceExportDeclaration - ts.createNamespaceExportDeclaration("")
+ExportDeclaration - ts.createExportDeclaration(undefined, undefined, undefined, undefined)
+ExportAssignment - ts.createExportAssignment(undefined, undefined, false, ts.createIdentifier(""))
+EnumMember - ts.createEnumMember("", undefined)
+ModuleBlock - ts.createModuleBlock([])
+NamespaceDeclaration ts.isModuleDeclaration__as__any ts.createModuleDeclaration(undefined, undefined, ts.createIdentifier(""), ts.createModuleBlock([]), undefined) as ts.NamespaceDeclaration
+ExternalModuleReference - ts.createExternalModuleReference(ts.createLiteral(""))
+TypeOfExpression isTypeOfWorkaround ts.createTypeOf(ts.createLiteral(""))
+DoStatement - ts.createDo(ts.createEmptyStatement(), ts.createLiteral(""))
+WhileStatement - ts.createWhile(ts.createLiteral(""), ts.createEmptyStatement())
+ForStatement - ts.createFor(undefined, undefined, undefined, ts.createEmptyStatement())
+ForInStatement - ts.createForIn(ts.createVariableDeclarationList([]), ts.createLiteral(""), ts.createEmptyStatement())
+ForOfStatement - ts.createForOf(ts.createToken(ts.SyntaxKind.AwaitKeyword), ts.createVariableDeclarationList([]), ts.createLiteral(""), ts.createEmptyStatement())
+SpreadElement - ts.createSpread(ts.createLiteral(""))
+TryStatement - ts.createTry(ts.createBlock([]), undefined, undefined)
+CatchClause - ts.createCatchClause(undefined, ts.createBlock([]))
+
+SECTION tokenTypes
+NullLiteral NullKeyword
+BooleanLiteral TrueKeyword FalseKeyword
+ThisExpression ThisKeyword
+SuperExpression SuperKeyword
+ImportExpression ImportKeyword
+DotDotDotToken DotDotDotToken
+QuestionToken QuestionToken
+AsteriskToken AsteriskToken
+ThisTypeNode ThisType
+ReadonlyToken ReadonlyKeyword
+EqualsToken EqualsToken
+AwaitKeywordToken AwaitKeyword
+
+SECTION plainTokens
+OpenBraceToken
+CloseBraceToken
+OpenParenToken
+CloseParenToken
+OpenBracketToken
+CloseBracketToken
+DotToken
+SemicolonToken
+CommaToken
+LessThanToken
+LessThanSlashToken
+GreaterThanToken
+LessThanEqualsToken
+GreaterThanEqualsToken
+EqualsEqualsToken
+ExclamationEqualsToken
+EqualsEqualsEqualsToken
+ExclamationEqualsEqualsToken
+EqualsGreaterThanToken
+PlusToken
+MinusToken
+AsteriskAsteriskToken
+SlashToken
+PercentToken
+PlusPlusToken
+MinusMinusToken
+LessThanLessThanToken
+GreaterThanGreaterThanToken
+GreaterThanGreaterThanGreaterThanToken
+AmpersandToken
+BarToken
+CaretToken
+ExclamationToken
+TildeToken
+AmpersandAmpersandToken
+BarBarToken
+ColonToken
+AtToken
+PlusEqualsToken
+MinusEqualsToken
+AsteriskEqualsToken
+AsteriskAsteriskEqualsToken
+SlashEqualsToken
+PercentEqualsToken
+LessThanLessThanEqualsToken
+GreaterThanGreaterThanEqualsToken
+GreaterThanGreaterThanGreaterThanEqualsToken
+AmpersandEqualsToken
+BarEqualsToken
+CaretEqualsToken
+InKeyword
+InstanceOfKeyword
+AnyKeyword T
+NumberKeyword T
+ObjectKeyword T
+BooleanKeyword T
+StringKeyword T
+SymbolKeyword T
+ThisKeyword T
+VoidKeyword T
+UndefinedKeyword T
+NullKeyword T
+NeverKeyword T
+
+SECTION stringTemplates
+StringLiteral ts.createLiteral
+NumericLiteral (t) => { if((+t).toString() !== t) { throw new Error('Invalid number') }; return ts.createLiteral(+t) }
+Identifier ts.createIdentifier
+RegularExpressionLiteral (t) => ({ ...(ts.createTemplateHead(t) as any), kind: ts.SyntaxKind.RegularExpressionLiteral })
+TemplateHead ts.createTemplateHead
+TemplateMiddle ts.createTemplateMiddle
+TemplateTail ts.createTemplateTail
+
+SECTION comment
+JsxText (t) => ({ ...(ts.createLiteral(t) as any), kind: ts.SyntaxKind.JsxText, containsOnlyWhiteSpaces: /^\s*$/.test(t) }) as ts.JsxText
+
+SECTION listTemplates
+ArrayLiteralExpression Expression elements
+  build children => ts.createArrayLiteral(children)
+ObjectLiteralExpression ObjectLiteralElementLike properties
+  build children => ts.createObjectLiteral(children)
+VariableDeclarationList VariableDeclaration declarations
+  flags variableFlavor
+Block Statement statements
+ArrayBindingPattern ArrayBindingElement elements
+ObjectBindingPattern BindingElement elements
+NamedImports ImportSpecifier elements
+NamedExports ExportSpecifier elements
+TypeLiteralNode TypeElement members
+TupleTypeNode TypeNode elementTypes
+UnionTypeNode TypeNode types
+IntersectionTypeNode TypeNode types
+ModuleBlock Statement statements 
+JsxAttributes JsxAttributeLike properties
+
+SECTION structTemplates
+VariableDeclaration
+  R name BindingName
+  O type TypeNode
+  O initializer Expression
+  build ({name, type, initializer}) => ts.createVariableDeclaration(name, type, initializer)
+EmptyStatement
+  build ts.createEmptyStatement
+ThrowStatement
+  R expression Expression
+  build ({expression}) => ts.createThrow(expression)
+VariableStatement
+  R declarationList VariableDeclarationList
+  flags export ambient
+  build ({declarationList}, modifiers) => ts.createVariableStatement(modifiers, declarationList)
+FunctionDeclaration
+  O asteriskToken AsteriskToken
+  O name Identifier
+  RL parameters ParameterDeclaration
+  OL typeParameters TypeParameterDeclaration
+  O type TypeNode
+  O body FunctionBody
+  flags export default ambient async
+  build ({asteriskToken, name, parameters, typeParameters, type, body}, modifiers) => ts.createFunctionDeclaration(undefined, modifiers, asteriskToken, name, typeParameters, parameters, type, body)
+ExpressionStatement
+  R expression Expression
+  build ({expression}) => ts.createStatement(expression)
+ParameterDeclaration
+  O dotDotDotToken DotDotDotToken
+  R name BindingName
+  O questionToken QuestionToken
+  O type TypeNode
+  O initializer Expression
+  flags accesibility readonly
+  build ({dotDotDotToken, name, questionToken, type, initializer}, modifiers) => ts.createParameter(undefined, modifiers, dotDotDotToken, name, questionToken, type, initializer)
+BindingElement
+  O propertyName PropertyName
+  O dotDotDotToken DotDotDotToken
+  R name BindingName
+  O initializer Expression
+  build ({propertyName, dotDotDotToken, name, initializer}) => ts.createBindingElement(dotDotDotToken, propertyName, name, initializer)
+ComputedPropertyName
+  R expression Expression
+  build ({expression}) => ts.createComputedPropertyName(expression)
+CallExpression
+  R expression LeftHandSideExpression
+  OL typeArguments TypeNode
+  RL arguments Expression
+  build ({expression, typeArguments, arguments: args}) => ts.createCall(expression, typeArguments, args)
+PropertyAccessExpression
+  R expression LeftHandSideExpression
+  R name Identifier
+  build ({expression, name}) => ts.createPropertyAccess(expression, name)
+ElementAccessExpression
+  R expression LeftHandSideExpression
+  O argumentExpression Expression
+  build ({expression, argumentExpression}) => { if (!argumentExpression) { throw new Error('argumentExpression is required') } return ts.createElementAccess(expression, argumentExpression) }
+ImportDeclaration
+  O importClause ImportClause
+  R moduleSpecifier Expression
+  build ({importClause, moduleSpecifier}) => ts.createImportDeclaration(undefined, undefined, importClause, moduleSpecifier)
+ImportClause
+  O name Identifier
+  O namedBindings NamedImportBindings
+  build ({name, namedBindings}) => ts.createImportClause(name, namedBindings)
+NamespaceImport
+  R name Identifier
+  build ({name}) => ts.createNamespaceImport(name)
+ImportSpecifier
+  O propertyName Identifier
+  R name Identifier
+  build ({propertyName, name}) => ts.createImportSpecifier(propertyName, name)
+ExportSpecifier
+  O propertyName Identifier
+  R name Identifier
+  build ({propertyName, name}) => ts.createExportSpecifier(propertyName, name)
+ClassDeclaration
+  O name Identifier
+  OL typeParameters TypeParameterDeclaration
+  OL heritageClauses HeritageClause
+  RL members ClassElement
+  flags export default ambient abstract
+  build ({name, typeParameters, heritageClauses, members}, modifiers) => ts.createClassDeclaration(undefined, modifiers, name, typeParameters, heritageClauses || [], members)
+HeritageClause
+  RL types ExpressionWithTypeArguments
+  build ({types}) => ts.createHeritageClause(ts.SyntaxKind.ExtendsKeyword, types)
+ExpressionWithTypeArguments
+  R expression Expression
+  OL typeArguments TypeNode
+  build ({expression, typeArguments}) => ts.createExpressionWithTypeArguments(typeArguments || [], expression)
+PropertyDeclaration
+  R name PropertyName
+  O questionToken QuestionToken
+  O type TypeNode
+  O initializer Expression
+  flags accesibility static readonly async abstract
+  build ({name, questionToken, type, initializer}, modifiers) => ts.createProperty(undefined, modifiers, name, questionToken, type, initializer)
+MethodDeclaration
+  O asteriskToken AsteriskToken
+  R name PropertyName
+  O questionToken QuestionToken
+  OL typeParameters TypeParameterDeclaration
+  RL parameters ParameterDeclaration
+  O type TypeNode
+  O body FunctionBody
+  flags accesibility static async abstract
+  build ({asteriskToken, name, questionToken, typeParameters, parameters, type, body}, modifiers) => ts.createMethod(undefined, modifiers, asteriskToken, name, questionToken, typeParameters, parameters, type, body)
+ConstructorDeclaration
+  RL parameters ParameterDeclaration
+  O body FunctionBody
+  flags abstract
+  build ({body, parameters}, modifiers) => ts.createConstructor(undefined, modifiers, parameters, body)
+GetAccessorDeclaration
+  R name PropertyName
+  RL parameters ParameterDeclaration
+  O type TypeNode
+  R body FunctionBody
+  flags accesibility static abstract
+  build ({name, parameters, type, body}, modifiers) => ts.createGetAccessor(undefined, modifiers, name, parameters, type, body)
+SetAccessorDeclaration
+  R name PropertyName
+  RL parameters ParameterDeclaration
+  R body FunctionBody
+  flags accesibility static abstract
+  build ({name, body, parameters}, modifiers) => ts.createSetAccessor(undefined, modifiers, name, parameters, body)
+ArrowFunction
+  OL typeParameters TypeParameterDeclaration
+  RL parameters ParameterDeclaration
+  O type TypeNode
+  R body ConciseBody
+  flags async
+  build ({body, typeParameters, parameters, type}, modifiers) => ts.createArrowFunction(modifiers, typeParameters, parameters, type, ts.createToken(ts.SyntaxKind.EqualsGreaterThanToken), body)
+PropertyAssignment
+  R name PropertyName
+  R initializer Expression
+  build ({name, initializer}) => ts.createPropertyAssignment(name, initializer)
+ReturnStatement
+  O expression Expression
+  build ({expression}) => ts.createReturn(expression)
+NewExpression
+  R expression LeftHandSideExpression
+  OL typeArguments TypeNode
+  OL arguments Expression
+  build ({expression, typeArguments, arguments: args}) => ts.createNew(expression, typeArguments, args)
+IfStatement
+  R expression Expression
+  R thenStatement Statement
+  O elseStatement Statement
+  build ({expression, thenStatement, elseStatement}) => ts.createIf(expression, thenStatement, elseStatement)
+ConditionalExpression
+  R condition Expression
+  R whenTrue Expression
+  R whenFalse Expression
+  build ({condition, whenTrue, whenFalse}) => ts.createConditional(condition, whenTrue, whenFalse)
+BinaryExpression
+  R left Expression
+  R operatorToken BinaryOperatorToken
+  R right Expression
+  build ({left, operatorToken, right}) => ts.createBinary(left, operatorToken, right)
+PrefixUnaryExpression
+  R operator PrefixUnaryOperator ts.Token<ts.PrefixUnaryOperator> load ts.createToken(e.operator)
+  R operand UnaryExpression
+  build ({operator, operand}) => ts.createPrefix(operator.kind, operand)
+PostfixUnaryExpression 
+  R operand LeftHandSideExpression
+  R operator PostfixUnaryOperator ts.Token<ts.PostfixUnaryOperator> load ts.createToken(e.operator)
+  build ({operand, operator}) => ts.createPostfix(operand, operator.kind)
+TemplateExpression
+  R head TemplateHead
+  RL templateSpans TemplateSpan
+  build ({head, templateSpans}) => ts.createTemplateExpression(head, templateSpans)
+TemplateSpan
+  R expression Expression
+  R literal TemplateSpanLiteral ts.TemplateMiddle | ts.TemplateTail
+  build ({expression, literal}) => ts.createTemplateSpan(expression, literal)
+ParenthesizedExpression
+  R expression Expression
+  build ({expression}) => ts.createParen(expression)
+AsExpression
+  R expression Expression
+  R type TypeNode
+  build ({expression, type}) => ts.createAsExpression(expression, type)
+TypeParameterDeclaration
+  R name Identifier
+  O constraint TypeNode
+  O default TypeNode
+  build ({name, constraint, default: _default}) => ts.createTypeParameterDeclaration(name, constraint, _default)
+FunctionTypeNode
+  OL typeParameters TypeParameterDeclaration
+  RL parameters ParameterDeclaration
+  O type TypeNode
+  build  ({typeParameters, parameters, type}) => ts.createFunctionTypeNode(typeParameters && [...typeParameters], [...parameters], type)
+ConstructorTypeNode
+  OL typeParameters TypeParameterDeclaration
+  RL parameters ParameterDeclaration
+  O type TypeNode
+  build  ({typeParameters, parameters, type}) => ts.createConstructorTypeNode(typeParameters && [...typeParameters], [...parameters], type)
+QualifiedName
+  R left EntityName
+  R right Identifier
+  build ({left, right}) => ts.createQualifiedName(left, right)
+TypeReferenceNode
+  R typeName EntityName
+  OL typeArguments TypeNode
+  build ({typeName, typeArguments}) => ts.createTypeReferenceNode(typeName, typeArguments)
+TypePredicateNode
+  R parameterName TypePredicateNodeParameterName ts.Identifier | ts.ThisTypeNode
+  R type TypeNode
+  build ({parameterName, type}) => ts.createTypePredicateNode(parameterName, type)
+TypeQueryNode
+  R exprName EntityName
+  build ({exprName}) => ts.createTypeQueryNode(exprName)
+CallSignatureDeclaration
+  OL typeParameters TypeParameterDeclaration
+  RL parameters ParameterDeclaration
+  O type TypeNode
+  build  ({typeParameters, parameters, type}) => ts.createCallSignature(typeParameters && [...typeParameters], [...parameters], type)
+ConstructSignatureDeclaration
+  OL typeParameters TypeParameterDeclaration
+  RL parameters ParameterDeclaration
+  O type TypeNode
+  build  ({typeParameters, parameters, type}) => ts.createConstructSignature(typeParameters && [...typeParameters], [...parameters], type)
+PropertySignature
+  R name PropertyName
+  O questionToken QuestionToken
+  O type TypeNode
+  O initializer Expression
+  flags readonly
+  build ({name, questionToken, type, initializer}, modifiers) => ts.createPropertySignature(modifiers, name, questionToken, type, initializer)
+MethodSignature
+  R name PropertyName
+  O questionToken QuestionToken
+  OL typeParameters TypeParameterDeclaration
+  RL parameters ParameterDeclaration
+  O type TypeNode
+  build  ({name, questionToken, typeParameters, parameters, type}) => ts.createMethodSignature(typeParameters, parameters, type, name, questionToken)
+IndexSignatureDeclaration
+  RL parameters ParameterDeclaration
+  O type TypeNode
+  flags readonly
+  build ({parameters, type}, modifiers) => { if (!type) { throw new Error('type is required') }; return ts.createIndexSignature(undefined, modifiers, parameters, type) }
+ArrayTypeNode
+  R elementType TypeNode
+  build ({elementType}) => ts.createArrayTypeNode(elementType)
+ParenthesizedTypeNode
+  R type TypeNode
+  build ({type}) => ts.createParenthesizedType(type)
+TypeOperatorNode
+  R type TypeNode
+  build ({type}) => ts.createTypeOperatorNode(type)
+IndexedAccessTypeNode
+  R objectType TypeNode
+  R indexType TypeNode
+  build ({objectType, indexType}) => ts.createIndexedAccessTypeNode(objectType, indexType)
+MappedTypeNode
+  O readonlyToken ReadonlyToken
+  R typeParameter TypeParameterDeclaration
+  O questionToken QuestionToken
+  O type TypeNode
+  build ({readonlyToken, typeParameter, questionToken, type}) => ts.createMappedTypeNode(readonlyToken, typeParameter, questionToken, type)
+LiteralTypeNode
+  R literal LiteralTypeNodeLiteral ts.BooleanLiteral | ts.LiteralExpression | ts.PrefixUnaryExpression
+  build ({literal}) => ts.createLiteralTypeNode(literal)
+InterfaceDeclaration
+  R name Identifier
+  OL typeParameters TypeParameterDeclaration
+  OL heritageClauses HeritageClause
+  RL members TypeElement
+  flags export default ambient
+  build ({name, typeParameters, heritageClauses, members}, modifiers) => ts.createInterfaceDeclaration(undefined, modifiers, name, typeParameters, heritageClauses, members)
+TypeAliasDeclaration
+  R name Identifier
+  OL typeParameters TypeParameterDeclaration
+  R type TypeNode
+  flags export ambient
+  build ({name, typeParameters, type}, modifiers) => ts.createTypeAliasDeclaration(undefined, modifiers, name, typeParameters, type)
+EnumDeclaration
+  R name Identifier
+  RL members EnumMember
+  flags export ambient
+  build ({name, members}, modifiers) => ts.createEnumDeclaration(undefined, modifiers, name, members)
+EnumMember
+  R name PropertyName
+  O initializer Expression
+  build ({name, initializer}) => ts.createEnumMember(name, initializer)
+ModuleDeclaration
+  R name ModuleName
+  O body ModuleBody ts.ModuleBody | ts.JSDocNamespaceDeclaration
+  flags export ambient
+  build ({name, body}, modifiers) => ts.createModuleDeclaration(undefined, modifiers, name, body, undefined)
+ImportEqualsDeclaration
+  R name Identifier
+  R moduleReference ModuleReference
+  build ({name, moduleReference}) => ts.createImportEqualsDeclaration(undefined, undefined, name, moduleReference)
+ExternalModuleReference
+  O expression Expression
+  build ({expression}) => { if(!expression) { throw new Error('expression required') }; return ts.createExternalModuleReference(expression)}
+NamespaceExportDeclaration
+  R name Identifier
+  build ({name}) => ts.createNamespaceExportDeclaration(name)
+NamespaceDeclaration
+  R name Identifier
+  R body NamespaceBody
+  flags export ambient
+  build ({name, body}, modifiers) => ts.createModuleDeclaration(undefined, modifiers, name, body, undefined) as ts.NamespaceDeclaration
+ExportDeclaration
+  O exportClause NamedExports
+  O moduleSpecifier Expression
+  flags default
+  build ({exportClause, moduleSpecifier}, modifiers) => ts.createExportDeclaration(undefined, modifiers, exportClause, moduleSpecifier)
+ExportAssignment
+  O isExportEquals EqualsToken ts.EqualsToken load e.isExportEquals ? ts.createToken(ts.SyntaxKind.EqualsToken) : undefined
+  R expression Expression
+  flags default
+  build ({isExportEquals, expression}, modifiers) => ts.createExportAssignment(undefined, modifiers, !!isExportEquals, expression)
+ShorthandPropertyAssignment
+  R name Identifier
+  O objectAssignmentInitializer Expression
+  build ({name, objectAssignmentInitializer}) => ts.createShorthandPropertyAssignment(name, objectAssignmentInitializer)
+SpreadAssignment
+  R expression Expression
+  build ({expression}) => ts.createSpreadAssignment(expression)
+JsxElement
+  R openingElement JsxOpeningElement
+  RL children JsxChild
+  R closingElement JsxClosingElement
+  build ({openingElement, children, closingElement}) => ts.createJsxElement(openingElement, children, closingElement)
+JsxSelfClosingElement
+  R tagName JsxTagNameExpression
+  R attributes JsxAttributes
+  build ({tagName, attributes}) => ts.createJsxSelfClosingElement(tagName, attributes)
+JsxOpeningElement
+  R tagName JsxTagNameExpression
+  R attributes JsxAttributes
+  build ({tagName, attributes}) => ts.createJsxOpeningElement(tagName, attributes)
+JsxClosingElement
+  R tagName JsxTagNameExpression
+  build ({tagName}) => ts.createJsxClosingElement(tagName)
+JsxAttribute
+  R name Identifier
+  O initializer JsxAttributeInitializer ts.StringLiteral | ts.JsxExpression
+  build ({name, initializer}) => { if (!initializer) { throw new Error('initializer is required') } return ts.createJsxAttribute(name, initializer) }
+JsxSpreadAttribute
+  R expression Expression
+  build ({expression}) => ts.createJsxSpreadAttribute(expression)
+JsxExpression
+  O dotDotDotToken DotDotDotToken
+  O expression Expression
+  build ({dotDotDotToken, expression}) => ts.createJsxExpression(dotDotDotToken, expression)
+TypeOfExpression
+  R expression Expression
+  build ({expression}) => ts.createTypeOf(expression)
+DoStatement
+  R statement Statement
+  R expression Expression
+  build ({statement, expression}) => ts.createDo(statement, expression)
+WhileStatement
+  R expression Expression
+  R statement Statement
+  build ({expression, statement}) => ts.createWhile(expression, statement)
+ForStatement
+  O initializer ForInitializer
+  O condition Expression
+  O incrementor Expression
+  R statement Statement
+  build ({initializer, condition, incrementor, statement}) => ts.createFor(initializer, condition, incrementor, statement)
+ForInStatement
+  R initializer ForInitializer
+  R expression Expression
+  R statement Statement
+  build ({initializer, expression, statement}) => ts.createForIn(initializer, expression, statement)
+ForOfStatement
+  O awaitModifier AwaitKeywordToken
+  R initializer ForInitializer
+  R expression Expression
+  R statement Statement
+  build ({awaitModifier, initializer, expression, statement}) => ts.createForOf(awaitModifier!, initializer, expression, statement)
+SpreadElement
+  R expression Expression
+  build ({expression}) => ts.createSpread(ts.createLiteral(""))
+TryStatement
+  R tryBlock Block
+  O catchClause CatchClause
+  O finallyBlock Block
+  build ({tryBlock, catchClause, finallyBlock}) => ts.createTry(tryBlock, catchClause, finallyBlock)
+CatchClause
+  O variableDeclaration VariableDeclaration
+  R block Block
+  build ({variableDeclaration, block}) => ts.createCatchClause(variableDeclaration, block)
