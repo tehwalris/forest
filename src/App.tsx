@@ -23,6 +23,15 @@ export default class App extends React.Component {
           />,
         ])}
         <Home />
+        {/* <Entity progressive-controls="objects: .cube, a-link; maxLevel: point">
+          <Entity id="rhand" class="right-controller" />
+          <Entity id="lhand" class="left-controller" />
+        </Entity> */}
+        <Entity laser-controls="hand: left" raycaster="objects: .interactive" />
+        <Entity
+          laser-controls="hand: right"
+          raycaster="objects: .interactive"
+        />
         <Entity
           primitive="a-plane"
           src="#groundTexture"
@@ -45,9 +54,7 @@ export default class App extends React.Component {
           theta-length="90"
           width="2048"
         />
-        <Entity primitive="a-camera">
-          <Entity primitive="a-cursor" />
-        </Entity>
+        <Entity primitive="a-camera" />
       </Scene>
     );
   }

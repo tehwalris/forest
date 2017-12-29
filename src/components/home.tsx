@@ -30,6 +30,8 @@ interface State {
   disablePrettier: boolean;
   disableFolding: boolean;
   prettyPrintResult?: PrettyPrintResult;
+  centerX: number;
+  centerY: number;
 }
 interface SavedState {
   filePath: string;
@@ -51,6 +53,8 @@ export default class Home extends React.Component<{}, State> {
       tree: undefined as any,
       disablePrettier: false,
       disableFolding: false,
+      centerX: 0.5,
+      centerY: 1.3,
     };
     const _loaded = window.localStorage.getItem("editorState");
     if (_loaded) {
@@ -356,7 +360,7 @@ export default class Home extends React.Component<{}, State> {
     });
   }
   render() {
-    const { tree, selection, prettyPrintResult } = this.state;
+    const { tree, selection, prettyPrintResult, centerX, centerY } = this.state;
     const displayTree = buildDisplayTree(tree);
     return (
       <Entity>
@@ -364,7 +368,9 @@ export default class Home extends React.Component<{}, State> {
           root={displayTree}
           highlightPath={selection}
           setPath={p => this.setState({ selection: p })}
-          radius={1.5}
+          centerX={centerX}
+          centerY={centerY}
+          setCenter={(x, y) => this.setState({ centerX: x, centerY: y })}
         />
         <Entity
           primitive="a-plane"
