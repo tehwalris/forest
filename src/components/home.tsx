@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Entity } from "aframe-react";
 import * as R from "ramda";
 import TypescriptProvider, { FileNode } from "../logic/providers/typescript";
 import { Path } from "../logic/tree/base";
@@ -317,8 +318,7 @@ export default class Home extends React.Component<{}, State> {
     { tree: oldTree, disablePrettier }: State = this.state,
   ): PrettyPrintResult | undefined {
     const fileNode: FileNode = oldTree.children[0].node as any;
-    return fileNode
-      .prettyPrint(
+    return fileNode.prettyPrint(
       disablePrettier
         ? undefined
         : t => {
@@ -329,7 +329,7 @@ export default class Home extends React.Component<{}, State> {
             }
             return t;
           },
-      );
+    );
   }
   getSelectedRange(printed: PrettyPrintResult): [number, number] | undefined {
     const displayTarget = this.getDeepestPossibleByDisplayPath(
@@ -356,14 +356,35 @@ export default class Home extends React.Component<{}, State> {
     });
   }
   render() {
-    const { tree, selection } = this.state;
+    const { tree, selection, prettyPrintResult } = this.state;
     const displayTree = buildDisplayTree(tree);
     return (
-      <VrTreeDisplay
-        root={displayTree}
-        highlightPath={selection}
-        radius={1.5}
-      />
+      <Entity>
+        <VrTreeDisplay
+          root={displayTree}
+          highlightPath={selection}
+          setPath={p => this.setState({ selection: p })}
+          radius={1.5}
+        />
+        <Entity
+          primitive="a-plane"
+          material={{ color: "green", opacity: 0.2 }}
+          text={{
+            value: prettyPrintResult
+              ? prettyPrintResult.text
+                  .split("\n")
+                  .map(e => "|   " + e)
+                  .join("\n")
+              : "",
+            whiteSpace: "pre",
+            wrapCount: "80",
+          }}
+          position="0 5 -3"
+          rotation="65 0 0"
+          height="10"
+          width="10"
+        />
+      </Entity>
     );
     /*
     return (

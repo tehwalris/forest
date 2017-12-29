@@ -1,11 +1,13 @@
 import * as React from "react";
 import { Entity } from "aframe-react";
+import { DisplayNode } from "../../logic/tree/display";
 
 export interface SimpleNode {
   label: string;
 }
 
 export interface ShallowTree {
+  displayNode: DisplayNode;
   root: SimpleNode;
   children: SimpleNode[];
 }
@@ -13,9 +15,10 @@ export interface ShallowTree {
 interface Props {
   width: number;
   tree: ShallowTree;
+  onClick: () => void;
 }
 
-export default ({ tree, width }: Props) => {
+export default ({ tree, width, onClick }: Props) => {
   return (
     <Entity
       geometry={{
@@ -25,6 +28,9 @@ export default ({ tree, width }: Props) => {
         height: 1.3,
       }}
       material={{ color: "red", opacity: 0.2 }}
+      events={{
+        click: onClick,
+      }}
     >
       <Entity
         text={{

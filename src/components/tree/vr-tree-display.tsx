@@ -1,5 +1,6 @@
 import * as React from "react";
 import SurroundTrees from "./surround-trees";
+import { Entity } from "aframe-react";
 import {
   DisplayNode,
   DisplayPath,
@@ -10,6 +11,7 @@ import { ShallowTree } from "./shallow-tree";
 interface Props {
   root: DisplayNode;
   highlightPath: DisplayPath;
+  setPath: (path: DisplayPath) => void;
   radius: number;
 }
 
@@ -43,13 +45,36 @@ function labelDisplayNode(node: DisplayNode): string {
 
 function childrenToShallowTrees(node: DisplayNode): ShallowTree[] {
   return node.children.map(p => ({
+    displayNode: p,
     root: { label: labelDisplayNode(p) },
     children: p.children.map(c => ({ label: labelDisplayNode(c) })),
   }));
 }
 
-export default ({ root, highlightPath, radius }: Props) => {
+export default ({ root, highlightPath, radius, setPath }: Props) => {
   const target = getDeepestPossibleByDisplayPath(highlightPath, root);
   const trees = childrenToShallowTrees(target);
-  return <SurroundTrees trees={trees} radius={radius} />;
+  return (
+    <Entity>
+      <SurroundTrees trees={trees} radius={radius} setPath={setPath} />;
+      <Entity
+        primitive="a-plane"
+        material={{ color: "blue", opacity: 0.2 }}
+        text={{
+          value: labelDisplayNode(target),
+          align: "center",
+        }}
+        position="0 0.01 -1"
+        rotation="-90 0 0"
+        height="5"
+        width="5"
+        events={{
+          click: () =>
+            setPath(
+              highlightPath.slice(0, Math.max(highlightPath.length - 1, 0)),
+            ),
+        }}
+      />
+    </Entity>
+  );
 };

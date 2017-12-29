@@ -4,7 +4,7 @@ body {
   font-family: sans-serif;
 }
 
-div#root {
-  width: "100%";
-  height: "100%";
+div#sceneContainer {
+  width: 100%;
+  height: 100%;
 }
