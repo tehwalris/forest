@@ -12,4 +12,4 @@ ReactDOM.render(<App />, document.getElementById(
 ) as HTMLElement);
 registerServiceWorker();
 
-// var whenReadFile = (fs$1 && fs$1.readFile) ? Promise$1.promisify(fs$1.readFile) : Promise$1.reject();
+// var whenReadFile = (fs$1 && fs$1.readFile) ? Promise$1.promisify(fs$1.readFile) : () => Promise$1.reject();

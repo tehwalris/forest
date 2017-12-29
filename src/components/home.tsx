@@ -37,6 +37,10 @@ interface SavedState {
   filePath: string;
   selection: DisplayPath;
 }
+interface TreeCache {
+  root: Node<any>;
+  displayRoot: DisplayNode;
+}
 const PRETTIER_OPTIONS = {
   parser: "typescript" as "typescript",
 };
@@ -45,6 +49,7 @@ const INITIAL_FILE: string = "app/logic/providers/typescript/convert.ts";
 export default class Home extends React.Component<{}, State> {
   typescriptProvider = new TypescriptProvider();
   state: State = this.loadState();
+  treeCache: TreeCache;
   loadState() {
     const output: State = {
       selection: [],
@@ -74,10 +79,18 @@ export default class Home extends React.Component<{}, State> {
     document.addEventListener("keydown", this.onKeyDown.bind(this));
     this.setState({ prettyPrintResult: this.prettyPrint() });
     console.log(this.state.tree);
+    this.treeCache = {
+      root: this.state.tree,
+      displayRoot: buildDisplayTree(this.state.tree),
+    };
     (window as any).openFile = this.openFile.bind(this);
   }
   componentWillUpdate(nextProps: {}, nextState: State) {
     if (nextState.tree !== this.state.tree) {
+      this.treeCache = {
+        root: nextState.tree,
+        displayRoot: buildDisplayTree(nextState.tree),
+      };
       const prettyPrintResult = this.prettyPrint(nextState);
       this.setState({ prettyPrintResult }, () => this.saveState());
       if (prettyPrintResult) {
@@ -360,12 +373,11 @@ export default class Home extends React.Component<{}, State> {
     });
   }
   render() {
-    const { tree, selection, prettyPrintResult, centerX, centerY } = this.state;
-    const displayTree = buildDisplayTree(tree);
+    const { selection, prettyPrintResult, centerX, centerY } = this.state;
     return (
       <Entity>
         <VrTreeDisplay
-          root={displayTree}
+          root={this.treeCache.displayRoot}
           highlightPath={selection}
           setPath={p => this.setState({ selection: p })}
           centerX={centerX}

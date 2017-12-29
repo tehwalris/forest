@@ -5,6 +5,7 @@
   "dependencies": {
     "@types/prettier": "^1.9.0",
     "@types/ramda": "^0.25.10",
+    "@types/three": "^0.84.36",
     "aframe": "^0.7.1",
     "aframe-animation-component": "^4.0.0-beta9",
     "aframe-line-component": "^1.0.1",
@@ -33,6 +34,7 @@
     "style-loader": "0.18.2",
     "super-hands": "^2.1.0",
     "sw-precache-webpack-plugin": "0.11.4",
+    "three.js": "^0.77.1",
     "ts-jest": "^20.0.7",
     "ts-loader": "^2.3.7",
     "tslint": "^5.7.0",

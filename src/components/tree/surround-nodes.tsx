@@ -18,7 +18,9 @@ interface Props {
   nextLayerWidth: number;
 }
 
-function labelDisplayNode(node: DisplayNode): string {
+const labelCache = new WeakMap<DisplayNode, string>();
+
+function labelDisplayNodeUncached(node: DisplayNode): string {
   const fullChain = nodesFromDisplayNode(node);
   const debugLabel = fullChain.reduce(
     (a, c) => c.node.getDebugLabel() || a,
@@ -31,6 +33,13 @@ function labelDisplayNode(node: DisplayNode): string {
   const label =
     (debugLabel ? `${path}\n${debugLabel}` : path) + (built.ok ? "" : "!");
   return label;
+}
+
+function labelDisplayNode(node: DisplayNode): string {
+  if (!labelCache.has(node)) {
+    labelCache.set(node, labelDisplayNodeUncached(node));
+  }
+  return labelCache.get(node)!;
 }
 
 export default ({

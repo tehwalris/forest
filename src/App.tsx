@@ -54,7 +54,15 @@ export default class App extends React.Component {
           theta-length="90"
           width="2048"
         />
-        <Entity primitive="a-camera" />
+        <Entity primitive="a-camera">
+          <Entity
+            primitive="a-cursor"
+            cursor
+            raycaster="objects: .interactive"
+            downEvents="mousedown"
+            upEvents="mouseup"
+          />
+        </Entity>
       </Scene>
     );
   }
