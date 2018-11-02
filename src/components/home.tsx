@@ -1,18 +1,19 @@
 import * as React from "react";
-import { Entity } from "aframe-react";
 import * as R from "ramda";
 import TypescriptProvider, { FileNode } from "../logic/providers/typescript";
+import TreeDisplay from "./tree/tree-display";
 import { Path } from "../logic/tree/base";
 import { Node, Flag, FlagSet } from "../logic/tree/node";
 import { Action, InputKind, ActionSet } from "../logic/tree/action";
+import ActionFiller from "./tree/action-filler";
 import * as ts from "typescript";
+import CodeDisplay from "./code-display";
 import {
   buildDisplayTree,
   DisplayNode,
   DisplayPath,
   nodesFromDisplayNode,
 } from "../logic/tree/display";
-import VrTreeDisplay from "./tree/vr-tree-display";
 import * as prettier from "prettier";
 interface PrettyPrintResult {
   node: FileNode;
@@ -30,26 +31,40 @@ interface State {
   disablePrettier: boolean;
   disableFolding: boolean;
   prettyPrintResult?: PrettyPrintResult;
-  centerX: number;
-  centerY: number;
 }
 interface SavedState {
   filePath: string;
   selection: DisplayPath;
 }
-interface TreeCache {
-  root: Node<any>;
-  displayRoot: DisplayNode;
-}
 const PRETTIER_OPTIONS = {
   parser: "typescript" as "typescript",
+  printWidth: 80,
 };
-const INITIAL_FILE: string = "app/logic/providers/typescript/convert.ts";
+const INITIAL_FILE: string = "temp/fizz-buzz/index.ts";
+const styles = {
+  wrapper: {
+    display: "flex",
+    height: "100vh",
+    width: "100vw",
+    position: "fixed",
+    top: 0,
+    left: 0,
+  },
+  leftPanel: {
+    height: "100%",
+    overflow: "scroll",
+    width: "50%",
+  },
+  rightPanel: {
+    height: "100%",
+    overflow: "scroll",
+    width: "50%",
+  },
+};
 
 export default class Home extends React.Component<{}, State> {
   typescriptProvider = new TypescriptProvider();
-  state: State = this.loadState();
-  treeCache: TreeCache;
+  state: State;
   loadState() {
     const output: State = {
       selection: [],
@@ -58,8 +73,6 @@ export default class Home extends React.Component<{}, State> {
       tree: undefined as any,
       disablePrettier: false,
       disableFolding: false,
-      centerX: 0.5,
-      centerY: 1.3,
     };
     const _loaded = window.localStorage.getItem("editorState");
     if (_loaded) {
@@ -76,21 +89,14 @@ export default class Home extends React.Component<{}, State> {
     window.localStorage.setItem("editorState", JSON.stringify(toSave));
   }
   componentWillMount() {
+    (window as any).openFile = this.openFile.bind(this);
+    this.state = this.loadState();
     document.addEventListener("keydown", this.onKeyDown.bind(this));
     this.setState({ prettyPrintResult: this.prettyPrint() });
     console.log(this.state.tree);
-    this.treeCache = {
-      root: this.state.tree,
-      displayRoot: buildDisplayTree(this.state.tree),
-    };
-    (window as any).openFile = this.openFile.bind(this);
   }
   componentWillUpdate(nextProps: {}, nextState: State) {
     if (nextState.tree !== this.state.tree) {
-      this.treeCache = {
-        root: nextState.tree,
-        displayRoot: buildDisplayTree(nextState.tree),
-      };
       const prettyPrintResult = this.prettyPrint(nextState);
       this.setState({ prettyPrintResult }, () => this.saveState());
       if (prettyPrintResult) {
@@ -141,13 +147,13 @@ export default class Home extends React.Component<{}, State> {
     const tryDeleteChild = () => {
       const deleteFrom = R.tail(R.reverse([...parentNodes, ...nodes]));
       let toDelete = R.last(nodes)!;
-      for (const e of deleteFrom) {
-        const action = e.node.actions.deleteChild;
+      for (const _e of deleteFrom) {
+        const action = _e.node.actions.deleteChild;
         if (action) {
-          this.handleAction(action, () => e.path, R.last(toDelete.path)!);
+          this.handleAction(action, () => _e.path, R.last(toDelete.path)!);
           break;
         }
-        toDelete = e;
+        toDelete = _e;
       }
     };
     const handlers: { [key: string]: (() => void) | undefined } = {
@@ -363,7 +369,9 @@ export default class Home extends React.Component<{}, State> {
   tryReload() {
     const { tree } = this.state;
     const fileNode: FileNode = tree.children[0].node as any;
-    const result = fileNode.prettyPrint();
+    const result = fileNode.prettyPrint(t =>
+      prettier.format(t, PRETTIER_OPTIONS),
+    );
     if (!result) {
       return;
     }
@@ -373,38 +381,15 @@ export default class Home extends React.Component<{}, State> {
     });
   }
   render() {
-    const { selection, prettyPrintResult, centerX, centerY } = this.state;
-    return (
-      <Entity>
-        <VrTreeDisplay
-          root={this.treeCache.displayRoot}
-          highlightPath={selection}
-          setPath={p => this.setState({ selection: p })}
-          centerX={centerX}
-          centerY={centerY}
-          setCenter={(x, y) => this.setState({ centerX: x, centerY: y })}
-        />
-        <Entity
-          primitive="a-plane"
-          material={{ color: "green", opacity: 0.2 }}
-          text={{
-            value: prettyPrintResult
-              ? prettyPrintResult.text
-                  .split("\n")
-                  .map(e => "|   " + e)
-                  .join("\n")
-              : "",
-            whiteSpace: "pre",
-            wrapCount: "80",
-          }}
-          position="0 5 -3"
-          rotation="65 0 0"
-          height="10"
-          width="10"
-        />
-      </Entity>
-    );
-    /*
+    const {
+      selection,
+      tree,
+      inProgressAction,
+      disablePrettier,
+      disableFolding,
+      prettyPrintResult: printed,
+    } = this.state;
+    const displayTree = buildDisplayTree(tree);
     return (
       <div style={styles.wrapper as any}>
         <div style={styles.leftPanel as {}}>
@@ -436,6 +421,5 @@ export default class Home extends React.Component<{}, State> {
         </div>
       </div>
     );
-    */
   }
 }
