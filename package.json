@@ -8,6 +8,7 @@
     "@types/three": "^0.84.36",
     "aframe": "^0.7.1",
     "aframe-animation-component": "^4.0.0-beta9",
+    "aframe-environment-component": "^1.0.0",
     "aframe-line-component": "^1.0.1",
     "aframe-particle-system-component": "^1.0.11",
     "aframe-react": "^4.3.0",

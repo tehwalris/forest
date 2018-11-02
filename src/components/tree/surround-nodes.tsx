@@ -1,12 +1,14 @@
 import * as React from "react";
 import { Entity } from "aframe-react";
-import { PositionalTreeLayer } from "./positional-tree";
+import { PositionalTreeLayer, PositionalTreeNode } from "./positional-tree";
 import { DisplayNode, nodesFromDisplayNode } from "../../logic/tree/display";
 import * as R from "ramda";
+import { USE_MOUSE } from "./config";
 
 const TREE_PADDING = 0.05;
 const TREE_OUTER_WIDTH = 0.8;
 const TREE_INNER_WIDTH = TREE_OUTER_WIDTH - 2 * TREE_PADDING;
+const TREE_INNER_HEIGHT = 0.3;
 const ACTIVE_ANGLE = Math.PI * 1.5;
 
 interface Props {
@@ -16,6 +18,9 @@ interface Props {
   nextRadius: number;
   nextYOffset: number;
   nextLayerWidth: number;
+  onRayEnter: (node: PositionalTreeNode) => void;
+  onRayLeave: () => void;
+  selectedNode: DisplayNode | undefined;
 }
 
 const labelCache = new WeakMap<DisplayNode, string>();
@@ -49,6 +54,9 @@ export default ({
   centerX,
   nextYOffset,
   nextLayerWidth,
+  onRayEnter,
+  onRayLeave,
+  selectedNode,
 }: Props) => {
   // const alpha = 2 * Math.asin(TREE_OUTER_WIDTH / (2 * radius));
   // const rangeT = ACTIVE_ANGLE * radius;
@@ -63,9 +71,10 @@ export default ({
           node,
           alpha:
             tIntoAlpha(xIntoT((node.startX + node.endX) / 2)) - Math.PI / 2,
+          i,
         }))
         .filter(e => e.alpha >= -ACTIVE_ANGLE && e.alpha <= 0)
-        .map(({ node, alpha }, i) => {
+        .map(({ node, alpha, i }) => {
           return (
             <Entity
               key={`node ${i}`}
@@ -78,12 +87,46 @@ export default ({
             >
               <Entity
                 geometry={{
-                  primitive: "box",
-                  depth: 0.2,
+                  primitive: "plane",
                   width: TREE_INNER_WIDTH,
-                  height: 0.5,
+                  height: TREE_INNER_HEIGHT,
                 }}
-                material={{ color: "red", opacity: 0.2 }}
+                position="0 0 -0.02"
+                material={{
+                  color: node.displayNode === selectedNode ? "green" : "red",
+                  opacity: 0.8,
+                }}
+              />
+              <Entity
+                class="interactive"
+                geometry={{
+                  primitive: "box",
+                  depth: 0.04,
+                  width: TREE_INNER_WIDTH,
+                  height: TREE_INNER_HEIGHT,
+                }}
+                events={{
+                  "raycaster-intersected": (e: any) => {
+                    if (
+                      e.detail.el.nodeName ===
+                      (USE_MOUSE ? "A-CURSOR" : "A-ENTITY")
+                    ) {
+                      onRayEnter(node);
+                    }
+                  },
+                  "raycaster-intersected-cleared": (e: any) => {
+                    if (
+                      e.detail.el.nodeName ===
+                      (USE_MOUSE ? "A-CURSOR" : "A-ENTITY")
+                    ) {
+                      onRayLeave();
+                    }
+                  },
+                }}
+                material={{
+                  color: node.displayNode === selectedNode ? "green" : "red",
+                  opacity: 0.2,
+                }}
               >
                 <Entity
                   text={{
@@ -104,7 +147,7 @@ export default ({
         .map(e => {
           const fromAlpha = tIntoAlpha(xIntoT(e.fromX)) - Math.PI / 2;
           const toAlpha = tIntoAlphaNext(xIntoTNext(e.toX)) - Math.PI / 2;
-          return { fromAlpha, toAlpha };
+          return { fromAlpha, toAlpha, toX: e.toX };
         })
         .filter(
           e =>
@@ -113,15 +156,17 @@ export default ({
             e.toAlpha >= -ACTIVE_ANGLE &&
             e.toAlpha <= 0,
         )
-        .map(({ fromAlpha, toAlpha }, i) => {
+        .map(({ fromAlpha, toAlpha, toX }, i) => {
           const fromSpaceX = radius * Math.cos(fromAlpha);
           const fromSpaceZ = radius * Math.sin(fromAlpha);
           const toSpaceX = nextRadius * Math.cos(toAlpha);
           const toSpaceZ = nextRadius * Math.sin(toAlpha);
           return (
             <Entity
-              key={`line-${i}`}
-              line={`start: ${fromSpaceX}, 0, ${fromSpaceZ}; end: ${toSpaceX} ${nextYOffset} ${toSpaceZ}; color: yellow; opacity: 0.4`}
+              key={`${toX}`}
+              line={`start: ${fromSpaceX}, ${TREE_INNER_HEIGHT /
+                2}, ${fromSpaceZ}; end: ${toSpaceX} ${nextYOffset -
+                TREE_INNER_HEIGHT / 2} ${toSpaceZ}; color: yellow`}
             />
           );
         })}

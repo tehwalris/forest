@@ -94,6 +94,10 @@ aframe-animation-component@^4.0.0-beta9:
   dependencies:
     animejs "2.2.0"
 
+aframe-environment-component@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/aframe-environment-component/-/aframe-environment-component-1.0.0.tgz#dde6a8734dc7777d9c4a00b5bab25f877e8b3b37"
+
 aframe-line-component@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/aframe-line-component/-/aframe-line-component-1.0.1.tgz#6ed639595644e608d1aa2e3f8f750aabe61e6082"

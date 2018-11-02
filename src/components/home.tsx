@@ -126,7 +126,11 @@ export default class Home extends React.Component<{}, State> {
     return parent;
   }
   onKeyDown(e: KeyboardEvent) {
-    const { selection, tree } = this.state;
+    const { selection } = this.state;
+    this.onSimulatedKey(e.key, selection);
+  }
+  onSimulatedKey = (key: string, selection: DisplayPath) => {
+    const { tree } = this.state;
     const current = this.getDeepestPossibleByDisplayPath(
       selection,
       buildDisplayTree(tree),
@@ -178,13 +182,11 @@ export default class Home extends React.Component<{}, State> {
       x: tryDeleteChild,
       f: () => this.editFlags(nodes),
     };
-    if (e.target === document.body || e.key === "Escape") {
-      const handler = handlers[e.key];
-      if (handler) {
-        handler();
-      }
+    const handler = handlers[key];
+    if (handler) {
+      handler();
     }
-  }
+  };
   onShortcutLeft() {
     const { selection } = this.state;
     if (selection.length) {

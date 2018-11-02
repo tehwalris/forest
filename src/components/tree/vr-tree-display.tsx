@@ -6,15 +6,12 @@ import {
   PositionalTreeLayer,
   PositionalTreeNode,
 } from "./positional-tree";
-import {
-  DisplayNode,
-  DisplayPath,
-  nodesFromDisplayNode,
-} from "../../logic/tree/display";
+import { DisplayNode, DisplayPath } from "../../logic/tree/display";
 // import { ShallowTree } from "./shallow-tree";
 import * as R from "ramda";
 import * as three from "three";
 import SurroundNodes from "./surround-nodes";
+import { USE_MOUSE } from "./config";
 
 interface Props {
   root: DisplayNode;
@@ -23,6 +20,7 @@ interface Props {
   centerX: number;
   centerY: number;
   setCenter: (x: number, y: number) => void;
+  onSimulatedKey: (key: string, selection: DisplayPath) => void;
 }
 
 interface Point {
@@ -39,9 +37,9 @@ interface DragStart {
 
 interface State {
   dragStart?: DragStart;
+  hoverNode?: DisplayNode;
 }
 
-const USE_MOUSE = true;
 const Y_STRIDE = 0.8;
 const Y_ZERO = 1.5;
 const RADIUS_SCALE = 1.3;
@@ -80,34 +78,6 @@ const RADIUS_BASE = 2;
     }
   },
 });
-
-function getDeepestPossibleByDisplayPath(
-  path: DisplayPath,
-  parent: DisplayNode,
-): DisplayNode {
-  if (path.length) {
-    const childNode = parent.children[path[0]];
-    if (childNode) {
-      return getDeepestPossibleByDisplayPath(path.slice(1), childNode);
-    }
-  }
-  return parent;
-}
-
-function labelDisplayNode(node: DisplayNode): string {
-  const fullChain = nodesFromDisplayNode(node);
-  const debugLabel = fullChain.reduce(
-    (a, c) => c.node.getDebugLabel() || a,
-    "",
-  );
-  const built = node.baseNode.build();
-  const path = fullChain[fullChain.length - 1].path
-    .slice(Math.max(0, node.basePath.length - 1))
-    .join("/");
-  const label =
-    (debugLabel ? `${path}\n${debugLabel}` : path) + (built.ok ? "" : "!");
-  return label;
-}
 
 // function childrenToShallowTrees(node: DisplayNode): ShallowTree[] {
 //   return node.children.map(p => ({
@@ -220,6 +190,14 @@ export default class VrTreeDisplay extends React.Component<Props, State> {
     });
   };
 
+  onNodeRayEnter = (node: PositionalTreeNode) => {
+    this.setState({ hoverNode: node.displayNode });
+  };
+
+  onNodeRayLeave = () => {
+    this.setState({ hoverNode: undefined });
+  };
+
   onHover = (point: Point) => {
     if (point.z >= 0) {
       return;
@@ -237,9 +215,12 @@ export default class VrTreeDisplay extends React.Component<Props, State> {
     }
   };
 
+  onAxisMove = (e: any) => {
+    console.log(e.detail.axis); // [x, y] [-1, 1]
+  };
+
   render() {
-    const { root, highlightPath, setPath, centerX, centerY } = this.props;
-    const target = getDeepestPossibleByDisplayPath(highlightPath, root);
+    const { root, centerX, centerY } = this.props;
     const positionalTree = buildPositionalTree(root);
     const yToRadius = (y: number) =>
       RADIUS_BASE * Math.max(0, RADIUS_SCALE ** (y - centerY));
@@ -265,6 +246,7 @@ export default class VrTreeDisplay extends React.Component<Props, State> {
           events={{
             triggerdown: this.onTriggerDown,
             triggerup: this.onTriggerUp,
+            axismove: this.onAxisMove,
           }}
         />
         <Entity
@@ -272,6 +254,7 @@ export default class VrTreeDisplay extends React.Component<Props, State> {
           events={{
             triggerdown: this.onTriggerDown,
             triggerup: this.onTriggerUp,
+            axismove: this.onAxisMove,
           }}
         />
         {positionalTree.layers.map((layer, i) => (
@@ -290,29 +273,14 @@ export default class VrTreeDisplay extends React.Component<Props, State> {
                   ? positionalTree.layers[i + 1].width
                   : 0
               }
+              onRayEnter={this.onNodeRayEnter}
+              onRayLeave={this.onNodeRayLeave}
+              selectedNode={
+                this.state.dragStart ? undefined : this.state.hoverNode
+              }
             />
           </Entity>
         ))}
-        <Entity
-          class="interactive"
-          primitive="a-plane"
-          material={{ color: "blue", opacity: 0.2 }}
-          text={{
-            value: labelDisplayNode(target),
-            align: "center",
-          }}
-          position="0 0.01 -1"
-          rotation="-90 0 0"
-          height="5"
-          width="5"
-          events={{
-            click: () =>
-              setPath(
-                highlightPath.slice(0, Math.max(highlightPath.length - 1, 0)),
-              ),
-          }}
-        />
-        {/* e.detail.intersection.point */}
       </Entity>
     );
   }
