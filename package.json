@@ -5,6 +5,7 @@
   "dependencies": {
     "@types/prettier": "^1.9.0",
     "@types/ramda": "^0.25.10",
+    "@types/react-select": "1.0.60",
     "@types/three": "^0.84.36",
     "aframe": "^0.7.1",
     "aframe-animation-component": "^4.0.0-beta9",
@@ -31,6 +32,7 @@
     "react": "^16.2.0",
     "react-dev-utils": "^4.0.1",
     "react-dom": "^16.2.0",
+    "react-select": "1.2.0",
     "source-map-loader": "^0.2.1",
     "style-loader": "0.18.2",
     "super-hands": "^2.1.0",
@@ -61,12 +63,8 @@
   },
   "jest": {
     "mapCoverage": true,
-    "collectCoverageFrom": [
-      "src/**/*.{js,jsx,ts,tsx}"
-    ],
-    "setupFiles": [
-      "<rootDir>/config/polyfills.js"
-    ],
+    "collectCoverageFrom": ["src/**/*.{js,jsx,ts,tsx}"],
+    "setupFiles": ["<rootDir>/config/polyfills.js"],
     "testMatch": [
       "<rootDir>/src/**/__tests__/**/*.ts?(x)",
       "<rootDir>/src/**/?(*.)(spec|test).ts?(x)"
@@ -98,14 +96,13 @@
     ],
     "globals": {
       "ts-jest": {
-        "tsConfigFile": "/home/philippe/dev/own-active/ts-editor-browser/tsconfig.test.json"
+        "tsConfigFile":
+          "/home/philippe/dev/own-active/ts-editor-browser/tsconfig.test.json"
       }
     }
   },
   "babel": {
-    "presets": [
-      "react-app"
-    ]
+    "presets": ["react-app"]
   },
   "eslintConfig": {
     "extends": "react-app"

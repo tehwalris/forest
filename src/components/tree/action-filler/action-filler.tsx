@@ -2,6 +2,7 @@ import * as React from "react";
 import { Action, InputKind } from "../../../logic/tree/action";
 import { Node } from "../../../logic/tree/node";
 import StringFiller from "./string";
+import OneOfFiller from "./one-of";
 interface Props<N extends Node<{}>> {
   action: Action<N>;
   onCancel: () => void;
@@ -28,7 +29,7 @@ export default <N extends Node<{}>>({
     case InputKind.String:
       return wrap(<StringFiller action={action} onApply={onApply} />);
     case InputKind.OneOf:
-      throw new Error("not implemented");
+      return wrap(<OneOfFiller action={action} onApply={onApply} />);
     default:
       return null;
   }

@@ -5,18 +5,18 @@ interface Props {
 }
 const styles = {
   noHighlight: {
-    opacity: 0.8
+    opacity: 0.8,
   },
   highlight: {
-    backgroundColor: "black"
-  }
+    backgroundColor: "wheat",
+  },
 };
 export default ({ text, selectedRange: range }: Props) => {
   const { before, selected, after } = range
     ? {
         before: text.slice(0, range[0]),
         selected: text.slice(...range),
-        after: text.slice(range[1])
+        after: text.slice(range[1]),
       }
     : { before: text, selected: "", after: "" };
   return (
