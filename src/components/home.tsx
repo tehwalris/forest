@@ -126,6 +126,11 @@ export default class Home extends React.Component<{}, State> {
     return parent;
   }
   onKeyDown(e: KeyboardEvent) {
+    if ((e as any).path.length > 4) {
+      // HACK
+      console.log("ignoring keystroke");
+      return;
+    }
     const { selection } = this.state;
     this.onSimulatedKey(e.key, selection);
   }

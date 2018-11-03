@@ -133,7 +133,14 @@ export class FileNode extends ListNode<ts.Statement, ts.SourceFile> {
       oldFile,
       oldFile,
     );
-    const text = format ? format(unformattedText) : unformattedText;
+    let text = unformattedText;
+    try {
+      if (format) {
+        text = format(unformattedText);
+      }
+    } catch (e) {
+      console.warn("error while formatting", e);
+    }
     const newFile = ts.createSourceFile(
       oldFile.fileName,
       text,
