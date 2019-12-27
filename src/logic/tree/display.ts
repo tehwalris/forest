@@ -1,9 +1,11 @@
 import { Node, DisplayInfo } from "./node";
 import { Path } from "./base";
 import * as R from "ramda";
+import { NavNode, Node as DivetreeDisplayNode, NodeKind } from "divetree-core";
+
 export type DisplayPath = number[];
 export interface DisplayNode {
-  baseNode: Node<{}>;
+  baseNode: Node<unknown>;
   basePath: Path;
   displayPath: DisplayPath;
   chain: { key: string; node: Node<{}> }[];
@@ -12,7 +14,7 @@ export interface DisplayNode {
   bestDisplayInfo?: DisplayInfo;
 }
 export function buildDisplayTree(
-  root: Node<{}>,
+  root: Node<unknown>,
   basePath: Path = [],
   displayPath: DisplayPath = [],
   parent?: DisplayNode,
@@ -76,6 +78,37 @@ export function buildDisplayTree(
     buildDisplayTree(e.node, [...basePath, e.key], [...displayPath, i], self),
   );
   return withDisplayInfo(self);
+}
+
+function divetreeIdFromDisplayNode(node: DisplayNode): string {
+  return JSON.stringify(node.basePath); // TODO HACK This should have a real ID
+}
+
+export function buildNavTree(node: DisplayNode): NavNode {
+  return {
+    id: divetreeIdFromDisplayNode(node),
+    children: node.children.map(c => buildNavTree(c)),
+  };
+}
+
+export function buildDivetreeDisplayTree(
+  root: Node<unknown>,
+  focusPath: string[], // TODO Actually use focusPath
+): DivetreeDisplayNode {
+  return toDivetreeDisplayTree(buildDisplayTree(root));
+}
+
+function toDivetreeDisplayTree(node: DisplayNode): DivetreeDisplayNode {
+  return {
+    kind: NodeKind.Loose,
+    id: divetreeIdFromDisplayNode(node) + "-loose",
+    parent: {
+      kind: NodeKind.TightLeaf,
+      id: divetreeIdFromDisplayNode(node),
+      size: [100, 50],
+    },
+    children: [], // TODO Add children
+  };
 }
 
 function withDisplayInfo(original: DisplayNode): DisplayNode {

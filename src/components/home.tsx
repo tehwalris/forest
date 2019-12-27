@@ -13,8 +13,11 @@ import {
   DisplayNode,
   DisplayPath,
   nodesFromDisplayNode,
+  buildNavTree,
+  buildDivetreeDisplayTree,
 } from "../logic/tree/display";
 import * as prettier from "prettier";
+import { NavTree } from "divetree-react";
 interface PrettyPrintResult {
   node: FileNode;
   text: string;
@@ -64,7 +67,7 @@ const styles = {
 
 export default class Home extends React.Component<{}, State> {
   typescriptProvider = new TypescriptProvider();
-  state!: State;
+  state: State = this.loadState();
   loadState() {
     const output: State = {
       selection: [],
@@ -90,10 +93,8 @@ export default class Home extends React.Component<{}, State> {
   }
   componentWillMount() {
     (window as any).openFile = this.openFile.bind(this);
-    this.state = this.loadState(); // eslint-disable-line react/no-direct-mutation-state
     document.addEventListener("keydown", this.onKeyDown.bind(this));
     this.setState({ prettyPrintResult: this.prettyPrint() });
-    console.log(this.state.tree);
   }
   componentWillUpdate(nextProps: {}, nextState: State) {
     if (nextState.tree !== this.state.tree) {
@@ -398,6 +399,13 @@ export default class Home extends React.Component<{}, State> {
     return (
       <div style={styles.wrapper as any}>
         <div style={styles.leftPanel as {}}>
+          <NavTree
+            navTree={buildNavTree(displayTree)}
+            getDisplayTree={focusPath =>
+              buildDivetreeDisplayTree(tree, focusPath)
+            }
+            getContent={id => <i>{id}</i>}
+          />
           <TreeDisplay
             root={displayTree}
             highlightPath={selection}
