@@ -63,8 +63,12 @@
   },
   "jest": {
     "mapCoverage": true,
-    "collectCoverageFrom": ["src/**/*.{js,jsx,ts,tsx}"],
-    "setupFiles": ["<rootDir>/config/polyfills.js"],
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx,ts,tsx}"
+    ],
+    "setupFiles": [
+      "<rootDir>/config/polyfills.js"
+    ],
     "testMatch": [
       "<rootDir>/src/**/__tests__/**/*.ts?(x)",
       "<rootDir>/src/**/?(*.)(spec|test).ts?(x)"
@@ -96,13 +100,14 @@
     ],
     "globals": {
       "ts-jest": {
-        "tsConfigFile":
-          "/home/philippe/dev/own-active/ts-editor-browser/tsconfig.test.json"
+        "tsConfigFile": "/home/philippe/dev/own-active/ts-editor-browser/tsconfig.test.json"
       }
     }
   },
   "babel": {
-    "presets": ["react-app"]
+    "presets": [
+      "react-app"
+    ]
   },
   "eslintConfig": {
     "extends": "react-app"
