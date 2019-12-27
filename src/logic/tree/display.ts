@@ -107,7 +107,7 @@ function toDivetreeDisplayTree(node: DisplayNode): DivetreeDisplayNode {
       id: divetreeIdFromDisplayNode(node),
       size: [100, 50],
     },
-    children: [], // TODO Add children
+    children: node.children.map(c => toDivetreeDisplayTree(c)),
   };
 }
 
