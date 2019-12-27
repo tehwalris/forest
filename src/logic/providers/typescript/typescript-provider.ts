@@ -36,9 +36,9 @@ export const enchancers: {
 
   loadTree(filePath: string): Node<WorkingSet> {
     return RootNode.fromState({
-      files: new Map([filePath].map(p => [p, this.file]) as Array<
-        [string, string]
-      >),
+      files: new Map(
+        [filePath].map(p => [p, this.file]) as Array<[string, string]>,
+      ),
       rootFiles: [filePath],
     });
   }
@@ -65,10 +65,16 @@ export class RootNode extends StructNode<FileNode, WorkingSet> {
       host.addFile(name, content, ts.ScriptTarget.ES5),
     );
     const program = ts.createProgram(state.rootFiles, { lib: ["es5"] }, host);
-    const children = state.rootFiles.map(name => ({
-      key: name.split("/")[name.split("/").length - 1],
-      node: FileNode.fromFile(program.getSourceFile(name)),
-    }));
+    const children = state.rootFiles.map(name => {
+      const file = program.getSourceFile(name);
+      if (!file) {
+        throw new Error(`file not found: ${name}`);
+      }
+      return {
+        key: name.split("/")[name.split("/").length - 1],
+        node: FileNode.fromFile(file),
+      };
+    });
     return new RootNode(children, state);
   }
   setFlags(flags: never): never {

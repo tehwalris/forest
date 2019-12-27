@@ -15,7 +15,7 @@ export function buildDisplayTree(
   root: Node<{}>,
   basePath: Path = [],
   displayPath: DisplayPath = [],
-  parent?: DisplayNode
+  parent?: DisplayNode,
 ): DisplayNode {
   const childChain = R.unfold(
     ({ node, actions, flags }) => {
@@ -34,15 +34,15 @@ export function buildDisplayTree(
         {
           node: firstChild.node,
           actions: [...actions, ...childActions],
-          flags: [...flags, childFlags]
-        }
+          flags: [...flags, ...childFlags],
+        },
       ];
     },
     {
       node: root,
       actions: Object.keys(root.actions),
-      flags: Object.keys(root.flags)
-    }
+      flags: Object.keys(root.flags),
+    },
   );
   if (childChain.length) {
     const deepChild = childChain[childChain.length - 1].node;
@@ -52,15 +52,15 @@ export function buildDisplayTree(
       displayPath,
       chain: childChain,
       children: [],
-      parent
+      parent,
     };
     self.children = deepChild.children.map((e, i) =>
       buildDisplayTree(
         e.node,
         [...basePath, ...childChain.map(c => c.key), e.key],
         [...displayPath, i],
-        self
-      )
+        self,
+      ),
     );
     return withDisplayInfo(self);
   }
@@ -70,10 +70,10 @@ export function buildDisplayTree(
     displayPath,
     chain: [],
     children: [],
-    parent
+    parent,
   };
   self.children = root.children.map((e, i) =>
-    buildDisplayTree(e.node, [...basePath, e.key], [...displayPath, i], self)
+    buildDisplayTree(e.node, [...basePath, e.key], [...displayPath, i], self),
   );
   return withDisplayInfo(self);
 }
@@ -88,11 +88,11 @@ function withDisplayInfo(original: DisplayNode): DisplayNode {
 }
 
 export function nodesFromDisplayNode(
-  displayNode: DisplayNode
+  displayNode: DisplayNode,
 ): Array<{ path: Path; node: Node<any> }> {
   const nodes = [{ path: displayNode.basePath, node: displayNode.baseNode }];
   displayNode.chain.forEach(({ key, node }) =>
-    nodes.push({ path: [...R.last(nodes)!.path, key], node })
+    nodes.push({ path: [...R.last(nodes)!.path, key], node }),
   );
   return nodes;
 }

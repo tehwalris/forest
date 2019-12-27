@@ -11,7 +11,7 @@ export type Enchancer<T extends Node<ts.Node>> = (
   displayInfo: DisplayInfo;
 };
 export const enchancers: {
-  [key: string]: Enchancer<Node<ts.Node>> | undefined;
+  [key: string]: Enchancer<Node<any>> | undefined;
 } = {
   ClassDeclaration: (node => ({
     displayInfo: {

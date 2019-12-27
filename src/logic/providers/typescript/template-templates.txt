@@ -54,7 +54,7 @@ EntityName Identifier QualifiedName
 NamedImportBindings NamespaceImport NamedImports
 JsxChild JsxText JsxExpression JsxElement JsxSelfClosingElement
 JsxAttributeLike JsxAttribute JsxSpreadAttribute
-JsxTagNameExpression ...PrimaryExpression PropertyAccessExpression
+JsxTagNameExpression Identifier ThisExpression JsxTagNamePropertyAccess
 JsxAttributeInitializer StringLiteral JsxExpression
 TypeNode ...KeywordTypeNode
   ThisTypeNode TypeLiteralNode 
@@ -98,6 +98,8 @@ AssignmentOperatorOrHigher ...LogicalOperatorOrHigher ...AssignmentOperatorToken
 BinaryOperatorToken ...AssignmentOperatorOrHigher CommaToken
 PrefixUnaryOperator PlusPlusToken MinusMinusToken PlusToken MinusToken TildeToken ExclamationToken
 PostfixUnaryOperator PlusPlusToken MinusMinusToken
+ReadonlyMappedToken ReadonlyToken PlusToken MinusToken
+QuestionMappedToken QuestionToken PlusToken MinusToken
 
 SECTION plainTypes
 NumericLiteral - ts.createLiteral(0)
@@ -126,15 +128,16 @@ ObjectLiteralExpression - ts.createObjectLiteral()
 ParenthesizedExpression - ts.createParen(ts.createLiteral(""))
 NewExpression - ts.createNew(ts.createIdentifier("Object"), undefined, undefined)
 MetaProperty - ts.createMetaProperty(ts.SyntaxKind.NewKeyword, ts.createIdentifier(""))
-JsxElement - ts.createJsxElement(ts.createJsxOpeningElement(ts.createIdentifier(""), ts.createJsxAttributes([])), [], ts.createJsxClosingElement(ts.createIdentifier("")))
-JsxSelfClosingElement - ts.createJsxSelfClosingElement(ts.createIdentifier(""), ts.createJsxAttributes([]))
-JsxOpeningElement - ts.createJsxOpeningElement(ts.createIdentifier(""), ts.createJsxAttributes([]))
+JsxElement - ts.createJsxElement(ts.createJsxOpeningElement(ts.createIdentifier(""), undefined, ts.createJsxAttributes([])), [], ts.createJsxClosingElement(ts.createIdentifier("")))
+JsxSelfClosingElement - ts.createJsxSelfClosingElement(ts.createIdentifier(""), undefined, ts.createJsxAttributes([]))
+JsxOpeningElement - ts.createJsxOpeningElement(ts.createIdentifier(""), undefined, ts.createJsxAttributes([]))
 JsxClosingElement - ts.createJsxClosingElement(ts.createIdentifier(""))
 JsxAttribute - ts.createJsxAttribute(ts.createIdentifier(""), ts.createJsxExpression(undefined, undefined))
 JsxAttributes - ts.createJsxAttributes([])
 JsxSpreadAttribute - ts.createJsxSpreadAttribute(ts.createIdentifier(""))
 JsxExpression - ts.createJsxExpression(undefined, undefined)
 JsxText - { ...(ts.createLiteral("") as any), kind: ts.SyntaxKind.JsxText, containsOnlyWhiteSpaces: true }
+JsxTagNamePropertyAccess ts.isPropertyAccessExpression__as__any ts.createPropertyAccess(ts.createObjectLiteral(), "") as ts.JsxTagNamePropertyAccess
 ClassExpression - ts.createClassExpression(undefined, undefined, undefined, [], [])
 PropertyAccessExpression - ts.createPropertyAccess(ts.createObjectLiteral(), "")
 ElementAccessExpression - ts.createElementAccess(ts.createArrayLiteral(), 0)
@@ -335,8 +338,8 @@ VariableDeclaration
 EmptyStatement
   build ts.createEmptyStatement
 ThrowStatement
-  R expression Expression
-  build ({expression}) => ts.createThrow(expression)
+  O expression Expression
+  build ({expression}) => { if (!expression) { throw new Error('expression is required') } return ts.createThrow(expression) }
 VariableStatement
   R declarationList VariableDeclarationList
   flags export ambient
@@ -442,13 +445,13 @@ GetAccessorDeclaration
   R name PropertyName
   RL parameters ParameterDeclaration
   O type TypeNode
-  R body FunctionBody
+  O body FunctionBody
   flags accesibility static abstract
   build ({name, parameters, type, body}, modifiers) => ts.createGetAccessor(undefined, modifiers, name, parameters, type, body)
 SetAccessorDeclaration
   R name PropertyName
   RL parameters ParameterDeclaration
-  R body FunctionBody
+  O body FunctionBody
   flags accesibility static abstract
   build ({name, body, parameters}, modifiers) => ts.createSetAccessor(undefined, modifiers, name, parameters, body)
 ArrowFunction
@@ -533,8 +536,8 @@ TypeReferenceNode
   build ({typeName, typeArguments}) => ts.createTypeReferenceNode(typeName, typeArguments)
 TypePredicateNode
   R parameterName TypePredicateNodeParameterName ts.Identifier | ts.ThisTypeNode
-  R type TypeNode
-  build ({parameterName, type}) => ts.createTypePredicateNode(parameterName, type)
+  O type TypeNode
+  build ({parameterName, type}) => { if (!type) { throw new Error('type is required') }; return ts.createTypePredicateNode(parameterName, type) }
 TypeQueryNode
   R exprName EntityName
   build ({exprName}) => ts.createTypeQueryNode(exprName)
@@ -581,9 +584,9 @@ IndexedAccessTypeNode
   R indexType TypeNode
   build ({objectType, indexType}) => ts.createIndexedAccessTypeNode(objectType, indexType)
 MappedTypeNode
-  O readonlyToken ReadonlyToken
+  O readonlyToken ReadonlyMappedToken ts.ReadonlyToken | ts.PlusToken | ts.MinusToken
   R typeParameter TypeParameterDeclaration
-  O questionToken QuestionToken
+  O questionToken QuestionMappedToken ts.QuestionToken | ts.PlusToken | ts.MinusToken
   O type TypeNode
   build ({readonlyToken, typeParameter, questionToken, type}) => ts.createMappedTypeNode(readonlyToken, typeParameter, questionToken, type)
 LiteralTypeNode
@@ -655,12 +658,14 @@ JsxElement
   build ({openingElement, children, closingElement}) => ts.createJsxElement(openingElement, children, closingElement)
 JsxSelfClosingElement
   R tagName JsxTagNameExpression
+  OL typeArguments TypeNode
   R attributes JsxAttributes
-  build ({tagName, attributes}) => ts.createJsxSelfClosingElement(tagName, attributes)
+  build ({tagName, typeArguments, attributes}) => ts.createJsxSelfClosingElement(tagName, typeArguments, attributes)
 JsxOpeningElement
   R tagName JsxTagNameExpression
+  OL typeArguments TypeNode
   R attributes JsxAttributes
-  build ({tagName, attributes}) => ts.createJsxOpeningElement(tagName, attributes)
+  build ({tagName, typeArguments, attributes}) => ts.createJsxOpeningElement(tagName, typeArguments, attributes)
 JsxClosingElement
   R tagName JsxTagNameExpression
   build ({tagName}) => ts.createJsxClosingElement(tagName)
@@ -675,6 +680,10 @@ JsxExpression
   O dotDotDotToken DotDotDotToken
   O expression Expression
   build ({dotDotDotToken, expression}) => ts.createJsxExpression(dotDotDotToken, expression)
+JsxTagNamePropertyAccess
+  R expression JsxTagNameExpression
+  R name Identifier
+  build ({expression, name}) => ts.createPropertyAccess(expression, name) as ts.JsxTagNamePropertyAccess
 TypeOfExpression
   R expression Expression
   build ({expression}) => ts.createTypeOf(expression)

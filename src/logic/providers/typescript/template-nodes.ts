@@ -6,7 +6,7 @@ import {
   ChildNodeEntry,
   BuildResult,
   FlagSet,
-  DisplayInfo
+  DisplayInfo,
 } from "../../tree/node";
 import { ActionSet, InputKind } from "../../tree/action";
 import { UnionVariant, LazyUnionVariant } from "../../tree/base-nodes/union";
@@ -14,7 +14,7 @@ import {
   FlagKind,
   loadFlags,
   flagsToModifiers,
-  saveNodeFlagsMutate
+  saveNodeFlagsMutate,
 } from "./flags";
 export type Union<T extends ts.Node> = () => {
   [key: string]: {
@@ -75,15 +75,15 @@ export interface StructTemplate<
   load: (built: B) => C;
   build: (
     children: { [CK in keyof C]: C[CK]["value"] },
-    modifiers: ts.Modifier[]
+    modifiers: ts.Modifier[],
   ) => B;
   flags: FlagKind[];
-  children: (keyof C)[];
+  children: string[];
   enchancer?: Enchancer<Node<B>>;
 }
 function someDefaultFromUnion<T extends ts.Node>(
   _union: Union<T>,
-  self: ts.Node
+  self: ts.Node,
 ): T {
   const union = _union();
   return union[Object.keys(union)[0]].default;
@@ -95,8 +95,8 @@ export class StringTemplateNode<B extends ts.Node> extends Node<B> {
   actions: ActionSet<StringTemplateNode<B>> = {
     setFromString: {
       inputKind: InputKind.String,
-      apply: v => new StringTemplateNode(this.template, v, this.original)
-    }
+      apply: v => new StringTemplateNode(this.template, v, this.original),
+    },
   };
   private template: StringTemplate<B>;
   private text: string;
@@ -109,7 +109,7 @@ export class StringTemplateNode<B extends ts.Node> extends Node<B> {
   }
   static fromTemplate<B extends ts.Node>(
     template: StringTemplate<B>,
-    node: B
+    node: B,
   ): StringTemplateNode<B> {
     return new StringTemplateNode(template, template.load(node), node);
   }
@@ -130,14 +130,14 @@ export class ListTemplateNode<
   B extends ts.Node,
   C extends ts.Node
 > extends ListNode<C, B> {
-  children: ChildNodeEntry<C>[];
+  children!: ChildNodeEntry<C>[];
   links = [] as never[];
   constructor(
     private template: ListTemplate<B, C>,
     private newChild: () => Node<C>,
     private rawChildren: Node<C>[],
     public flags: FlagSet,
-    public original: B
+    public original: B,
   ) {
     super(rawChildren);
     this.template = template;
@@ -149,18 +149,18 @@ export class ListTemplateNode<
   static fromTemplate<B extends ts.Node, C extends ts.Node>(
     template: ListTemplate<B, C>,
     node: B,
-    fromTsNode: (tsNode: C, union: Union<C>) => Node<C>
+    fromTsNode: (tsNode: C, union: Union<C>) => Node<C>,
   ): ListTemplateNode<B, C> {
     return new ListTemplateNode(
       template,
       () =>
         fromTsNode(
           someDefaultFromUnion(template.childUnion, node),
-          template.childUnion
+          template.childUnion,
         ),
       template.load(node).map(e => fromTsNode(e, template.childUnion)),
       loadFlags(node, template.flags),
-      node
+      node,
     );
   }
   protected setValue(children: Node<C>[]): ListTemplateNode<B, C> {
@@ -169,7 +169,7 @@ export class ListTemplateNode<
       this.newChild,
       children,
       this.flags,
-      this.original
+      this.original,
     );
   }
   setFlags(flags: this["flags"]): ListTemplateNode<B, C> {
@@ -178,7 +178,7 @@ export class ListTemplateNode<
       this.newChild,
       this.rawChildren,
       flags,
-      this.original
+      this.original,
     );
   }
   createChild(): Node<C> {
@@ -188,7 +188,7 @@ export class ListTemplateNode<
     return this.listBuildHelper(builtChildren => {
       const node = this.template.build(
         builtChildren,
-        flagsToModifiers(this.flags)
+        flagsToModifiers(this.flags),
       );
       saveNodeFlagsMutate(node, this.flags);
       return node;
@@ -207,7 +207,7 @@ export class StructTemplateNode<
     private template: StructTemplate<C, B>,
     public children: ChildNodeEntry<B[keyof B]>[],
     public flags: FlagSet,
-    public original: B
+    public original: B,
   ) {
     super();
     this.template = template;
@@ -223,7 +223,7 @@ export class StructTemplateNode<
   >(
     template: StructTemplate<C, B>,
     node: B,
-    fromTsNode: <CT extends ts.Node>(tsNode: CT, union: Union<CT>) => Node<CT>
+    fromTsNode: <CT extends ts.Node>(tsNode: CT, union: Union<CT>) => Node<CT>,
   ): StructTemplateNode<C, B> {
     const loaded = template.load(node);
     const children = template.children.map(key => {
@@ -237,8 +237,8 @@ export class StructTemplateNode<
           key,
           node: new OptionNode(
             () => fromTsNode(defaultValue, loadedChild.union),
-            childValue && fromTsNode(childValue, loadedChild.union)
-          )
+            childValue && fromTsNode(childValue, loadedChild.union),
+          ),
         };
       }
       return { key, node: fromTsNode(childValue, loadedChild.union) };
@@ -247,19 +247,19 @@ export class StructTemplateNode<
       template,
       children,
       loadFlags(node, template.flags),
-      node
+      node,
     );
   }
   setChild<CK extends keyof C>(
     child: ChildNodeEntry<{}> & {
       key: CK;
-    }
+    },
   ): StructTemplateNode<C, B> {
     let didReplace = false;
     const children = this.children.map(e => {
       if (e.key === child.key) {
         didReplace = true;
-        return child;
+        return child as any;
       }
       return e;
     });
@@ -270,7 +270,7 @@ export class StructTemplateNode<
       this.template,
       children,
       this.flags,
-      this.original
+      this.original,
     );
   }
   setFlags(flags: this["flags"]): StructTemplateNode<C, B> {
@@ -278,14 +278,14 @@ export class StructTemplateNode<
       this.template,
       this.children,
       flags,
-      this.original
+      this.original,
     );
   }
   build(): BuildResult<B> {
     return this.buildHelper(builtChildren => {
       const node = this.template.build(
         builtChildren as { [CK in keyof C]: C[CK]["value"] },
-        flagsToModifiers(this.flags)
+        flagsToModifiers(this.flags),
       );
       saveNodeFlagsMutate(node, this.flags);
       return node;
@@ -304,7 +304,7 @@ export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
   constructor(
     variants: LazyUnionVariant<string>[],
     value: UnionVariant<string>,
-    original: T
+    original: T,
   ) {
     super(variants, value);
     this.variants = variants;
@@ -313,12 +313,12 @@ export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
   static fromUnion<T extends ts.Node>(
     _union: Union<T>,
     node: T,
-    fromTsNode: <CT extends ts.Node>(tsNode: CT) => Node<CT>
+    fromTsNode: <CT extends ts.Node>(tsNode: CT) => Node<CT>,
   ): TemplateUnionNode<T> {
     const union = _union();
     const variants = Object.keys(union).map(key => ({
       key,
-      children: () => [{ key: "value", node: fromTsNode(union[key].default) }]
+      children: () => [{ key: "value", node: fromTsNode(union[key].default) }],
     }));
     let currentKey = Object.keys(union).find(k => union[k].match(node));
     if (!currentKey) {
@@ -329,7 +329,7 @@ export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
     return new TemplateUnionNode(
       variants,
       { key: currentKey, children: [{ key: "value", node: fromTsNode(node) }] },
-      node
+      node,
     );
   }
   setFlags(flags: never): never {

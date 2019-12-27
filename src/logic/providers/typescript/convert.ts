@@ -10,34 +10,39 @@ import {
   StringTemplate,
   ListTemplate,
   StructTemplate,
-  TemplateUnionNode
+  TemplateUnionNode,
 } from "./template-nodes";
 import {
   plainTypes,
   stringTemplates,
   listTemplates,
-  structTemplates
+  structTemplates,
 } from "./generated/templates";
 export function fromTsNode<T extends ts.Node>(
   original: T,
-  _union?: Union<T>
+  _union?: Union<T>,
 ): Node<T>;
 export function fromTsNode<T extends ts.Node>(
   original: ts.NodeArray<T>,
-  _union: Union<T>
+  _union: Union<T>,
+): Node<ts.NodeArray<T>>;
+export function fromTsNode<T extends ts.Node>(
+  original: T | ts.NodeArray<T>,
+  _union: Union<T> | undefined,
 ): Node<T> {
   if (isNodeArray(original)) {
     return ListTemplateNode.fromTemplate(
       {
         match: (() => false) as any,
         load: (built: any) => built as ts.NodeArray<T>,
-        build: (children: T[]) => ts.createNodeArray(children),
+        // HACK ts.NodeArray<any> is not a ts.Node
+        build: (children: T[]) => ts.createNodeArray(children) as any,
         flags: [],
-        childUnion: _union
+        childUnion: _union!,
       },
       original,
-      fromTsNode
-    );
+      fromTsNode,
+    ) as any;
   }
   if (_union) {
     const union = _union();
@@ -49,7 +54,7 @@ export function fromTsNode<T extends ts.Node>(
     if (template.match(original)) {
       return StringTemplateNode.fromTemplate(
         (template as any) as StringTemplate<T>,
-        original
+        original,
       ) as any;
     }
   }
@@ -58,7 +63,7 @@ export function fromTsNode<T extends ts.Node>(
       return ListTemplateNode.fromTemplate(
         (template as any) as ListTemplate<T, ts.Node>,
         original,
-        fromTsNode
+        fromTsNode,
       ) as any;
     }
   }
@@ -67,7 +72,7 @@ export function fromTsNode<T extends ts.Node>(
       return StructTemplateNode.fromTemplate(
         (template as any) as StructTemplate<{}, T>,
         original,
-        fromTsNode
+        fromTsNode,
       ) as any;
     }
   }
@@ -77,7 +82,7 @@ export function fromTsNode<T extends ts.Node>(
   return new UnsupportedSyntaxNode(original);
 }
 function isNodeArray<T extends ts.Node>(
-  v: T | ts.NodeArray<T>
+  v: T | ts.NodeArray<T>,
 ): v is ts.NodeArray<T> {
   return (
     !("kind" in v) &&
@@ -116,8 +121,8 @@ export class BooleanNode extends Node<ts.BooleanLiteral> {
   actions: ActionSet<BooleanNode> = {
     toggle: {
       inputKind: InputKind.None,
-      apply: () => new BooleanNode(!this.value, this.original)
-    }
+      apply: () => new BooleanNode(!this.value, this.original),
+    },
   };
   private value: boolean;
   constructor(value: boolean, original: ts.BooleanLiteral) {
@@ -141,6 +146,6 @@ export class BooleanNode extends Node<ts.BooleanLiteral> {
     return this.value.toString();
   }
   build(): BuildResult<ts.BooleanLiteral> {
-    return this.buildHelper(({}) => ts.createLiteral(this.value));
+    return this.buildHelper(() => ts.createLiteral(this.value));
   }
 }

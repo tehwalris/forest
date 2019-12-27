@@ -10,7 +10,7 @@ export enum FlagKind {
   STATIC = "static",
   READONLY = "readonly",
   ABSTRACT = "abstract",
-  ASYNC = "async"
+  ASYNC = "async",
 }
 type TsFlags = { nodeFlags: ts.NodeFlags; modifierFlags: ts.ModifierFlags };
 interface FlagTemplate<T extends Flag> {
@@ -20,15 +20,15 @@ interface FlagTemplate<T extends Flag> {
 }
 function createLoadBooleanFlag(
   from: "nodeFlags",
-  target: ts.NodeFlags
+  target: ts.NodeFlags,
 ): (tsFlags: TsFlags) => boolean;
 function createLoadBooleanFlag(
   from: "modifierFlags",
-  target: ts.ModifierFlags
+  target: ts.ModifierFlags,
 ): (tsFlags: TsFlags) => boolean;
 function createLoadBooleanFlag(
   from: "nodeFlags" | "modifierFlags",
-  target: ts.NodeFlags | ts.ModifierFlags
+  target: ts.NodeFlags | ts.ModifierFlags,
 ): (tsFlags: TsFlags) => boolean {
   return tsFlags => {
     return !!(tsFlags[from] & target);
@@ -36,25 +36,25 @@ function createLoadBooleanFlag(
 }
 function booleanModifierTemplate<T extends ts.Modifier["kind"]>(
   bit: ts.ModifierFlags,
-  syntaxKind: T
+  syntaxKind: T,
 ) {
   return {
     load: createLoadBooleanFlag("modifierFlags", bit),
     saveModiferFlags: (value: boolean) =>
-      value ? [ts.createToken(syntaxKind)] : []
+      value ? [ts.createToken(syntaxKind)] : [],
   };
 }
 const ACCESIBLITY_CASES = [
   { kind: ts.SyntaxKind.PublicKeyword, name: "public" },
   { kind: ts.SyntaxKind.ProtectedKeyword, name: "protected" },
-  { kind: ts.SyntaxKind.PrivateKeyword, name: "private" }
+  { kind: ts.SyntaxKind.PrivateKeyword, name: "private" },
 ];
-const templates: { [K in FlagKind]: FlagTemplate<Flag> } = {
+const templates: { [K in FlagKind]: FlagTemplate<any> } = {
   [FlagKind.VARIABLE_FLAVOR]: {
     load: ({ nodeFlags }: TsFlags): Flag => {
       const wrap = (value: string): Flag => ({
         oneOf: ["var", "let", "const"],
-        value
+        value,
       });
       if (nodeFlags & ts.NodeFlags.Let) {
         return wrap("let");
@@ -75,19 +75,19 @@ const templates: { [K in FlagKind]: FlagTemplate<Flag> } = {
         default:
           throw new Error("Unsuported case");
       }
-    }
+    },
   } as FlagTemplate<OneOfFlag>,
   [FlagKind.EXPORT]: booleanModifierTemplate(
     ts.ModifierFlags.Export,
-    ts.SyntaxKind.ExportKeyword
+    ts.SyntaxKind.ExportKeyword,
   ),
   [FlagKind.AMBIENT]: booleanModifierTemplate(
     ts.ModifierFlags.Ambient,
-    ts.SyntaxKind.DeclareKeyword
+    ts.SyntaxKind.DeclareKeyword,
   ),
   [FlagKind.DEFAULT]: booleanModifierTemplate(
     ts.ModifierFlags.Default,
-    ts.SyntaxKind.DefaultKeyword
+    ts.SyntaxKind.DefaultKeyword,
   ),
   [FlagKind.ACCESIBILITY]: {
     load: (_tsFlags, modifiers) => {
@@ -102,29 +102,29 @@ const templates: { [K in FlagKind]: FlagTemplate<Flag> } = {
     saveModiferFlags: ({ value }) => {
       const c = ACCESIBLITY_CASES.find(c => c.name === value);
       return c ? [ts.createToken(c.kind)] : [];
-    }
+    },
   } as FlagTemplate<OneOfFlag>,
   [FlagKind.STATIC]: booleanModifierTemplate(
     ts.ModifierFlags.Static,
-    ts.SyntaxKind.StaticKeyword
+    ts.SyntaxKind.StaticKeyword,
   ),
   [FlagKind.READONLY]: booleanModifierTemplate(
     ts.ModifierFlags.Readonly,
-    ts.SyntaxKind.ReadonlyKeyword
+    ts.SyntaxKind.ReadonlyKeyword,
   ),
   [FlagKind.ABSTRACT]: booleanModifierTemplate(
     ts.ModifierFlags.Abstract,
-    ts.SyntaxKind.AbstractKeyword
+    ts.SyntaxKind.AbstractKeyword,
   ),
   [FlagKind.ASYNC]: booleanModifierTemplate(
     ts.ModifierFlags.Async,
-    ts.SyntaxKind.AsyncKeyword
-  )
+    ts.SyntaxKind.AsyncKeyword,
+  ),
 };
 function loadTsFlags(node: ts.Node) {
   return {
     nodeFlags: node.flags,
-    modifierFlags: (ts as any).getModifierFlags(node)
+    modifierFlags: (ts as any).getModifierFlags(node),
   };
 }
 export function loadFlags(node: ts.Node, kinds: FlagKind[]): FlagSet {
@@ -150,6 +150,6 @@ export function saveNodeFlagsMutate(node: ts.Node, flags: FlagSet) {
   node.flags = R.toPairs(flags).reduce(
     (a, [k, v]) =>
       (templates[k as FlagKind].saveNodeFlags || ((_, old) => old))(v, a),
-    node.flags
+    node.flags,
   );
 }
