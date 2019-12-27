@@ -130,7 +130,7 @@ export class ListTemplateNode<
   B extends ts.Node,
   C extends ts.Node
 > extends ListNode<C, B> {
-  children!: ChildNodeEntry<C>[];
+  // children: ChildNodeEntry<C>[]; // HACK This field should use "declare", but that's not supported in CRA at the moment
   links = [] as never[];
   constructor(
     private template: ListTemplate<B, C>,
