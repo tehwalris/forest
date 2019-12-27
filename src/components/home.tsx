@@ -399,13 +399,13 @@ export default class Home extends React.Component<{}, State> {
     return (
       <div style={styles.wrapper as any}>
         <div style={styles.leftPanel as {}}>
-          <NavTree
+          {/* <NavTree
             navTree={buildNavTree(displayTree)}
             getDisplayTree={focusPath =>
               buildDivetreeDisplayTree(tree, focusPath)
             }
             getContent={id => <i>{id}</i>}
-          />
+          /> */}
           <TreeDisplay
             root={displayTree}
             highlightPath={selection}
