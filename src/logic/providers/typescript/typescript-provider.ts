@@ -59,6 +59,11 @@ export class RootNode extends StructNode<FileNode, WorkingSet> {
     this.children = children;
     this.state = state;
   }
+  clone(): RootNode {
+    const node = new RootNode(this.children, this.state);
+    node.id = this.id;
+    return node;
+  }
   static fromState(state: WorkingSet): RootNode {
     const host = new CompilerHost();
     state.files.forEach((content, name) =>
@@ -95,7 +100,9 @@ export class RootNode extends StructNode<FileNode, WorkingSet> {
     throw new Error("Not implemented");
   }
   protected setChildren(children: ChildNodeEntry<ts.SourceFile>[]): RootNode {
-    return new RootNode(children, this.state);
+    const node = new RootNode(children, this.state);
+    node.id = this.id;
+    return node;
   }
 }
 export class FileNode extends ListNode<ts.Statement, ts.SourceFile> {
@@ -105,6 +112,11 @@ export class FileNode extends ListNode<ts.Statement, ts.SourceFile> {
   constructor(value: Node<ts.Statement>[], file: ts.SourceFile) {
     super(value);
     this.file = file;
+  }
+  clone(): FileNode {
+    const node = new FileNode(this.value, this.file);
+    node.id = this.id;
+    return node;
   }
   static fromFile(file: ts.SourceFile): FileNode {
     return new FileNode(
@@ -155,7 +167,9 @@ export class FileNode extends ListNode<ts.Statement, ts.SourceFile> {
     return { node: FileNode.fromFile(newFile), text };
   }
   protected setValue(value: Node<ts.Statement>[]): FileNode {
-    return new FileNode(value, this.file);
+    const node = new FileNode(value, this.file);
+    node.id = this.id;
+    return node;
   }
   protected createChild(): Node<ts.Statement> {
     return fromTsNode(

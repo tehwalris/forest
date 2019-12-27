@@ -81,7 +81,9 @@ export function buildDisplayTree(
 }
 
 function divetreeIdFromDisplayNode(node: DisplayNode): string {
-  return JSON.stringify(node.basePath); // TODO HACK This should have a real ID
+  // TODO This only takes the ID of the first node which was grouped into this display node.
+  // Maybe we should consider the IDs of all nodes in this DisplayNode.
+  return node.baseNode.id;
 }
 
 export function buildNavTree(node: DisplayNode): NavNode {
@@ -101,7 +103,7 @@ export function buildDivetreeDisplayTree(
 function toDivetreeDisplayTree(node: DisplayNode): DivetreeDisplayNode {
   return {
     kind: NodeKind.Loose,
-    id: divetreeIdFromDisplayNode(node) + "-loose",
+    id: divetreeIdFromDisplayNode(node) + "-loose", // HACK This suffix wont work if "id" is an arbitrary string
     parent: {
       kind: NodeKind.TightLeaf,
       id: divetreeIdFromDisplayNode(node),

@@ -95,7 +95,11 @@ export class StringTemplateNode<B extends ts.Node> extends Node<B> {
   actions: ActionSet<StringTemplateNode<B>> = {
     setFromString: {
       inputKind: InputKind.String,
-      apply: v => new StringTemplateNode(this.template, v, this.original),
+      apply: v => {
+        const node = new StringTemplateNode(this.template, v, this.original);
+        node.id = this.id;
+        return node;
+      },
     },
   };
   private template: StringTemplate<B>;
@@ -106,6 +110,15 @@ export class StringTemplateNode<B extends ts.Node> extends Node<B> {
     this.template = template;
     this.text = text;
     this.original = original;
+  }
+  clone(): StringTemplateNode<B> {
+    const node = new StringTemplateNode(
+      this.template,
+      this.text,
+      this.original,
+    );
+    node.id = this.id;
+    return node;
   }
   static fromTemplate<B extends ts.Node>(
     template: StringTemplate<B>,
@@ -163,23 +176,30 @@ export class ListTemplateNode<
       node,
     );
   }
+  clone(): ListTemplateNode<B, C> {
+    return this.setValue(this.rawChildren);
+  }
   protected setValue(children: Node<C>[]): ListTemplateNode<B, C> {
-    return new ListTemplateNode(
+    const node = new ListTemplateNode(
       this.template,
       this.newChild,
       children,
       this.flags,
       this.original,
     );
+    node.id = this.id;
+    return node;
   }
   setFlags(flags: this["flags"]): ListTemplateNode<B, C> {
-    return new ListTemplateNode(
+    const node = new ListTemplateNode(
       this.template,
       this.newChild,
       this.rawChildren,
       flags,
       this.original,
     );
+    node.id = this.id;
+    return node;
   }
   createChild(): Node<C> {
     return this.newChild();
@@ -214,6 +234,16 @@ export class StructTemplateNode<
     this.children = children;
     this.flags = flags;
     this.original = original;
+  }
+  clone(): StructTemplateNode<C, B> {
+    const node = new StructTemplateNode(
+      this.template,
+      this.children,
+      this.flags,
+      this.original,
+    );
+    node.id = this.id;
+    return node;
   }
   static fromTemplate<
     C extends {
@@ -266,20 +296,24 @@ export class StructTemplateNode<
     if (!didReplace) {
       throw new Error(`Unsupported child ${child.key}`);
     }
-    return new StructTemplateNode(
+    const node = new StructTemplateNode(
       this.template,
       children,
       this.flags,
       this.original,
     );
+    node.id = this.id;
+    return node;
   }
   setFlags(flags: this["flags"]): StructTemplateNode<C, B> {
-    return new StructTemplateNode(
+    const node = new StructTemplateNode(
       this.template,
       this.children,
       flags,
       this.original,
     );
+    node.id = this.id;
+    return node;
   }
   build(): BuildResult<B> {
     return this.buildHelper(builtChildren => {
@@ -310,6 +344,15 @@ export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
     this.variants = variants;
     this.original = original;
   }
+  clone(): TemplateUnionNode<T> {
+    const node = new TemplateUnionNode(
+      this.variants,
+      this.value,
+      this.original,
+    );
+    node.id = this.id;
+    return node;
+  }
   static fromUnion<T extends ts.Node>(
     _union: Union<T>,
     node: T,
@@ -336,7 +379,9 @@ export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
     throw new Error("Flags not supported");
   }
   setValue(value: UnionVariant<string>): TemplateUnionNode<T> {
-    return new TemplateUnionNode(this.variants, value, this.original);
+    const node = new TemplateUnionNode(this.variants, value, this.original);
+    node.id = this.id;
+    return node;
   }
   getLabel(key: string): string {
     return key;

@@ -8,12 +8,15 @@ export class OptionNode<B> extends Node<B | undefined> {
   actions: ActionSet<OptionNode<B>> = {
     toggle: {
       inputKind: InputKind.None,
-      apply: () =>
-        new OptionNode(
+      apply: () => {
+        const node = new OptionNode(
           this.createInitialChild,
-          this.children.length ? undefined : this.createInitialChild()
-        )
-    }
+          this.children.length ? undefined : this.createInitialChild(),
+        );
+        node.id = this.id;
+        return node;
+      },
+    },
   };
   private createInitialChild: () => Node<B>;
   constructor(createInitialChild: () => Node<B>, currentChild?: Node<B>) {
@@ -21,9 +24,16 @@ export class OptionNode<B> extends Node<B | undefined> {
     this.createInitialChild = createInitialChild;
     this.children = currentChild ? [{ key: "value", node: currentChild }] : [];
   }
+  clone(): OptionNode<B> {
+    const node = new OptionNode(this.createInitialChild, undefined);
+    node.children = [...this.children];
+    return node;
+  }
   setChild(child: ChildNodeEntry<B>): OptionNode<B> {
     if (child.key === "value") {
-      return new OptionNode(this.createInitialChild, child.node);
+      const node = new OptionNode(this.createInitialChild, child.node);
+      node.id = this.id;
+      return node;
     }
     throw new Error('OptionNode only supports "value" child.');
   }
@@ -31,10 +41,12 @@ export class OptionNode<B> extends Node<B | undefined> {
     throw new Error("Flags not supported");
   }
   setValue(value: UnionVariant<boolean>): OptionNode<B> {
-    return new OptionNode(
+    const node = new OptionNode(
       this.createInitialChild,
-      value.key ? value.children[0].node : undefined
+      value.key ? value.children[0].node : undefined,
     );
+    node.id = this.id;
+    return node;
   }
   getDebugLabel() {
     return `Option<${this.children.length ? "Some" : "None"}>`;

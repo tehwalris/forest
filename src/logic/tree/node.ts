@@ -1,10 +1,14 @@
 import { Path, Link } from "./base";
 import { ActionSet } from "./action";
+import genUuid from "uuid/v4";
+
 export abstract class Node<B> {
+  id: string = genUuid();
   abstract children: ChildNodeEntry<any>[];
   abstract flags: FlagSet;
   abstract actions: ActionSet<Node<B>>;
   abstract links: Link[];
+  abstract clone(): Node<B>;
   abstract setChild(child: ChildNodeEntry<any>): Node<B>;
   abstract setFlags(flags: this["flags"]): Node<B>;
   setDeepChild(path: Path, node: Node<any>): Node<B> {
@@ -54,11 +58,7 @@ export abstract class Node<B> {
     return undefined;
   }
   protected buildHelper(
-    cb: (
-      builtChildren: {
-        [key: string]: any;
-      },
-    ) => B,
+    cb: (builtChildren: { [key: string]: any }) => B,
   ): BuildResult<B> {
     const builtChildren: {
       [key: string]: any;

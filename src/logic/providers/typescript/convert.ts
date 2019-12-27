@@ -100,6 +100,11 @@ class UnsupportedSyntaxNode<T extends ts.Node> extends Node<T> {
     super();
     this.original = value;
   }
+  clone(): UnsupportedSyntaxNode<T> {
+    const node = new UnsupportedSyntaxNode(this.original);
+    node.id = this.id;
+    return node;
+  }
   setChild(child: never): never {
     throw new Error("UnsupportedSyntaxNode can't have children");
   }
@@ -121,7 +126,11 @@ export class BooleanNode extends Node<ts.BooleanLiteral> {
   actions: ActionSet<BooleanNode> = {
     toggle: {
       inputKind: InputKind.None,
-      apply: () => new BooleanNode(!this.value, this.original),
+      apply: () => {
+        const node = new BooleanNode(!this.value, this.original);
+        node.id = this.id;
+        return node;
+      },
     },
   };
   private value: boolean;
@@ -129,6 +138,11 @@ export class BooleanNode extends Node<ts.BooleanLiteral> {
     super();
     this.value = value;
     this.original = original;
+  }
+  clone(): BooleanNode {
+    const node = new BooleanNode(this.value, this.original);
+    node.id = this.id;
+    return node;
   }
   setChild(child: never): never {
     throw new Error("BooleanNode can't have children");
@@ -140,7 +154,9 @@ export class BooleanNode extends Node<ts.BooleanLiteral> {
     return new BooleanNode(node.kind === ts.SyntaxKind.TrueKeyword, node);
   }
   setValue(value: UnionVariant<boolean>): BooleanNode {
-    return new BooleanNode(value.key, this.original);
+    const node = new BooleanNode(value.key, this.original);
+    node.id = this.id;
+    return node;
   }
   getDebugLabel() {
     return this.value.toString();
