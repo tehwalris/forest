@@ -10,6 +10,7 @@ import {
 } from "../logic/tree/display-new";
 import { NavTree } from "divetree-react";
 import TypescriptProvider from "../logic/providers/typescript";
+import { NodeContent } from "./tree/node-content";
 
 const TYPESCRIPT_PROVIDER = new TypescriptProvider();
 const INITIAL_FILE: string = "temp/fizz-buzz/index.ts";
@@ -24,6 +25,8 @@ export const HomeNew: React.FC<{}> = () => {
     openFile(INITIAL_FILE);
   }, []);
 
+  const [focusedId, setFocusedId] = useState(tree.id);
+
   const { nodesById, parentsById, navTree, displayTree } = useMemo(() => {
     return {
       nodesById: buildNodeIndex(tree),
@@ -37,24 +40,11 @@ export const HomeNew: React.FC<{}> = () => {
     <NavTree
       navTree={navTree}
       getDisplayTree={focusPath => displayTree}
-      getContent={id => {
-        const node = nodesById.get(id as string);
-        if (!node) {
-          return null;
-        }
-        return (
-          <div>
-            <div>{parentsById.get(node.id)?.childKey}</div>
-            <div>
-              <i>
-                {node.getDisplayInfo()?.label.join("") ||
-                  node.getDebugLabel() ||
-                  ""}
-              </i>
-            </div>
-          </div>
-        );
-      }}
+      getContent={id => (
+        <NodeContent id={id} nodesById={nodesById} parentsById={parentsById} />
+      )}
+      focusedId={focusedId}
+      onFocusedIdChange={setFocusedId}
     />
   );
 };

@@ -10,7 +10,10 @@ export function buildNodeIndex(
   return result;
 }
 
-type ParentIndex = Map<string, { parent: Node<unknown>; childKey: string }>;
+export type ParentIndex = Map<
+  string,
+  { parent: Node<unknown>; childKey: string }
+>;
 
 export function buildParentIndex(
   root: Node<unknown>,
