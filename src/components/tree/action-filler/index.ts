@@ -1,1 +1,1 @@
-export { default } from "./action-filler";
+export { ActionFiller } from "./action-filler";

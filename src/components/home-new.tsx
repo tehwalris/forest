@@ -11,35 +11,18 @@ import { NavTree } from "divetree-react";
 import TypescriptProvider from "../logic/providers/typescript";
 import { NodeContent } from "./tree/node-content";
 import { Path } from "../logic/tree/base";
-import { InputKind } from "../logic/tree/action";
+import { InputKind, Action } from "../logic/tree/action";
 import { HandleAction } from "../logic/editing/interfaces";
 import { handleKey } from "../logic/editing/key-handlers";
+import { ActionFiller } from "./tree/action-filler";
 
 const TYPESCRIPT_PROVIDER = new TypescriptProvider();
 const INITIAL_FILE: string = "temp/fizz-buzz/index.ts";
 
 export const HomeNew: React.FC<{}> = () => {
   const [tree, setTree] = useState<Node<unknown>>(new EmptyLeafNode());
-
   const updateNode = (path: Path, value: Node<unknown>) => {
     setTree(tree => tree.setDeepChild(path, value));
-  };
-
-  const handleAction: HandleAction = (action, target, childActionArgument) => {
-    if (action.inputKind === InputKind.None) {
-      updateNode(target, action.apply());
-    } else if (action.inputKind === InputKind.Child) {
-      if (!childActionArgument) {
-        throw new Error("Expected childActionArgument");
-      }
-      updateNode(target, action.apply(childActionArgument));
-    } else {
-      // TODO Handle these kinds of actions
-      // setState({
-      //   inProgressAction: { target, action },
-      // });
-      // setImmediate(() => this.focusActionFiller());
-    }
   };
 
   useEffect(() => {
@@ -50,6 +33,35 @@ export const HomeNew: React.FC<{}> = () => {
   }, []);
 
   const [focusedId, setFocusedId] = useState(tree.id);
+  const [inProgressAction, setInProgressAction] = useState<{
+    target: Path;
+    action: Action<Node<unknown>>;
+  }>();
+
+  const handleAction: HandleAction = (action, target, childActionArgument) => {
+    if (action.inputKind === InputKind.None) {
+      updateNode(target, action.apply());
+    } else if (action.inputKind === InputKind.Child) {
+      if (!childActionArgument) {
+        throw new Error("Expected childActionArgument");
+      }
+      updateNode(target, action.apply(childActionArgument));
+    } else {
+      setInProgressAction({ target, action });
+      setImmediate(() =>
+        (document.querySelector(
+          ".actionFiller input",
+        ) as HTMLInputElement).focus(),
+      );
+    }
+  };
+  const onActionApply = (updatedNode: Node<unknown>) => {
+    if (!inProgressAction) {
+      throw new Error("Expected an action to be in-progress.");
+    }
+    updateNode(inProgressAction.target, updatedNode);
+    setInProgressAction(undefined);
+  };
 
   const { parentIndex, navTree, displayTree } = useMemo(() => {
     return {
@@ -60,15 +72,24 @@ export const HomeNew: React.FC<{}> = () => {
   }, [tree]);
 
   return (
-    <NavTree
-      navTree={navTree}
-      getDisplayTree={focusPath => displayTree}
-      getContent={id => <NodeContent id={id} parentIndex={parentIndex} />}
-      focusedId={focusedId}
-      onFocusedIdChange={setFocusedId}
-      onKeyDown={key =>
-        handleKey(key, { tree, parentIndex, focusedId, handleAction })
-      }
-    />
+    <div>
+      <NavTree
+        navTree={navTree}
+        getDisplayTree={focusPath => displayTree}
+        getContent={id => <NodeContent id={id} parentIndex={parentIndex} />}
+        focusedId={focusedId}
+        onFocusedIdChange={setFocusedId}
+        onKeyDown={key =>
+          handleKey(key, { tree, parentIndex, focusedId, handleAction })
+        }
+      />
+      {inProgressAction && (
+        <ActionFiller
+          action={inProgressAction.action}
+          onCancel={() => setInProgressAction(undefined)}
+          onApply={onActionApply}
+        />
+      )}
+    </div>
   );
 };

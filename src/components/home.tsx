@@ -5,7 +5,7 @@ import TreeDisplay from "./tree/tree-display";
 import { Path } from "../logic/tree/base";
 import { Node, Flag, FlagSet } from "../logic/tree/node";
 import { Action, InputKind, ActionSet } from "../logic/tree/action";
-import ActionFiller from "./tree/action-filler";
+import { ActionFiller } from "./tree/action-filler";
 import * as ts from "typescript";
 import CodeDisplay from "./code-display";
 import {

@@ -2,7 +2,7 @@ import * as React from "react";
 import { OneOfInputAction } from "../../../logic/tree/action";
 import { Node } from "../../../logic/tree/node";
 import Select, { ValueType } from "react-select";
-interface Props<N extends Node<{}>, T> {
+interface Props<N extends Node<unknown>, T> {
   action: OneOfInputAction<N, T>;
   onApply: (node: N) => void;
 }
@@ -11,7 +11,10 @@ interface Option<T> {
   original: T;
   label: string;
 }
-export default <N extends Node<{}>, T>({ action, onApply }: Props<N, T>) => {
+export default <N extends Node<unknown>, T>({
+  action,
+  onApply,
+}: Props<N, T>) => {
   return (
     <Select
       onChange={(e: ValueType<Option<T>>) =>

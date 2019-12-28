@@ -3,7 +3,7 @@ import { Action, InputKind } from "../../../logic/tree/action";
 import { Node } from "../../../logic/tree/node";
 import StringFiller from "./string";
 import OneOfFiller from "./one-of";
-interface Props<N extends Node<{}>> {
+interface Props<N extends Node<unknown>> {
   action: Action<N>;
   onCancel: () => void;
   onApply: (node: N) => void;
@@ -14,7 +14,7 @@ const styles = {
     padding: "5px",
   },
 };
-export default <N extends Node<{}>>({
+export const ActionFiller = <N extends Node<unknown>>({
   action,
   onApply,
   onCancel,
