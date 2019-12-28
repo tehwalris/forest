@@ -63,11 +63,10 @@ export const HomeNew: React.FC<{}> = () => {
     setInProgressAction(undefined);
   };
 
-  const { parentIndex, navTree, displayTree } = useMemo(() => {
+  const { parentIndex, navTree } = useMemo(() => {
     return {
       parentIndex: buildParentIndex(tree),
       navTree: buildDivetreeNavTree(tree),
-      displayTree: buildDivetreeDisplayTree(tree),
     };
   }, [tree]);
 
@@ -75,8 +74,12 @@ export const HomeNew: React.FC<{}> = () => {
     <div>
       <NavTree
         navTree={navTree}
-        getDisplayTree={focusPath => displayTree}
-        getContent={id => <NodeContent id={id} parentIndex={parentIndex} />}
+        getDisplayTree={focusPath =>
+          buildDivetreeDisplayTree(tree, focusPath, 0)
+        }
+        getContent={id => (
+          <NodeContent parentIndexEntry={parentIndex.get(id as string)} />
+        )}
         focusedId={focusedId}
         onFocusedIdChange={setFocusedId}
         onKeyDown={key =>
