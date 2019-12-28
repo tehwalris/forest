@@ -61,6 +61,7 @@ export function handleKey(
   };
 
   const handlers: { [key: string]: (() => void) | undefined } = {
+    Enter: () => console.log(parentIndexEntry),
     Escape: cancelAction,
     p: tryAction("prepend"),
     a: tryAction("append"),
