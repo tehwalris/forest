@@ -132,6 +132,7 @@ export const HomeNew: React.FC<{}> = () => {
             setFocusedId,
             handleAction,
             cancelAction: () => setInProgressAction(undefined),
+            actionInProgress: !!inProgressAction,
           })
         }
       />

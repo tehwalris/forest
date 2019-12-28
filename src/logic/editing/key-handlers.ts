@@ -11,6 +11,7 @@ interface HandleKeyOptions {
   setFocusedId: (id: string) => void;
   handleAction: HandleAction;
   cancelAction: () => void;
+  actionInProgress: boolean;
 }
 
 export function handleKey(
@@ -22,8 +23,13 @@ export function handleKey(
     setFocusedId,
     handleAction,
     cancelAction,
+    actionInProgress,
   }: HandleKeyOptions,
 ) {
+  if (actionInProgress && key !== "Escape") {
+    return;
+  }
+
   const parentIndexEntry = parentIndex.get(focusedId);
   if (!parentIndexEntry) {
     return;
