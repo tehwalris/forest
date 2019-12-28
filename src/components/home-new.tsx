@@ -3,7 +3,6 @@ import { EmptyLeafNode } from "../logic/tree/base-nodes";
 import { Node } from "../logic/tree/node";
 import { useMemo, useState, useEffect } from "react";
 import {
-  buildNodeIndex,
   buildDivetreeDisplayTree,
   buildDivetreeNavTree,
   buildParentIndex,
@@ -27,10 +26,9 @@ export const HomeNew: React.FC<{}> = () => {
 
   const [focusedId, setFocusedId] = useState(tree.id);
 
-  const { nodesById, parentsById, navTree, displayTree } = useMemo(() => {
+  const { parentIndex, navTree, displayTree } = useMemo(() => {
     return {
-      nodesById: buildNodeIndex(tree),
-      parentsById: buildParentIndex(tree),
+      parentIndex: buildParentIndex(tree),
       navTree: buildDivetreeNavTree(tree),
       displayTree: buildDivetreeDisplayTree(tree),
     };
@@ -40,9 +38,7 @@ export const HomeNew: React.FC<{}> = () => {
     <NavTree
       navTree={navTree}
       getDisplayTree={focusPath => displayTree}
-      getContent={id => (
-        <NodeContent id={id} nodesById={nodesById} parentsById={parentsById} />
-      )}
+      getContent={id => <NodeContent id={id} parentIndex={parentIndex} />}
       focusedId={focusedId}
       onFocusedIdChange={setFocusedId}
     />

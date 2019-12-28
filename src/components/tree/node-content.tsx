@@ -1,25 +1,21 @@
 import * as React from "react";
-import { Node } from "../../logic/tree/node";
+import * as R from "ramda";
 import { ParentIndex } from "../../logic/tree/display-new";
 
 interface Props {
   id: number | string;
-  nodesById: Map<string, Node<unknown>>;
-  parentsById: ParentIndex;
+  parentIndex: ParentIndex;
 }
 
-export const NodeContent: React.FC<Props> = ({
-  id,
-  nodesById,
-  parentsById,
-}) => {
-  const node = nodesById.get(id as string);
-  if (!node) {
+export const NodeContent: React.FC<Props> = ({ id, parentIndex }) => {
+  const indexEntry = parentIndex.get(id as string);
+  if (!indexEntry) {
     return null;
   }
+  const { node, path } = indexEntry;
   return (
     <div>
-      <div>{parentsById.get(node.id)?.childKey}</div>
+      <div>{R.last(path)?.childKey}</div>
       <div>
         <i>
           {node.getDisplayInfo()?.label.join("") || node.getDebugLabel() || ""}
