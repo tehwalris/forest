@@ -2,6 +2,10 @@ import { Path, Link } from "./base";
 import { ActionSet } from "./action";
 import genUuid from "uuid/v4";
 
+export interface Node<B> {
+  unapplyTransform?(): BuildResult<Node<B>>;
+}
+
 export abstract class Node<B> {
   id: string = genUuid();
   abstract children: ChildNodeEntry<any>[];

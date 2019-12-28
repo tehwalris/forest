@@ -15,22 +15,55 @@ import { InputKind, Action } from "../logic/tree/action";
 import { HandleAction } from "../logic/editing/interfaces";
 import { handleKey } from "../logic/editing/key-handlers";
 import { ActionFiller } from "./tree/action-filler";
+import {
+  applyTransformsToTree,
+  Transform,
+  MultiTransformCache,
+  unapplyTransforms,
+} from "../logic/transform";
 
 const TYPESCRIPT_PROVIDER = new TypescriptProvider();
 const INITIAL_FILE: string = "temp/fizz-buzz/index.ts";
+const TRANSFORMS: Transform[] = [];
+
+const transformCache: MultiTransformCache = new WeakMap();
 
 export const HomeNew: React.FC<{}> = () => {
-  const [tree, setTree] = useState<Node<unknown>>(new EmptyLeafNode());
-  const updateNode = (path: Path, value: Node<unknown>) => {
-    setTree(tree => tree.setDeepChild(path, value));
-  };
+  const [_tree, _setTree] = useState<{
+    raw: Node<unknown>;
+    transformed?: Node<unknown>;
+  }>({ raw: new EmptyLeafNode() });
+  const setRawTree = (raw: Node<unknown>) => _setTree({ raw });
 
   useEffect(() => {
     const openFile = (filePath: string) =>
-      setTree(TYPESCRIPT_PROVIDER.loadTree(filePath));
+      setRawTree(TYPESCRIPT_PROVIDER.loadTree(filePath));
     (window as any).openFile = openFile;
     openFile(INITIAL_FILE);
   }, []);
+
+  const tree =
+    _tree.transformed ||
+    applyTransformsToTree(_tree.raw, TRANSFORMS, transformCache);
+  const setTree = (updater: (oldTree: Node<unknown>) => Node<unknown>) => {
+    _setTree(_tree => {
+      const newTransformed = updater(
+        _tree.transformed ||
+          applyTransformsToTree(_tree.raw, TRANSFORMS, transformCache),
+      );
+      const output = { raw: _tree.raw, transformed: newTransformed };
+      const unapplyResult = unapplyTransforms(newTransformed);
+      if (unapplyResult.ok) {
+        output.raw = unapplyResult.value;
+        delete output.transformed;
+      }
+      return output;
+    });
+  };
+
+  const updateNode = (path: Path, value: Node<unknown>) => {
+    setTree(tree => tree.setDeepChild(path, value));
+  };
 
   const [focusedId, setFocusedId] = useState(tree.id);
   const [inProgressAction, setInProgressAction] = useState<{
