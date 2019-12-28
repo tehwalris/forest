@@ -84,7 +84,13 @@ export const HomeNew: React.FC<{}> = () => {
         onFocusedIdChange={setFocusedId}
         disableKeys={!!inProgressAction}
         onKeyDown={key =>
-          handleKey(key, { tree, parentIndex, focusedId, handleAction })
+          handleKey(key, {
+            tree,
+            parentIndex,
+            focusedId,
+            setFocusedId,
+            handleAction,
+          })
         }
       />
       {inProgressAction && (
