@@ -1,6 +1,11 @@
-import { Node, BuildResult } from "../tree/node";
+import {
+  Node,
+  BuildResult,
+  BuildResultFailure,
+  BuildResultSuccess,
+} from "../tree/node";
 
-export type Transform = (original: Node<unknown>) => Node<unknown>;
+export type Transform = <B>(original: Node<B>) => Node<B>;
 
 export type SingleTransformCache = WeakMap<
   Node<unknown>,
@@ -9,31 +14,27 @@ export type SingleTransformCache = WeakMap<
 
 export type MultiTransformCache = WeakMap<Transform, SingleTransformCache>;
 
-function tryApplyTransformToNode(
-  node: Node<unknown>,
-  transform: Transform,
-  cache: SingleTransformCache,
-): Node<unknown> {
-  if (cache.has(node)) {
-    return node;
-  }
-  const result = transform(node);
-  cache.set(node, result);
-  return result;
-}
-
-function applyTransformToSubtree(
+function applyTransformToTree(
   root: Node<unknown>,
   transform: Transform,
   cache: SingleTransformCache,
 ): Node<unknown> {
-  let newRoot = tryApplyTransformToNode(root, transform, cache);
+  if (cache.has(root)) {
+    return cache.get(root)!;
+  }
+
+  let newRoot = transform(root);
   newRoot.children.forEach(c => {
+    const transformedChild = applyTransformToTree(c.node, transform, cache);
+    if (transformedChild === c.node) {
+      return;
+    }
     newRoot = newRoot.setChild({
       key: c.key,
-      node: applyTransformToSubtree(c.node, transform, cache),
+      node: transformedChild,
     });
   });
+  cache.set(root, newRoot);
   return newRoot;
 }
 
@@ -42,22 +43,50 @@ export function applyTransformsToTree(
   transforms: Transform[],
   cache: MultiTransformCache,
 ): Node<unknown> {
-  return transforms.reduce((node, transform) => {
+  const finalOutput = transforms.reduce((node, transform) => {
     const singleCache = cache.get(transform) || new WeakMap();
     cache.set(transform, singleCache);
-    return applyTransformToSubtree(node, transform, singleCache);
+    return applyTransformToTree(node, transform, singleCache);
   }, node);
+  return finalOutput;
 }
 
 export function unapplyTransforms(
-  node: Node<unknown>,
+  transformedNode: Node<unknown>,
 ): BuildResult<Node<unknown>> {
-  if (!node.unapplyTransform) {
+  let node = transformedNode;
+  const buildResult = transformedNode.unapplyTransform?.();
+  if (buildResult) {
+    if (!buildResult.ok) {
+      return buildResult;
+    }
+    node = buildResult.value;
+  }
+
+  const childBuildResults = node.children.map(c => ({
+    key: c.key,
+    result: unapplyTransforms(c.node),
+  }));
+  const failedChild = childBuildResults.find(r => !r.result.ok);
+  if (failedChild) {
+    const { error } = failedChild.result as BuildResultFailure;
+    return {
+      ok: false,
+      error: { path: [...error.path, failedChild.key], message: error.message },
+    };
+  }
+
+  const newChildren = childBuildResults.map(e => ({
+    key: e.key,
+    node: (e.result as BuildResultSuccess<Node<unknown>>).value,
+  }));
+  if (newChildren.every((c, i) => c.node === node.children[i].node)) {
     return { ok: true, value: node };
   }
-  const buildResult = node.unapplyTransform();
-  if (!buildResult.ok) {
-    return buildResult;
-  }
-  return unapplyTransforms(buildResult.value);
+
+  newChildren.forEach(c => {
+    node = node.setChild(c);
+  });
+
+  return { ok: true, value: node };
 }

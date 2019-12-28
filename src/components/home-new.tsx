@@ -21,18 +21,23 @@ import {
   MultiTransformCache,
   unapplyTransforms,
 } from "../logic/transform";
+import { compressUselessValuesTransform } from "../logic/transform/transforms/compress-useless-values";
+
+interface CombinedTrees {
+  raw: Node<unknown>;
+  transformed?: Node<unknown>;
+}
 
 const TYPESCRIPT_PROVIDER = new TypescriptProvider();
 const INITIAL_FILE: string = "temp/fizz-buzz/index.ts";
-const TRANSFORMS: Transform[] = [];
+const TRANSFORMS: Transform[] = [compressUselessValuesTransform];
 
 const transformCache: MultiTransformCache = new WeakMap();
 
 export const HomeNew: React.FC<{}> = () => {
-  const [_tree, _setTree] = useState<{
-    raw: Node<unknown>;
-    transformed?: Node<unknown>;
-  }>({ raw: new EmptyLeafNode() });
+  const [_tree, _setTree] = useState<CombinedTrees>({
+    raw: new EmptyLeafNode(),
+  });
   const setRawTree = (raw: Node<unknown>) => _setTree({ raw });
 
   useEffect(() => {
@@ -51,11 +56,14 @@ export const HomeNew: React.FC<{}> = () => {
         _tree.transformed ||
           applyTransformsToTree(_tree.raw, TRANSFORMS, transformCache),
       );
-      const output = { raw: _tree.raw, transformed: newTransformed };
+      const output: CombinedTrees = {
+        raw: _tree.raw,
+        transformed: newTransformed,
+      };
       const unapplyResult = unapplyTransforms(newTransformed);
       if (unapplyResult.ok) {
         output.raw = unapplyResult.value;
-        delete output.transformed;
+        output.transformed = undefined;
       }
       return output;
     });
