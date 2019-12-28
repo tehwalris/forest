@@ -27,6 +27,7 @@ export class OptionNode<B> extends Node<B | undefined> {
   clone(): OptionNode<B> {
     const node = new OptionNode(this.createInitialChild, undefined);
     node.children = [...this.children];
+    node.id = this.id;
     return node;
   }
   setChild(child: ChildNodeEntry<B>): OptionNode<B> {
