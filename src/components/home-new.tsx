@@ -10,12 +10,37 @@ import {
 import { NavTree } from "divetree-react";
 import TypescriptProvider from "../logic/providers/typescript";
 import { NodeContent } from "./tree/node-content";
+import { Path } from "../logic/tree/base";
+import { InputKind } from "../logic/tree/action";
+import { HandleAction } from "../logic/editing/interfaces";
+import { handleKey } from "../logic/editing/key-handlers";
 
 const TYPESCRIPT_PROVIDER = new TypescriptProvider();
 const INITIAL_FILE: string = "temp/fizz-buzz/index.ts";
 
 export const HomeNew: React.FC<{}> = () => {
   const [tree, setTree] = useState<Node<unknown>>(new EmptyLeafNode());
+
+  const updateNode = (path: Path, value: Node<unknown>) => {
+    setTree(tree => tree.setDeepChild(path, value));
+  };
+
+  const handleAction: HandleAction = (action, target, childActionArgument) => {
+    if (action.inputKind === InputKind.None) {
+      updateNode(target, action.apply());
+    } else if (action.inputKind === InputKind.Child) {
+      if (!childActionArgument) {
+        throw new Error("Expected childActionArgument");
+      }
+      updateNode(target, action.apply(childActionArgument));
+    } else {
+      // TODO Handle these kinds of actions
+      // setState({
+      //   inProgressAction: { target, action },
+      // });
+      // setImmediate(() => this.focusActionFiller());
+    }
+  };
 
   useEffect(() => {
     const openFile = (filePath: string) =>
@@ -41,6 +66,9 @@ export const HomeNew: React.FC<{}> = () => {
       getContent={id => <NodeContent id={id} parentIndex={parentIndex} />}
       focusedId={focusedId}
       onFocusedIdChange={setFocusedId}
+      onKeyDown={key =>
+        handleKey(key, { tree, parentIndex, focusedId, handleAction })
+      }
     />
   );
 };
