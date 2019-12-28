@@ -1,5 +1,4 @@
 import * as React from "react";
-import Home from "./components/home";
 import { HomeNew } from "./components/home-new";
 
 export default class App extends React.Component {
@@ -8,11 +7,6 @@ export default class App extends React.Component {
   };
 
   render() {
-    return (
-      <div>
-        <HomeNew />
-        <Home />
-      </div>
-    );
+    return <HomeNew />;
   }
 }
