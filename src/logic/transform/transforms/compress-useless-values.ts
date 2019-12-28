@@ -126,4 +126,10 @@ class CompressedNode<B> extends Node<B> {
   unapplyTransform(): BuildResult<Node<B>> {
     return { ok: true, value: this.parentNode };
   }
+
+  getDebugLabel(): string | undefined {
+    return [this.childNode, this.parentNode]
+      .map(v => v.getDebugLabel())
+      .find(v => v !== undefined);
+  }
 }
