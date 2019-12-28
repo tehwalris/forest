@@ -10,6 +10,7 @@ interface HandleKeyOptions {
   focusedId: string;
   setFocusedId: (id: string) => void;
   handleAction: HandleAction;
+  cancelAction: () => void;
 }
 
 export function handleKey(
@@ -20,6 +21,7 @@ export function handleKey(
     focusedId,
     setFocusedId,
     handleAction,
+    cancelAction,
   }: HandleKeyOptions,
 ) {
   const parentIndexEntry = parentIndex.get(focusedId);
@@ -59,6 +61,7 @@ export function handleKey(
   };
 
   const handlers: { [key: string]: (() => void) | undefined } = {
+    Escape: cancelAction,
     p: tryAction("prepend"),
     a: tryAction("append"),
     s: tryAction("setFromString"),
