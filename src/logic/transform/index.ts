@@ -38,7 +38,7 @@ function applyTransformToTree(
   return newRoot;
 }
 
-export function applyTransformsToTree(
+function applyTransformsToTreeOnce(
   node: Node<unknown>,
   transforms: Transform[],
   cache: MultiTransformCache,
@@ -49,6 +49,22 @@ export function applyTransformsToTree(
     return applyTransformToTree(node, transform, singleCache);
   }, node);
   return finalOutput;
+}
+
+export function applyTransformsToTree(
+  node: Node<unknown>,
+  transforms: Transform[],
+  cache: MultiTransformCache,
+): Node<unknown> {
+  for (let i = 0; i < 5; i++) {
+    const newNode = applyTransformsToTreeOnce(node, transforms, cache);
+    if (newNode === node) {
+      return node;
+    }
+    node = newNode;
+  }
+  console.warn("applyTransformsToTree reached iteration limit");
+  return node;
 }
 
 export function unapplyTransforms(
