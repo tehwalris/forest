@@ -724,3 +724,14 @@ CatchClause
   O variableDeclaration VariableDeclaration
   R block Block
   build ({variableDeclaration, block}) => ts.createCatchClause(variableDeclaration, block)
+
+SECTION shortcuts
+i Identifier
+n NumericLiteral
+s StringLiteral
+c IfStatement
+r ReturnStatement
+fd FunctionDeclaration
+fa ArrowFunction
+b BinaryExpression
+u UnaryExpression

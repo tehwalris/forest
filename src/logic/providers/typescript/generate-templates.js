@@ -15,6 +15,7 @@ const {
   stringTemplates,
   listTemplates,
   structTemplates,
+  shortcuts,
 } = R.pipe(
   R.split("\n"),
   R.filter(R.trim),
@@ -38,8 +39,7 @@ const {
       R.pipe(R.flatten, e => ({
         name: e[0],
         match: e[1] === "-" ? `ts.is${e[0]}` : e[1].replace(/__/g, " "),
-        shortcut: e[2] === "-" ? undefined : e[2],
-        create: e.slice(3).join(" "),
+        create: e.slice(2).join(" "),
       })),
     ),
     tokenTypes: R.map(
@@ -111,6 +111,7 @@ const {
         R.mergeAll,
       ),
     ),
+    shortcuts: R.map(R.pipe(R.flatten, e => ({ shortcut: e[0], type: e[1] }))),
   }),
   R.evolve({
     unions: unions => {
@@ -331,6 +332,12 @@ const ${e.name}: StructTemplate<
       .map(e => e.name)
       .join(","),
     "]\n",
+    "export const typesByShortcut = new Map<string, string>([",
+    ...shortcuts.map(e => `['${e.shortcut}', '${e.type}'],`),
+    "]);",
+    "export const shortcutsByType = new Map<string, string>([",
+    ...shortcuts.map(e => `['${e.type}', '${e.shortcut}'],`),
+    "]);",
   ].join("\n") + "\n";
 
 fs.writeFileSync(path.join(__dirname, "./generated/templates.ts"), output);
