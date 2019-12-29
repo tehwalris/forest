@@ -115,6 +115,8 @@ export const HomeNew: React.FC<{}> = () => {
     };
   }, [tree]);
 
+  const [copiedNode, setCopiedNode] = useState<Node<unknown>>();
+
   return (
     <div>
       <NavTree
@@ -137,6 +139,8 @@ export const HomeNew: React.FC<{}> = () => {
             handleAction,
             cancelAction: () => setInProgressAction(undefined),
             actionInProgress: !!inProgressAction,
+            copyNode: setCopiedNode,
+            copiedNode,
           })
         }
       />

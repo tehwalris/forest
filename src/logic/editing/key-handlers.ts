@@ -20,6 +20,8 @@ interface HandleKeyOptions {
   handleAction: HandleAction;
   cancelAction: () => void;
   actionInProgress: boolean;
+  copyNode: (node: Node<unknown>) => void;
+  copiedNode: Node<unknown> | undefined;
 }
 
 export function handleKey(
@@ -32,6 +34,8 @@ export function handleKey(
     handleAction,
     cancelAction,
     actionInProgress,
+    copyNode,
+    copiedNode,
   }: HandleKeyOptions,
 ) {
   if (actionInProgress && key !== "Escape") {
@@ -90,7 +94,7 @@ export function handleKey(
     Enter: () => console.log(parentIndexEntry),
     "0": () => console.log(prettyPrint()?.text),
     Escape: cancelAction,
-    p: tryAction("prepend"),
+    r: tryAction("prepend"),
     a: tryAction("append"),
     s: tryAction("setFromString"),
     v: tryAction("setVariant"),
@@ -98,6 +102,8 @@ export function handleKey(
     i: tryAction("insertByKey"),
     d: tryAction("deleteByKey"),
     x: tryDeleteChild,
+    c: () => copyNode(node),
+    p: () => console.log("DEBUG would paste", copiedNode),
   };
   handlers[key]?.();
 }
