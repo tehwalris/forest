@@ -109,6 +109,18 @@ function _unflattenIf(branches: FlatIfBranch[]): Node<ts.Statement> {
   if (branches.length === 1) {
     return node;
   }
+  if (branches.length === 2) {
+    const elseConditionBuildResult = branches[1].condition.build();
+    if (
+      elseConditionBuildResult.ok &&
+      elseConditionBuildResult.value.kind === ts.SyntaxKind.TrueKeyword
+    ) {
+      return node.setDeepChild(
+        ["value", "elseStatement"],
+        branches[1].thenStatement,
+      );
+    }
+  }
   return node.setDeepChild(
     ["value", "elseStatement"],
     unflattenIf(branches.slice(1)),
