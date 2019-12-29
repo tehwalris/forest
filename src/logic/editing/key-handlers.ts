@@ -3,6 +3,14 @@ import { Node } from "../tree/node";
 import { ParentIndex } from "../tree/display-new";
 import { ActionSet } from "../tree/action";
 import * as R from "ramda";
+import { FileNode } from "../providers/typescript";
+import { format as prettierFormat } from "prettier";
+
+const PRETTIER_OPTIONS = {
+  parser: "typescript" as "typescript",
+  printWidth: 80,
+  plugins: undefined,
+};
 
 interface HandleKeyOptions {
   tree: Node<unknown>;
@@ -66,8 +74,21 @@ export function handleKey(
     }
   };
 
+  const prettyPrint = () => {
+    const fileNode: FileNode = tree.children[0].node as any;
+    return fileNode.prettyPrint(t => {
+      try {
+        return prettierFormat(t, PRETTIER_OPTIONS);
+      } catch (e) {
+        console.warn("Failed to run prettier", e);
+      }
+      return t;
+    });
+  };
+
   const handlers: { [key: string]: (() => void) | undefined } = {
     Enter: () => console.log(parentIndexEntry),
+    "0": () => console.log(prettyPrint()?.text),
     Escape: cancelAction,
     p: tryAction("prepend"),
     a: tryAction("append"),
