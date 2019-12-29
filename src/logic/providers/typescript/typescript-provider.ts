@@ -16,8 +16,11 @@ if (something) {
   console.log('test')
 } else if (more) {
   console.log('test!!!')
-// } else {
-//   console.log('test!!!')
+} else {
+  console.log('test!!!')
+}
+if (something) {
+  console.log('bla')
 }
   `;
   //   file = `
