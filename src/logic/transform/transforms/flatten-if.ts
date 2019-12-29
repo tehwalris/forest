@@ -13,6 +13,7 @@ import { ActionSet } from "../../tree/action";
 import { Link, Path } from "../../tree/base";
 import { fromTsNode } from "../../providers/typescript/convert";
 import { unions } from "../../providers/typescript/generated/templates";
+import { ListNode } from "../../tree/base-nodes";
 
 // HACK There should be a better way to get the type of a node
 function isIfStatementVlaue(node: Node<unknown>): boolean {
@@ -24,7 +25,7 @@ function isIfStatementVlaue(node: Node<unknown>): boolean {
 
 function unwrapUpToIfStatement(
   node: Node<unknown>,
-  path: Path,
+  path: Path = [],
 ): { path: Path; node: Node<unknown> } | undefined {
   if (isIfStatementVlaue(node)) {
     return { path, node };
@@ -46,13 +47,15 @@ export const flattenIfTransform: Transform = node => {
   if (!isIfStatementVlaue(node)) {
     return node;
   }
-  const flat = new FlatIfNode(node, flattenIf(node)) as any;
+  const flat = new FlatIfNode(
+    node,
+    flattenIf(node).map(b => new FlatIfBranchNode(b)),
+  ) as any;
   flat.id = node.id;
   return flat;
 };
 
 interface FlatIfBranch {
-  path: Path;
   condition: Node<ts.Expression>;
   thenStatement: Node<ts.Statement>;
 }
@@ -65,24 +68,19 @@ function getVirtualElseCondition(
   return node;
 }
 
-function flattenIf(nested: Node<unknown>, path: Path = []): FlatIfBranch[] {
+function flattenIf(nested: Node<unknown>): FlatIfBranch[] {
   const output: FlatIfBranch[] = [
     {
-      path,
       condition: nested.getByPath(["expression"])! as Node<ts.Expression>,
       thenStatement: nested.getByPath(["thenStatement"])! as Node<ts.Statement>,
     },
   ];
   const elseStatementRaw = nested.getByPath(["elseStatement"])!;
-  const elseStatement = unwrapUpToIfStatement(elseStatementRaw, [
-    ...path,
-    "elseStatement",
-  ]);
+  const elseStatement = unwrapUpToIfStatement(elseStatementRaw);
   if (elseStatement) {
-    output.push(...flattenIf(elseStatement.node, elseStatement.path));
+    output.push(...flattenIf(elseStatement.node));
   } else {
     output.push({
-      path,
       condition: getVirtualElseCondition(elseStatementRaw),
       thenStatement: elseStatementRaw,
     });
@@ -129,18 +127,15 @@ function _unflattenIf(branches: FlatIfBranch[]): Node<ts.Statement> {
   );
 }
 
-class FlatIfNode extends Node<unknown> {
-  children: ChildNodeEntry<FlatIfBranch>[];
+class FlatIfNode extends ListNode<FlatIfBranch, unknown> {
   flags: FlagSet = {};
-  actions: ActionSet<Node<unknown>> = {};
   links: Link[] = [];
 
-  constructor(private originalNode: Node<unknown>, branches: FlatIfBranch[]) {
-    super();
-    this.children = branches.map((b, i) => ({
-      key: `if ${i}`,
-      node: new FlatIfBranchNode(b),
-    }));
+  constructor(
+    private originalNode: Node<unknown>,
+    branches: Node<FlatIfBranch>[],
+  ) {
+    super(branches);
   }
 
   clone(): FlatIfNode {
@@ -194,6 +189,29 @@ class FlatIfNode extends Node<unknown> {
     return { ok: true, value: ifNode };
   }
 
+  protected setValue(value: Node<FlatIfBranch>[]): FlatIfNode {
+    const node = new FlatIfNode(this.originalNode, value);
+    node.id = this.id;
+    return node;
+  }
+
+  protected createChild(): FlatIfBranchNode {
+    fromTsNode<ts.Statement>(
+      ts.createIf(ts.createLiteral(true), ts.createBlock([])),
+      unions.Statement,
+    );
+    return new FlatIfBranchNode({
+      condition: fromTsNode<ts.Expression>(
+        ts.createLiteral(true),
+        unions.Expression,
+      ),
+      thenStatement: fromTsNode<ts.Statement>(
+        ts.createBlock([]),
+        unions.Statement,
+      ),
+    });
+  }
+
   getDebugLabel(): string | undefined {
     return "FlatIfNode";
   }
@@ -242,7 +260,6 @@ class FlatIfBranchNode extends Node<FlatIfBranch> {
     return {
       ok: true,
       value: {
-        path: this.branch.path,
         condition: this.getByPath(["condition"])!,
         thenStatement: this.getByPath(["thenStatement"])!,
       },
