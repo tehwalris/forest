@@ -22,6 +22,7 @@ export interface OneOfInputAction<N extends Node<unknown>, T> {
   inputKind: InputKind.OneOf;
   oneOf: T[];
   getLabel(value: T): string;
+  getShortcut(value: T): string | undefined;
   apply(input: T): N;
 }
 export interface ChildInputAction<N extends Node<unknown>> {

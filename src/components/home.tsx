@@ -324,6 +324,7 @@ export default class Home extends React.Component<{}, State> {
           inputKind: InputKind.OneOf,
           oneOf: options,
           getLabel: e => e.label,
+          getShortcut: () => undefined,
           apply: (e: Option): Node<{}> => {
             chosenPath = e.path; // EXTREME HACK
             return e.node.setFlags(e.apply(e.node.flags));
