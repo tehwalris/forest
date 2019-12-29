@@ -67,34 +67,11 @@ export function applyTransformsToTree(
   return node;
 }
 
-export function unapplyTransformsShallow(
-  transformedNode: Node<unknown>,
-): BuildResult<Node<unknown>> {
-  let node = transformedNode;
-  for (let i = 0; i < 100; i++) {
-    if (!transformedNode.unapplyTransform) {
-      return { ok: true, value: node };
-    }
-    const buildResult = transformedNode.unapplyTransform();
-    if (!buildResult.ok) {
-      return buildResult;
-    }
-    node = buildResult.value;
-  }
-  return {
-    ok: false,
-    error: {
-      path: [],
-      message: "unapplyTransformsShallow reached iteration limit",
-    },
-  };
-}
-
 export function unapplyTransforms(
   transformedNode: Node<unknown>,
 ): BuildResult<Node<unknown>> {
   let node = transformedNode;
-  const buildResult = unapplyTransformsShallow(node);
+  const buildResult = transformedNode.unapplyTransform?.();
   if (buildResult) {
     if (!buildResult.ok) {
       return buildResult;
