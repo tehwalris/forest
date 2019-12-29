@@ -79,7 +79,10 @@ function flattenIf(nested: Node<unknown>): FlatIfBranch[] {
   const elseStatement = unwrapUpToIfStatement(elseStatementRaw);
   if (elseStatement) {
     output.push(...flattenIf(elseStatement.node));
-  } else {
+    return output;
+  }
+  const elseBuildResult = elseStatementRaw.build();
+  if (!elseBuildResult.ok || elseBuildResult.value) {
     output.push({
       condition: getVirtualElseCondition(elseStatementRaw),
       thenStatement: elseStatementRaw,
@@ -88,22 +91,7 @@ function flattenIf(nested: Node<unknown>): FlatIfBranch[] {
   return output;
 }
 
-function unflattenIf(_branches: FlatIfBranch[]): Node<unknown> {
-  const branches = [..._branches];
-  while (true) {
-    const branch = R.last(branches);
-    if (!branch) {
-      break;
-    }
-    const conditionBuildResult = branch.condition.build();
-    if (
-      !conditionBuildResult.ok ||
-      conditionBuildResult.value.kind !== ts.SyntaxKind.TrueKeyword
-    ) {
-      break;
-    }
-    branches.pop();
-  }
+function unflattenIf(branches: FlatIfBranch[]): Node<unknown> {
   return _unflattenIf(branches).getByPath(["value"])!;
 }
 
