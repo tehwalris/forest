@@ -71,6 +71,8 @@ export function unapplyTransforms(
   transformedNode: Node<unknown>,
 ): BuildResult<Node<unknown>> {
   let node = transformedNode;
+  // TODO This only unwraps the node once (more may be necessary), but
+  // making it unrwap multiple times breaks transforms for some reason.
   const buildResult = transformedNode.unapplyTransform?.();
   if (buildResult) {
     if (!buildResult.ok) {
