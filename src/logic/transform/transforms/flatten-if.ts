@@ -15,7 +15,7 @@ import { fromTsNode } from "../../providers/typescript/convert";
 import { unions } from "../../providers/typescript/generated/templates";
 
 // HACK There should be a better way to get the type of a node
-function isIfStatement(node: Node<unknown>): node is Node<ts.IfStatement> {
+function isIfStatementVlaue(node: Node<unknown>): boolean {
   return R.equals(
     node.children.map(c => c.key),
     ["expression", "thenStatement", "elseStatement"],
@@ -25,8 +25,8 @@ function isIfStatement(node: Node<unknown>): node is Node<ts.IfStatement> {
 function unwrapUpToIfStatement(
   node: Node<unknown>,
   path: Path,
-): { path: Path; node: Node<ts.IfStatement> } | undefined {
-  if (isIfStatement(node)) {
+): { path: Path; node: Node<unknown> } | undefined {
+  if (isIfStatementVlaue(node)) {
     return { path, node };
   }
   if (node.children.length !== 1) {
@@ -43,7 +43,7 @@ function unwrapUpToIfStatement(
 }
 
 export const flattenIfTransform: Transform = node => {
-  if (!isIfStatement(node)) {
+  if (!isIfStatementVlaue(node)) {
     return node;
   }
   const flat = new FlatIfNode(node, flattenIf(node)) as any;
@@ -65,10 +65,7 @@ function getVirtualElseCondition(
   return node;
 }
 
-function flattenIf(
-  nested: Node<ts.IfStatement>,
-  path: Path = [],
-): FlatIfBranch[] {
+function flattenIf(nested: Node<unknown>, path: Path = []): FlatIfBranch[] {
   const output: FlatIfBranch[] = [
     {
       path,
@@ -93,16 +90,52 @@ function flattenIf(
   return output;
 }
 
-class FlatIfNode extends Node<ts.IfStatement> {
+function unflattenIf(_branches: FlatIfBranch[]): Node<unknown> {
+  const branches = [..._branches];
+  while (true) {
+    const branch = R.last(branches);
+    if (!branch) {
+      break;
+    }
+    const conditionBuildResult = branch.condition.build();
+    if (
+      !conditionBuildResult.ok ||
+      conditionBuildResult.value.kind !== ts.SyntaxKind.TrueKeyword
+    ) {
+      break;
+    }
+    branches.pop();
+  }
+  return _unflattenIf(branches).getByPath(["value"])!;
+}
+
+function _unflattenIf(branches: FlatIfBranch[]): Node<ts.Statement> {
+  let node = fromTsNode<ts.Statement>(
+    ts.createIf(ts.createLiteral(true), ts.createBlock([])),
+    unions.Statement,
+  );
+  if (!branches.length) {
+    return node;
+  }
+  node = node
+    .setDeepChild(["value", "expression"], branches[0].condition)
+    .setDeepChild(["value", "thenStatement"], branches[0].thenStatement);
+  if (branches.length === 1) {
+    return node;
+  }
+  return node.setDeepChild(
+    ["value", "elseStatement"],
+    unflattenIf(branches.slice(1)),
+  );
+}
+
+class FlatIfNode extends Node<unknown> {
   children: ChildNodeEntry<FlatIfBranch>[];
   flags: FlagSet = {};
-  actions: ActionSet<Node<ts.IfStatement>> = {};
+  actions: ActionSet<Node<unknown>> = {};
   links: Link[] = [];
 
-  constructor(
-    private originalNode: Node<ts.IfStatement>,
-    branches: FlatIfBranch[],
-  ) {
+  constructor(private originalNode: Node<unknown>, branches: FlatIfBranch[]) {
     super();
     this.children = branches.map((b, i) => ({
       key: `if ${i}`,
@@ -127,7 +160,7 @@ class FlatIfNode extends Node<ts.IfStatement> {
     throw new Error("not implemented");
   }
 
-  build(): BuildResult<ts.IfStatement> {
+  build(): BuildResult<unknown> {
     const result = this.unapplyTransform();
     if (!result.ok) {
       return result;
@@ -135,7 +168,7 @@ class FlatIfNode extends Node<ts.IfStatement> {
     return result.value.build();
   }
 
-  unapplyTransform(): BuildResult<Node<ts.IfStatement>> {
+  unapplyTransform(): BuildResult<Node<unknown>> {
     const childBuildResults = this.children.map(c => ({
       key: c.key,
       result: c.node.build(),
@@ -152,24 +185,13 @@ class FlatIfNode extends Node<ts.IfStatement> {
       };
     }
 
-    let node = this.originalNode;
-    childBuildResults
-      .map(r => (r.result as BuildResultSuccess<FlatIfBranch>).value)
-      .forEach(b => {
-        if (b.condition) {
-          node = node.setDeepChild([...b.path, "expression"], b.condition);
-          node = node.setDeepChild(
-            [...b.path, "thenStatement"],
-            b.thenStatement,
-          );
-        } else {
-          node = node.setDeepChild(
-            [...b.path, "elseStatement"],
-            b.thenStatement,
-          );
-        }
-      });
-    return { ok: true, value: node };
+    const ifNode = unflattenIf(
+      childBuildResults.map(
+        r => (r.result as BuildResultSuccess<FlatIfBranch>).value,
+      ),
+    );
+
+    return { ok: true, value: ifNode };
   }
 
   getDebugLabel(): string | undefined {
