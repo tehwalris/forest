@@ -96,7 +96,7 @@ export const HomeNew: React.FC<{}> = () => {
       setImmediate(() =>
         (document.querySelector(
           ".actionFiller input",
-        ) as HTMLInputElement).focus(),
+        ) as HTMLInputElement | null)?.focus(),
       );
     }
   };
