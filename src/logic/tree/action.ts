@@ -4,12 +4,14 @@ export enum InputKind {
   String,
   OneOf,
   Child,
+  Node,
 }
 export type Action<N extends Node<unknown>> =
   | NoInputAction<N>
   | StringInputAction<N>
   | OneOfInputAction<N, any>
-  | ChildInputAction<N>;
+  | ChildInputAction<N>
+  | NodeInputAction<any, any>;
 export interface NoInputAction<N extends Node<unknown>> {
   inputKind: InputKind.None;
   apply(): N;
@@ -29,16 +31,21 @@ export interface ChildInputAction<N extends Node<unknown>> {
   inputKind: InputKind.Child;
   apply(selectedChildKey: string): N;
 }
+export interface NodeInputAction<B, I extends Node<unknown>> {
+  inputKind: InputKind.Node;
+  apply(inputNode: I): Node<B>;
+}
 export interface ActionSet<N extends Node<unknown>> {
   // TODO
   prepend?: NoInputAction<N>;
   append?: NoInputAction<N>;
   setFromString?: StringInputAction<N>;
-  setVariant?: OneOfInputAction<N, {}>;
+  setVariant?: OneOfInputAction<N, unknown>;
   toggle?: NoInputAction<N>;
   insertByKey?: StringInputAction<N>;
   deleteByKey?: StringInputAction<N>;
   deleteChild?: ChildInputAction<N>;
+  replace?: NodeInputAction<unknown, Node<unknown>>;
   [key: string]: Action<N> | undefined;
 }
 export function mergeActionSets<N extends Node<unknown>>(

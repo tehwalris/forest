@@ -17,6 +17,7 @@ import {
   saveNodeFlagsMutate,
 } from "./flags";
 import { shortcutsByType } from "./generated/templates";
+import { fromTsNode } from "./convert";
 export type Union<T extends ts.Node> = () => {
   [key: string]: {
     match: (node: ts.Node) => node is T;
@@ -334,19 +335,31 @@ export class StructTemplateNode<
 export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
   flags = {};
   links: never[] = [];
-  private variants: LazyUnionVariant<string>[];
-  original: T;
   constructor(
-    variants: LazyUnionVariant<string>[],
+    private _union: Union<T>,
+    private variants: LazyUnionVariant<string>[],
     value: UnionVariant<string>,
-    original: T,
+    public original: T,
   ) {
     super(variants, value);
-    this.variants = variants;
-    this.original = original;
+    this.actions.replace = {
+      inputKind: InputKind.Node,
+      apply: inputNode => {
+        const buildResult = inputNode.build();
+        if (!buildResult.ok) {
+          return this;
+        }
+        const tsNode = buildResult.value as ts.Node;
+        if (!Object.values(this._union()).some(e => e.match(tsNode))) {
+          return this;
+        }
+        return fromTsNode(tsNode, this._union);
+      },
+    };
   }
   clone(): TemplateUnionNode<T> {
     const node = new TemplateUnionNode(
+      this._union,
       this.variants,
       this.value,
       this.original,
@@ -371,6 +384,7 @@ export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
       currentKey = `<missing: ${label}>`;
     }
     return new TemplateUnionNode(
+      _union,
       variants,
       { key: currentKey, children: [{ key: "value", node: fromTsNode(node) }] },
       node,
@@ -380,7 +394,12 @@ export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
     throw new Error("Flags not supported");
   }
   setValue(value: UnionVariant<string>): TemplateUnionNode<T> {
-    const node = new TemplateUnionNode(this.variants, value, this.original);
+    const node = new TemplateUnionNode(
+      this._union,
+      this.variants,
+      value,
+      this.original,
+    );
     node.id = this.id;
     return node;
   }

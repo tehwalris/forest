@@ -58,6 +58,7 @@ export function handleKey(
         action,
         R.dropLast(1, path).map(e => e.childKey),
         targetKey,
+        undefined,
       );
 
       const targetIndex = parent.children.findIndex(e => e.key === targetKey);
@@ -74,7 +75,7 @@ export function handleKey(
   const tryAction = (actionKey: keyof ActionSet<any>) => () => {
     const action = node.actions[actionKey];
     if (action) {
-      handleAction(action, keyPath, undefined);
+      handleAction(action, keyPath, undefined, copiedNode);
     }
   };
 
@@ -103,7 +104,7 @@ export function handleKey(
     d: tryAction("deleteByKey"),
     x: tryDeleteChild,
     c: () => copyNode(node),
-    p: () => console.log("DEBUG would paste", copiedNode),
+    p: tryAction("replace"),
   };
   handlers[key]?.();
 }

@@ -83,7 +83,12 @@ export const HomeNew: React.FC<{}> = () => {
     action: Action<Node<unknown>>;
   }>();
 
-  const handleAction: HandleAction = (action, target, childActionArgument) => {
+  const handleAction: HandleAction = (
+    action,
+    target,
+    childActionArgument,
+    nodeActionArgument,
+  ) => {
     if (action.inputKind === InputKind.None) {
       updateNode(target, action.apply());
     } else if (action.inputKind === InputKind.Child) {
@@ -91,6 +96,11 @@ export const HomeNew: React.FC<{}> = () => {
         throw new Error("Expected childActionArgument");
       }
       updateNode(target, action.apply(childActionArgument));
+    } else if (action.inputKind === InputKind.Node) {
+      if (!nodeActionArgument) {
+        throw new Error("Expected nodeActionArgument");
+      }
+      updateNode(target, action.apply(nodeActionArgument));
     } else {
       setInProgressAction({ target, action });
       setImmediate(() =>
