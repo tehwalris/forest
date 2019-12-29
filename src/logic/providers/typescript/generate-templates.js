@@ -4,7 +4,7 @@ const R = require("ramda");
 
 const input = fs.readFileSync(
   path.join(__dirname, "./template-templates.txt"),
-  "utf8"
+  "utf8",
 );
 
 const {
@@ -14,7 +14,7 @@ const {
   plainTokens,
   stringTemplates,
   listTemplates,
-  structTemplates
+  structTemplates,
 } = R.pipe(
   R.split("\n"),
   R.filter(R.trim),
@@ -25,30 +25,31 @@ const {
       R.pipe(
         R.slice(1, Infinity),
         R.groupWith((a, b) => b.startsWith(" ")),
-        R.map(R.map(R.pipe(R.split(" "), R.map(R.trim), R.filter(R.identity))))
-      )
-    ])
+        R.map(R.map(R.pipe(R.split(" "), R.map(R.trim), R.filter(R.identity)))),
+      ),
+    ]),
   ),
   R.fromPairs(),
   R.evolve({
     unions: R.map(
-      R.pipe(R.flatten, e => ({ name: e[0], variants: e.slice(1) }))
+      R.pipe(R.flatten, e => ({ name: e[0], variants: e.slice(1) })),
     ),
     plainTypes: R.map(
       R.pipe(R.flatten, e => ({
         name: e[0],
         match: e[1] === "-" ? `ts.is${e[0]}` : e[1].replace(/__/g, " "),
-        create: e.slice(2).join(" ")
-      }))
+        shortcut: e[2] === "-" ? undefined : e[2],
+        create: e.slice(3).join(" "),
+      })),
     ),
     tokenTypes: R.map(
-      R.pipe(R.flatten, e => ({ name: e[0], kinds: e.slice(1) }))
+      R.pipe(R.flatten, e => ({ name: e[0], kinds: e.slice(1) })),
     ),
     plainTokens: R.map(
-      R.pipe(R.flatten, e => ({ name: e[0], isType: e[1] === "T" }))
+      R.pipe(R.flatten, e => ({ name: e[0], isType: e[1] === "T" })),
     ),
     stringTemplates: R.map(
-      R.pipe(R.flatten, e => ({ name: e[0], build: e.slice(1).join(" ") }))
+      R.pipe(R.flatten, e => ({ name: e[0], build: e.slice(1).join(" ") })),
     ),
     listTemplates: R.map(
       R.pipe(
@@ -56,16 +57,16 @@ const {
           R.pipe(R.head, e => ({
             name: e[0],
             childType: e[1],
-            childKey: e[2]
+            childKey: e[2],
           })),
           R.pipe(
             R.tail,
             R.map(R.juxt([R.head, R.pipe(R.tail, R.join(" "))])),
-            R.fromPairs
-          )
+            R.fromPairs,
+          ),
         ]),
-        R.mergeAll
-      )
+        R.mergeAll,
+      ),
     ),
     structTemplates: R.map(
       R.pipe(
@@ -75,7 +76,7 @@ const {
             R.tail,
             R.map(R.juxt([R.head, R.pipe(R.tail, R.join(" "))])),
             R.fromPairs,
-            R.omit(["R", "O", "RL", "OL", "flags"])
+            R.omit(["R", "O", "RL", "OL", "flags"]),
           ),
           R.pipe(
             R.tail,
@@ -96,20 +97,20 @@ const {
                 e
                   .slice(3)
                   .join(" ")
-                  .split("load ")[1]
+                  .split("load ")[1],
             })),
-            x => ({ children: x })
+            x => ({ children: x }),
           ),
           R.pipe(
             R.tail,
             R.filter(R.pipe(R.head, R.equals("flags"))),
             R.chain(R.tail),
-            x => ({ flags: x })
-          )
+            x => ({ flags: x }),
+          ),
         ]),
-        R.mergeAll
-      )
-    )
+        R.mergeAll,
+      ),
+    ),
   }),
   R.evolve({
     unions: unions => {
@@ -119,18 +120,18 @@ const {
             v.startsWith("...")
               ? resolveVariants(unions.find(e => e.name === v.slice(3)))
               : [v],
-          union.variants
+          union.variants,
         );
       }
       return R.map(
         union => ({
           ...union,
-          variants: resolveVariants(union)
+          variants: resolveVariants(union),
         }),
-        unions
+        unions,
       );
-    }
-  })
+    },
+  }),
 )(input);
 
 const output =
@@ -163,7 +164,7 @@ ${e.name}: {
   match: ${e.match},
   default: ${e.create},
 },
-`.trim()
+`.trim(),
     ),
     ...tokenTypes.map(e =>
       `
@@ -173,30 +174,30 @@ ${e.name}: {
   ].some(k => e.kind === k),
   default: {kind: ts.SyntaxKind.${e.kinds[0]} } as ts.${e.name}
 },
-`.trim()
+`.trim(),
     ),
-    ...plainTokens.filter(e => !e.isType).map(e =>
-      `
+    ...plainTokens
+      .filter(e => !e.isType)
+      .map(e =>
+        `
 ${e.name}: {
   match: (e: ts.Node): e is ts.Token<ts.SyntaxKind.${e.name}> =>
     e.kind === ts.SyntaxKind.${e.name},
   default: {kind: ts.SyntaxKind.${e.name} } as ts.Token<ts.SyntaxKind.${e.name}>
 },
-`.trim()
-    ),
-    ...plainTokens.filter(e => e.isType).map(e =>
-      `
+`.trim(),
+      ),
+    ...plainTokens
+      .filter(e => e.isType)
+      .map(e =>
+        `
 ${e.name}: {
-  match: (e: ts.Node): e is ts.KeywordTypeNode & {kind: ts.SyntaxKind.${
-    e.name
-  }} =>
+  match: (e: ts.Node): e is ts.KeywordTypeNode & {kind: ts.SyntaxKind.${e.name}} =>
     e.kind === ts.SyntaxKind.${e.name},
-  default: {kind: ts.SyntaxKind.${
-    e.name
-  } } as ts.KeywordTypeNode & {kind: ts.SyntaxKind.${e.name}}
+  default: {kind: ts.SyntaxKind.${e.name} } as ts.KeywordTypeNode & {kind: ts.SyntaxKind.${e.name}}
 },
-`.trim()
-    ),
+`.trim(),
+      ),
     "}\n",
     "export const unions = {",
     ...unions.map(e =>
@@ -204,7 +205,7 @@ ${e.name}: {
 ${e.name}: () => ({
 ${e.variants.map(v => `${v}: plainTypes.${v},`).join("\n")}
 }),
-    `.trim()
+    `.trim(),
     ),
     "// Unit unions from plain types and token types",
     ...plainTypes.concat(tokenTypes).map(e =>
@@ -212,7 +213,7 @@ ${e.variants.map(v => `${v}: plainTypes.${v},`).join("\n")}
 ${e.name}: () => ({
 ${e.name}: plainTypes.${e.name}
 }),
-    `.trim()
+    `.trim(),
     ),
     "}",
     "",
@@ -225,7 +226,7 @@ const ${e.name}: StringTemplate<
   load: built => built.text,
   build: ${e.build},
 };
-`
+`,
     ),
     "export const stringTemplates = [",
     stringTemplates.map(e => e.name).join(","),
@@ -246,7 +247,7 @@ const ${e.name}: ListTemplate<
   build: ${e.build || `children => ts.create${e.name}(children)`},
   childUnion: unions.${e.childType}
 };
-`
+`,
     ),
     "export const listTemplates = [",
     listTemplates.map(e => e.name).join(","),
@@ -262,7 +263,7 @@ const ${e.name}: StructTemplate<
 ${c.optional ? "Optional" : "Required"}Struct${
           c.list ? "List" : "Single"
         }Child<${c.tsType || "ts." + c.union}>;
-    `.trim()
+    `.trim(),
       )
       .join("\n")}
   },
@@ -282,14 +283,14 @@ ${c.optional ? "Optional" : "Required"}Struct${
           .filter(v => v)
           .join(",")}
       },
-    `.trim()
+    `.trim(),
       )
       .join("\n")}
   }),
   build: ${e.build},
   enchancer: enchancers["${e.name}"]
 };
-    `
+    `,
     ),
     ...plainTokens.map(
       e => `
@@ -304,10 +305,12 @@ const ${e.name}: StructTemplate<
   build: () => ts.createToken(ts.SyntaxKind.${e.name}),
   enchancer: enchancers["${e.name}"]
 };
-    `
+    `,
     ),
-    ...tokenTypes.filter(e => e.kinds.length === 1).map(
-      e => `
+    ...tokenTypes
+      .filter(e => e.kinds.length === 1)
+      .map(
+        e => `
 const ${e.name}: StructTemplate<
   {},
   ts.${e.name}
@@ -319,15 +322,15 @@ const ${e.name}: StructTemplate<
   build: () => plainTypes.${e.name}.default,
   enchancer: enchancers["${e.name}"]
 };
-    `
-    ),
+    `,
+      ),
     "export const structTemplates = [",
     structTemplates
       .concat(plainTokens)
       .concat(tokenTypes.filter(e => e.kinds.length === 1))
       .map(e => e.name)
       .join(","),
-    "]\n"
+    "]\n",
   ].join("\n") + "\n";
 
 fs.writeFileSync(path.join(__dirname, "./generated/templates.ts"), output);
