@@ -388,7 +388,6 @@ export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
     return key;
   }
   getShortcut(key: string): string | undefined {
-    console.log("DEBUG getShortcut", key);
     return shortcutsByType.get(key);
   }
   getDebugLabel(): string {

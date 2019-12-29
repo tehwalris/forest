@@ -43,8 +43,19 @@ export default <N extends Node<unknown>, T>({
       return;
     }
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Space") {
+      if (e.key === " ") {
         setSearching(true);
+        (document.querySelector(
+          ".actionFiller input",
+        ) as HTMLInputElement | null)?.focus();
+        return;
+      }
+      if (e.key === "Enter") {
+        const option = optionsByShortcut.get(pressedKeys);
+        if (option) {
+          onApply(action.apply(option.original));
+        }
+        return;
       }
       if (e.key.length !== 1) {
         return;
@@ -53,12 +64,17 @@ export default <N extends Node<unknown>, T>({
     };
     document.addEventListener("keydown", handler);
     return () => {
-      document.addEventListener("keydown", handler);
+      document.removeEventListener("keydown", handler);
     };
-  }, [searching]);
+  });
   useEffect(() => {
     const option = optionsByShortcut.get(pressedKeys);
-    if (option) {
+    if (
+      option &&
+      ![...optionsByShortcut.keys()].some(
+        k => k?.startsWith(pressedKeys) && k !== pressedKeys,
+      )
+    ) {
       onApply(action.apply(option.original));
     }
   }, [pressedKeys, action, onApply, optionsByShortcut]);
