@@ -10,29 +10,40 @@ interface WorkingSet {
 }
 export class TypescriptProvider {
   file = `
-import {
-  Node,
-  DisplayInfoPriority,
-  LabelStyle,
-  DisplayInfo,
-} from "../../tree/node";
-import * as ts from "typescript";
-export type Enchancer<T extends Node<ts.Node>> = (
-  node: T,
-) => {
-  displayInfo: DisplayInfo;
-};
-export const enchancers: {
-  [key: string]: Enchancer<Node<ts.Node>> | undefined;
-} = {
-  ClassDeclaration: (node => ({
-    displayInfo: {
-      priority: DisplayInfoPriority.MEDIUM,
-      label: [{ text: "class", style: LabelStyle.SECTION_NAME }],
-    },
-  })) as Enchancer<Node<ts.ClassDeclaration>>,
-};
-`;
+if (something) {
+  console.log('bla')
+} else if (another) {
+  console.log('test')
+} else if (more) {
+  console.log('test!!!')
+// } else {
+//   console.log('test!!!')
+}
+  `;
+  //   file = `
+  // import {
+  //   Node,
+  //   DisplayInfoPriority,
+  //   LabelStyle,
+  //   DisplayInfo,
+  // } from "../../tree/node";
+  // import * as ts from "typescript";
+  // export type Enchancer<T extends Node<ts.Node>> = (
+  //   node: T,
+  // ) => {
+  //   displayInfo: DisplayInfo;
+  // };
+  // export const enchancers: {
+  //   [key: string]: Enchancer<Node<ts.Node>> | undefined;
+  // } = {
+  //   ClassDeclaration: (node => ({
+  //     displayInfo: {
+  //       priority: DisplayInfoPriority.MEDIUM,
+  //       label: [{ text: "class", style: LabelStyle.SECTION_NAME }],
+  //     },
+  //   })) as Enchancer<Node<ts.ClassDeclaration>>,
+  // };
+  // `;
 
   loadTree(filePath: string): Node<WorkingSet> {
     return RootNode.fromState({
