@@ -11,6 +11,8 @@ import * as R from "ramda";
 import * as ts from "typescript";
 import { ActionSet } from "../../tree/action";
 import { Link, Path } from "../../tree/base";
+import { fromTsNode } from "../../providers/typescript/convert";
+import { unions } from "../../providers/typescript/generated/templates";
 
 // HACK There should be a better way to get the type of a node
 function isIfStatement(node: Node<unknown>): node is Node<ts.IfStatement> {
@@ -51,8 +53,16 @@ export const flattenIfTransform: Transform = node => {
 
 interface FlatIfBranch {
   path: Path;
-  condition: Node<ts.Expression> | undefined;
+  condition: Node<ts.Expression>;
   thenStatement: Node<ts.Statement>;
+}
+
+function getVirtualElseCondition(
+  elseStatement: Node<ts.Statement>,
+): Node<ts.Expression> {
+  const node = fromTsNode(ts.createLiteral(true), unions.Expression);
+  node.id = elseStatement.id + "-virtual-else-condition";
+  return node;
 }
 
 function flattenIf(
@@ -76,7 +86,7 @@ function flattenIf(
   } else {
     output.push({
       path,
-      condition: undefined,
+      condition: getVirtualElseCondition(elseStatementRaw),
       thenStatement: elseStatementRaw,
     });
   }
@@ -95,7 +105,7 @@ class FlatIfNode extends Node<ts.IfStatement> {
   ) {
     super();
     this.children = branches.map((b, i) => ({
-      key: b.condition ? `if ${i + 1}` : `else`,
+      key: `if ${i}`,
       node: new FlatIfBranchNode(b),
     }));
   }
@@ -211,7 +221,7 @@ class FlatIfBranchNode extends Node<FlatIfBranch> {
       ok: true,
       value: {
         path: this.branch.path,
-        condition: this.getByPath(["condition"]),
+        condition: this.getByPath(["condition"])!,
         thenStatement: this.getByPath(["thenStatement"])!,
       },
     };
