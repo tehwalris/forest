@@ -16,6 +16,7 @@ import {
   flagsToModifiers,
   saveNodeFlagsMutate,
 } from "./flags";
+import { shortcutsByType } from "./generated/templates";
 export type Union<T extends ts.Node> = () => {
   [key: string]: {
     match: (node: ts.Node) => node is T;
@@ -385,6 +386,10 @@ export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
   }
   getLabel(key: string): string {
     return key;
+  }
+  getShortcut(key: string): string | undefined {
+    console.log("DEBUG getShortcut", key);
+    return shortcutsByType.get(key);
   }
   getDebugLabel(): string {
     return this.getLabel(this.value.key);

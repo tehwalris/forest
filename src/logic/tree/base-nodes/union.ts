@@ -15,7 +15,7 @@ export abstract class UnionNode<K, B> extends Node<B> {
         inputKind: InputKind.OneOf,
         oneOf: this.oneOf.map(e => e.key),
         getLabel: this.getLabel.bind(this),
-        getShortcut: this.getShortut.bind(this),
+        getShortcut: this.getShortcut.bind(this),
         apply: (input: K): UnionNode<K, B> => {
           const newValue = this.oneOf.find(e => e.key === input);
           if (!newValue) {
@@ -39,7 +39,7 @@ export abstract class UnionNode<K, B> extends Node<B> {
   }
   protected abstract setValue(value: UnionVariant<K>): UnionNode<K, B>;
   protected abstract getLabel(key: K): string;
-  protected getShortut(key: K): string | undefined {
+  protected getShortcut(key: K): string | undefined {
     return undefined;
   }
   abstract build(): BuildResult<B>;

@@ -20,11 +20,18 @@ export default <N extends Node<unknown>, T>({
       onChange={(e: ValueType<Option<T>>) =>
         e && onApply(action.apply((e as Option<T>).original))
       }
-      options={action.oneOf.map((e, i) => ({
-        value: i,
-        original: e,
-        label: action.getLabel(e),
-      }))}
+      options={action.oneOf.map((e, i) => {
+        let label = action.getLabel(e);
+        const shortcut = action.getShortcut(e);
+        if (shortcut) {
+          label = `${label} (${shortcut})`;
+        }
+        return {
+          value: i,
+          original: e,
+          label,
+        };
+      })}
     />
   );
 };
