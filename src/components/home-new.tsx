@@ -22,6 +22,7 @@ import {
   unapplyTransforms,
 } from "../logic/transform";
 import { compressUselessValuesTransform } from "../logic/transform/transforms/compress-useless-values";
+import { flattenIfTransform } from "../logic/transform/transforms/flatten-if";
 
 interface CombinedTrees {
   raw: Node<unknown>;
@@ -30,7 +31,10 @@ interface CombinedTrees {
 
 const TYPESCRIPT_PROVIDER = new TypescriptProvider();
 const INITIAL_FILE: string = "temp/fizz-buzz/index.ts";
-const TRANSFORMS: Transform[] = [compressUselessValuesTransform];
+const TRANSFORMS: Transform[] = [
+  flattenIfTransform,
+  compressUselessValuesTransform,
+];
 
 const transformCache: MultiTransformCache = new WeakMap();
 

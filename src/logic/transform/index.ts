@@ -43,12 +43,12 @@ function applyTransformsToTreeOnce(
   transforms: Transform[],
   cache: MultiTransformCache,
 ): Node<unknown> {
-  const finalOutput = transforms.reduce((node, transform) => {
+  return transforms.reduce((node, transform, i) => {
     const singleCache = cache.get(transform) || new WeakMap();
     cache.set(transform, singleCache);
-    return applyTransformToTree(node, transform, singleCache);
+    const newNode = applyTransformToTree(node, transform, singleCache);
+    return newNode;
   }, node);
-  return finalOutput;
 }
 
 export function applyTransformsToTree(
