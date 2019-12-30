@@ -136,6 +136,7 @@ export enum DisplayInfoPriority {
   HIGH,
 }
 export enum LabelStyle {
+  WHITESPACE,
   NAME,
   TYPE_SUMMARY,
   REFERENCED_NAME,
