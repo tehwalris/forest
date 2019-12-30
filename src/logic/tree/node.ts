@@ -149,5 +149,6 @@ export enum LabelStyle {
 export enum SemanticColor {
   LITERAL = "LITERAL",
   DECLARATION = "DECLARATION",
+  DECLARATION_NAME = "DECLARATION_NAME",
   REFERENCE = "REFERENCE",
 }

@@ -25,6 +25,7 @@ import {
 import { compressUselessValuesTransform } from "../logic/transform/transforms/compress-useless-values";
 import { flattenIfTransform } from "../logic/transform/transforms/flatten-if";
 import * as R from "ramda";
+import { PossibleActionDisplay } from "./possible-action-display";
 
 interface CombinedTrees {
   raw: Node<unknown>;
@@ -54,6 +55,10 @@ const COLORS: { [K in SemanticColor]: ColorPair } = {
   [SemanticColor.DECLARATION]: [
     [228, 172, 255],
     [166, 17, 238],
+  ],
+  [SemanticColor.DECLARATION_NAME]: [
+    [248, 254, 176],
+    [254, 236, 31],
   ],
   [SemanticColor.REFERENCE]: [
     [197, 219, 238],
@@ -231,6 +236,11 @@ export const HomeNew: React.FC<{}> = () => {
           action={inProgressAction.action}
           onCancel={() => setInProgressAction(undefined)}
           onApply={onActionApply}
+        />
+      )}
+      {!inProgressAction && (
+        <PossibleActionDisplay
+          actions={parentIndex.get(focusedId)?.node.actions || {}}
         />
       )}
     </div>

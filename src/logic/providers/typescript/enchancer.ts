@@ -50,7 +50,9 @@ export const enchancers: {
       displayInfo: {
         priority: DisplayInfoPriority.MEDIUM,
         label: [],
-        color: isDeclarationName ? undefined : SemanticColor.REFERENCE,
+        color: isDeclarationName
+          ? SemanticColor.DECLARATION_NAME
+          : SemanticColor.REFERENCE,
       },
     };
   }) as Enchancer<Node<ts.ClassDeclaration>>,
