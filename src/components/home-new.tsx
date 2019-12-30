@@ -23,6 +23,7 @@ import {
 } from "../logic/transform";
 import { compressUselessValuesTransform } from "../logic/transform/transforms/compress-useless-values";
 import { flattenIfTransform } from "../logic/transform/transforms/flatten-if";
+import * as R from "ramda";
 
 interface CombinedTrees {
   raw: Node<unknown>;
@@ -77,7 +78,6 @@ export const HomeNew: React.FC<{}> = () => {
     setTree(tree => tree.setDeepChild(path, value));
   };
 
-  const [focusedId, setFocusedId] = useState(tree.id);
   const [inProgressAction, setInProgressAction] = useState<{
     target: Path;
     action: Action<Node<unknown>>;
@@ -124,6 +124,17 @@ export const HomeNew: React.FC<{}> = () => {
       navTree: buildDivetreeNavTree(tree),
     };
   }, [tree]);
+
+  const [_focusedIdPath, _setFocusedIdPath] = useState([tree.id]);
+  const focusedId = R.findLast(id => parentIndex.has(id), _focusedIdPath) || "";
+  const setFocusedId = (id: string) => {
+    const indexEntry = parentIndex.get(id);
+    if (!indexEntry) {
+      console.warn(`setFocusedId called with non-existent node: ${id}`);
+      return;
+    }
+    _setFocusedIdPath([...indexEntry.path.map(e => e.parent.id), id]);
+  };
 
   const [copiedNode, setCopiedNode] = useState<Node<unknown>>();
 
