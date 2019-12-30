@@ -7,6 +7,8 @@ import {
   BuildResult,
   FlagSet,
   DisplayInfo,
+  DisplayInfoPriority,
+  LabelStyle,
 } from "../../tree/node";
 import { ActionSet, InputKind } from "../../tree/action";
 import { UnionVariant, LazyUnionVariant } from "../../tree/base-nodes/union";
@@ -30,6 +32,7 @@ export interface Template<B extends ts.Node> {
 export interface StringTemplate<B extends ts.Node> extends Template<B> {
   load: (built: B) => string;
   build: (text: string) => B;
+  enchancer?: Enchancer<Node<B>>;
 }
 export interface ListTemplate<B extends ts.Node, C extends ts.Node>
   extends Template<B> {
@@ -139,6 +142,18 @@ export class StringTemplateNode<B extends ts.Node> extends Node<B> {
   }
   build(): BuildResult<B> {
     return this.buildHelper(() => this.template.build(this.text));
+  }
+  getDisplayInfo(): DisplayInfo | undefined {
+    const { enchancer } = this.template;
+    const infoFromEnchancer = enchancer?.(this).displayInfo;
+    if (infoFromEnchancer?.label.length) {
+      return infoFromEnchancer;
+    }
+    return {
+      priority: DisplayInfoPriority.LOW,
+      ...infoFromEnchancer,
+      label: [{ text: this.text, style: LabelStyle.VALUE }],
+    };
   }
 }
 export class ListTemplateNode<

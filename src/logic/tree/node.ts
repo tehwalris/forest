@@ -119,7 +119,7 @@ export interface TargetedDisplayInfo {
 export interface DisplayInfo {
   priority: DisplayInfoPriority;
   label: LabelPart[];
-  color: SemanticColor;
+  color?: SemanticColor;
 }
 /*
 export interface PrioritizedLabel {
@@ -143,6 +143,7 @@ export enum LabelStyle {
   REFERENCED_NAME,
   UNIMPORTANT_KEYWORD,
   SECTION_NAME,
+  VALUE,
 }
 export enum SemanticColor {
   LITERAL = "LITERAL",

@@ -1,5 +1,11 @@
 import * as ts from "typescript";
-import { Node, BuildResult } from "../../tree/node";
+import {
+  Node,
+  BuildResult,
+  DisplayInfoPriority,
+  LabelStyle,
+  SemanticColor,
+} from "../../tree/node";
 import { UnionVariant } from "../../tree/base-nodes";
 import { ActionSet, InputKind } from "../../tree/action";
 import {
@@ -163,5 +169,12 @@ export class BooleanNode extends Node<ts.BooleanLiteral> {
   }
   build(): BuildResult<ts.BooleanLiteral> {
     return this.buildHelper(() => ts.createLiteral(this.value));
+  }
+  getDisplayInfo() {
+    return {
+      priority: DisplayInfoPriority.MEDIUM,
+      label: [{ text: this.value.toString(), style: LabelStyle.VALUE }],
+      color: SemanticColor.LITERAL,
+    };
   }
 }

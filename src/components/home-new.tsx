@@ -47,16 +47,16 @@ const DEFAULT_COLORS: ColorPair = [
 ];
 const COLORS: { [K in SemanticColor]: ColorPair } = {
   [SemanticColor.LITERAL]: [
-    [91, 34, 39],
-    [91, 34, 39],
+    [232, 178, 178],
+    [232, 86, 99],
   ],
   [SemanticColor.DECLARATION]: [
     [228, 172, 255],
     [166, 17, 238],
   ],
   [SemanticColor.REFERENCE]: [
-    [44, 66, 84],
-    [44, 66, 84],
+    [197, 219, 238],
+    [113, 169, 215],
   ],
 };
 

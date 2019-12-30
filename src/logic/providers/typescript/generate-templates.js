@@ -226,6 +226,7 @@ const ${e.name}: StringTemplate<
   match: plainTypes.${e.name}.match,
   load: built => built.text,
   build: ${e.build},
+  enchancer: enchancers["${e.name}"]
 };
 `,
     ),
