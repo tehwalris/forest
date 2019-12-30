@@ -86,26 +86,37 @@ export const HomeNew: React.FC<{}> = () => {
   const handleAction: HandleAction = (
     action,
     target,
+    focus,
     childActionArgument,
     nodeActionArgument,
   ) => {
+    const updateTarget = (newNode: Node<unknown>) => {
+      updateNode(target, newNode);
+      const newFocusedId = focus?.(newNode);
+      if (newFocusedId) {
+        setFocusedId(newFocusedId);
+      }
+    };
+
     if (action.inputKind === InputKind.None) {
-      updateNode(target, action.apply());
+      updateTarget(action.apply());
     } else if (action.inputKind === InputKind.Child) {
       if (!childActionArgument) {
         throw new Error("Expected childActionArgument");
       }
-      updateNode(target, action.apply(childActionArgument));
+      updateTarget(action.apply(childActionArgument));
     } else if (action.inputKind === InputKind.Node) {
       if (!nodeActionArgument) {
         throw new Error("Expected nodeActionArgument");
       }
       const newNode = action.apply(nodeActionArgument);
-      updateNode(target, newNode);
-      // HACK Focus should only be changed on "replace" actions, so this
-      // is not the right place to do this, but it happens to work.
-      setFocusedId(newNode.id);
+      updateTarget(newNode);
     } else {
+      if (focus) {
+        throw new Error(
+          `the "focus" argument is not supported with actions which take user input`,
+        );
+      }
       setInProgressAction({ target, action });
       setImmediate(() =>
         (document.querySelector(

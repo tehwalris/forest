@@ -57,6 +57,7 @@ export function handleKey(
       handleAction(
         action,
         R.dropLast(1, path).map(e => e.childKey),
+        undefined,
         targetKey,
         undefined,
       );
@@ -72,10 +73,13 @@ export function handleKey(
     }
   };
 
-  const tryAction = (actionKey: keyof ActionSet<any>) => () => {
+  const tryAction = (
+    actionKey: keyof ActionSet<any>,
+    focus?: (newNode: Node<unknown>) => string,
+  ) => () => {
     const action = node.actions[actionKey];
     if (action) {
-      handleAction(action, keyPath, undefined, copiedNode);
+      handleAction(action, keyPath, focus, undefined, copiedNode);
     }
   };
 
@@ -95,8 +99,8 @@ export function handleKey(
     Enter: () => console.log(parentIndexEntry),
     "0": () => console.log(prettyPrint()?.text),
     Escape: cancelAction,
-    r: tryAction("prepend"),
-    a: tryAction("append"),
+    r: tryAction("prepend", n => (n.children[0]?.node || n).id),
+    a: tryAction("append", n => (R.last(n.children)?.node || n).id),
     s: tryAction("setFromString"),
     v: tryAction("setVariant"),
     t: tryAction("toggle"),
@@ -104,7 +108,7 @@ export function handleKey(
     d: tryAction("deleteByKey"),
     x: tryDeleteChild,
     c: () => copyNode(node),
-    p: tryAction("replace"),
+    p: tryAction("replace", n => n.id),
   };
   handlers[key]?.();
 }
