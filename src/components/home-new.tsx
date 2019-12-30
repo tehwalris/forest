@@ -1,13 +1,13 @@
 import * as React from "react";
 import { EmptyLeafNode } from "../logic/tree/base-nodes";
-import { Node } from "../logic/tree/node";
+import { Node, SemanticColor } from "../logic/tree/node";
 import { useMemo, useState, useEffect, useRef } from "react";
 import {
   buildDivetreeDisplayTree,
   buildDivetreeNavTree,
   buildParentIndex,
 } from "../logic/tree/display-new";
-import { NavTree } from "divetree-react";
+import { NavTree, RectStyle } from "divetree-react";
 import TypescriptProvider from "../logic/providers/typescript";
 import { NodeContent } from "./tree/node-content";
 import { Path } from "../logic/tree/base";
@@ -38,6 +38,41 @@ const TRANSFORMS: Transform[] = [
 ];
 
 const transformCache: MultiTransformCache = new WeakMap();
+
+type ColorPair = [number[], number[]];
+
+const DEFAULT_COLORS: ColorPair = [
+  [240, 240, 240],
+  [170, 170, 170],
+];
+const COLORS: { [K in SemanticColor]: ColorPair } = {
+  [SemanticColor.LITERAL]: [
+    [91, 34, 39],
+    [91, 34, 39],
+  ],
+  [SemanticColor.DECLARATION]: [
+    [228, 172, 255],
+    [166, 17, 238],
+  ],
+  [SemanticColor.REFERENCE]: [
+    [44, 66, 84],
+    [44, 66, 84],
+  ],
+};
+
+function getNodeStyle(
+  node: Node<unknown> | undefined,
+  focused: boolean,
+): RectStyle {
+  const toStyle = (colors: ColorPair): RectStyle => ({
+    color: colors[focused ? 1 : 0],
+  });
+  const semanticColor = node?.getDisplayInfo()?.color;
+  if (!semanticColor) {
+    return toStyle(DEFAULT_COLORS);
+  }
+  return toStyle(COLORS[semanticColor]);
+}
 
 export const HomeNew: React.FC<{}> = () => {
   const [_tree, _setTree] = useState<CombinedTrees>({
@@ -170,6 +205,9 @@ export const HomeNew: React.FC<{}> = () => {
         getContent={id => (
           <NodeContent parentIndexEntry={parentIndex.get(id as string)} />
         )}
+        getStyle={(id, focused) =>
+          getNodeStyle(parentIndex.get(id as string)?.node, focused)
+        }
         focusedId={focusedId}
         onFocusedIdChange={setFocusedId}
         disableNav={!!inProgressAction}

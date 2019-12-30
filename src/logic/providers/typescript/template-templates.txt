@@ -766,7 +766,8 @@ SECTION shortcuts
 i Identifier
 n NumericLiteral
 s StringLiteral
-c IfStatement
+cd ClassDeclaration
+d IfStatement
 r ReturnStatement
 fd FunctionDeclaration
 fa ArrowFunction

@@ -1,6 +1,7 @@
 import * as React from "react";
 import * as R from "ramda";
 import { ParentIndexEntry } from "../../logic/tree/display-new";
+import { SemanticColor } from "../../logic/tree/node";
 
 interface Props {
   parentIndexEntry: ParentIndexEntry | undefined;

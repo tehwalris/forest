@@ -4,6 +4,7 @@ import {
   LabelStyle,
   DisplayInfo,
   LabelPart,
+  SemanticColor,
 } from "../../tree/node";
 import * as ts from "typescript";
 export type Enchancer<T extends Node<ts.Node>> = (
@@ -19,26 +20,11 @@ export const enchancers: {
       { text: "class", style: LabelStyle.SECTION_NAME },
     ];
 
-    const nameResult = node.getByPath(["name"])!.build();
-    const name =
-      nameResult.ok && (nameResult.value as ts.Identifier | undefined)?.text;
-    if (name) {
-      label.push(
-        {
-          text: " ",
-          style: LabelStyle.WHITESPACE,
-        },
-        {
-          text: name,
-          style: LabelStyle.NAME,
-        },
-      );
-    }
-
     return {
       displayInfo: {
         priority: DisplayInfoPriority.MEDIUM,
         label,
+        color: SemanticColor.DECLARATION,
       },
     };
   }) as Enchancer<Node<ts.ClassDeclaration>>,
