@@ -1,5 +1,11 @@
 import { Transform } from "..";
-import { Node, ChildNodeEntry, FlagSet, BuildResult } from "../../tree/node";
+import {
+  Node,
+  ChildNodeEntry,
+  FlagSet,
+  BuildResult,
+  DisplayInfo,
+} from "../../tree/node";
 import { ActionSet } from "../../tree/action";
 import { Link } from "../../tree/base";
 import * as R from "ramda";
@@ -131,5 +137,15 @@ class CompressedNode<B> extends Node<B> {
     return [this.childNode, this.parentNode]
       .map(v => v.getDebugLabel())
       .find(v => v !== undefined);
+  }
+
+  getDisplayInfo(): DisplayInfo | undefined {
+    return [this.parentNode, this.childNode].reduce(
+      (a: DisplayInfo | undefined, node) => {
+        const c = node.getDisplayInfo();
+        return !a || (c && c.priority >= a.priority) ? c : a;
+      },
+      undefined,
+    );
   }
 }

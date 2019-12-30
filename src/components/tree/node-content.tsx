@@ -17,7 +17,10 @@ export const NodeContent: React.FC<Props> = React.memo(
         <div>{R.last(path)?.childKey}</div>
         <div>
           <i>
-            {node.getDisplayInfo()?.label.join("") ||
+            {node
+              .getDisplayInfo()
+              ?.label.map(p => p.text)
+              .join("") ||
               node.getDebugLabel() ||
               ""}
           </i>
