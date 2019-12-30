@@ -1,7 +1,7 @@
 import * as React from "react";
 import { EmptyLeafNode } from "../logic/tree/base-nodes";
 import { Node } from "../logic/tree/node";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   buildDivetreeDisplayTree,
   buildDivetreeNavTree,
@@ -100,7 +100,11 @@ export const HomeNew: React.FC<{}> = () => {
       if (!nodeActionArgument) {
         throw new Error("Expected nodeActionArgument");
       }
-      updateNode(target, action.apply(nodeActionArgument));
+      const newNode = action.apply(nodeActionArgument);
+      updateNode(target, newNode);
+      // HACK Focus should only be changed on "replace" actions, so this
+      // is not the right place to do this, but it happens to work.
+      setFocusedId(newNode.id);
     } else {
       setInProgressAction({ target, action });
       setImmediate(() =>
@@ -125,16 +129,23 @@ export const HomeNew: React.FC<{}> = () => {
     };
   }, [tree]);
 
-  const [_focusedIdPath, _setFocusedIdPath] = useState([tree.id]);
-  const focusedId = R.findLast(id => parentIndex.has(id), _focusedIdPath) || "";
-  const setFocusedId = (id: string) => {
-    const indexEntry = parentIndex.get(id);
-    if (!indexEntry) {
-      console.warn(`setFocusedId called with non-existent node: ${id}`);
-      return;
-    }
-    _setFocusedIdPath([...indexEntry.path.map(e => e.parent.id), id]);
-  };
+  const _lastFocusedIdPath = useRef([tree.id]);
+  const [_focusedId, setFocusedId] = useState(tree.id);
+  const _focusedIdPath = useMemo(
+    () =>
+      parentIndex.has(_focusedId)
+        ? [
+            ...parentIndex.get(_focusedId)!.path.map(e => e.parent.id),
+            _focusedId,
+          ]
+        : _lastFocusedIdPath.current,
+    [parentIndex, _focusedId, _lastFocusedIdPath],
+  );
+  const focusedId =
+    R.findLast(id => parentIndex.has(id), _focusedIdPath) || _focusedId;
+  useEffect(() => {
+    _lastFocusedIdPath.current = _focusedIdPath;
+  });
 
   const [copiedNode, setCopiedNode] = useState<Node<unknown>>();
 
