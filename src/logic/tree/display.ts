@@ -116,7 +116,7 @@ function toDivetreeDisplayTree(node: DisplayNode): DivetreeDisplayNode {
 function withDisplayInfo(original: DisplayNode): DisplayNode {
   const nodes = nodesFromDisplayNode(original);
   const bestDisplayInfo = nodes.reduce((a: DisplayInfo | undefined, _c) => {
-    const c = _c.node.getDisplayInfo();
+    const c = _c.node.getDisplayInfo([]);
     return !a || (c && c.priority >= a.priority) ? c : a;
   }, undefined);
   return { ...original, bestDisplayInfo };

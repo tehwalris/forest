@@ -777,3 +777,4 @@ fc CallExpression
 e ExpressionStatement
 bl Block
 pr PropertyAccessExpression
+t BooleanLiteral

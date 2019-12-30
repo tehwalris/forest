@@ -7,7 +7,7 @@ import {
   Split,
 } from "divetree-core";
 
-type ParentPathElement = { parent: Node<unknown>; childKey: string };
+export type ParentPathElement = { parent: Node<unknown>; childKey: string };
 
 export type ParentIndex = Map<string, ParentIndexEntry>;
 export type ParentIndexEntry = {

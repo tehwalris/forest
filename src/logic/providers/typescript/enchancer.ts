@@ -7,8 +7,11 @@ import {
   SemanticColor,
 } from "../../tree/node";
 import * as ts from "typescript";
+import { ParentPathElement } from "../../tree/display-new";
+import * as R from "ramda";
 export type Enchancer<T extends Node<ts.Node>> = (
   node: T,
+  parentPath: ParentPathElement[],
 ) => {
   displayInfo: DisplayInfo;
 };
@@ -40,12 +43,14 @@ export const enchancers: {
       },
     };
   }) as Enchancer<Node<ts.ClassDeclaration>>,
-  Identifier: (node => {
+  Identifier: ((node, parentPath) => {
+    const lastParentEntry = R.last(parentPath);
+    const isDeclarationName = lastParentEntry?.childKey === "name"; // HACK Clearly we need a more robust detection strategy
     return {
       displayInfo: {
         priority: DisplayInfoPriority.MEDIUM,
         label: [],
-        color: SemanticColor.REFERENCE,
+        color: isDeclarationName ? undefined : SemanticColor.REFERENCE,
       },
     };
   }) as Enchancer<Node<ts.ClassDeclaration>>,

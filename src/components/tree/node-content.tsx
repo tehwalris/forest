@@ -18,7 +18,7 @@ export const NodeContent: React.FC<Props> = React.memo(
         <div>
           <i>
             {node
-              .getDisplayInfo()
+              .getDisplayInfo(path)
               ?.label.map(p => p.text)
               .join("") ||
               node.getDebugLabel() ||

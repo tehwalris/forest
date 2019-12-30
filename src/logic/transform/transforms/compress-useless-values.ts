@@ -9,6 +9,7 @@ import {
 import { ActionSet } from "../../tree/action";
 import { Link } from "../../tree/base";
 import * as R from "ramda";
+import { ParentPathElement } from "../../tree/display-new";
 
 export const compressUselessValuesTransform: Transform = node => {
   if (node.children.length !== 1) {
@@ -139,10 +140,10 @@ class CompressedNode<B> extends Node<B> {
       .find(v => v !== undefined);
   }
 
-  getDisplayInfo(): DisplayInfo | undefined {
+  getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
     return [this.parentNode, this.childNode].reduce(
       (a: DisplayInfo | undefined, node) => {
-        const c = node.getDisplayInfo();
+        const c = node.getDisplayInfo(parentPath);
         return !a || (c && c.priority >= a.priority) ? c : a;
       },
       undefined,

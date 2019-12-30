@@ -1,6 +1,7 @@
 import { Path, Link } from "./base";
 import { ActionSet } from "./action";
 import genUuid from "uuid/v4";
+import { ParentPathElement } from "./display-new";
 
 export interface Node<B> {
   unapplyTransform?(): BuildResult<Node<B>>;
@@ -55,7 +56,7 @@ export abstract class Node<B> {
     }
     return { path: traversed, node: this };
   }
-  getDisplayInfo(): DisplayInfo | undefined {
+  getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
     return undefined;
   }
   getDebugLabel(): string | undefined {

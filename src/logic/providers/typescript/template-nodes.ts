@@ -20,6 +20,7 @@ import {
 } from "./flags";
 import { shortcutsByType } from "./generated/templates";
 import { fromTsNode } from "./convert";
+import { ParentPathElement } from "../../tree/display-new";
 export type Union<T extends ts.Node> = () => {
   [key: string]: {
     match: (node: ts.Node) => node is T;
@@ -143,9 +144,9 @@ export class StringTemplateNode<B extends ts.Node> extends Node<B> {
   build(): BuildResult<B> {
     return this.buildHelper(() => this.template.build(this.text));
   }
-  getDisplayInfo(): DisplayInfo | undefined {
+  getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
     const { enchancer } = this.template;
-    const infoFromEnchancer = enchancer?.(this).displayInfo;
+    const infoFromEnchancer = enchancer?.(this, parentPath).displayInfo;
     if (infoFromEnchancer?.label.length) {
       return infoFromEnchancer;
     }
@@ -342,9 +343,9 @@ export class StructTemplateNode<
       return node;
     });
   }
-  getDisplayInfo(): DisplayInfo | undefined {
+  getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
     const { enchancer } = this.template;
-    return enchancer ? enchancer(this).displayInfo : undefined;
+    return enchancer ? enchancer(this, parentPath).displayInfo : undefined;
   }
 }
 export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {

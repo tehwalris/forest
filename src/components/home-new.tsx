@@ -6,6 +6,7 @@ import {
   buildDivetreeDisplayTree,
   buildDivetreeNavTree,
   buildParentIndex,
+  ParentIndexEntry,
 } from "../logic/tree/display-new";
 import { NavTree, RectStyle } from "divetree-react";
 import TypescriptProvider from "../logic/providers/typescript";
@@ -61,13 +62,13 @@ const COLORS: { [K in SemanticColor]: ColorPair } = {
 };
 
 function getNodeStyle(
-  node: Node<unknown> | undefined,
+  entry: ParentIndexEntry | undefined,
   focused: boolean,
 ): RectStyle {
   const toStyle = (colors: ColorPair): RectStyle => ({
     color: colors[focused ? 1 : 0],
   });
-  const semanticColor = node?.getDisplayInfo()?.color;
+  const semanticColor = entry?.node.getDisplayInfo(entry.path)?.color;
   if (!semanticColor) {
     return toStyle(DEFAULT_COLORS);
   }
@@ -206,7 +207,7 @@ export const HomeNew: React.FC<{}> = () => {
           <NodeContent parentIndexEntry={parentIndex.get(id as string)} />
         )}
         getStyle={(id, focused) =>
-          getNodeStyle(parentIndex.get(id as string)?.node, focused)
+          getNodeStyle(parentIndex.get(id as string), focused)
         }
         focusedId={focusedId}
         onFocusedIdChange={setFocusedId}
