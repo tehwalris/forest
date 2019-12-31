@@ -152,6 +152,7 @@ import { enchancers } from "../enchancer";
 import {
   FlagKind
 } from "../flags";
+import { DisplayInfoPriority, LabelStyle, SemanticColor, Node } from '../../../tree/node';
 
 // https://github.com/Microsoft/Typescript/issues/20875
 function isTypeOfWorkaround(node: ts.Node): node is ts.TypeOfExpression {
@@ -217,6 +218,21 @@ ${e.name}: plainTypes.${e.name}
     `.trim(),
     ),
     "}",
+    "",
+    `
+for (const k of Object.keys(unions.DeclarationStatement())) {
+  if (enchancers[k]) {
+    continue;
+  }
+  enchancers[k] = (node: Node<unknown>) => ({
+    displayInfo: {
+      priority: DisplayInfoPriority.MEDIUM,
+      label: [{ text: node.getDebugLabel() || "", style: LabelStyle.UNKNOWN }],
+      color: SemanticColor.DECLARATION,
+    },
+  });
+}
+`.trim(),
     "",
     ...stringTemplates.map(
       e => `

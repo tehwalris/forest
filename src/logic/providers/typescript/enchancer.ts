@@ -9,6 +9,7 @@ import {
 import * as ts from "typescript";
 import { ParentPathElement } from "../../tree/display-new";
 import * as R from "ramda";
+
 export type Enchancer<T extends Node<ts.Node>> = (
   node: T,
   parentPath: ParentPathElement[],
@@ -18,7 +19,7 @@ export type Enchancer<T extends Node<ts.Node>> = (
 export const enchancers: {
   [key: string]: Enchancer<Node<any>> | undefined;
 } = {
-  ClassDeclaration: (node => {
+  ClassDeclaration: (node: Node<ts.ClassDeclaration>) => {
     const label: LabelPart[] = [
       { text: "class", style: LabelStyle.SECTION_NAME },
     ];
@@ -30,8 +31,8 @@ export const enchancers: {
         color: SemanticColor.DECLARATION,
       },
     };
-  }) as Enchancer<Node<ts.ClassDeclaration>>,
-  FunctionDeclaration: (node => {
+  },
+  FunctionDeclaration: (node: Node<ts.FunctionDeclaration>) => {
     const label: LabelPart[] = [
       { text: "function", style: LabelStyle.SECTION_NAME },
     ];
@@ -42,8 +43,8 @@ export const enchancers: {
         color: SemanticColor.DECLARATION,
       },
     };
-  }) as Enchancer<Node<ts.ClassDeclaration>>,
-  Identifier: ((node, parentPath) => {
+  },
+  Identifier: (node: Node<ts.Identifier>, parentPath) => {
     const lastParentEntry = R.last(parentPath);
     const isDeclarationName = lastParentEntry?.childKey === "name"; // HACK Clearly we need a more robust detection strategy
     return {
@@ -55,8 +56,8 @@ export const enchancers: {
           : SemanticColor.REFERENCE,
       },
     };
-  }) as Enchancer<Node<ts.ClassDeclaration>>,
-  StringLiteral: (node => {
+  },
+  StringLiteral: (node: Node<ts.StringLiteral>) => {
     return {
       displayInfo: {
         priority: DisplayInfoPriority.MEDIUM,
@@ -64,8 +65,8 @@ export const enchancers: {
         color: SemanticColor.LITERAL,
       },
     };
-  }) as Enchancer<Node<ts.StringLiteral>>,
-  NumericLiteral: (node => {
+  },
+  NumericLiteral: (node: Node<ts.NumericLiteral>) => {
     return {
       displayInfo: {
         priority: DisplayInfoPriority.MEDIUM,
@@ -73,5 +74,5 @@ export const enchancers: {
         color: SemanticColor.LITERAL,
       },
     };
-  }) as Enchancer<Node<ts.NumericLiteral>>,
+  },
 };
