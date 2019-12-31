@@ -1,10 +1,11 @@
 import { HandleAction } from "./interfaces";
-import { Node } from "../tree/node";
+import { Node, FlagSet, Flag } from "../tree/node";
 import { ParentIndex } from "../tree/display-new";
-import { ActionSet } from "../tree/action";
+import { ActionSet, InputKind } from "../tree/action";
 import * as R from "ramda";
 import { FileNode } from "../providers/typescript";
 import { tryPrettyPrint } from "../providers/typescript/pretty-print";
+import { Path } from "../tree/base";
 interface HandleKeyOptions {
   tree: Node<unknown>;
   parentIndex: ParentIndex;
@@ -60,6 +61,59 @@ export function handleKey(
           parent.children[targetIndex - 1]?.node ||
           parent
         ).id,
+      );
+    }
+  };
+  const editFlags = (nodes: { node: Node<{}>; path: Path }[]) => {
+    interface Option {
+      label: string;
+      apply: (flags: FlagSet) => FlagSet;
+      node: Node<{}>;
+      path: Path;
+    }
+    const options = R.chain(
+      R.pipe(
+        ({ node, path }: { node: Node<{}>; path: Path }) =>
+          R.mapObjIndexed((v: Flag, k) => ({ node, path, v, k }), node.flags),
+        R.values,
+        R.chain(({ k, v, node, path }): Option[] => {
+          if (typeof v === "boolean") {
+            return [
+              {
+                label: `${k} (${v ? "remove" : "add"})`,
+                apply: R.assoc(k, !v),
+                node,
+                path,
+              },
+            ];
+          }
+          return v.oneOf
+            .filter(e => e !== (v.value as string))
+            .map((e: string) => ({
+              label: `${e} (${k})`,
+              apply: R.assoc(k, { ...v, value: e }),
+              node,
+              path,
+            }));
+        }),
+      ),
+      nodes,
+    );
+    if (options.length) {
+      handleAction(
+        {
+          inputKind: InputKind.OneOf,
+          oneOf: options,
+          getLabel: e => e.label,
+          getShortcut: () => undefined,
+          apply: (e: Option): Node<{}> => {
+            return e.node.setFlags(e.apply(e.node.flags));
+          },
+        },
+        keyPath,
+        undefined,
+        undefined,
+        undefined,
       );
     }
   };
