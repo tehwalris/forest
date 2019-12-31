@@ -726,6 +726,7 @@ CatchClause
   build ({variableDeclaration, block}) => ts.createCatchClause(variableDeclaration, block)
 
 SECTION shortcuts
+= EqualsToken
 < LessThanToken
 > GreaterThanToken
 <= LessThanEqualsToken
@@ -736,6 +737,7 @@ SECTION shortcuts
 !== ExclamationEqualsEqualsToken
 + PlusToken
 - MinusToken
+* AsteriskToken
 ** AsteriskAsteriskToken
 / SlashToken
 % PercentToken
