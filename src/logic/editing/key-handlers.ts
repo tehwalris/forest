@@ -5,7 +5,6 @@ import { ActionSet } from "../tree/action";
 import * as R from "ramda";
 import { FileNode } from "../providers/typescript";
 import { tryPrettyPrint } from "../providers/typescript/pretty-print";
-
 interface HandleKeyOptions {
   tree: Node<unknown>;
   parentIndex: ParentIndex;
@@ -18,7 +17,6 @@ interface HandleKeyOptions {
   copiedNode: Node<unknown> | undefined;
   saveFile: (tree: FileNode) => void;
 }
-
 export function handleKey(
   key: string,
   {
@@ -37,14 +35,12 @@ export function handleKey(
   if (actionInProgress && key !== "Escape") {
     return;
   }
-
   const parentIndexEntry = parentIndex.get(focusedId);
   if (!parentIndexEntry) {
     return;
   }
   const { node, path } = parentIndexEntry;
   const keyPath = path.map(e => e.childKey);
-
   const tryDeleteChild = () => {
     const parent = R.last(path)?.parent;
     const action = parent?.actions.deleteChild;
@@ -57,7 +53,6 @@ export function handleKey(
         targetKey,
         undefined,
       );
-
       const targetIndex = parent.children.findIndex(e => e.key === targetKey);
       setFocusedId(
         (
@@ -68,7 +63,6 @@ export function handleKey(
       );
     }
   };
-
   const tryAction = (
     actionKey: keyof ActionSet<any>,
     focus?: (newNode: Node<unknown>) => string,
@@ -78,20 +72,19 @@ export function handleKey(
       handleAction(action, keyPath, focus, undefined, copiedNode);
     }
   };
-
   const save = () => {
     const fileNode: FileNode | undefined = tree.children[0].node as any;
     if (fileNode) {
       saveFile(fileNode);
     }
   };
-
   const prettyPrint = (): string | undefined => {
     const fileNode: FileNode | undefined = tree.children[0].node as any;
     return fileNode && tryPrettyPrint(fileNode);
   };
-
-  const handlers: { [key: string]: (() => void) | undefined } = {
+  const handlers: {
+    [key: string]: (() => void) | undefined;
+  } = {
     Enter: () => console.log(parentIndexEntry),
     "9": save,
     "0": () => console.log(prettyPrint()),
