@@ -17,7 +17,7 @@ PrimaryExpression ...LiteralExpression
   ArrayLiteralExpression ObjectLiteralExpression JsxAttributes
   ParenthesizedExpression 
   NewExpression MetaProperty
-  JsxElement JsxSelfClosingElement
+  JsxElement JsxSelfClosingElement JsxFragment
   ClassExpression
 LiteralExpression
   StringLiteral NumericLiteral RegularExpressionLiteral NoSubstitutionTemplateLiteral
@@ -52,7 +52,7 @@ ArrayBindingElement BindingElement OmittedExpression
 PropertyName Identifier StringLiteral NumericLiteral ComputedPropertyName
 EntityName Identifier QualifiedName
 NamedImportBindings NamespaceImport NamedImports
-JsxChild JsxText JsxExpression JsxElement JsxSelfClosingElement
+JsxChild JsxText JsxExpression JsxElement JsxSelfClosingElement JsxFragment
 JsxAttributeLike JsxAttribute JsxSpreadAttribute
 JsxTagNameExpression Identifier ThisExpression JsxTagNamePropertyAccess
 JsxAttributeInitializer StringLiteral JsxExpression
@@ -132,6 +132,7 @@ JsxElement - ts.createJsxElement(ts.createJsxOpeningElement(ts.createIdentifier(
 JsxSelfClosingElement - ts.createJsxSelfClosingElement(ts.createIdentifier(""), undefined, ts.createJsxAttributes([]))
 JsxOpeningElement - ts.createJsxOpeningElement(ts.createIdentifier(""), undefined, ts.createJsxAttributes([]))
 JsxClosingElement - ts.createJsxClosingElement(ts.createIdentifier(""))
+JsxFragment - ts.createJsxFragment(ts.createJsxOpeningFragment(), [], ts.createJsxJsxClosingFragment())
 JsxAttribute - ts.createJsxAttribute(ts.createIdentifier(""), ts.createJsxExpression(undefined, undefined))
 JsxAttributes - ts.createJsxAttributes([])
 JsxSpreadAttribute - ts.createJsxSpreadAttribute(ts.createIdentifier(""))
@@ -659,6 +660,9 @@ JsxElement
   RL children JsxChild
   R closingElement JsxClosingElement
   build ({openingElement, children, closingElement}) => ts.createJsxElement(openingElement, children, closingElement)
+JsxFragment
+  RL children JsxChild
+  build ({children}) => ts.createJsxFragment(ts.createJsxOpeningFragment(), children, ts.createJsxJsxClosingFragment())
 JsxSelfClosingElement
   R tagName JsxTagNameExpression
   OL typeArguments TypeNode
