@@ -5,8 +5,9 @@ import { Node } from "../logic/tree/node";
 interface Props {
   actions: ActionSet<Node<unknown>>;
 }
-
-const SHORTCUTS_BY_ACTION_KEY: { [key: string]: string | undefined } = {
+const SHORTCUTS_BY_ACTION_KEY: {
+  [key: string]: string | undefined;
+} = {
   prepend: "r",
   append: "a",
   setFromString: "s",
@@ -35,6 +36,6 @@ export const PossibleActionDisplay: React.FC<Props> = ({ actions }) => (
     )}
     <br />
     Other maybe possible actions: delete (x), copy (c), paste (p),
-    printToConsole (0)
+    printToConsole (0), save (9)
   </div>
 );

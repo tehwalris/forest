@@ -168,7 +168,13 @@ export class BooleanNode extends Node<ts.BooleanLiteral> {
     return this.value.toString();
   }
   build(): BuildResult<ts.BooleanLiteral> {
-    return this.buildHelper(() => ts.createLiteral(this.value));
+    return this.buildHelper(() =>
+      ts.addSyntheticLeadingComment(
+        ts.createLiteral(this.value),
+        ts.SyntaxKind.SingleLineCommentTrivia,
+        "walrus",
+      ),
+    );
   }
   getDisplayInfo() {
     return {

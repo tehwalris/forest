@@ -136,7 +136,7 @@ JsxAttribute - ts.createJsxAttribute(ts.createIdentifier(""), ts.createJsxExpres
 JsxAttributes - ts.createJsxAttributes([])
 JsxSpreadAttribute - ts.createJsxSpreadAttribute(ts.createIdentifier(""))
 JsxExpression - ts.createJsxExpression(undefined, undefined)
-JsxText - { ...(ts.createLiteral("") as any), kind: ts.SyntaxKind.JsxText, containsOnlyWhiteSpaces: true }
+JsxText - ts.createJsxText("")
 JsxTagNamePropertyAccess ts.isPropertyAccessExpression__as__any ts.createPropertyAccess(ts.createObjectLiteral(), "") as ts.JsxTagNamePropertyAccess
 ClassExpression - ts.createClassExpression(undefined, undefined, undefined, [], [])
 PropertyAccessExpression - ts.createPropertyAccess(ts.createObjectLiteral(), "")
@@ -308,9 +308,7 @@ RegularExpressionLiteral (t) => ({ ...(ts.createTemplateHead(t) as any), kind: t
 TemplateHead ts.createTemplateHead
 TemplateMiddle ts.createTemplateMiddle
 TemplateTail ts.createTemplateTail
-
-SECTION comment
-JsxText (t) => ({ ...(ts.createLiteral(t) as any), kind: ts.SyntaxKind.JsxText, containsOnlyWhiteSpaces: /^\s*$/.test(t) }) as ts.JsxText
+JsxText ts.createJsxText
 
 SECTION listTemplates
 ArrayLiteralExpression Expression elements
