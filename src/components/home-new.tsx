@@ -9,7 +9,7 @@ import {
   ParentIndexEntry,
 } from "../logic/tree/display-new";
 import { NavTree, RectStyle } from "divetree-react";
-import TypescriptProvider from "../logic/providers/typescript";
+import TypescriptProvider, { FileNode } from "../logic/providers/typescript";
 import { NodeContent } from "./tree/node-content";
 import { Path } from "../logic/tree/base";
 import { InputKind, Action } from "../logic/tree/action";
@@ -91,17 +91,28 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     },
   });
 
+  const typescriptProvider = useRef(new TypescriptProvider(fs, "./"));
+
+  const openFile = React.useCallback(async (filePath: string) => {
+    _setFile({
+      path: filePath,
+      trees: { raw: await typescriptProvider.current.loadTree(filePath) },
+    });
+  }, []);
+  (window as any).openFile = openFile;
   useEffect(() => {
-    const provider = new TypescriptProvider(fs, "./");
-    const openFile = async (filePath: string) => {
-      _setFile({
-        path: filePath,
-        trees: { raw: await provider.loadTree(filePath) },
-      });
-    };
-    (window as any).openFile = openFile;
     openFile(INITIAL_FILE);
-  }, [fs]);
+  }, [openFile]);
+
+  const saveFile = async (tree: FileNode) => {
+    if (!_file.path) {
+      console.warn(
+        "the currently opened file does not have a path - it will not be saved",
+      );
+      return;
+    }
+    typescriptProvider.current.trySaveFile(_file.path, tree);
+  };
 
   const tree =
     _file.trees.transformed ||
@@ -238,6 +249,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
             actionInProgress: !!inProgressAction,
             copyNode: setCopiedNode,
             copiedNode,
+            saveFile,
           })
         }
       />

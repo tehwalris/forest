@@ -16,6 +16,7 @@ interface HandleKeyOptions {
   actionInProgress: boolean;
   copyNode: (node: Node<unknown>) => void;
   copiedNode: Node<unknown> | undefined;
+  saveFile: (tree: FileNode) => void;
 }
 
 export function handleKey(
@@ -30,6 +31,7 @@ export function handleKey(
     actionInProgress,
     copyNode,
     copiedNode,
+    saveFile,
   }: HandleKeyOptions,
 ) {
   if (actionInProgress && key !== "Escape") {
@@ -77,14 +79,18 @@ export function handleKey(
     }
   };
 
-  const prettyPrint = (): string | undefined => {
+  const prettyPrintAndSave = (): string | undefined => {
     const fileNode: FileNode | undefined = tree.children[0].node as any;
-    return fileNode && tryPrettyPrint(fileNode);
+    if (!fileNode) {
+      return;
+    }
+    saveFile(fileNode);
+    return tryPrettyPrint(fileNode);
   };
 
   const handlers: { [key: string]: (() => void) | undefined } = {
     Enter: () => console.log(parentIndexEntry),
-    "0": () => console.log(prettyPrint()),
+    "0": () => console.log(prettyPrintAndSave()),
     Escape: cancelAction,
     r: tryAction("prepend", n => (n.children[0]?.node || n).id),
     a: tryAction("append", n => (R.last(n.children)?.node || n).id),
