@@ -227,6 +227,7 @@ SuperExpression SuperKeyword
 ImportExpression ImportKeyword
 DotDotDotToken DotDotDotToken
 QuestionToken QuestionToken
+QuestionDotToken QuestionDotToken
 AsteriskToken AsteriskToken
 ThisTypeNode ThisType
 ReadonlyToken ReadonlyKeyword
@@ -375,17 +376,20 @@ ComputedPropertyName
   build ({expression}) => ts.createComputedPropertyName(expression)
 CallExpression
   R expression LeftHandSideExpression
+  O questionDotToken QuestionDotToken
   OL typeArguments TypeNode
   RL arguments Expression
-  build ({expression, typeArguments, arguments: args}) => ts.createCall(expression, typeArguments, args)
+  build ({expression, questionDotToken, typeArguments, arguments: args}) => ts.createCallChain(expression, questionDotToken, typeArguments, args)
 PropertyAccessExpression
   R expression LeftHandSideExpression
+  O questionDotToken QuestionDotToken
   R name Identifier
-  build ({expression, name}) => ts.createPropertyAccess(expression, name)
+  build ({expression, questionDotToken, name}) => ts.createPropertyAccessChain(expression, questionDotToken, name)
 ElementAccessExpression
   R expression LeftHandSideExpression
+  O questionDotToken QuestionDotToken
   O argumentExpression Expression
-  build ({expression, argumentExpression}) => { if (!argumentExpression) { throw new Error('argumentExpression is required') } return ts.createElementAccess(expression, argumentExpression) }
+  build ({expression, questionDotToken, argumentExpression}) => { if (!argumentExpression) { throw new Error('argumentExpression is required') } return ts.createElementAccessChain(expression, questionDotToken, argumentExpression) }
 ImportDeclaration
   O importClause ImportClause
   R moduleSpecifier Expression

@@ -2,10 +2,10 @@ import { FileNode } from "./typescript-provider";
 import { format as prettierFormat } from "prettier";
 
 const PRETTIER_OPTIONS = {
-  parser: "typescript" as "typescript",
+  parser: "typescript",
   printWidth: 80,
-  plugins: undefined,
-};
+  trailingComma: "all",
+} as const;
 
 export function tryPrettyPrint(fileNode: FileNode): string | undefined {
   return fileNode.prettyPrint(t => {

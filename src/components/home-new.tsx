@@ -37,7 +37,7 @@ interface CombinedTrees {
   transformed?: Node<unknown>;
 }
 
-const INITIAL_FILE: string = "src/playground.ts";
+const INITIAL_FILE: string = "src/logic/providers/typescript/pretty-print.ts";
 const TRANSFORMS: Transform[] = [
   flattenIfTransform,
   compressUselessValuesTransform,
