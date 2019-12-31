@@ -79,18 +79,22 @@ export function handleKey(
     }
   };
 
-  const prettyPrintAndSave = (): string | undefined => {
+  const save = () => {
     const fileNode: FileNode | undefined = tree.children[0].node as any;
-    if (!fileNode) {
-      return;
+    if (fileNode) {
+      saveFile(fileNode);
     }
-    saveFile(fileNode);
-    return tryPrettyPrint(fileNode);
+  };
+
+  const prettyPrint = (): string | undefined => {
+    const fileNode: FileNode | undefined = tree.children[0].node as any;
+    return fileNode && tryPrettyPrint(fileNode);
   };
 
   const handlers: { [key: string]: (() => void) | undefined } = {
     Enter: () => console.log(parentIndexEntry),
-    "0": () => console.log(prettyPrintAndSave()),
+    "9": save,
+    "0": () => console.log(prettyPrint()),
     Escape: cancelAction,
     r: tryAction("prepend", n => (n.children[0]?.node || n).id),
     a: tryAction("append", n => (R.last(n.children)?.node || n).id),
