@@ -1,15 +1,15 @@
 This project was bootstrapped with
 [Create React App](https://github.com/facebookincubator/create-react-app).
 
-## How to fix crash on first start
+## Usage
 
-Edit the file `node_modules/prettier/index.js` and change the statement which
-starts with `var fs$1` to:
-
-```javascript
-var fs$1 = {
-  readFile: () => {},
-};
-```
-
-You will have to do this every time after you run yarn.
+- Install dependencies
+  - `yarn`
+- Generate templates
+  - `cd src/logic/providers/typescript/ && node generate-templates.js`
+- Start the server (**WARNING**: This is really unsafe!)
+  - `node server-unsafe.js`
+- Start the CRA dev server
+  - `yarn start`
+- Open a file for editing
+  - In your browser console: `openFile('src/playground.ts')`
