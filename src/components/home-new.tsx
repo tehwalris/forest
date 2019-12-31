@@ -26,14 +26,18 @@ import { compressUselessValuesTransform } from "../logic/transform/transforms/co
 import { flattenIfTransform } from "../logic/transform/transforms/flatten-if";
 import * as R from "ramda";
 import { PossibleActionDisplay } from "./possible-action-display";
+import * as _fsType from "fs";
+
+interface Props {
+  fs: typeof _fsType;
+}
 
 interface CombinedTrees {
   raw: Node<unknown>;
   transformed?: Node<unknown>;
 }
 
-const TYPESCRIPT_PROVIDER = new TypescriptProvider();
-const INITIAL_FILE: string = "temp/fizz-buzz/index.ts";
+const INITIAL_FILE: string = "src/playground.ts";
 const TRANSFORMS: Transform[] = [
   flattenIfTransform,
   compressUselessValuesTransform,
@@ -80,30 +84,36 @@ function getNodeStyle(
   return toStyle(COLORS[semanticColor]);
 }
 
-export const HomeNew: React.FC<{}> = () => {
-  const [_tree, _setTree] = useState<CombinedTrees>({
-    raw: new EmptyLeafNode(),
+export const HomeNew: React.FC<Props> = ({ fs }) => {
+  const [_file, _setFile] = useState<{ path?: string; trees: CombinedTrees }>({
+    trees: {
+      raw: new EmptyLeafNode(),
+    },
   });
-  const setRawTree = (raw: Node<unknown>) => _setTree({ raw });
 
   useEffect(() => {
-    const openFile = (filePath: string) =>
-      setRawTree(TYPESCRIPT_PROVIDER.loadTree(filePath));
+    const provider = new TypescriptProvider(fs, "./");
+    const openFile = async (filePath: string) => {
+      _setFile({
+        path: filePath,
+        trees: { raw: await provider.loadTree(filePath) },
+      });
+    };
     (window as any).openFile = openFile;
     openFile(INITIAL_FILE);
-  }, []);
+  }, [fs]);
 
   const tree =
-    _tree.transformed ||
-    applyTransformsToTree(_tree.raw, TRANSFORMS, transformCache);
+    _file.trees.transformed ||
+    applyTransformsToTree(_file.trees.raw, TRANSFORMS, transformCache);
   const setTree = (updater: (oldTree: Node<unknown>) => Node<unknown>) => {
-    _setTree(_tree => {
+    _setFile(_file => {
       const newTransformed = updater(
-        _tree.transformed ||
-          applyTransformsToTree(_tree.raw, TRANSFORMS, transformCache),
+        _file.trees.transformed ||
+          applyTransformsToTree(_file.trees.raw, TRANSFORMS, transformCache),
       );
       const output: CombinedTrees = {
-        raw: _tree.raw,
+        raw: _file.trees.raw,
         transformed: newTransformed,
       };
       const unapplyResult = unapplyTransforms(newTransformed);
@@ -111,7 +121,7 @@ export const HomeNew: React.FC<{}> = () => {
         output.raw = unapplyResult.value;
         output.transformed = undefined;
       }
-      return output;
+      return { ..._file, trees: output };
     });
   };
 

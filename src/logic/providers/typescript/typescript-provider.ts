@@ -4,48 +4,52 @@ import { CompilerHost } from "./compiler-host";
 import { StructNode, ListNode } from "../../tree/base-nodes";
 import { unions } from "./generated/templates";
 import { fromTsNode } from "./convert";
+import * as _fsType from "fs";
+import { tryPrettyPrint } from "./pretty-print";
+import * as path from "path";
 interface WorkingSet {
   files: Map<string, string>;
   rootFiles: string[];
 }
 export class TypescriptProvider {
-  file = `
-  import {
-    Node,
-    DisplayInfoPriority,
-    LabelStyle,
-    DisplayInfo,
-  } from "../../tree/node";
-  import * as ts from "typescript";
-  export type Enchancer<T extends Node<ts.Node>> = (
-    node: T,
-  ) => {
-    displayInfo: DisplayInfo;
-  };
-  export const enchancers: {
-    [key: string]: Enchancer<Node<ts.Node>> | undefined;
-  } = {
-    ClassDeclaration: (node => ({
-      displayInfo: {
-        priority: DisplayInfoPriority.MEDIUM,
-        label: [{ text: "class", style: LabelStyle.SECTION_NAME }],
-      },
-    })) as Enchancer<Node<ts.ClassDeclaration>>,
-  };
-  `;
-
-  loadTree(filePath: string): Node<WorkingSet> {
+  constructor(private fs: typeof _fsType, private projectRoot: string) {}
+  private readFile(filePath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      this.fs.readFile(
+        path.join(this.projectRoot, filePath),
+        "utf-8",
+        (err, data) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(data);
+          }
+        },
+      );
+    });
+  }
+  private writeFile(filePath: string, content: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.fs.writeFile(path.join(this.projectRoot, filePath), content, err => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(undefined);
+        }
+      });
+    });
+  }
+  async loadTree(filePath: string): Promise<Node<WorkingSet>> {
+    const file = await this.readFile(filePath);
     return RootNode.fromState({
-      files: new Map(
-        [filePath].map(p => [p, this.file]) as Array<[string, string]>,
-      ),
+      files: new Map([filePath].map(p => [p, file]) as Array<[string, string]>),
       rootFiles: [filePath],
     });
   }
-  saveFile(filePath: string, file: FileNode) {
-    const buildResult = file.build();
-    if (buildResult.ok) {
-      this.file = buildResult.value.getText();
+  async trySaveFile(filePath: string, file: FileNode) {
+    const text = tryPrettyPrint(file);
+    if (text) {
+      await this.writeFile(filePath, text);
     }
   }
 }
