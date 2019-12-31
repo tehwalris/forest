@@ -94,7 +94,7 @@ CompoundAssignmentOperatorToken
   SlashEqualsToken PercentEqualsToken AmpersandEqualsToken BarEqualsToken CaretEqualsToken
   LessThanLessThanEqualsToken GreaterThanGreaterThanGreaterThanEqualsToken GreaterThanGreaterThanEqualsToken
 AssignmentOperatorToken ...CompoundAssignmentOperatorToken EqualsToken 
-AssignmentOperatorOrHigher ...LogicalOperatorOrHigher ...AssignmentOperatorToken
+AssignmentOperatorOrHigher QuestionQuestionToken ...LogicalOperatorOrHigher ...AssignmentOperatorToken
 BinaryOperatorToken ...AssignmentOperatorOrHigher CommaToken
 PrefixUnaryOperator PlusPlusToken MinusMinusToken PlusToken MinusToken TildeToken ExclamationToken
 PostfixUnaryOperator PlusPlusToken MinusMinusToken
@@ -270,6 +270,7 @@ CaretToken
 ExclamationToken
 TildeToken
 AmpersandAmpersandToken
+QuestionQuestionToken
 BarBarToken
 ColonToken
 AtToken
@@ -757,6 +758,7 @@ SECTION shortcuts
 ~ TildeToken
 && AmpersandAmpersandToken
 || BarBarToken
+?? QuestionQuestionToken
 += PlusEqualsToken
 -= MinusEqualsToken
 *= AsteriskEqualsToken
