@@ -1,11 +1,10 @@
-import { HandleAction } from "./interfaces";
-import { Node, FlagSet, Flag } from "../tree/node";
-import { ParentIndex } from "../tree/display-new";
-import { ActionSet, InputKind } from "../tree/action";
 import * as R from "ramda";
 import { FileNode } from "../providers/typescript";
 import { tryPrettyPrint } from "../providers/typescript/pretty-print";
-import { Path } from "../tree/base";
+import { ActionSet, InputKind } from "../tree/action";
+import { ParentIndex } from "../tree/display-new";
+import { Flag, Node } from "../tree/node";
+import { HandleAction } from "./interfaces";
 interface HandleKeyOptions {
   tree: Node<unknown>;
   parentIndex: ParentIndex;
