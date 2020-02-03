@@ -64,58 +64,45 @@ export function handleKey(
       );
     }
   };
-  const editFlags = (nodes: { node: Node<{}>; path: Path }[]) => {
+  const editFlags = () => {
     interface Option {
+      key: string;
+      flag: Flag;
       label: string;
-      apply: (flags: FlagSet) => FlagSet;
-      node: Node<{}>;
-      path: Path;
     }
-    const options = R.chain(
-      R.pipe(
-        ({ node, path }: { node: Node<{}>; path: Path }) =>
-          R.mapObjIndexed((v: Flag, k) => ({ node, path, v, k }), node.flags),
-        R.values,
-        R.chain(({ k, v, node, path }): Option[] => {
-          if (typeof v === "boolean") {
-            return [
-              {
-                label: `${k} (${v ? "remove" : "add"})`,
-                apply: R.assoc(k, !v),
-                node,
-                path,
-              },
-            ];
-          }
-          return v.oneOf
-            .filter(e => e !== (v.value as string))
-            .map((e: string) => ({
-              label: `${e} (${k})`,
-              apply: R.assoc(k, { ...v, value: e }),
-              node,
-              path,
-            }));
-        }),
-      ),
-      nodes,
-    );
-    if (options.length) {
-      handleAction(
-        {
-          inputKind: InputKind.OneOf,
-          oneOf: options,
-          getLabel: e => e.label,
-          getShortcut: () => undefined,
-          apply: (e: Option): Node<{}> => {
-            return e.node.setFlags(e.apply(e.node.flags));
-          },
+    const options: Option[] = R.pipe(
+      R.mapObjIndexed((flag: Flag, key) => ({ flag, key })),
+      R.values,
+      R.chain(({ key, flag }): Option[] => {
+        if (typeof flag === "boolean") {
+          return [
+            { label: `${key} (${flag ? "remove" : "add"})`, key, flag: !flag },
+          ];
+        }
+        return flag.oneOf
+          .filter(e => e !== (flag.value as string))
+          .map((e: string) => ({
+            label: `${e} (${key})`,
+            key,
+            flag: { ...flag, value: e },
+          }));
+      }),
+    )(node.flags);
+    handleAction(
+      {
+        inputKind: InputKind.OneOf,
+        oneOf: options,
+        getLabel: e => e.label,
+        getShortcut: () => undefined,
+        apply: (e: Option): Node<unknown> => {
+          return node.setFlags({ ...node.flags, [e.key]: e.flag });
         },
-        keyPath,
-        undefined,
-        undefined,
-        undefined,
-      );
-    }
+      },
+      keyPath,
+      undefined,
+      undefined,
+      undefined,
+    );
   };
   const tryAction = (
     actionKey: keyof ActionSet<any>,
@@ -153,6 +140,7 @@ export function handleKey(
     x: tryDeleteChild,
     c: () => copyNode(node),
     p: tryAction("replace", n => n.id),
+    f: editFlags,
   };
   handlers[key]?.();
 }
