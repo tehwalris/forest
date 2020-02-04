@@ -722,7 +722,7 @@ ForOfStatement
   build ({awaitModifier, initializer, expression, statement}) => ts.createForOf(awaitModifier!, initializer, expression, statement)
 SpreadElement
   R expression Expression
-  build ({expression}) => ts.createSpread(ts.createLiteral(""))
+  build ({expression}) => ts.createSpread(expression)
 TryStatement
   R tryBlock Block
   O catchClause CatchClause
