@@ -3,10 +3,19 @@ import { Transform } from "..";
 import { ActionSet } from "../../tree/action";
 import { Link } from "../../tree/base";
 import { BuildResult, ChildNodeEntry, FlagSet, Node } from "../../tree/node";
+import { ParentPathElement } from "../../tree/display-new";
 
 export const splitMetaTransform: Transform = node => {
   // TODO Properly detect which nodes to split (and how to do it)
   if (node.getDebugLabel() !== "InterfaceDeclaration") {
+    return node;
+  }
+  if (
+    R.equals(
+      node.children.map(c => c.key),
+      ["primary", "meta"],
+    )
+  ) {
     return node;
   }
 
@@ -182,5 +191,13 @@ class MetaBranchNode<B> extends Node<B> {
   build(): BuildResult<B> {
     const res = this.unapplyTransform();
     return res.ok ? res.value.build() : res;
+  }
+
+  getDebugLabel() {
+    return this.original.getDebugLabel();
+  }
+
+  getDisplayInfo(parentPath: ParentPathElement[]) {
+    return this.original.getDisplayInfo(parentPath);
   }
 }
