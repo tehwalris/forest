@@ -43,6 +43,7 @@ class MetaBranchBranchNode<B> extends Node<ModifiedNode<B>> {
     private original: Node<B>,
     private modifications: NodeModification<B>[],
     private selectedChildren: string[],
+    private idSuffix: string,
   ) {
     super();
 
@@ -50,6 +51,7 @@ class MetaBranchBranchNode<B> extends Node<ModifiedNode<B>> {
       (node, modification) => modification(node),
       original,
     );
+    this.id = modified.id + idSuffix;
     this.children = modified.children.filter(c =>
       this.selectedChildren.includes(c.key),
     );
@@ -70,13 +72,12 @@ class MetaBranchBranchNode<B> extends Node<ModifiedNode<B>> {
   }
 
   private cloneAndModify(modifications: NodeModification<B>[]) {
-    const node = new MetaBranchBranchNode(
+    return new MetaBranchBranchNode(
       this.original,
       [...this.modifications, ...modifications],
       this.selectedChildren,
+      this.idSuffix,
     );
-    node.id = this.id;
-    return node;
   }
 
   clone(): MetaBranchBranchNode<B> {
@@ -116,7 +117,7 @@ class MetaBranchNode<B> extends Node<B> {
   }
 
   static fromNode<B>(original: Node<B>, split: MetaSplit): MetaBranchNode<B> {
-    return new MetaBranchNode(
+    const wrapped = new MetaBranchNode(
       original,
       split,
       ["primary", "meta"].map(branchKey => ({
@@ -130,9 +131,12 @@ class MetaBranchNode<B> extends Node<B> {
               return branchKey === "primary" ? isPrimary : !isPrimary;
             })
             .map(c => c.key),
+          `-${branchKey}`,
         ),
       })),
     );
+    wrapped.id = original.id;
+    return wrapped;
   }
 
   private tryApplyModifications(): BuildResult<MetaBranchNode<B>> {
@@ -155,9 +159,7 @@ class MetaBranchNode<B> extends Node<B> {
       (node, modification) => modification(node),
       this.original,
     );
-    const node = MetaBranchNode.fromNode(modified, this.split);
-    node.id = this.id;
-    return { ok: true, value: node };
+    return { ok: true, value: MetaBranchNode.fromNode(modified, this.split) };
   }
 
   clone(): MetaBranchNode<B> {
