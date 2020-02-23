@@ -5,16 +5,23 @@ import { Link } from "../../tree/base";
 import { BuildResult, ChildNodeEntry, FlagSet, Node } from "../../tree/node";
 import { ParentPathElement } from "../../tree/display-new";
 
-export const splitMetaTransform: Transform = node => {
-  // TODO Properly detect which nodes to split (and how to do it)
-  if (node.getDebugLabel() !== "InterfaceDeclaration") {
-    return node;
-  }
-  if (
+export function isMetaBranchNode(
+  node: Node<unknown>,
+): node is MetaBranchNode<unknown> {
+  return (
+    node instanceof MetaBranchNode &&
     R.equals(
       node.children.map(c => c.key),
       ["primary", "meta"],
     )
+  );
+}
+
+export const splitMetaTransform: Transform = node => {
+  // TODO Properly detect which nodes to split (and how to do it)
+  if (
+    isMetaBranchNode(node) ||
+    node.getDebugLabel() !== "InterfaceDeclaration"
   ) {
     return node;
   }
@@ -103,7 +110,7 @@ class MetaBranchBranchNode<B> extends Node<ModifiedNode<B>> {
   }
 }
 
-class MetaBranchNode<B> extends Node<B> {
+export class MetaBranchNode<B> extends Node<B> {
   flags = {};
   actions = {};
   links = [];
