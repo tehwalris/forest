@@ -4,6 +4,15 @@ import { ActionSet } from "../../tree/action";
 import { Link } from "../../tree/base";
 import { BuildResult, ChildNodeEntry, FlagSet, Node } from "../../tree/node";
 
+export const splitMetaTransform: Transform = node => {
+  // TODO Properly detect which nodes to split (and how to do it)
+  if (node.getDebugLabel() !== "InterfaceDeclaration") {
+    return node;
+  }
+
+  return MetaBranchNode.fromNode(node, { primaryChildren: ["members"] });
+};
+
 interface MetaSplit {
   primaryChildren: string[];
 }
@@ -175,12 +184,3 @@ class MetaBranchNode<B> extends Node<B> {
     return res.ok ? res.value.build() : res;
   }
 }
-
-export const splitMetaTransform: Transform = node => {
-  // TODO Properly detect which nodes to split (and how to do it)
-  if (node.getDebugLabel() !== "InterfaceDeclaration") {
-    return node;
-  }
-
-  return MetaBranchNode.fromNode(node, { primaryChildren: ["members"] });
-};
