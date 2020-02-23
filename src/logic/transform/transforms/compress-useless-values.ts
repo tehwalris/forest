@@ -11,13 +11,12 @@ import { Link } from "../../tree/base";
 import * as R from "ramda";
 import { ParentPathElement } from "../../tree/display-new";
 
-export const compressUselessValuesTransform: Transform = node => {
+export const compressChildrenTransform: Transform = node => {
   if (node.children.length !== 1) {
     return node;
   }
   const child = node.children[0];
   if (
-    child.key !== "value" ||
     R.intersection(Object.keys(node.actions), Object.keys(child.node.actions))
       .length ||
     R.intersection(Object.keys(node.flags), Object.keys(child.node.flags))
@@ -29,6 +28,17 @@ export const compressUselessValuesTransform: Transform = node => {
   const compressed = new CompressedNode(node, child.node);
   compressed.id = node.id;
   return compressed;
+};
+
+export const compressUselessValuesTransform: Transform = node => {
+  if (node.children.length !== 1) {
+    return node;
+  }
+  const child = node.children[0];
+  if (child.key !== "value") {
+    return node;
+  }
+  return compressChildrenTransform(node);
 };
 
 class CompressedNode<B> extends Node<B> {
@@ -67,7 +77,7 @@ class CompressedNode<B> extends Node<B> {
       return this;
     }
     const parentNode = this.parentNode.setChild({
-      key: "value",
+      key: this.parentNode.children[0].key,
       node: childNode,
     });
     const resultNode = compressUselessValuesTransform(parentNode);
@@ -107,7 +117,7 @@ class CompressedNode<B> extends Node<B> {
       return node;
     }
     return this.setChild({
-      key: "value",
+      key: this.parentNode.children[0].key,
       node: this.childNode.setFlags(childFlags),
     }).setFlags(parentFlags);
   }

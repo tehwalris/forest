@@ -4,6 +4,7 @@ import { ActionSet } from "../../tree/action";
 import { Link } from "../../tree/base";
 import { BuildResult, ChildNodeEntry, FlagSet, Node } from "../../tree/node";
 import { ParentPathElement } from "../../tree/display-new";
+import { compressChildrenTransform } from "./compress-useless-values";
 
 export function isMetaBranchNode(
   node: Node<unknown>,
@@ -26,11 +27,15 @@ export const splitMetaTransform: Transform = node => {
     return node;
   }
 
-  return MetaBranchNode.fromNode(node, { primaryChildren: ["members"] });
+  return MetaBranchNode.fromNode(node, {
+    primaryChildren: ["members"],
+    spreadPrimary: true,
+  });
 };
 
 interface MetaSplit {
   primaryChildren: string[];
+  spreadPrimary: boolean;
 }
 
 type NodeModification<B> = (node: Node<B>) => Node<B>;
@@ -127,9 +132,8 @@ export class MetaBranchNode<B> extends Node<B> {
     const wrapped = new MetaBranchNode(
       original,
       split,
-      ["primary", "meta"].map(branchKey => ({
-        key: branchKey,
-        node: new MetaBranchBranchNode(
+      ["primary", "meta"].map(branchKey => {
+        const branchNode = new MetaBranchBranchNode(
           original,
           [],
           original.children
@@ -139,8 +143,15 @@ export class MetaBranchNode<B> extends Node<B> {
             })
             .map(c => c.key),
           `-${branchKey}`,
-        ),
-      })),
+        );
+        return {
+          key: branchKey,
+          node:
+            branchKey === "primary" && split.spreadPrimary
+              ? compressChildrenTransform(branchNode)
+              : branchNode,
+        };
+      }),
     );
     wrapped.id = original.id;
     return wrapped;

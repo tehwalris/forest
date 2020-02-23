@@ -24,16 +24,18 @@ function applyTransformToTree(
   }
 
   let newRoot = transform(root);
-  newRoot.children.forEach(c => {
+  // HACK Iterate using an index variable, because setting one child may change others (in MetaBranchNode)
+  for (let i = 0; i < newRoot.children.length; i++) {
+    const c = newRoot.children[i];
     const transformedChild = applyTransformToTree(c.node, transform, cache);
     if (transformedChild === c.node) {
-      return;
+      continue;
     }
     newRoot = newRoot.setChild({
       key: c.key,
       node: transformedChild,
     });
-  });
+  }
   cache.set(root, newRoot);
   return newRoot;
 }
