@@ -27,6 +27,7 @@ import { flattenIfTransform } from "../logic/transform/transforms/flatten-if";
 import * as R from "ramda";
 import { PossibleActionDisplay } from "./possible-action-display";
 import * as _fsType from "fs";
+import { splitMetaTransform } from "../logic/transform/transforms/split-meta";
 
 interface Props {
   fs: typeof _fsType;
@@ -41,6 +42,7 @@ const INITIAL_FILE: string = "src/logic/editing/key-handlers.ts";
 const TRANSFORMS: Transform[] = [
   flattenIfTransform,
   compressUselessValuesTransform,
+  splitMetaTransform,
 ];
 
 const transformCache: MultiTransformCache = new WeakMap();

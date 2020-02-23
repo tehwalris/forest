@@ -96,7 +96,7 @@ export class MetaBranchNode<B> extends Node<B> {
     super();
   }
 
-  fromNode(original: Node<B>, split: MetaSplit): MetaBranchNode<B> {
+  static fromNode<B>(original: Node<B>, split: MetaSplit): MetaBranchNode<B> {
     return new MetaBranchNode(
       original,
       split,
@@ -105,7 +105,7 @@ export class MetaBranchNode<B> extends Node<B> {
         node: new MetaBranchBranchNode(
           original,
           [],
-          this.children
+          original.children
             .filter(c => {
               const isPrimary = split.primaryChildren.includes(c.key);
               return branchKey === "primary" ? isPrimary : !isPrimary;
@@ -116,13 +116,19 @@ export class MetaBranchNode<B> extends Node<B> {
     );
   }
 
-  private tryApplyModifications(): MetaBranchNode<B> {
+  private tryApplyModifications(): BuildResult<MetaBranchNode<B>> {
     const modifications: NodeModification<B>[] = [];
     for (const k of ["primary", "meta"]) {
       const child = this.children.find(c => c.key === k)!.node;
       const childBuildResult = child.build();
       if (!childBuildResult.ok) {
-        return this;
+        return {
+          ok: false,
+          error: {
+            ...childBuildResult.error,
+            path: [k, ...childBuildResult.error.path],
+          },
+        };
       }
       modifications.push(...childBuildResult.value.modifications);
     }
@@ -130,9 +136,9 @@ export class MetaBranchNode<B> extends Node<B> {
       (node, modification) => modification(node),
       this.original,
     );
-    const node = this.fromNode(modified, this.split);
+    const node = MetaBranchNode.fromNode(modified, this.split);
     node.id = this.id;
-    return node;
+    return { ok: true, value: node };
   }
 
   clone(): MetaBranchNode<B> {
@@ -149,14 +155,22 @@ export class MetaBranchNode<B> extends Node<B> {
     }
     node.children = [...node.children];
     node.children[i] = child;
-    return node.tryApplyModifications();
+
+    const applyResult = node.tryApplyModifications();
+    return applyResult.ok ? applyResult.value : node;
   }
 
   setFlags(flags: never): never {
     throw new Error("MetaBranchNode can't have flags");
   }
 
+  unapplyTransform(): BuildResult<Node<B>> {
+    const res = this.tryApplyModifications();
+    return res.ok ? { ok: true, value: res.value.original } : res;
+  }
+
   build(): BuildResult<B> {
-    return this.original.build();
+    const res = this.unapplyTransform();
+    return res.ok ? res.value.build() : res;
   }
 }
