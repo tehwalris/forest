@@ -16,9 +16,13 @@ export type ParentIndexEntry = {
   path: ParentPathElement[];
 };
 
-function getChildrenForDisplay(node: Node<unknown>): ChildNodeEntry<unknown>[] {
+function getChildrenForDisplay(
+  node: Node<unknown>,
+  metaLevelNodeIds: Set<string>,
+): ChildNodeEntry<unknown>[] {
   if (isMetaBranchNode(node)) {
-    return node.children.find(c => c.key === "primary")!.node.children;
+    const selectedBranch = metaLevelNodeIds.has(node.id) ? "meta" : "primary";
+    return node.children.find(c => c.key === selectedBranch)!.node.children;
   }
   return node.children;
 }
@@ -29,7 +33,7 @@ export function buildParentIndex(
   path: ParentPathElement[] = [],
 ): ParentIndex {
   result.set(root.id, { node: root, path });
-  getChildrenForDisplay(root).forEach(c =>
+  root.children.forEach(c =>
     buildParentIndex(c.node, result, [
       ...path,
       { parent: root, childKey: c.key },
@@ -42,10 +46,11 @@ export function buildDivetreeDisplayTree(
   node: Node<unknown>,
   path: string[],
   extraDepth: number,
+  metaLevelNodeIds: Set<string>,
 ): DivetreeDisplayNode {
   const isOnPath = node.id === path[0];
   const isFinal = !isOnPath || !!extraDepth;
-  const children = getChildrenForDisplay(node);
+  const children = getChildrenForDisplay(node, metaLevelNodeIds);
 
   const base: TightLeafNode = {
     kind: NodeKind.TightLeaf,
@@ -84,16 +89,20 @@ export function buildDivetreeDisplayTree(
         c.node,
         isOnPath ? path.slice(1) : [],
         extraDepth + (isOnPath ? 0 : 1),
+        metaLevelNodeIds,
       );
     }),
   };
 }
 
-export function buildDivetreeNavTree(node: Node<unknown>): NavNode {
+export function buildDivetreeNavTree(
+  node: Node<unknown>,
+  metaLevelNodeIds: Set<string>,
+): NavNode {
   return {
     id: node.id,
-    children: getChildrenForDisplay(node).map(c =>
-      buildDivetreeNavTree(c.node),
+    children: getChildrenForDisplay(node, metaLevelNodeIds).map(c =>
+      buildDivetreeNavTree(c.node, metaLevelNodeIds),
     ),
   };
 }

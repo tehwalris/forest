@@ -27,7 +27,10 @@ import { flattenIfTransform } from "../logic/transform/transforms/flatten-if";
 import * as R from "ramda";
 import { PossibleActionDisplay } from "./possible-action-display";
 import * as _fsType from "fs";
-import { splitMetaTransform } from "../logic/transform/transforms/split-meta";
+import {
+  splitMetaTransform,
+  isMetaBranchNode,
+} from "../logic/transform/transforms/split-meta";
 
 interface Props {
   fs: typeof _fsType;
@@ -197,12 +200,34 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     setInProgressAction(undefined);
   };
 
+  const [metaLevelNodeIds, _setMetaLevelNodeIds] = useState(new Set<string>());
+
   const { parentIndex, navTree } = useMemo(() => {
     return {
       parentIndex: buildParentIndex(tree),
-      navTree: buildDivetreeNavTree(tree),
+      navTree: buildDivetreeNavTree(tree, metaLevelNodeIds),
     };
-  }, [tree]);
+  }, [tree, metaLevelNodeIds]);
+
+  const toggleNodeMetaLevel = (nodeId: string) => {
+    const entry = parentIndex.get(nodeId);
+    if (!entry) {
+      return;
+    }
+    if (!isMetaBranchNode(entry.node)) {
+      return;
+    }
+    const newIds: string[] = [];
+    if (!metaLevelNodeIds.has(nodeId)) {
+      newIds.push(nodeId);
+    }
+    entry.path.forEach(({ parent }) => {
+      if (metaLevelNodeIds.has(parent.id) && isMetaBranchNode(parent)) {
+        newIds.push(parent.id);
+      }
+    });
+    _setMetaLevelNodeIds(new Set(newIds));
+  };
 
   const _lastFocusedIdPath = useRef([tree.id]);
   const [_focusedId, setFocusedId] = useState(tree.id);
@@ -216,6 +241,15 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
         : _lastFocusedIdPath.current,
     [parentIndex, _focusedId, _lastFocusedIdPath],
   );
+  useEffect(() => {
+    const focusedIds = new Set(_focusedIdPath);
+    const validMetaLevelNodeIds = [...metaLevelNodeIds].filter(id =>
+      focusedIds.has(id),
+    );
+    if (validMetaLevelNodeIds.length !== metaLevelNodeIds.size) {
+      _setMetaLevelNodeIds(new Set(validMetaLevelNodeIds));
+    }
+  }, [_focusedIdPath, metaLevelNodeIds]);
   const focusedId =
     R.findLast(id => parentIndex.has(id), _focusedIdPath) || _focusedId;
   useEffect(() => {
@@ -229,7 +263,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
       <NavTree
         navTree={navTree}
         getDisplayTree={focusPath =>
-          buildDivetreeDisplayTree(tree, focusPath, 0)
+          buildDivetreeDisplayTree(tree, focusPath, 0, metaLevelNodeIds)
         }
         getContent={id => (
           <NodeContent parentIndexEntry={parentIndex.get(id as string)} />
@@ -252,6 +286,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
             copyNode: setCopiedNode,
             copiedNode,
             saveFile,
+            toggleNodeMetaLevel,
           })
         }
       />

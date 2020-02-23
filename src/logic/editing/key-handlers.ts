@@ -16,6 +16,7 @@ interface HandleKeyOptions {
   copyNode: (node: Node<unknown>) => void;
   copiedNode: Node<unknown> | undefined;
   saveFile: (tree: FileNode) => void;
+  toggleNodeMetaLevel: (nodeId: string) => void;
 }
 export function handleKey(
   key: string,
@@ -30,6 +31,7 @@ export function handleKey(
     copyNode,
     copiedNode,
     saveFile,
+    toggleNodeMetaLevel,
   }: HandleKeyOptions,
 ) {
   if (actionInProgress && key !== "Escape") {
@@ -140,6 +142,7 @@ export function handleKey(
     c: () => copyNode(node),
     p: tryAction("replace", n => n.id),
     f: editFlags,
+    m: () => toggleNodeMetaLevel(focusedId),
   };
   handlers[key]?.();
 }
