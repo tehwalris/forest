@@ -1,4 +1,4 @@
-import { Node, ChildNodeEntry } from "../tree/node";
+import { Node } from "../tree/node";
 import { isMetaBranchNode } from "../transform/transforms/split-meta";
 import {
   Node as DivetreeDisplayNode,
@@ -16,15 +16,15 @@ export type ParentIndexEntry = {
   path: ParentPathElement[];
 };
 
-function getChildrenForDisplay(
+export function getNodeForDisplay(
   node: Node<unknown>,
   metaLevelNodeIds: Set<string>,
-): ChildNodeEntry<unknown>[] {
+): Node<unknown> {
   if (isMetaBranchNode(node)) {
     const selectedBranch = metaLevelNodeIds.has(node.id) ? "meta" : "primary";
-    return node.children.find(c => c.key === selectedBranch)!.node.children;
+    return node.children.find(c => c.key === selectedBranch)!.node;
   }
-  return node.children;
+  return node;
 }
 
 export function buildParentIndex(
@@ -50,7 +50,7 @@ export function buildDivetreeDisplayTree(
 ): DivetreeDisplayNode {
   const isOnPath = node.id === path[0];
   const isFinal = !isOnPath || !!extraDepth;
-  const children = getChildrenForDisplay(node, metaLevelNodeIds);
+  const children = getNodeForDisplay(node, metaLevelNodeIds).children;
 
   const base: TightLeafNode = {
     kind: NodeKind.TightLeaf,
@@ -101,7 +101,7 @@ export function buildDivetreeNavTree(
 ): NavNode {
   return {
     id: node.id,
-    children: getChildrenForDisplay(node, metaLevelNodeIds).map(c =>
+    children: getNodeForDisplay(node, metaLevelNodeIds).children.map(c =>
       buildDivetreeNavTree(c.node, metaLevelNodeIds),
     ),
   };

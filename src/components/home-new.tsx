@@ -7,6 +7,7 @@ import {
   buildDivetreeNavTree,
   buildParentIndex,
   ParentIndexEntry,
+  getNodeForDisplay,
 } from "../logic/tree/display-new";
 import { NavTree, RectStyle } from "divetree-react";
 import TypescriptProvider, { FileNode } from "../logic/providers/typescript";
@@ -256,6 +257,11 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     _lastFocusedIdPath.current = _focusedIdPath;
   });
 
+  const apparentFocusedNode = parentIndex.get(focusedId)?.node;
+  const trueFocusedNode =
+    apparentFocusedNode &&
+    getNodeForDisplay(apparentFocusedNode, metaLevelNodeIds);
+
   const [copiedNode, setCopiedNode] = useState<Node<unknown>>();
 
   return (
@@ -286,6 +292,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
             copyNode: setCopiedNode,
             copiedNode,
             saveFile,
+            metaLevelNodeIds,
             toggleNodeMetaLevel,
           })
         }
@@ -298,9 +305,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
         />
       )}
       {!inProgressAction && (
-        <PossibleActionDisplay
-          actions={parentIndex.get(focusedId)?.node.actions || {}}
-        />
+        <PossibleActionDisplay actions={trueFocusedNode?.actions || {}} />
       )}
     </div>
   );

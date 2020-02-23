@@ -2,7 +2,7 @@ import * as R from "ramda";
 import { FileNode } from "../providers/typescript";
 import { tryPrettyPrint } from "../providers/typescript/pretty-print";
 import { ActionSet, InputKind } from "../tree/action";
-import { ParentIndex } from "../tree/display-new";
+import { ParentIndex, getNodeForDisplay } from "../tree/display-new";
 import { Flag, Node } from "../tree/node";
 import { HandleAction } from "./interfaces";
 interface HandleKeyOptions {
@@ -16,6 +16,7 @@ interface HandleKeyOptions {
   copyNode: (node: Node<unknown>) => void;
   copiedNode: Node<unknown> | undefined;
   saveFile: (tree: FileNode) => void;
+  metaLevelNodeIds: Set<string>;
   toggleNodeMetaLevel: (nodeId: string) => void;
 }
 export function handleKey(
@@ -31,26 +32,35 @@ export function handleKey(
     copyNode,
     copiedNode,
     saveFile,
+    metaLevelNodeIds,
     toggleNodeMetaLevel,
   }: HandleKeyOptions,
 ) {
   if (actionInProgress && key !== "Escape") {
     return;
   }
-  const parentIndexEntry = parentIndex.get(focusedId);
-  if (!parentIndexEntry) {
+
+  const apparentParentIndexEntry = parentIndex.get(focusedId);
+  if (!apparentParentIndexEntry) {
     return;
   }
-  const { node, path } = parentIndexEntry;
-  const keyPath = path.map(e => e.childKey);
+  const { path: apparentPath } = apparentParentIndexEntry;
+
+  const trueParentIndexEntry =
+    parentIndex.get(
+      getNodeForDisplay(apparentParentIndexEntry.node, metaLevelNodeIds).id,
+    ) || apparentParentIndexEntry;
+  const node = trueParentIndexEntry.node;
+  const trueKeyPath = trueParentIndexEntry.path.map(e => e.childKey);
+
   const tryDeleteChild = () => {
-    const parent = R.last(path)?.parent;
+    const parent = R.last(apparentPath)?.parent;
     const action = parent?.actions.deleteChild;
     if (parent && action) {
-      const targetKey = R.last(path)!.childKey;
+      const targetKey = R.last(apparentPath)!.childKey;
       handleAction(
         action,
-        R.dropLast(1, path).map(e => e.childKey),
+        R.dropLast(1, apparentPath).map(e => e.childKey),
         undefined,
         targetKey,
         undefined,
@@ -99,7 +109,7 @@ export function handleKey(
           return node.setFlags({ ...node.flags, [e.key]: e.flag });
         },
       },
-      keyPath,
+      trueKeyPath,
       undefined,
       undefined,
       undefined,
@@ -111,7 +121,7 @@ export function handleKey(
   ) => () => {
     const action = node.actions[actionKey];
     if (action) {
-      handleAction(action, keyPath, focus, undefined, copiedNode);
+      handleAction(action, trueKeyPath, focus, undefined, copiedNode);
     }
   };
   const save = () => {
@@ -127,7 +137,7 @@ export function handleKey(
   const handlers: {
     [key: string]: (() => void) | undefined;
   } = {
-    Enter: () => console.log(parentIndexEntry),
+    Enter: () => console.log(apparentParentIndexEntry),
     "9": save,
     "0": () => console.log(prettyPrint()),
     Escape: cancelAction,
