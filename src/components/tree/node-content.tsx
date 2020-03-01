@@ -1,6 +1,7 @@
 import * as React from "react";
 import * as R from "ramda";
 import { ParentIndexEntry } from "../../logic/tree/display-new";
+import { LabelStyle } from "../../logic/tree/node";
 
 interface Props {
   parentIndexEntry: ParentIndexEntry | undefined;
@@ -12,19 +13,17 @@ export const NodeContent: React.FC<Props> = React.memo(
       return null;
     }
     const { node, path } = parentIndexEntry;
+    const displayInfo = node.getDisplayInfo(path)?.label || [
+      { text: node.getDebugLabel() || "", style: LabelStyle.UNKNOWN },
+    ];
     return (
       <div>
         <div>{R.last(path)?.childKey}</div>
-        <div>
-          <i>
-            {node
-              .getDisplayInfo(path)
-              ?.label.map(p => p.text)
-              .join("") ||
-              node.getDebugLabel() ||
-              ""}
-          </i>
-        </div>
+        {displayInfo.map((p, i) => (
+          <div key={i}>
+            {p.style === LabelStyle.NAME ? <i>{p.text}</i> : p.text}
+          </div>
+        ))}
       </div>
     );
   },

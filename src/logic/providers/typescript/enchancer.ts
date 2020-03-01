@@ -10,6 +10,22 @@ import * as ts from "typescript";
 import { ParentPathElement } from "../../tree/display-new";
 import * as R from "ramda";
 
+export function tryExtractName(node: Node<unknown>): string | undefined {
+  const nameNode = node.getByPath(["name"]);
+  if (!nameNode) {
+    return undefined;
+  }
+  const buildResult = nameNode.build();
+  if (!buildResult.ok) {
+    return undefined;
+  }
+  const text = buildResult.value?.text;
+  if (typeof text !== "string") {
+    return undefined;
+  }
+  return text;
+}
+
 export type Enchancer<T extends Node<ts.Node>> = (
   node: T,
   parentPath: ParentPathElement[],
@@ -36,6 +52,10 @@ export const enchancers: {
     const label: LabelPart[] = [
       { text: "function", style: LabelStyle.SECTION_NAME },
     ];
+    const name = tryExtractName(node);
+    if (name !== undefined) {
+      label.push({ text: name, style: LabelStyle.NAME });
+    }
     return {
       displayInfo: {
         priority: DisplayInfoPriority.MEDIUM,

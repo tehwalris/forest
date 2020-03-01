@@ -172,11 +172,17 @@ import {
   RequiredStructListChild,
   OptionalStructListChild,
 } from "../template-nodes";
-import { enchancers } from "../enchancer";
+import { enchancers, tryExtractName } from "../enchancer";
 import {
   FlagKind
 } from "../flags";
-import { DisplayInfoPriority, LabelStyle, SemanticColor, Node } from '../../../tree/node';
+import {
+  DisplayInfoPriority,
+  LabelPart,
+  LabelStyle,
+  SemanticColor,
+  Node, 
+} from '../../../tree/node';
 
 // https://github.com/Microsoft/Typescript/issues/20875
 function isTypeOfWorkaround(node: ts.Node): node is ts.TypeOfExpression {
@@ -248,13 +254,27 @@ for (const k of Object.keys(unions.DeclarationStatement())) {
   if (enchancers[k]) {
     continue;
   }
-  enchancers[k] = (node: Node<unknown>) => ({
-    displayInfo: {
-      priority: DisplayInfoPriority.MEDIUM,
-      label: [{ text: node.getDebugLabel() || "", style: LabelStyle.UNKNOWN }],
-      color: SemanticColor.DECLARATION,
-    },
-  });
+  enchancers[k] = (node: Node<unknown>) => {
+    const label: LabelPart[] = [
+      { text: k, style: LabelStyle.UNKNOWN },
+    ]
+    const debugLabel = node.getDebugLabel()
+    if (debugLabel) {
+      label.push({text: debugLabel, style: LabelStyle.UNKNOWN})
+    }
+    const name = tryExtractName(node)
+    if (name !== undefined) {
+      label.push({ text: name, style: LabelStyle.NAME });
+    }
+
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label,
+        color: SemanticColor.DECLARATION,
+      },
+    };
+  }
 }
 `.trim(),
     "",
