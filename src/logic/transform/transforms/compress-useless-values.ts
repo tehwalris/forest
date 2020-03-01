@@ -10,6 +10,7 @@ import { ActionSet } from "../../tree/action";
 import { Link } from "../../tree/base";
 import * as R from "ramda";
 import { ParentPathElement } from "../../tree/display-new";
+import { isMetaBranchNode } from "./split-meta";
 
 export const compressChildrenTransform: Transform = node => {
   if (node.children.length !== 1) {
@@ -22,7 +23,8 @@ export const compressChildrenTransform: Transform = node => {
     R.intersection(Object.keys(node.flags), Object.keys(child.node.flags))
       .length ||
     Object.keys(child.node.links).length ||
-    node.metaSplit
+    node.metaSplit ||
+    isMetaBranchNode(child.node)
   ) {
     return node;
   }

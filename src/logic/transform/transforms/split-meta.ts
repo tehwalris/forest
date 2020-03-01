@@ -19,7 +19,7 @@ export function isMetaBranchNode(
 }
 
 export const splitMetaTransform: Transform = node => {
-  if (!node.metaSplit) {
+  if (node instanceof MetaBranchNode || !node.metaSplit) {
     return node;
   }
   return MetaBranchNode.fromNode(node, node.metaSplit);
