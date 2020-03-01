@@ -14,6 +14,7 @@
     "@types/react-dom": "^16.9.0",
     "@types/react-select": "^3.0.8",
     "@types/uuid": "^3.4.6",
+    "change-case": "^4.1.1",
     "divetree-core": "link:../divetree/packages/divetree-core",
     "divetree-react": "link:../divetree/packages/divetree-react",
     "fs-remote": "^0.1.9",

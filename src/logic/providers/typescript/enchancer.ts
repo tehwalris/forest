@@ -9,6 +9,7 @@ import {
 import * as ts from "typescript";
 import { ParentPathElement } from "../../tree/display-new";
 import * as R from "ramda";
+import { noCase } from "change-case";
 
 export function tryExtractName(node: Node<unknown>): string | undefined {
   const nameNode = node.getByPath(["name"]);
@@ -32,6 +33,7 @@ export type Enchancer<T extends Node<ts.Node>> = (
 ) => {
   displayInfo: DisplayInfo;
 };
+
 export const enchancers: {
   [key: string]: Enchancer<Node<any>> | undefined;
 } = {
@@ -67,3 +69,30 @@ export const enchancers: {
     };
   },
 };
+
+export function makeUnionMemberEnchancer(
+  unionMemberKey: string,
+): Enchancer<Node<ts.Node>> {
+  const typeString = noCase(unionMemberKey.replace(/Declaration$/, ""));
+  return (node: Node<unknown>) => {
+    const label: LabelPart[] = [
+      { text: typeString, style: LabelStyle.TYPE_SUMMARY },
+    ];
+    const debugLabel = node.getDebugLabel();
+    if (debugLabel) {
+      label.push({ text: debugLabel, style: LabelStyle.UNKNOWN });
+    }
+    const name = tryExtractName(node);
+    if (name !== undefined) {
+      label.push({ text: name, style: LabelStyle.NAME });
+    }
+
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label,
+        color: SemanticColor.DECLARATION,
+      },
+    };
+  };
+}

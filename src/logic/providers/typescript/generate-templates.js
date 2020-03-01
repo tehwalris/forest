@@ -172,7 +172,7 @@ import {
   RequiredStructListChild,
   OptionalStructListChild,
 } from "../template-nodes";
-import { enchancers, tryExtractName } from "../enchancer";
+import { enchancers, makeUnionMemberEnchancer } from "../enchancer";
 import {
   FlagKind
 } from "../flags";
@@ -254,27 +254,7 @@ for (const k of Object.keys(unions.DeclarationStatement())) {
   if (enchancers[k]) {
     continue;
   }
-  enchancers[k] = (node: Node<unknown>) => {
-    const label: LabelPart[] = [
-      { text: k, style: LabelStyle.UNKNOWN },
-    ]
-    const debugLabel = node.getDebugLabel()
-    if (debugLabel) {
-      label.push({text: debugLabel, style: LabelStyle.UNKNOWN})
-    }
-    const name = tryExtractName(node)
-    if (name !== undefined) {
-      label.push({ text: name, style: LabelStyle.NAME });
-    }
-
-    return {
-      displayInfo: {
-        priority: DisplayInfoPriority.MEDIUM,
-        label,
-        color: SemanticColor.DECLARATION,
-      },
-    };
-  }
+  enchancers[k] = makeUnionMemberEnchancer(k);
 }
 `.trim(),
     "",
