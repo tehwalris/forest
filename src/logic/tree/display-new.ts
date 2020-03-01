@@ -55,7 +55,7 @@ export function buildDivetreeDisplayTree(
   const base: TightLeafNode = {
     kind: NodeKind.TightLeaf,
     id: node.id,
-    size: [100, 50],
+    size: [100, 56],
   };
   if (isFinal) {
     if (!children.length) {
