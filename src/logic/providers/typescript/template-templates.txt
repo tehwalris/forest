@@ -353,6 +353,7 @@ FunctionDeclaration
   OL typeParameters TypeParameterDeclaration
   O type TypeNode
   O body FunctionBody
+  primary ...body
   flags export default ambient async
   build ({asteriskToken, name, parameters, typeParameters, type, body}, modifiers) => ts.createFunctionDeclaration(undefined, modifiers, asteriskToken, name, typeParameters, parameters, type, body)
 ExpressionStatement
@@ -415,6 +416,7 @@ ClassDeclaration
   OL typeParameters TypeParameterDeclaration
   OL heritageClauses HeritageClause
   RL members ClassElement
+  primary ...members
   flags export default ambient abstract
   build ({name, typeParameters, heritageClauses, members}, modifiers) => ts.createClassDeclaration(undefined, modifiers, name, typeParameters, heritageClauses || [], members)
 HeritageClause
@@ -439,6 +441,7 @@ MethodDeclaration
   RL parameters ParameterDeclaration
   O type TypeNode
   O body FunctionBody
+  primary ...body
   flags accesibility static async abstract
   build ({asteriskToken, name, questionToken, typeParameters, parameters, type, body}, modifiers) => ts.createMethod(undefined, modifiers, asteriskToken, name, questionToken, typeParameters, parameters, type, body)
 ConstructorDeclaration

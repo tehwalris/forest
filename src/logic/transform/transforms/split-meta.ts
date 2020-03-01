@@ -27,7 +27,7 @@ export const splitMetaTransform: Transform = node => {
 
 export interface MetaSplit {
   primaryChildren: string[];
-  spreadPrimary: boolean;
+  spreadPrimary?: boolean;
 }
 
 type NodeModification<B> = (node: Node<B>) => Node<B>;
