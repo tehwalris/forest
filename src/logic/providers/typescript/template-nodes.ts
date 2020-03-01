@@ -21,6 +21,7 @@ import {
 import { shortcutsByType } from "./generated/templates";
 import { fromTsNode } from "./convert";
 import { ParentPathElement } from "../../tree/display-new";
+import { MetaSplit } from "../../transform/transforms/split-meta";
 export type Union<T extends ts.Node> = () => {
   [key: string]: {
     match: (node: ts.Node) => node is T;
@@ -85,6 +86,7 @@ export interface StructTemplate<
   ) => B;
   flags: FlagKind[];
   children: string[];
+  metaSplit?: MetaSplit;
   enchancer?: Enchancer<Node<B>>;
 }
 function someDefaultFromUnion<T extends ts.Node>(
@@ -252,6 +254,7 @@ export class StructTemplateNode<
     this.children = children;
     this.flags = flags;
     this.original = original;
+    this.metaSplit = template.metaSplit;
   }
   clone(): StructTemplateNode<C, B> {
     const node = new StructTemplateNode(

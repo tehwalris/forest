@@ -19,21 +19,13 @@ export function isMetaBranchNode(
 }
 
 export const splitMetaTransform: Transform = node => {
-  // TODO Properly detect which nodes to split (and how to do it)
-  if (
-    isMetaBranchNode(node) ||
-    node.getDebugLabel() !== "InterfaceDeclaration"
-  ) {
+  if (!node.metaSplit) {
     return node;
   }
-
-  return MetaBranchNode.fromNode(node, {
-    primaryChildren: ["members"],
-    spreadPrimary: true,
-  });
+  return MetaBranchNode.fromNode(node, node.metaSplit);
 };
 
-interface MetaSplit {
+export interface MetaSplit {
   primaryChildren: string[];
   spreadPrimary: boolean;
 }

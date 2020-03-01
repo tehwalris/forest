@@ -2,6 +2,7 @@ import { Path, Link } from "./base";
 import { ActionSet } from "./action";
 import genUuid from "uuid/v4";
 import { ParentPathElement } from "./display-new";
+import { MetaSplit } from "../transform/transforms/split-meta";
 
 export interface Node<B> {
   unapplyTransform?(): BuildResult<Node<B>>;
@@ -10,6 +11,7 @@ export interface Node<B> {
 export abstract class Node<B> {
   id: string = genUuid();
   abstract children: ChildNodeEntry<any>[];
+  metaSplit: MetaSplit | undefined;
   abstract flags: FlagSet;
   abstract actions: ActionSet<Node<B>>;
   abstract links: Link[];

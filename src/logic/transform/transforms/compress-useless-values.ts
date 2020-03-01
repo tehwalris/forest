@@ -21,7 +21,8 @@ export const compressChildrenTransform: Transform = node => {
       .length ||
     R.intersection(Object.keys(node.flags), Object.keys(child.node.flags))
       .length ||
-    Object.keys(child.node.links).length
+    Object.keys(child.node.links).length ||
+    node.metaSplit
   ) {
     return node;
   }
@@ -52,6 +53,7 @@ class CompressedNode<B> extends Node<B> {
     this.children = childNode.children;
     this.flags = { ...parentNode.flags, ...childNode.flags };
     this.links = parentNode.links;
+    this.metaSplit = childNode.metaSplit;
 
     this.actions = {};
     for (const [k, a] of Object.entries(parentNode.actions)) {
