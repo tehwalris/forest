@@ -47,6 +47,7 @@ class MetaBranchBranchNode<B> extends Node<ModifiedNode<B>> {
     private original: Node<B>,
     private modifications: NodeModification<B>[],
     private selectedChildren: string[],
+    private spreadChildren: boolean,
     private idSuffix: string,
   ) {
     super();
@@ -73,6 +74,10 @@ class MetaBranchBranchNode<B> extends Node<ModifiedNode<B>> {
       };
     }, modified.actions);
     this.links = modified.links;
+
+    if (this.spreadChildren) {
+      return compressChildrenTransform(this) as any;
+    }
   }
 
   private cloneAndModify(modifications: NodeModification<B>[]) {
@@ -80,6 +85,7 @@ class MetaBranchBranchNode<B> extends Node<ModifiedNode<B>> {
       this.original,
       [...this.modifications, ...modifications],
       this.selectedChildren,
+      this.spreadChildren,
       this.idSuffix,
     );
   }
@@ -134,14 +140,12 @@ export class MetaBranchNode<B> extends Node<B> {
               return branchKey === "primary" ? isPrimary : !isPrimary;
             })
             .map(c => c.key),
+          branchKey === "primary" && !!split.spreadPrimary,
           `-${branchKey}`,
         );
         return {
           key: branchKey,
-          node:
-            branchKey === "primary" && split.spreadPrimary
-              ? compressChildrenTransform(branchNode)
-              : branchNode,
+          node: branchNode,
         };
       }),
     );
