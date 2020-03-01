@@ -564,6 +564,7 @@ PropertySignature
   O questionToken QuestionToken
   O type TypeNode
   O initializer Expression
+  primary type initializer
   flags readonly
   build ({name, questionToken, type, initializer}, modifiers) => ts.createPropertySignature(modifiers, name, questionToken, type, initializer)
 MethodSignature

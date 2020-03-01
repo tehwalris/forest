@@ -68,6 +68,19 @@ export const enchancers: {
       },
     };
   },
+  PropertySignature: (node: Node<ts.PropertySignature>) => {
+    const name = tryExtractName(node);
+    const label =
+      name === undefined
+        ? [{ text: "property", style: LabelStyle.TYPE_SUMMARY }]
+        : [{ text: name, style: LabelStyle.NAME }];
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label,
+      },
+    };
+  },
 };
 
 export function makeUnionMemberEnchancer(
