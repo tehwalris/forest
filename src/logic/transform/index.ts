@@ -55,17 +55,23 @@ function applyTransformsToTreeOnce(
 
 export function applyTransformsToTree(
   node: Node<unknown>,
-  transforms: Transform[],
+  transformGroups: Transform[][],
   cache: MultiTransformCache,
 ): Node<unknown> {
-  for (let i = 0; i < 5; i++) {
-    const newNode = applyTransformsToTreeOnce(node, transforms, cache);
-    if (newNode === node) {
-      return node;
+  for (const transforms of transformGroups) {
+    for (let i = 0; ; i++) {
+      if (i === 5) {
+        console.warn("applyTransformsToTree reached iteration limit");
+        break;
+      }
+
+      const newNode = applyTransformsToTreeOnce(node, transforms, cache);
+      if (newNode === node) {
+        break;
+      }
+      node = newNode;
     }
-    node = newNode;
   }
-  console.warn("applyTransformsToTree reached iteration limit");
   return node;
 }
 
@@ -75,7 +81,7 @@ export function unapplyTransforms(
   let node = transformedNode;
   // TODO This only unwraps the node once (more may be necessary), but
   // making it unrwap multiple times breaks transforms for some reason.
-  const buildResult = transformedNode.unapplyTransform?.();
+  const buildResult = node.unapplyTransform?.();
   if (buildResult) {
     if (!buildResult.ok) {
       return buildResult;
