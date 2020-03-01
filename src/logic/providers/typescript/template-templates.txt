@@ -602,6 +602,7 @@ InterfaceDeclaration
   OL typeParameters TypeParameterDeclaration
   OL heritageClauses HeritageClause
   RL members TypeElement
+  primary ...members
   flags export default ambient
   build ({name, typeParameters, heritageClauses, members}, modifiers) => ts.createInterfaceDeclaration(undefined, modifiers, name, typeParameters, heritageClauses, members)
 TypeAliasDeclaration

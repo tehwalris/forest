@@ -107,6 +107,30 @@ const {
             R.chain(R.tail),
             x => ({ flags: x }),
           ),
+          R.pipe(
+            R.tail,
+            R.filter(R.pipe(R.head, R.equals("primary"))),
+            R.chain(R.tail),
+            primary => {
+              if (!primary.length) {
+                return undefined;
+              }
+              const spread = primary.some(v => v.startsWith("..."));
+              if (spread && primary.length !== 1) {
+                throw new Error(
+                  "meta split: spread can only be used when there is 1 primary field",
+                );
+              }
+              if (spread) {
+                return {
+                  primaryChildren: [primary[0].slice(3)],
+                  spreadPrimary: true,
+                };
+              }
+              return { primaryChildren: primary };
+            },
+            x => ({ metaSplit: x }),
+          ),
         ]),
         R.mergeAll,
       ),
@@ -289,6 +313,7 @@ ${c.optional ? "Optional" : "Required"}Struct${
 > = {
   match: plainTypes.${e.name}.match,
   children: [${e.children.map(c => `"${c.key}"`).join(",")}],
+  metaSplit: ${e.metaSplit ? JSON.stringify(e.metaSplit) : undefined},
   flags: [${e.flags.map(v => `"${v}"`).join(", ")}] as FlagKind[],
   load: e => ({
     ${e.children
