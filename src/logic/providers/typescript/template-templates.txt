@@ -472,6 +472,7 @@ ArrowFunction
 PropertyAssignment
   R name PropertyName
   R initializer Expression
+  primary initializer
   build ({name, initializer}) => ts.createPropertyAssignment(name, initializer)
 ReturnStatement
   O expression Expression
