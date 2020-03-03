@@ -94,6 +94,19 @@ export const enchancers: {
       },
     };
   },
+  VariableDeclaration: (node: Node<ts.VariableDeclaration>) => {
+    const name = tryExtractName(node);
+    const label =
+      name === undefined
+        ? [{ text: "VariableDeclaration", style: LabelStyle.UNKNOWN }]
+        : [{ text: name, style: LabelStyle.NAME }];
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label,
+      },
+    };
+  },
 };
 
 export function makeUnionMemberEnchancer(
