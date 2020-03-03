@@ -32,6 +32,7 @@ import {
   splitMetaTransform,
   isMetaBranchNode,
 } from "../logic/transform/transforms/split-meta";
+import { simpleVariableDeclarationTransfrom } from "../logic/transform/transforms/simple-variable-declaration";
 
 interface Props {
   fs: typeof _fsType;
@@ -44,7 +45,11 @@ interface CombinedTrees {
 
 const INITIAL_FILE: string = "src/logic/editing/key-handlers.ts";
 const TRANSFORMS: Transform[][] = [
-  [flattenIfTransform, compressUselessValuesTransform],
+  [
+    flattenIfTransform,
+    simpleVariableDeclarationTransfrom,
+    compressUselessValuesTransform,
+  ],
   [splitMetaTransform],
 ];
 
@@ -119,9 +124,12 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     typescriptProvider.current.trySaveFile(_file.path, tree);
   };
 
-  const tree =
-    _file.trees.transformed ||
-    applyTransformsToTree(_file.trees.raw, TRANSFORMS, transformCache);
+  let tree = _file.trees.transformed || _file.trees.raw;
+  // TODO Make this switchable from the editor
+  if (!(window as any).noTransform) {
+    tree = applyTransformsToTree(_file.trees.raw, TRANSFORMS, transformCache);
+  }
+
   const setTree = (updater: (oldTree: Node<unknown>) => Node<unknown>) => {
     _setFile(_file => {
       const newTransformed = updater(
