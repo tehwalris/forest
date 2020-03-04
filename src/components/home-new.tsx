@@ -1,38 +1,38 @@
-import * as React from "react";
-import { EmptyLeafNode } from "../logic/tree/base-nodes";
-import { Node, SemanticColor } from "../logic/tree/node";
-import { useMemo, useState, useEffect, useRef } from "react";
-import {
-  buildDivetreeDisplayTree,
-  buildDivetreeNavTree,
-  buildParentIndex,
-  ParentIndexEntry,
-  getNodeForDisplay,
-} from "../logic/tree/display-new";
 import { NavTree, RectStyle } from "divetree-react";
-import TypescriptProvider, { FileNode } from "../logic/providers/typescript";
-import { NodeContent } from "./tree/node-content";
-import { Path } from "../logic/tree/base";
-import { InputKind, Action } from "../logic/tree/action";
+import * as _fsType from "fs";
+import * as R from "ramda";
+import * as React from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HandleAction } from "../logic/editing/interfaces";
 import { handleKey } from "../logic/editing/key-handlers";
-import { ActionFiller } from "./tree/action-filler";
+import TypescriptProvider, { FileNode } from "../logic/providers/typescript";
 import {
   applyTransformsToTree,
-  Transform,
   MultiTransformCache,
+  Transform,
   unapplyTransforms,
 } from "../logic/transform";
 import { compressUselessValuesTransform } from "../logic/transform/transforms/compress-useless-values";
 import { flattenIfTransform } from "../logic/transform/transforms/flatten-if";
-import * as R from "ramda";
-import { PossibleActionDisplay } from "./possible-action-display";
-import * as _fsType from "fs";
-import {
-  splitMetaTransform,
-  isMetaBranchNode,
-} from "../logic/transform/transforms/split-meta";
 import { simpleVariableDeclarationTransfrom } from "../logic/transform/transforms/simple-variable-declaration";
+import {
+  isMetaBranchNode,
+  splitMetaTransform,
+} from "../logic/transform/transforms/split-meta";
+import { Action, InputKind } from "../logic/tree/action";
+import { Path } from "../logic/tree/base";
+import { EmptyLeafNode } from "../logic/tree/base-nodes";
+import {
+  buildDivetreeDisplayTree,
+  buildDivetreeNavTree,
+  buildParentIndex,
+  getNodeForDisplay,
+  ParentIndexEntry,
+} from "../logic/tree/display-new";
+import { Node, SemanticColor } from "../logic/tree/node";
+import { PossibleActionDisplay } from "./possible-action-display";
+import { ActionFiller } from "./tree/action-filler";
+import { NodeContent } from "./tree/node-content";
 
 interface Props {
   fs: typeof _fsType;
@@ -45,11 +45,8 @@ interface CombinedTrees {
 
 const INITIAL_FILE: string = "src/logic/editing/key-handlers.ts";
 const TRANSFORMS: Transform[][] = [
-  [
-    flattenIfTransform,
-    simpleVariableDeclarationTransfrom,
-    compressUselessValuesTransform,
-  ],
+  [simpleVariableDeclarationTransfrom],
+  [flattenIfTransform, compressUselessValuesTransform],
   [splitMetaTransform],
 ];
 

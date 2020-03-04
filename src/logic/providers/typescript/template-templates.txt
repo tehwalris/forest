@@ -336,7 +336,7 @@ VariableDeclaration
   R name BindingName
   O type TypeNode
   O initializer Expression
-  primary ...initializer
+  primary initializer
   build ({name, type, initializer}) => ts.createVariableDeclaration(name, type, initializer)
 EmptyStatement
   build ts.createEmptyStatement

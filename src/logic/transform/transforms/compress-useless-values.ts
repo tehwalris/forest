@@ -12,6 +12,11 @@ import * as R from "ramda";
 import { ParentPathElement } from "../../tree/display-new";
 import { isMetaBranchNode } from "./split-meta";
 
+type DisplaySelector<B> = (
+  parentNode: Node<B>,
+  childNode: Node<unknown>,
+) => Node<unknown>[];
+
 export const compressChildrenTransform: Transform = node => {
   if (node.children.length !== 1) {
     return node;
@@ -28,7 +33,11 @@ export const compressChildrenTransform: Transform = node => {
   ) {
     return node;
   }
-  const compressed = new CompressedNode(node, child.node);
+  const compressed = new CompressedNode(
+    node,
+    child.node,
+    compressChildrenTransform,
+  );
   compressed.id = node.id;
   return compressed;
 };
@@ -44,13 +53,18 @@ export const compressUselessValuesTransform: Transform = node => {
   return compressChildrenTransform(node);
 };
 
-class CompressedNode<B> extends Node<B> {
+export class CompressedNode<B> extends Node<B> {
   children: ChildNodeEntry<any>[];
   flags: FlagSet;
   actions: ActionSet<Node<B>>;
   links: Link[];
 
-  constructor(private parentNode: Node<B>, private childNode: Node<unknown>) {
+  constructor(
+    private parentNode: Node<B>,
+    private childNode: Node<unknown>,
+    private reapplyTransform: Transform,
+    private displaySelector: DisplaySelector<B> = (p, c) => [p, c],
+  ) {
     super();
     this.children = childNode.children;
     this.flags = { ...parentNode.flags, ...childNode.flags };
@@ -62,9 +76,7 @@ class CompressedNode<B> extends Node<B> {
       this.actions[k] = a && {
         ...a,
         apply: (...args: any[]) =>
-          compressUselessValuesTransform(
-            (a.apply as any).call(a, ...args) as Node<B>,
-          ),
+          this.reapplyTransform((a.apply as any).call(a, ...args) as Node<B>),
       };
     }
     for (const [k, a] of Object.entries(childNode.actions)) {
@@ -84,13 +96,18 @@ class CompressedNode<B> extends Node<B> {
       key: this.parentNode.children[0].key,
       node: childNode,
     });
-    const resultNode = compressUselessValuesTransform(parentNode);
+    const resultNode = this.reapplyTransform(parentNode);
     resultNode.id = this.id;
     return resultNode;
   }
 
   clone(): CompressedNode<B> {
-    const node = new CompressedNode(this.parentNode, this.childNode);
+    const node = new CompressedNode(
+      this.parentNode,
+      this.childNode,
+      this.reapplyTransform,
+      this.displaySelector,
+    );
     node.id = this.id;
     return node;
   }
@@ -131,7 +148,7 @@ class CompressedNode<B> extends Node<B> {
     if (parentNode === this.parentNode) {
       return this;
     }
-    const resultNode = compressUselessValuesTransform(parentNode);
+    const resultNode = this.reapplyTransform(parentNode);
     resultNode.id = this.id;
     return resultNode;
   }
@@ -149,13 +166,14 @@ class CompressedNode<B> extends Node<B> {
   }
 
   getDebugLabel(): string | undefined {
-    return [this.childNode, this.parentNode]
+    return [...this.displaySelector(this.parentNode, this.childNode)]
+      .reverse()
       .map(v => v.getDebugLabel())
       .find(v => v !== undefined);
   }
 
   getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
-    return [this.parentNode, this.childNode].reduce(
+    return this.displaySelector(this.parentNode, this.childNode).reduce(
       (a: DisplayInfo | undefined, node) => {
         const c = node.getDisplayInfo(parentPath);
         return !a || (c && c.priority >= a.priority) ? c : a;
