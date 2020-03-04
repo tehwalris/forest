@@ -81,12 +81,10 @@ export function unapplyTransforms(
   let node = transformedNode;
   while (node.unapplyTransform) {
     const buildResult = node.unapplyTransform();
-    if (buildResult) {
-      if (!buildResult.ok) {
-        return buildResult;
-      }
-      node = buildResult.value;
+    if (!buildResult.ok) {
+      return buildResult;
     }
+    node = buildResult.value;
   }
 
   const childBuildResults = node.children.map(c => ({
