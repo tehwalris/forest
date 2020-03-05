@@ -10,7 +10,6 @@ import * as ts from "typescript";
 import { ParentPathElement } from "../../tree/display-new";
 import * as R from "ramda";
 import { noCase } from "change-case";
-
 export function tryExtractName(node: Node<unknown>): string | undefined {
   const nameNode = node.getByPath(["name"]);
   if (!nameNode) {
@@ -26,20 +25,18 @@ export function tryExtractName(node: Node<unknown>): string | undefined {
   }
   return text;
 }
-
 export type Enchancer<T extends Node<ts.Node>> = (
   node: T,
   parentPath: ParentPathElement[],
 ) => {
   displayInfo: DisplayInfo;
 };
-
 export const enchancers: {
   [key: string]: Enchancer<Node<any>> | undefined;
 } = {
   Identifier: (node: Node<ts.Identifier>, parentPath) => {
     const lastParentEntry = R.last(parentPath);
-    const isDeclarationName = lastParentEntry?.childKey === "name"; // HACK Clearly we need a more robust detection strategy
+    const isDeclarationName = lastParentEntry?.childKey === "name";
     return {
       displayInfo: {
         priority: DisplayInfoPriority.MEDIUM,
@@ -74,12 +71,7 @@ export const enchancers: {
       name === undefined
         ? [{ text: "property", style: LabelStyle.TYPE_SUMMARY }]
         : [{ text: name, style: LabelStyle.NAME }];
-    return {
-      displayInfo: {
-        priority: DisplayInfoPriority.MEDIUM,
-        label,
-      },
-    };
+    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
   PropertyAssignment: (node: Node<ts.PropertyAssignment>) => {
     const name = tryExtractName(node);
@@ -87,12 +79,7 @@ export const enchancers: {
       name === undefined
         ? [{ text: "property", style: LabelStyle.TYPE_SUMMARY }]
         : [{ text: name, style: LabelStyle.NAME }];
-    return {
-      displayInfo: {
-        priority: DisplayInfoPriority.MEDIUM,
-        label,
-      },
-    };
+    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
   VariableDeclaration: (node: Node<ts.VariableDeclaration>) => {
     const name = tryExtractName(node);
@@ -100,15 +87,9 @@ export const enchancers: {
       name === undefined
         ? [{ text: "VariableDeclaration", style: LabelStyle.UNKNOWN }]
         : [{ text: name, style: LabelStyle.NAME }];
-    return {
-      displayInfo: {
-        priority: DisplayInfoPriority.MEDIUM,
-        label,
-      },
-    };
+    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
 };
-
 export function makeUnionMemberEnchancer(
   unionMemberKey: string,
 ): Enchancer<Node<ts.Node>> {
@@ -125,7 +106,6 @@ export function makeUnionMemberEnchancer(
     if (name !== undefined) {
       label.push({ text: name, style: LabelStyle.NAME });
     }
-
     return {
       displayInfo: {
         priority: DisplayInfoPriority.MEDIUM,
