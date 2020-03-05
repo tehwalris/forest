@@ -89,6 +89,14 @@ export const enchancers: {
         : [{ text: name, style: LabelStyle.NAME }];
     return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
+  ParameterDeclaration: (node: Node<ts.ParameterDeclaration>) => {
+    const name = tryExtractName(node);
+    const label =
+      name === undefined
+        ? [{ text: "parameter", style: LabelStyle.TYPE_SUMMARY }]
+        : [{ text: name, style: LabelStyle.NAME }];
+    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
+  },
 };
 export function makeUnionMemberEnchancer(
   unionMemberKey: string,
