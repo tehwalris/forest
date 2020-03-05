@@ -97,6 +97,26 @@ export const enchancers: {
         : [{ text: name, style: LabelStyle.NAME }];
     return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
+  MethodDeclaration: (node: Node<ts.MethodDeclaration>) => {
+    const label: LabelPart[] = [
+      { text: "method", style: LabelStyle.TYPE_SUMMARY },
+    ];
+    const name = tryExtractName(node);
+    if (name !== undefined) {
+      label.push({ text: name, style: LabelStyle.NAME });
+    }
+    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
+  },
+  PropertyDeclaration: (node: Node<ts.PropertyDeclaration>) => {
+    const label: LabelPart[] = [
+      { text: "property", style: LabelStyle.TYPE_SUMMARY },
+    ];
+    const name = tryExtractName(node);
+    if (name !== undefined) {
+      label.push({ text: name, style: LabelStyle.NAME });
+    }
+    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
+  },
 };
 export function makeUnionMemberEnchancer(
   unionMemberKey: string,
