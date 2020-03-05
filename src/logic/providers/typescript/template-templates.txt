@@ -796,3 +796,4 @@ e ExpressionStatement
 bl Block
 pr PropertyAccessExpression
 t BooleanLiteral
+v VariableStatement
