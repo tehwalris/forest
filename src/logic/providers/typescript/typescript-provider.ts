@@ -48,7 +48,7 @@ export class TypescriptProvider {
       });
     });
   }
-  async loadTree(filePath: string): Promise<Node<WorkingSet>> {
+  async loadTree(filePath: string): Promise<Node<Map<string, ts.SourceFile>>> {
     const pathParts = filePath.split(path.sep);
     const fileContent = await this.readFile(filePath);
     this.compilerHost.addFile(filePath, fileContent, ts.ScriptTarget.ES5);
@@ -58,16 +58,8 @@ export class TypescriptProvider {
       this.compilerHost,
       this.program,
     );
-    return RootNode.fromProgram(
-      {
-        files: new Map(
-          [filePath].map(p => [p, fileContent]) as Array<[string, string]>,
-        ),
-        rootFiles: [filePath],
-        directoryTree: R.assocPath(pathParts, filePath, {}),
-      },
-      this.program,
-    );
+    const directoryTree = R.assocPath(pathParts, filePath, {});
+    return nodeFromDirectoryTree(directoryTree, this.program);
   }
   async trySaveFile(filePath: string, file: FileNode) {
     const text = tryPrettyPrint(file);
@@ -213,5 +205,66 @@ export class FileNode extends ListNode<
       unions.Statement().EmptyStatement.default as ts.Statement,
       unions.Statement,
     );
+  }
+}
+class DirectoryNode extends StructNode<
+  Map<string, ts.SourceFile>,
+  Map<string, ts.SourceFile>
+> {
+  links: never[] = [];
+  flags = {};
+  constructor(public children: ChildNodeEntry<Map<string, ts.SourceFile>>[]) {
+    super();
+  }
+  clone(): DirectoryNode {
+    const node = new DirectoryNode(this.children);
+    node.id = this.id;
+    return node;
+  }
+  setFlags(flags: never): never {
+    throw new Error("Flags not supported");
+  }
+  build(): BuildResult<Map<string, ts.SourceFile>> {
+    const builtChildren = this.buildChildren();
+    if (!builtChildren.ok) {
+      return builtChildren;
+    }
+    const files = new Map<string, ts.SourceFile>();
+    Object.values(builtChildren.value).forEach(childFiles => {
+      childFiles.forEach((sourceFile, filePath) =>
+        files.set(filePath, sourceFile),
+      );
+    });
+    return { ok: true, value: files };
+  }
+  protected createChild(): never {
+    throw new Error("Not implemented");
+  }
+  protected setChildren(
+    children: ChildNodeEntry<Map<string, ts.SourceFile>>[],
+  ): DirectoryNode {
+    const node = new DirectoryNode(children);
+    node.id = this.id;
+    return node;
+  }
+}
+function nodeFromDirectoryTree(
+  directoryTree: DirectoryTree,
+  program: ts.Program,
+): Node<Map<string, ts.SourceFile>> {
+  if (typeof directoryTree === "string") {
+    const file = program.getSourceFile(directoryTree);
+    if (!file) {
+      throw new Error(`file not found: ${directoryTree}`);
+    }
+    return FileNode.fromFile(file, directoryTree);
+  } else {
+    const childEntries = Object.entries(directoryTree).map(
+      ([key, subdirectoryTree]) => ({
+        key,
+        node: nodeFromDirectoryTree(subdirectoryTree, program),
+      }),
+    );
+    return new DirectoryNode(childEntries);
   }
 }
