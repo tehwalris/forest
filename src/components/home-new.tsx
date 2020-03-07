@@ -43,7 +43,8 @@ interface CombinedTrees {
   transformed?: Node<unknown>;
 }
 
-const INITIAL_FILE: string = "src/logic/editing/key-handlers.ts";
+const INITIAL_FILE: string =
+  "src/logic/providers/typescript/typescript-provider.ts";
 const TRANSFORMS: Transform[][] = [
   [simpleVariableDeclarationTransfrom],
   [flattenIfTransform, compressUselessValuesTransform],

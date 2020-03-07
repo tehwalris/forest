@@ -1,7 +1,7 @@
 import { ActionSet, InputKind } from "../action";
 import { Node, ChildNodeEntry, BuildResult } from "../node";
 import { Link } from "../base";
-export abstract class StructNode<T extends Node<any>, B> extends Node<B> {
+export abstract class StructNode<T, B> extends Node<B> {
   actions: ActionSet<StructNode<T, B>>;
   abstract children: ChildNodeEntry<any>[];
   abstract links: Link[];
@@ -13,16 +13,16 @@ export abstract class StructNode<T extends Node<any>, B> extends Node<B> {
         apply: (input: string) =>
           this.setChild({
             key: input,
-            node: this.createChild()
-          })
+            node: this.createChild(),
+          }),
       },
       deleteByKey: {
         inputKind: InputKind.String,
         apply: (input: string) => {
           const newChildren = this.children.filter(e => e.key !== input);
           return this.setChildren(newChildren);
-        }
-      }
+        },
+      },
     };
   }
   setChild(newChild: ChildNodeEntry<any>): StructNode<T, B> {
@@ -48,8 +48,8 @@ export abstract class StructNode<T extends Node<any>, B> extends Node<B> {
           ok: false,
           error: {
             message: buildResult.error.message,
-            path: [child.key, ...buildResult.error.path]
-          }
+            path: [child.key, ...buildResult.error.path],
+          },
         };
       }
       builtValues[child.key] = buildResult.value;
@@ -57,8 +57,8 @@ export abstract class StructNode<T extends Node<any>, B> extends Node<B> {
     return { ok: true, value: builtValues };
   }
   protected abstract setChildren(
-    value: ChildNodeEntry<any>[]
+    value: ChildNodeEntry<any>[],
   ): StructNode<T, B>;
-  protected abstract createChild(): T;
+  protected abstract createChild(): Node<T>;
   abstract build(): BuildResult<B>;
 }

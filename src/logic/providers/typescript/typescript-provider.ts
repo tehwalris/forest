@@ -7,11 +7,20 @@ import { fromTsNode } from "./convert";
 import * as _fsType from "fs";
 import { tryPrettyPrint } from "./pretty-print";
 import * as path from "path";
+import * as R from "ramda";
+type DirectoryTree =
+  | string
+  | {
+      [pathSegment: string]: DirectoryTree;
+    };
 interface WorkingSet {
   files: Map<string, string>;
   rootFiles: string[];
+  directoryTree: DirectoryTree;
 }
 export class TypescriptProvider {
+  program?: ts.Program;
+  compilerHost = new CompilerHost();
   constructor(private fs: typeof _fsType, private projectRoot: string) {}
   private readFile(filePath: string): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -40,11 +49,25 @@ export class TypescriptProvider {
     });
   }
   async loadTree(filePath: string): Promise<Node<WorkingSet>> {
-    const file = await this.readFile(filePath);
-    return RootNode.fromState({
-      files: new Map([filePath].map(p => [p, file]) as Array<[string, string]>),
-      rootFiles: [filePath],
-    });
+    const pathParts = filePath.split(path.sep);
+    const fileContent = await this.readFile(filePath);
+    this.compilerHost.addFile(filePath, fileContent, ts.ScriptTarget.ES5);
+    this.program = ts.createProgram(
+      [filePath],
+      { lib: ["es5"] },
+      this.compilerHost,
+      this.program,
+    );
+    return RootNode.fromProgram(
+      {
+        files: new Map(
+          [filePath].map(p => [p, fileContent]) as Array<[string, string]>,
+        ),
+        rootFiles: [filePath],
+        directoryTree: R.assocPath(pathParts, filePath, {}),
+      },
+      this.program,
+    );
   }
   async trySaveFile(filePath: string, file: FileNode) {
     const text = tryPrettyPrint(file);
@@ -53,35 +76,32 @@ export class TypescriptProvider {
     }
   }
 }
-export class RootNode extends StructNode<FileNode, WorkingSet> {
+export class RootNode extends StructNode<
+  Map<string, ts.SourceFile>,
+  WorkingSet
+> {
   links: never[] = [];
-  children: ChildNodeEntry<ts.SourceFile>[];
   flags = {};
-  private state: WorkingSet;
-  constructor(children: ChildNodeEntry<ts.SourceFile>[], state: WorkingSet) {
+  constructor(
+    public children: ChildNodeEntry<Map<string, ts.SourceFile>>[],
+    private state: WorkingSet,
+  ) {
     super();
-    this.children = children;
-    this.state = state;
   }
   clone(): RootNode {
     const node = new RootNode(this.children, this.state);
     node.id = this.id;
     return node;
   }
-  static fromState(state: WorkingSet): RootNode {
-    const host = new CompilerHost();
-    state.files.forEach((content, name) =>
-      host.addFile(name, content, ts.ScriptTarget.ES5),
-    );
-    const program = ts.createProgram(state.rootFiles, { lib: ["es5"] }, host);
+  static fromProgram(state: WorkingSet, program: ts.Program): RootNode {
     const children = state.rootFiles.map(name => {
       const file = program.getSourceFile(name);
       if (!file) {
         throw new Error(`file not found: ${name}`);
       }
       return {
-        key: name.split("/")[name.split("/").length - 1],
-        node: FileNode.fromFile(file),
+        key: name.split(path.sep)[name.split(path.sep).length - 1],
+        node: FileNode.fromFile(file, name),
       };
     });
     return new RootNode(children, state);
@@ -94,46 +114,59 @@ export class RootNode extends StructNode<FileNode, WorkingSet> {
     if (!builtChildren.ok) {
       return builtChildren;
     }
-    const files = new Map();
-    Object.keys(builtChildren.value).forEach(key =>
-      files.set(key, builtChildren.value[key]),
-    );
+    const files = new Map<string, string>();
+    Object.values(builtChildren.value).forEach(childNode => {
+      childNode.forEach((sourceFile, filePath) =>
+        files.set(filePath, sourceFile.text),
+      );
+    });
     return { ok: true, value: { ...this.state, files } };
   }
   protected createChild(): never {
     throw new Error("Not implemented");
   }
-  protected setChildren(children: ChildNodeEntry<ts.SourceFile>[]): RootNode {
+  protected setChildren(
+    children: ChildNodeEntry<Map<string, ts.SourceFile>>[],
+  ): RootNode {
     const node = new RootNode(children, this.state);
     node.id = this.id;
     return node;
   }
 }
-export class FileNode extends ListNode<ts.Statement, ts.SourceFile> {
+export class FileNode extends ListNode<
+  ts.Statement,
+  Map<string, ts.SourceFile>
+> {
   flags = {};
   links: never[] = [];
-  private file: ts.SourceFile;
-  constructor(value: Node<ts.Statement>[], file: ts.SourceFile) {
+  constructor(
+    value: Node<ts.Statement>[],
+    private file: ts.SourceFile,
+    private filePath: string,
+  ) {
     super(value);
-    this.file = file;
   }
   clone(): FileNode {
-    const node = new FileNode(this.value, this.file);
+    const node = new FileNode(this.value, this.file, this.filePath);
     node.id = this.id;
     return node;
   }
-  static fromFile(file: ts.SourceFile): FileNode {
+  static fromFile(file: ts.SourceFile, filePath: string): FileNode {
     return new FileNode(
       file.statements.map(statement => fromTsNode(statement, unions.Statement)),
       file,
+      filePath,
     );
   }
   setFlags(flags: never): never {
     throw new Error("Flags not supported");
   }
-  build(): BuildResult<ts.SourceFile> {
-    return this.listBuildHelper(children =>
-      ts.updateSourceFileNode(this.file, children),
+  build(): BuildResult<Map<string, ts.SourceFile>> {
+    return this.listBuildHelper(
+      children =>
+        new Map<string, ts.SourceFile>([
+          [this.filePath, ts.updateSourceFileNode(this.file, children)],
+        ]),
     );
   }
   prettyPrint(
@@ -148,7 +181,7 @@ export class FileNode extends ListNode<ts.Statement, ts.SourceFile> {
     if (!result.ok) {
       return undefined;
     }
-    const oldFile = result.value;
+    const oldFile = [...result.value.values()][0];
     const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
     const unformattedText = printer.printNode(
       ts.EmitHint.SourceFile,
@@ -168,10 +201,10 @@ export class FileNode extends ListNode<ts.Statement, ts.SourceFile> {
       text,
       oldFile.languageVersion,
     );
-    return { node: FileNode.fromFile(newFile), text };
+    return { node: FileNode.fromFile(newFile, this.filePath), text };
   }
   protected setValue(value: Node<ts.Statement>[]): FileNode {
-    const node = new FileNode(value, this.file);
+    const node = new FileNode(value, this.file, this.filePath);
     node.id = this.id;
     return node;
   }
