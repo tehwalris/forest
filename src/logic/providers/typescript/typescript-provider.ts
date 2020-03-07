@@ -68,63 +68,6 @@ export class TypescriptProvider {
     }
   }
 }
-export class RootNode extends StructNode<
-  Map<string, ts.SourceFile>,
-  WorkingSet
-> {
-  links: never[] = [];
-  flags = {};
-  constructor(
-    public children: ChildNodeEntry<Map<string, ts.SourceFile>>[],
-    private state: WorkingSet,
-  ) {
-    super();
-  }
-  clone(): RootNode {
-    const node = new RootNode(this.children, this.state);
-    node.id = this.id;
-    return node;
-  }
-  static fromProgram(state: WorkingSet, program: ts.Program): RootNode {
-    const children = state.rootFiles.map(name => {
-      const file = program.getSourceFile(name);
-      if (!file) {
-        throw new Error(`file not found: ${name}`);
-      }
-      return {
-        key: name.split(path.sep)[name.split(path.sep).length - 1],
-        node: FileNode.fromFile(file, name),
-      };
-    });
-    return new RootNode(children, state);
-  }
-  setFlags(flags: never): never {
-    throw new Error("Flags not supported");
-  }
-  build(): BuildResult<WorkingSet> {
-    const builtChildren = this.buildChildren();
-    if (!builtChildren.ok) {
-      return builtChildren;
-    }
-    const files = new Map<string, string>();
-    Object.values(builtChildren.value).forEach(childNode => {
-      childNode.forEach((sourceFile, filePath) =>
-        files.set(filePath, sourceFile.text),
-      );
-    });
-    return { ok: true, value: { ...this.state, files } };
-  }
-  protected createChild(): never {
-    throw new Error("Not implemented");
-  }
-  protected setChildren(
-    children: ChildNodeEntry<Map<string, ts.SourceFile>>[],
-  ): RootNode {
-    const node = new RootNode(children, this.state);
-    node.id = this.id;
-    return node;
-  }
-}
 export class FileNode extends ListNode<
   ts.Statement,
   Map<string, ts.SourceFile>
