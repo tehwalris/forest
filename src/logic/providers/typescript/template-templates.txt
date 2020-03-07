@@ -144,7 +144,6 @@ PropertyAccessExpression - ts.createPropertyAccess(ts.createObjectLiteral(), "")
 ElementAccessExpression - ts.createElementAccess(ts.createArrayLiteral(), 0)
 TaggedTemplateExpression - ts.createTaggedTemplate(ts.createIdentifier(""), ts.createTemplateExpression(ts.createTemplateHead(""), []))
 CallExpression - ts.createCall(ts.createIdentifier(""), undefined, [])
-NonNullExpression - ts.createNonNullExpression(ts.createLiteral(""))
 ImportDeclaration - ts.createImportDeclaration(undefined, undefined, undefined, ts.createLiteral(""))
 ImportClause - ts.createImportClause(undefined, undefined)
 NamespaceImport - ts.createNamespaceImport(ts.createIdentifier(""))
@@ -212,6 +211,7 @@ NamespaceDeclaration ts.isModuleDeclaration__as__any ts.createModuleDeclaration(
 ExternalModuleReference - ts.createExternalModuleReference(ts.createLiteral(""))
 TypeOfExpression isTypeOfWorkaround ts.createTypeOf(ts.createLiteral(""))
 AwaitExpression - ts.createAwait(ts.createLiteral(""))
+NonNullExpression - ts.createNonNullExpression(ts.createLiteral(""))
 DoStatement - ts.createDo(ts.createEmptyStatement(), ts.createLiteral(""))
 WhileStatement - ts.createWhile(ts.createLiteral(""), ts.createEmptyStatement())
 ForStatement - ts.createFor(undefined, undefined, undefined, ts.createEmptyStatement())
@@ -706,6 +706,9 @@ TypeOfExpression
 AwaitExpression
   R expression Expression
   build ({expression}) => ts.createAwait(expression)
+NonNullExpression
+  R expression Expression
+  build ({expression}) => ts.createNonNullExpression(expression)
 DoStatement
   R statement Statement
   R expression Expression
