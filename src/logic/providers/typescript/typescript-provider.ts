@@ -198,16 +198,17 @@ function nodeFromDirectoryTree(
   if (typeof directoryTree === "string") {
     const file = program.getSourceFile(directoryTree);
     if (!file) {
-      throw new Error(`file not found: ${directoryTree}`);
+      console.warn(`file not found: ${directoryTree}`);
+      return new DirectoryNode([]);
     }
     return FileNode.fromFile(file, directoryTree);
   } else {
-    const childEntries = Object.entries(
-      directoryTree,
-    ).map(([key, subdirectoryTree]) => ({
-      key,
-      node: nodeFromDirectoryTree(subdirectoryTree, program),
-    }));
+    const childEntries = Object.entries(directoryTree).map(
+      ([key, subdirectoryTree]) => ({
+        key,
+        node: nodeFromDirectoryTree(subdirectoryTree, program),
+      }),
+    );
     return new DirectoryNode(childEntries);
   }
 }

@@ -120,22 +120,24 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
   }
 
   const setTree = (updater: (oldTree: Node<unknown>) => Node<unknown>) => {
-    _setTrees(_file => {
-      const newTransformed = updater(
-        _file.transformed ||
-          applyTransformsToTree(_file.raw, TRANSFORMS, transformCache),
-      );
-      const output: CombinedTrees = {
-        raw: _file.raw,
-        transformed: newTransformed,
-      };
-      const unapplyResult = unapplyTransforms(newTransformed);
-      if (unapplyResult.ok) {
-        output.raw = unapplyResult.value;
-        output.transformed = undefined;
-      }
-      return { ..._file, trees: output };
-    });
+    _setTrees(
+      (_file): CombinedTrees => {
+        const newTransformed = updater(
+          _file.transformed ||
+            applyTransformsToTree(_file.raw, TRANSFORMS, transformCache),
+        );
+        const output: CombinedTrees = {
+          raw: _file.raw,
+          transformed: newTransformed,
+        };
+        const unapplyResult = unapplyTransforms(newTransformed);
+        if (unapplyResult.ok) {
+          output.raw = unapplyResult.value;
+          output.transformed = undefined;
+        }
+        return output;
+      },
+    );
   };
 
   const updateNode = (path: Path, value: Node<unknown>) => {

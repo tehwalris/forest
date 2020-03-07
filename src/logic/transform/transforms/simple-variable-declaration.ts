@@ -31,18 +31,11 @@ export const simpleVariableDeclarationTransfrom: Transform = <B>(
   }
   const declarationListNode = node.getByPath(["declarationList"]);
   if (declarationListNode?.children.length !== 1) {
-    console.log("DEBUG A");
     return node;
   }
   const onlyChildEntry = declarationListNode.children[0];
   const initializerNode = onlyChildEntry.node.getByPath(["initializer"]);
   if (!initializerNode?.actions.toggle || !initializerNode.children.length) {
-    console.log(
-      "DEBUG B",
-      !!initializerNode,
-      !!initializerNode?.actions.toggle,
-      initializerNode?.children.length,
-    );
     return node;
   }
 
