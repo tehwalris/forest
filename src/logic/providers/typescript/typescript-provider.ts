@@ -8,6 +8,8 @@ import * as _fsType from "fs";
 import { tryPrettyPrint } from "./pretty-print";
 import * as path from "path";
 import * as R from "ramda";
+import * as _ from "lodash";
+import { promisify } from "util";
 type DirectoryTree =
   | string
   | {
@@ -23,33 +25,19 @@ export class TypescriptProvider {
   compilerHost = new CompilerHost();
   constructor(private fs: typeof _fsType, private projectRoot: string) {}
   private readFile(filePath: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      this.fs.readFile(
-        path.join(this.projectRoot, filePath),
-        "utf-8",
-        (err, data) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(data);
-          }
-        },
-      );
-    });
+    return promisify(this.fs.readFile)(
+      path.join(this.projectRoot, filePath),
+      "utf-8",
+    );
   }
   private writeFile(filePath: string, content: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.fs.writeFile(path.join(this.projectRoot, filePath), content, err => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(undefined);
-        }
-      });
-    });
+    return promisify(this.fs.writeFile)(
+      path.join(this.projectRoot, filePath),
+      content,
+      undefined,
+    );
   }
   async loadTree(filePath: string): Promise<Node<Map<string, ts.SourceFile>>> {
-    const pathParts = filePath.split(path.sep);
     const fileContent = await this.readFile(filePath);
     this.compilerHost.addFile(filePath, fileContent, ts.ScriptTarget.ES5);
     this.program = ts.createProgram(
@@ -58,13 +46,35 @@ export class TypescriptProvider {
       this.compilerHost,
       this.program,
     );
-    const directoryTree = R.assocPath(pathParts, filePath, {});
+    const directoryTree = await this.loadDirectoryTree(
+      path.join(this.projectRoot, "src"),
+    );
     return nodeFromDirectoryTree(directoryTree, this.program);
   }
   async trySaveFile(file: FileNode) {
     const text = tryPrettyPrint(file);
     if (text) {
       await this.writeFile(file.filePath, text);
+    }
+  }
+  private async loadDirectoryTree(basePath: string): Promise<DirectoryTree> {
+    const stats = await promisify(this.fs.stat)(basePath, { bigint: false });
+    if (stats.isFile()) {
+      return basePath;
+    } else if (stats.isDirectory()) {
+      const childNames = await promisify(this.fs.readdir)(basePath, undefined);
+      const childTrees = await Promise.all(
+        childNames.map(n => this.loadDirectoryTree(path.join(basePath, n))),
+      );
+      const out: DirectoryTree = {};
+      R.zip(childNames, childTrees).forEach(([k, v]) => {
+        if (typeof v !== "string" || k.endsWith(".ts") || k.endsWith(".tsx")) {
+          out[k] = v;
+        }
+      });
+      return out;
+    } else {
+      return {};
     }
   }
 }
