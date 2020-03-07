@@ -2,7 +2,7 @@ SECTION unions
 Expression ...UnaryExpression
   BinaryExpression ArrowFunction ConditionalExpression AsExpression
   SpreadElement
-UnaryExpression ...UpdateExpression TypeOfExpression
+UnaryExpression ...UpdateExpression TypeOfExpression AwaitExpression
 UpdateExpression ...LeftHandSideExpression
   PrefixUnaryExpression PostfixUnaryExpression 
 LeftHandSideExpression ...MemberExpression
@@ -211,6 +211,7 @@ ModuleBlock - ts.createModuleBlock([])
 NamespaceDeclaration ts.isModuleDeclaration__as__any ts.createModuleDeclaration(undefined, undefined, ts.createIdentifier(""), ts.createModuleBlock([]), undefined) as ts.NamespaceDeclaration
 ExternalModuleReference - ts.createExternalModuleReference(ts.createLiteral(""))
 TypeOfExpression isTypeOfWorkaround ts.createTypeOf(ts.createLiteral(""))
+AwaitExpression - ts.createAwait(ts.createLiteral(""))
 DoStatement - ts.createDo(ts.createEmptyStatement(), ts.createLiteral(""))
 WhileStatement - ts.createWhile(ts.createLiteral(""), ts.createEmptyStatement())
 ForStatement - ts.createFor(undefined, undefined, undefined, ts.createEmptyStatement())
@@ -702,6 +703,9 @@ JsxTagNamePropertyAccess
 TypeOfExpression
   R expression Expression
   build ({expression}) => ts.createTypeOf(expression)
+AwaitExpression
+  R expression Expression
+  build ({expression}) => ts.createAwait(expression)
 DoStatement
   R statement Statement
   R expression Expression

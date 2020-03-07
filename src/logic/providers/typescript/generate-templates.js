@@ -176,13 +176,6 @@ import { enchancers, makeUnionMemberEnchancer } from "../enchancer";
 import {
   FlagKind
 } from "../flags";
-import {
-  DisplayInfoPriority,
-  LabelPart,
-  LabelStyle,
-  SemanticColor,
-  Node, 
-} from '../../../tree/node';
 
 // https://github.com/Microsoft/Typescript/issues/20875
 function isTypeOfWorkaround(node: ts.Node): node is ts.TypeOfExpression {
