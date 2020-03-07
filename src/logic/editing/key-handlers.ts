@@ -124,14 +124,19 @@ export function handleKey(
       handleAction(action, trueKeyPath, focus, undefined, copiedNode);
     }
   };
+  const findClosestFileNode = (): FileNode | undefined => {
+    return [node, ...apparentPath.map(e => e.parent)].find(
+      maybeFileNode => maybeFileNode && maybeFileNode instanceof FileNode,
+    ) as any;
+  };
   const save = () => {
-    const fileNode: FileNode | undefined = tree.children[0].node as any;
+    const fileNode = findClosestFileNode();
     if (fileNode) {
       saveFile(fileNode);
     }
   };
   const prettyPrint = (): string | undefined => {
-    const fileNode: FileNode | undefined = tree.children[0].node as any;
+    const fileNode = findClosestFileNode();
     return fileNode && tryPrettyPrint(fileNode);
   };
   const handlers: {
