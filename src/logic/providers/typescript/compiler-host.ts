@@ -1,6 +1,8 @@
 import * as ts from "typescript";
 export class CompilerHost implements ts.CompilerHost {
-  private _files: { [s: string]: ts.SourceFile };
+  private _files: {
+    [s: string]: ts.SourceFile;
+  };
   constructor() {
     this._files = {};
   }
@@ -41,13 +43,10 @@ export class CompilerHost implements ts.CompilerHost {
   public fileExists(fileName: string): boolean {
     return !!this.getSourceFile(fileName);
   }
-  public getDirectories(): string[] {
-    throw new Error("Not implemented");
-  }
   public addFile(
     fileName: string,
     text: string,
-    target: ts.ScriptTarget
+    target: ts.ScriptTarget,
   ): ts.SourceFile {
     fileName = this.getCanonicalFileName(fileName);
     this._files[fileName] = ts.createSourceFile(fileName, text, target);
