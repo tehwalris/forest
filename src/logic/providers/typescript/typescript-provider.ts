@@ -61,10 +61,10 @@ export class TypescriptProvider {
     const directoryTree = R.assocPath(pathParts, filePath, {});
     return nodeFromDirectoryTree(directoryTree, this.program);
   }
-  async trySaveFile(filePath: string, file: FileNode) {
+  async trySaveFile(file: FileNode) {
     const text = tryPrettyPrint(file);
     if (text) {
-      await this.writeFile(filePath, text);
+      await this.writeFile(file.filePath, text);
     }
   }
 }
@@ -77,7 +77,7 @@ export class FileNode extends ListNode<
   constructor(
     value: Node<ts.Statement>[],
     private file: ts.SourceFile,
-    private filePath: string,
+    public readonly filePath: string,
   ) {
     super(value);
   }
@@ -202,12 +202,12 @@ function nodeFromDirectoryTree(
     }
     return FileNode.fromFile(file, directoryTree);
   } else {
-    const childEntries = Object.entries(directoryTree).map(
-      ([key, subdirectoryTree]) => ({
-        key,
-        node: nodeFromDirectoryTree(subdirectoryTree, program),
-      }),
-    );
+    const childEntries = Object.entries(
+      directoryTree,
+    ).map(([key, subdirectoryTree]) => ({
+      key,
+      node: nodeFromDirectoryTree(subdirectoryTree, program),
+    }));
     return new DirectoryNode(childEntries);
   }
 }

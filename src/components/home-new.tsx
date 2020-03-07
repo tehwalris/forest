@@ -93,18 +93,15 @@ function getNodeStyle(
 }
 
 export const HomeNew: React.FC<Props> = ({ fs }) => {
-  const [_file, _setFile] = useState<{ path?: string; trees: CombinedTrees }>({
-    trees: {
-      raw: new EmptyLeafNode(),
-    },
+  const [_trees, _setTrees] = useState<CombinedTrees>({
+    raw: new EmptyLeafNode(),
   });
 
   const typescriptProvider = useRef(new TypescriptProvider(fs, "./"));
 
   const openFile = React.useCallback(async (filePath: string) => {
-    _setFile({
-      path: filePath,
-      trees: { raw: await typescriptProvider.current.loadTree(filePath) },
+    _setTrees({
+      raw: await typescriptProvider.current.loadTree(filePath),
     });
   }, []);
   (window as any).openFile = openFile;
@@ -113,29 +110,23 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
   }, [openFile]);
 
   const saveFile = async (tree: FileNode) => {
-    if (!_file.path) {
-      console.warn(
-        "the currently opened file does not have a path - it will not be saved",
-      );
-      return;
-    }
-    typescriptProvider.current.trySaveFile(_file.path, tree);
+    typescriptProvider.current.trySaveFile(tree);
   };
 
-  let tree = _file.trees.transformed || _file.trees.raw;
+  let tree = _trees.transformed || _trees.raw;
   // TODO Make this switchable from the editor
   if (!(window as any).noTransform) {
-    tree = applyTransformsToTree(_file.trees.raw, TRANSFORMS, transformCache);
+    tree = applyTransformsToTree(_trees.raw, TRANSFORMS, transformCache);
   }
 
   const setTree = (updater: (oldTree: Node<unknown>) => Node<unknown>) => {
-    _setFile(_file => {
+    _setTrees(_file => {
       const newTransformed = updater(
-        _file.trees.transformed ||
-          applyTransformsToTree(_file.trees.raw, TRANSFORMS, transformCache),
+        _file.transformed ||
+          applyTransformsToTree(_file.raw, TRANSFORMS, transformCache),
       );
       const output: CombinedTrees = {
-        raw: _file.trees.raw,
+        raw: _file.raw,
         transformed: newTransformed,
       };
       const unapplyResult = unapplyTransforms(newTransformed);
