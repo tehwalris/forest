@@ -43,8 +43,6 @@ interface CombinedTrees {
   transformed?: Node<unknown>;
 }
 
-const INITIAL_FILE: string =
-  "src/logic/providers/typescript/typescript-provider.ts";
 const TRANSFORMS: Transform[][] = [
   [simpleVariableDeclarationTransfrom],
   [flattenIfTransform, compressUselessValuesTransform],
@@ -99,14 +97,14 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
 
   const typescriptProvider = useRef(new TypescriptProvider(fs, "./"));
 
-  const openFile = React.useCallback(async (filePath: string) => {
+  const openFile = React.useCallback(async () => {
     _setTrees({
-      raw: await typescriptProvider.current.loadTree(filePath),
+      raw: await typescriptProvider.current.loadTree(),
     });
   }, []);
   (window as any).openFile = openFile;
   useEffect(() => {
-    openFile(INITIAL_FILE);
+    openFile();
   }, [openFile]);
 
   const saveFile = async (tree: FileNode) => {

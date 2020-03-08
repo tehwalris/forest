@@ -8,7 +8,6 @@ import * as _fsType from "fs";
 import { tryPrettyPrint } from "./pretty-print";
 import * as path from "path";
 import * as R from "ramda";
-import * as _ from "lodash";
 import { promisify } from "util";
 type DirectoryTree =
   | string
@@ -37,17 +36,22 @@ export class TypescriptProvider {
       undefined,
     );
   }
-  async loadTree(filePath: string): Promise<Node<Map<string, ts.SourceFile>>> {
-    const fileContent = await this.readFile(filePath);
-    this.compilerHost.addFile(filePath, fileContent, ts.ScriptTarget.ES5);
+  async loadTree(): Promise<Node<Map<string, ts.SourceFile>>> {
+    const directoryTree = await this.loadDirectoryTree(
+      path.join(this.projectRoot, "src"),
+    );
+    const filePaths = filePathsFromDirectoryTree(directoryTree);
+    await Promise.all(
+      filePaths.map(async filePath => {
+        const fileContent = await this.readFile(filePath);
+        this.compilerHost.addFile(filePath, fileContent, ts.ScriptTarget.ES5);
+      }),
+    );
     this.program = ts.createProgram(
-      [filePath],
+      filePaths,
       { lib: ["es5"] },
       this.compilerHost,
       this.program,
-    );
-    const directoryTree = await this.loadDirectoryTree(
-      path.join(this.projectRoot, "src"),
     );
     return nodeFromDirectoryTree(directoryTree, this.program);
   }
@@ -221,4 +225,12 @@ function nodeFromDirectoryTree(
     );
     return new DirectoryNode(childEntries);
   }
+}
+function filePathsFromDirectoryTree(directoryTree: DirectoryTree): string[] {
+  if (typeof directoryTree === "string") {
+    return [directoryTree];
+  }
+  return Object.values(directoryTree).flatMap(subtree =>
+    filePathsFromDirectoryTree(subtree),
+  );
 }
