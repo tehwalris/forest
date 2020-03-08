@@ -19,5 +19,5 @@ This project was bootstrapped with
 A production build of this app may fail because the JavaScript heap grows larger than the default limit. To work around this, allow more memory to be used:
 
 ```
-npx react-scripts --max_old_space_size=4096 build
+env NODE_OPTIONS="--max-old-space-size=8192" yarn build
 ```
