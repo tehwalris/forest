@@ -87,7 +87,7 @@ export function buildDivetreeDisplayTree(
         {
           kind: NodeKind.TightSplit,
           split: Split.Stacked,
-          children: children.map(
+          children: children.slice(0, 4).map(
             (c): TightLeafNode => ({
               kind: NodeKind.TightLeaf,
               id: c.node.id,
