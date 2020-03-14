@@ -23,7 +23,7 @@ function isVariableStatement(node: Node<unknown>): boolean {
   );
 }
 
-export const simpleVariableDeclarationTransfrom: Transform = <B>(
+export const simpleVariableDeclarationTransform: Transform = <B>(
   node: Node<B>,
 ): Node<B> => {
   if (!isVariableStatement(node)) {

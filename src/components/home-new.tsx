@@ -14,7 +14,7 @@ import {
 } from "../logic/transform";
 import { compressUselessValuesTransform } from "../logic/transform/transforms/compress-useless-values";
 import { flattenIfTransform } from "../logic/transform/transforms/flatten-if";
-import { simpleVariableDeclarationTransfrom } from "../logic/transform/transforms/simple-variable-declaration";
+import { simpleVariableDeclarationTransform } from "../logic/transform/transforms/simple-variable-declaration";
 import {
   isMetaBranchNode,
   splitMetaTransform,
@@ -46,7 +46,7 @@ interface CombinedTrees {
 }
 
 const TRANSFORMS: Transform[][] = [
-  [simpleVariableDeclarationTransfrom],
+  [simpleVariableDeclarationTransform],
   [flattenIfTransform, compressUselessValuesTransform],
   [splitMetaTransform],
 ];
