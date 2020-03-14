@@ -16,6 +16,10 @@ export type ParentIndexEntry = {
   path: ParentPathElement[];
 };
 
+export function idPathFromParentIndexEntry(entry: ParentIndexEntry): string[] {
+  return [...entry.path.map(e => e.parent), entry.node].map(e => e.id);
+}
+
 export function getNodeForDisplay(
   node: Node<unknown>,
   metaLevelNodeIds: Set<string>,
@@ -38,6 +42,20 @@ export function buildParentIndex(
       ...path,
       { parent: root, childKey: c.key },
     ]),
+  );
+  return result;
+}
+
+export function getMetaBranchBranchIds(
+  root: Node<unknown>,
+  result = new Set<string>(),
+  parentIsMetaBranchNode = false,
+): Set<string> {
+  if (parentIsMetaBranchNode) {
+    result.add(root.id);
+  }
+  root.children.forEach(c =>
+    getMetaBranchBranchIds(c.node, result, isMetaBranchNode(root)),
   );
   return result;
 }

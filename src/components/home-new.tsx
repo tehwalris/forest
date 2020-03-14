@@ -28,6 +28,8 @@ import {
   buildParentIndex,
   getNodeForDisplay,
   ParentIndexEntry,
+  idPathFromParentIndexEntry,
+  getMetaBranchBranchIds,
 } from "../logic/tree/display-new";
 import { Node, SemanticColor } from "../logic/tree/node";
 import { PossibleActionDisplay } from "./possible-action-display";
@@ -199,10 +201,11 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
 
   const [metaLevelNodeIds, _setMetaLevelNodeIds] = useState(new Set<string>());
 
-  const { parentIndex, navTree } = useMemo(() => {
+  const { parentIndex, navTree, metaBranchBranchIds } = useMemo(() => {
     return {
       parentIndex: buildParentIndex(tree),
       navTree: buildDivetreeNavTree(tree, metaLevelNodeIds),
+      metaBranchBranchIds: getMetaBranchBranchIds(tree),
     };
   }, [tree, metaLevelNodeIds]);
 
@@ -231,10 +234,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
   const _focusedIdPath = useMemo(
     () =>
       parentIndex.has(_focusedId)
-        ? [
-            ...parentIndex.get(_focusedId)!.path.map(e => e.parent.id),
-            _focusedId,
-          ]
+        ? idPathFromParentIndexEntry(parentIndex.get(_focusedId)!)
         : _lastFocusedIdPath.current,
     [parentIndex, _focusedId, _lastFocusedIdPath],
   );
@@ -273,7 +273,13 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
         getStyle={(id, focused) =>
           getNodeStyle(parentIndex.get(id as string), focused)
         }
-        focusedId={focusedId}
+        focusedIdPath={
+          parentIndex.has(focusedId)
+            ? idPathFromParentIndexEntry(parentIndex.get(focusedId)!).filter(
+                id => !metaBranchBranchIds.has(id),
+              )
+            : []
+        }
         onFocusedIdChange={setFocusedId}
         disableNav={!!inProgressAction}
         onKeyDown={key =>
