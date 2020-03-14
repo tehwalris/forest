@@ -73,7 +73,7 @@ export function buildDivetreeDisplayTree(
   const base: TightLeafNode = {
     kind: NodeKind.TightLeaf,
     id: node.id,
-    size: [100, 56],
+    size: [150, 56],
   };
   if (isFinal) {
     if (!children.length) {
@@ -83,7 +83,7 @@ export function buildDivetreeDisplayTree(
       kind: NodeKind.TightSplit,
       split: Split.SideBySide,
       children: [
-        base,
+        { ...base, size: [75, 56] },
         {
           kind: NodeKind.TightSplit,
           split: Split.Stacked,
