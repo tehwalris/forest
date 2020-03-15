@@ -51,7 +51,10 @@ const TRANSFORMS: Transform[][] = [
   [splitMetaTransform],
 ];
 
-const transformCache: MultiTransformCache = new WeakMap();
+const transformCache: MultiTransformCache = {
+  apply: new WeakMap(),
+  unapply: new WeakMap(),
+};
 
 type ColorPair = [number[], number[]];
 
@@ -115,22 +118,25 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
 
   let tree = _trees.transformed || _trees.raw;
   // TODO Make this switchable from the editor
-  if (!(window as any).noTransform) {
+  if (tree === _trees.raw && !(window as any).noTransform) {
     tree = applyTransformsToTree(_trees.raw, TRANSFORMS, transformCache);
   }
 
   const setTree = (updater: (oldTree: Node<unknown>) => Node<unknown>) => {
     _setTrees(
-      (_file): CombinedTrees => {
+      (_trees): CombinedTrees => {
         const newTransformed = updater(
-          _file.transformed ||
-            applyTransformsToTree(_file.raw, TRANSFORMS, transformCache),
+          _trees.transformed ||
+            applyTransformsToTree(_trees.raw, TRANSFORMS, transformCache),
         );
         const output: CombinedTrees = {
-          raw: _file.raw,
+          raw: _trees.raw,
           transformed: newTransformed,
         };
-        const unapplyResult = unapplyTransforms(newTransformed);
+        const unapplyResult = unapplyTransforms(
+          newTransformed,
+          transformCache.unapply,
+        );
         if (unapplyResult.ok) {
           output.raw = unapplyResult.value;
           output.transformed = undefined;

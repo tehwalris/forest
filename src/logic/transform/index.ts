@@ -12,12 +12,16 @@ export type SingleTransformCache = WeakMap<
   Node<unknown> | undefined
 >;
 
-export type MultiTransformCache = WeakMap<Transform, SingleTransformCache>;
+export type MultiTransformCache = {
+  apply: WeakMap<Transform, SingleTransformCache>;
+  unapply: SingleTransformCache;
+};
 
 function applyTransformToTree(
   root: Node<unknown>,
   transform: Transform,
   cache: SingleTransformCache,
+  unapplyCache: SingleTransformCache,
 ): Node<unknown> {
   if (cache.has(root)) {
     return cache.get(root)!;
@@ -27,7 +31,12 @@ function applyTransformToTree(
   // HACK Iterate using an index variable, because setting one child may change others (in MetaBranchNode)
   for (let i = 0; i < newRoot.children.length; i++) {
     const c = newRoot.children[i];
-    const transformedChild = applyTransformToTree(c.node, transform, cache);
+    const transformedChild = applyTransformToTree(
+      c.node,
+      transform,
+      cache,
+      unapplyCache,
+    );
     if (transformedChild === c.node) {
       continue;
     }
@@ -37,6 +46,7 @@ function applyTransformToTree(
     });
   }
   cache.set(root, newRoot);
+  unapplyCache.set(newRoot, root);
   return newRoot;
 }
 
@@ -44,11 +54,14 @@ function applyTransformsToTreeOnce(
   node: Node<unknown>,
   transforms: Transform[],
   cache: MultiTransformCache,
-): Node<unknown> {
-  return transforms.reduce((node, transform, i) => {
-    const singleCache = cache.get(transform) || new WeakMap();
-    cache.set(transform, singleCache);
-    const newNode = applyTransformToTree(node, transform, singleCache);
+    const singleCache = cache.apply.get(transform) || new WeakMap();
+    cache.apply.set(transform, singleCache);
+    const newNode = applyTransformToTree(
+      node,
+      transform,
+      singleCache,
+      cache.unapply,
+    );
     return newNode;
   }, node);
 }
@@ -77,7 +90,12 @@ export function applyTransformsToTree(
 
 export function unapplyTransforms(
   transformedNode: Node<unknown>,
+  cache: SingleTransformCache,
 ): BuildResult<Node<unknown>> {
+  if (cache.has(transformedNode)) {
+    return { ok: true, value: cache.get(transformedNode)! };
+  }
+
   let node = transformedNode;
   while (node.unapplyTransform) {
     const buildResult = node.unapplyTransform();
@@ -89,7 +107,7 @@ export function unapplyTransforms(
 
   const childBuildResults = node.children.map(c => ({
     key: c.key,
-    result: unapplyTransforms(c.node),
+    result: unapplyTransforms(c.node, cache),
   }));
   const failedChild = childBuildResults.find(r => !r.result.ok);
   if (failedChild) {
