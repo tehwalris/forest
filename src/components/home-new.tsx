@@ -207,13 +207,18 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
 
   const [metaLevelNodeIds, _setMetaLevelNodeIds] = useState(new Set<string>());
 
-  const { parentIndex, navTree, metaBranchBranchIds } = useMemo(() => {
-    return {
+  const { parentIndex, metaBranchBranchIds } = useMemo(
+    () => ({
       parentIndex: buildParentIndex(tree),
-      navTree: buildDivetreeNavTree(tree, metaLevelNodeIds),
       metaBranchBranchIds: getMetaBranchBranchIds(tree),
-    };
-  }, [tree, metaLevelNodeIds]);
+    }),
+    [tree],
+  );
+
+  const navTree = useMemo(() => buildDivetreeNavTree(tree, metaLevelNodeIds), [
+    tree,
+    metaLevelNodeIds,
+  ]);
 
   const toggleNodeMetaLevel = (nodeId: string) => {
     const entry = parentIndex.get(nodeId);
