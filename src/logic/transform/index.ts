@@ -4,6 +4,7 @@ import {
   BuildResultFailure,
   BuildResultSuccess,
 } from "../tree/node";
+import { transform } from "typescript";
 
 export type Transform = <B>(original: Node<B>) => Node<B>;
 
@@ -54,6 +55,8 @@ function applyTransformsToTreeOnce(
   node: Node<unknown>,
   transforms: Transform[],
   cache: MultiTransformCache,
+) {
+  return transforms.reduce((node, transform) => {
     const singleCache = cache.apply.get(transform) || new WeakMap();
     cache.apply.set(transform, singleCache);
     const newNode = applyTransformToTree(
