@@ -99,16 +99,16 @@ export function buildDivetreeNavTree(
   metaLevelNodeIds: Set<string>,
   incrementalParentIndex?: IncrementalParentIndex,
 ): NavNode {
+  const nodeForDisplay = getNodeForDisplay(node, metaLevelNodeIds);
   if (incrementalParentIndex) {
     incrementalParentIndex.addObservation(node);
-    incrementalParentIndex.addObservation(
-      getNodeForDisplay(node, metaLevelNodeIds),
-    );
+    incrementalParentIndex.addObservation(nodeForDisplay);
   }
   return {
     id: node.id,
-    children: getNodeForDisplay(node, metaLevelNodeIds).children.map(c =>
-      buildDivetreeNavTree(c.node, metaLevelNodeIds, incrementalParentIndex),
-    ),
+    getChildren: () =>
+      nodeForDisplay.children.map(c =>
+        buildDivetreeNavTree(c.node, metaLevelNodeIds, incrementalParentIndex),
+      ),
   };
 }
