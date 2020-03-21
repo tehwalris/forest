@@ -1,4 +1,5 @@
 import { Node } from "./tree/node";
+import * as R from "ramda";
 
 interface ParentLink {
   parentId: string;
@@ -17,6 +18,22 @@ export type ParentIndexEntry = {
   path: ParentPathElement[];
 };
 
+export function nodePathFromParentIndexEntry(
+  entry: ParentIndexEntry,
+  filterCb?: (
+    node: Node<unknown>,
+    parent: Node<unknown> | undefined,
+  ) => boolean,
+): Node<unknown>[] {
+  let nodePath = [...entry.path.map(e => e.parent), entry.node];
+  if (filterCb) {
+    nodePath = nodePath.filter((n, i) =>
+      filterCb(n, i > 0 ? nodePath[i - 1] : undefined),
+    );
+  }
+  return nodePath;
+}
+
 export function idPathFromParentIndexEntry(
   entry: ParentIndexEntry,
   filterCb?: (
@@ -24,13 +41,7 @@ export function idPathFromParentIndexEntry(
     parent: Node<unknown> | undefined,
   ) => boolean,
 ): string[] {
-  let nodePath = [...entry.path.map(e => e.parent), entry.node];
-  if (filterCb) {
-    nodePath = nodePath.filter((n, i) =>
-      filterCb(n, i > 0 ? nodePath[i - 1] : undefined),
-    );
-  }
-  return nodePath.map(e => e.id);
+  return nodePathFromParentIndexEntry(entry, filterCb).map(e => e.id);
 }
 
 export class IncrementalParentIndex {
@@ -39,12 +50,13 @@ export class IncrementalParentIndex {
   private parentLinksByChildId = new Map<string, ParentLink>();
   private entriesByNodeId = new Map<string, ParentIndexEntry>();
 
+  constructor(private tree: Node<unknown>) {}
+
   addObservation(node: Node<unknown>) {
     if (this.observedNodes.has(node)) {
       return;
     }
     this.observedNodes.add(node);
-    this.entriesByNodeId = new Map();
 
     this.nodesById.set(node.id, node);
     node.children.forEach(c => {
@@ -67,7 +79,7 @@ export class IncrementalParentIndex {
       return cached;
     }
     const uncached = this.getUncached(nodeId);
-    if (uncached) {
+    if (uncached && nodePathFromParentIndexEntry(uncached)[0] === this.tree) {
       this.entriesByNodeId.set(nodeId, uncached);
     }
     return uncached;

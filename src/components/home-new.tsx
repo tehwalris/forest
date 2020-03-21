@@ -208,7 +208,10 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
 
   const [metaLevelNodeIds, _setMetaLevelNodeIds] = useState(new Set<string>());
 
-  const incrementalParentIndex = new IncrementalParentIndex();
+  const incrementalParentIndex = useMemo(
+    () => new IncrementalParentIndex(tree),
+    [tree],
+  );
 
   const [focusedParentIndexEntry, setFocusedId] = useFocus(
     tree,
