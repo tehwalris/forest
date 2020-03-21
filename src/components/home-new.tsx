@@ -245,18 +245,6 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     _setMetaLevelNodeIds(new Set(newIds));
   };
 
-  useEffect(() => {
-    const focusedIds = new Set(
-      idPathFromParentIndexEntry(focusedParentIndexEntry),
-    );
-    const validMetaLevelNodeIds = [...metaLevelNodeIds].filter(id =>
-      focusedIds.has(id),
-    );
-    if (validMetaLevelNodeIds.length !== metaLevelNodeIds.size) {
-      _setMetaLevelNodeIds(new Set(validMetaLevelNodeIds));
-    }
-  }, [focusedParentIndexEntry, metaLevelNodeIds]);
-
   const trueFocusedNode = getNodeForDisplay(
     focusedParentIndexEntry.node,
     metaLevelNodeIds,
