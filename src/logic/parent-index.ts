@@ -1,9 +1,24 @@
 import { Node } from "./tree/node";
-import { ParentIndexEntry, ParentPathElement } from "./tree/display-new";
 
 interface ParentLink {
   parentId: string;
   childKey: string;
+}
+
+export type ParentPathElement = { parent: Node<unknown>; childKey: string };
+
+export interface ParentIndex {
+  get(nodeId: string): ParentIndexEntry | undefined;
+  has(nodeId: string): boolean;
+}
+
+export type ParentIndexEntry = {
+  node: Node<unknown>;
+  path: ParentPathElement[];
+};
+
+export function idPathFromParentIndexEntry(entry: ParentIndexEntry): string[] {
+  return [...entry.path.map(e => e.parent), entry.node].map(e => e.id);
 }
 
 export class IncrementalParentIndex {

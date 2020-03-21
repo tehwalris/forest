@@ -2,7 +2,6 @@ import * as R from "ramda";
 import { Transform } from "..";
 import { ActionSet } from "../../tree/action";
 import { Link } from "../../tree/base";
-import { ParentPathElement } from "../../tree/display-new";
 import {
   BuildResult,
   ChildNodeEntry,
@@ -14,6 +13,7 @@ import {
   compressChildrenTransform,
   CompressedNode,
 } from "./compress-useless-values";
+import { ParentPathElement } from "../../parent-index";
 
 // HACK There should be a better way to get the type of a node
 function isVariableStatement(node: Node<unknown>): boolean {

@@ -1,8 +1,8 @@
-import { IncrementalParentIndex } from "./parent-index";
 import {
+  IncrementalParentIndex,
   ParentIndexEntry,
   idPathFromParentIndexEntry,
-} from "./tree/display-new";
+} from "./parent-index";
 import { Node } from "./tree/node";
 import { useState } from "react";
 import * as R from "ramda";

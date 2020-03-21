@@ -7,9 +7,9 @@ import {
   SemanticColor,
 } from "../../tree/node";
 import * as ts from "typescript";
-import { ParentPathElement } from "../../tree/display-new";
 import * as R from "ramda";
 import { noCase } from "change-case";
+import { ParentPathElement } from "../../parent-index";
 export function tryExtractName(node: Node<unknown>): string | undefined {
   const nameNode = node.getByPath(["name"]);
   if (!nameNode) {

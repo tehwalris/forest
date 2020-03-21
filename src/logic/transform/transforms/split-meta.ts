@@ -3,8 +3,8 @@ import { Transform } from "..";
 import { ActionSet } from "../../tree/action";
 import { Link } from "../../tree/base";
 import { BuildResult, ChildNodeEntry, FlagSet, Node } from "../../tree/node";
-import { ParentPathElement } from "../../tree/display-new";
 import { compressChildrenTransform } from "./compress-useless-values";
+import { ParentPathElement } from "../../parent-index";
 
 export function isMetaBranchNode(
   node: Node<unknown>,

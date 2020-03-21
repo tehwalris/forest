@@ -9,8 +9,8 @@ import {
 import { ActionSet } from "../../tree/action";
 import { Link } from "../../tree/base";
 import * as R from "ramda";
-import { ParentPathElement } from "../../tree/display-new";
 import { isMetaBranchNode } from "./split-meta";
+import { ParentPathElement } from "../../parent-index";
 
 type DisplaySelector<B> = (
   parentNode: Node<B>,

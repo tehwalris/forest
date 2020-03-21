@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as R from "ramda";
-import { ParentIndexEntry } from "../../logic/tree/display-new";
 import { LabelStyle } from "../../logic/tree/node";
+import { ParentIndexEntry } from "../../logic/parent-index";
 
 interface Props {
   parentIndexEntry: ParentIndexEntry | undefined;

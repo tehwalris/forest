@@ -20,8 +20,8 @@ import {
 } from "./flags";
 import { shortcutsByType } from "./generated/templates";
 import { fromTsNode } from "./convert";
-import { ParentPathElement } from "../../tree/display-new";
 import { MetaSplit } from "../../transform/transforms/split-meta";
+import { ParentPathElement } from "../../parent-index";
 export type Union<T extends ts.Node> = () => {
   [key: string]: {
     match: (node: ts.Node) => node is T;

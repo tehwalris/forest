@@ -4,7 +4,11 @@ import * as React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HandleAction } from "../logic/editing/interfaces";
 import { handleKey } from "../logic/editing/key-handlers";
-import { IncrementalParentIndex } from "../logic/parent-index";
+import {
+  IncrementalParentIndex,
+  ParentIndexEntry,
+  idPathFromParentIndexEntry,
+} from "../logic/parent-index";
 import TypescriptProvider, { FileNode } from "../logic/providers/typescript";
 import {
   applyTransformsToTree,
@@ -27,8 +31,6 @@ import {
   buildDivetreeNavTree,
   getMetaBranchBranchIds,
   getNodeForDisplay,
-  idPathFromParentIndexEntry,
-  ParentIndexEntry,
 } from "../logic/tree/display-new";
 import { Node, SemanticColor } from "../logic/tree/node";
 import { useFocus } from "../logic/use-focus";

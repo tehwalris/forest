@@ -2,9 +2,10 @@ import * as R from "ramda";
 import { FileNode } from "../providers/typescript";
 import { tryPrettyPrint } from "../providers/typescript/pretty-print";
 import { ActionSet, InputKind } from "../tree/action";
-import { ParentIndex, getNodeForDisplay } from "../tree/display-new";
+import { getNodeForDisplay } from "../tree/display-new";
 import { Flag, Node } from "../tree/node";
 import { HandleAction } from "./interfaces";
+import { ParentIndex } from "../parent-index";
 interface HandleKeyOptions {
   tree: Node<unknown>;
   parentIndex: ParentIndex;
