@@ -35,6 +35,10 @@ import { Node, SemanticColor } from "../logic/tree/node";
 import { PossibleActionDisplay } from "./possible-action-display";
 import { ActionFiller } from "./tree/action-filler";
 import { NodeContent } from "./tree/node-content";
+import {
+  IncrementalParentIndex,
+  ParentIndexProxy,
+} from "../logic/parent-index";
 
 interface Props {
   fs: typeof _fsType;
@@ -207,7 +211,21 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
 
   const [metaLevelNodeIds, _setMetaLevelNodeIds] = useState(new Set<string>());
 
-  const { parentIndex, metaBranchBranchIds } = useMemo(
+  // PLAN
+  // - Only create a partial parent index
+  //   - Contains every node which could possibly be accessed
+  // - Create an empty index when beggining rendering
+  // - Run all code which does not depend on the index
+  //   - Extend the index while running that code
+  //   - For example, build the (partial) nav tree and add every reachable node to the parent index
+  //   - This requires the path to the focused node to be known
+  // - The parent index now contains every reachable node
+  // - Run all code which depends on the index
+  //   - For example actually rendering
+
+  const incrementalParentIndex = new IncrementalParentIndex();
+
+  const { parentIndex: oldParentIndex, metaBranchBranchIds } = useMemo(
     () => ({
       parentIndex: buildParentIndex(tree),
       metaBranchBranchIds: getMetaBranchBranchIds(tree),
@@ -219,6 +237,14 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     tree,
     metaLevelNodeIds,
   ]);
+
+  // PLAN Remove this once the nav tree is built lazily
+  buildDivetreeNavTree(tree, metaLevelNodeIds, incrementalParentIndex);
+
+  const parentIndex = new ParentIndexProxy(
+    oldParentIndex,
+    incrementalParentIndex,
+  );
 
   const toggleNodeMetaLevel = (nodeId: string) => {
     const entry = parentIndex.get(nodeId);

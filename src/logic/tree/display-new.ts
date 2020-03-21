@@ -7,10 +7,16 @@ import {
   TightLeafNode,
   Split,
 } from "divetree-core";
+import { IncrementalParentIndex } from "../parent-index";
 
+// TODO Move these interfaces to parent-index.ts
 export type ParentPathElement = { parent: Node<unknown>; childKey: string };
 
-export type ParentIndex = Map<string, ParentIndexEntry>;
+export interface ParentIndex {
+  get(nodeId: string): ParentIndexEntry | undefined;
+  has(nodeId: string): boolean;
+}
+
 export type ParentIndexEntry = {
   node: Node<unknown>;
   path: ParentPathElement[];
@@ -33,7 +39,7 @@ export function getNodeForDisplay(
 
 export function buildParentIndex(
   root: Node<unknown>,
-  result: ParentIndex = new Map(),
+  result: Map<string, ParentIndexEntry> = new Map(),
   path: ParentPathElement[] = [],
 ): ParentIndex {
   result.set(root.id, { node: root, path });
@@ -116,11 +122,18 @@ export function buildDivetreeDisplayTree(
 export function buildDivetreeNavTree(
   node: Node<unknown>,
   metaLevelNodeIds: Set<string>,
+  incrementalParentIndex?: IncrementalParentIndex,
 ): NavNode {
+  if (incrementalParentIndex) {
+    incrementalParentIndex.addObservation(node);
+    incrementalParentIndex.addObservation(
+      getNodeForDisplay(node, metaLevelNodeIds),
+    );
+  }
   return {
     id: node.id,
     children: getNodeForDisplay(node, metaLevelNodeIds).children.map(c =>
-      buildDivetreeNavTree(c.node, metaLevelNodeIds),
+      buildDivetreeNavTree(c.node, metaLevelNodeIds, incrementalParentIndex),
     ),
   };
 }
