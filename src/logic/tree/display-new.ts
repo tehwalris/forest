@@ -71,10 +71,16 @@ export function buildDivetreeDisplayTree(
   path: string[],
   extraDepth: number,
   metaLevelNodeIds: Set<string>,
+  incrementalParentIndex: IncrementalParentIndex,
 ): DivetreeDisplayNode {
   const isOnPath = node.id === path[0];
   const isFinal = !isOnPath || !!extraDepth;
-  const children = getNodeForDisplay(node, metaLevelNodeIds).children;
+
+  const nodeForDisplay = getNodeForDisplay(node, metaLevelNodeIds);
+  const children = nodeForDisplay.children;
+
+  incrementalParentIndex.addObservation(node);
+  incrementalParentIndex.addObservation(nodeForDisplay);
 
   const base: TightLeafNode = {
     kind: NodeKind.TightLeaf,
@@ -114,6 +120,7 @@ export function buildDivetreeDisplayTree(
         isOnPath ? path.slice(1) : [],
         extraDepth + (isOnPath ? 0 : 1),
         metaLevelNodeIds,
+        incrementalParentIndex,
       );
     }),
   };

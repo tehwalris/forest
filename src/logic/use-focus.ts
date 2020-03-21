@@ -51,6 +51,13 @@ export function useFocus(
   );
 
   if (nextFocusedId !== undefined) {
+    // HACK This is necessary so that focusing a child that was
+    // just appended to a MetaBranchNode works correctly,
+    // since those are actually one level deeper than they appear.
+    parentIndex.get(R.last(focusedIdPath)!)?.node.children.forEach(c => {
+      parentIndex.addObservation(c.node);
+    });
+
     const entry = parentIndex.get(nextFocusedId);
     if (entry) {
       focusedIdPath = idPathFromParentIndexEntry(entry);

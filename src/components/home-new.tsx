@@ -285,6 +285,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     focusedParentIndexEntry.node,
     metaLevelNodeIds,
   );
+  incrementalParentIndex.addObservation(trueFocusedNode);
 
   const [copiedNode, setCopiedNode] = useState<Node<unknown>>();
 
@@ -293,13 +294,21 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
       <NavTree
         navTree={navTree}
         getDisplayTree={focusPath =>
-          buildDivetreeDisplayTree(tree, focusPath, 0, metaLevelNodeIds)
+          buildDivetreeDisplayTree(
+            tree,
+            focusPath,
+            0,
+            metaLevelNodeIds,
+            incrementalParentIndex,
+          )
         }
         getContent={id => (
-          <NodeContent parentIndexEntry={parentIndex.get(id as string)} />
+          <NodeContent
+            parentIndexEntry={incrementalParentIndex.get(id as string)}
+          />
         )}
         getStyle={(id, focused) =>
-          getNodeStyle(parentIndex.get(id as string), focused)
+          getNodeStyle(incrementalParentIndex.get(id as string), focused)
         }
         focusedIdPath={idPathFromParentIndexEntry(
           focusedParentIndexEntry,
@@ -309,7 +318,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
         onKeyDown={key =>
           handleKey(key, {
             tree,
-            parentIndex,
+            parentIndex: incrementalParentIndex,
             focusedId: focusedParentIndexEntry.node.id,
             setFocusedId,
             handleAction,
