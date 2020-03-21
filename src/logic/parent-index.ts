@@ -34,10 +34,18 @@ export function idPathFromParentIndexEntry(
 }
 
 export class IncrementalParentIndex {
-  private nodesById: Map<string, Node<unknown>> = new Map();
-  private parentLinksByChildId: Map<string, ParentLink> = new Map();
+  private observedNodes = new Set<Node<unknown>>();
+  private nodesById = new Map<string, Node<unknown>>();
+  private parentLinksByChildId = new Map<string, ParentLink>();
+  private entriesByNodeId = new Map<string, ParentIndexEntry>();
 
   addObservation(node: Node<unknown>) {
+    if (this.observedNodes.has(node)) {
+      return;
+    }
+    this.observedNodes.add(node);
+    this.entriesByNodeId = new Map();
+
     this.nodesById.set(node.id, node);
     node.children.forEach(c => {
       this.nodesById.set(c.node.id, c.node);
@@ -54,6 +62,18 @@ export class IncrementalParentIndex {
   }
 
   get(nodeId: string): ParentIndexEntry | undefined {
+    const cached = this.entriesByNodeId.get(nodeId);
+    if (cached) {
+      return cached;
+    }
+    const uncached = this.getUncached(nodeId);
+    if (uncached) {
+      this.entriesByNodeId.set(nodeId, uncached);
+    }
+    return uncached;
+  }
+
+  private getUncached(nodeId: string): ParentIndexEntry | undefined {
     const node = this.nodesById.get(nodeId);
     if (!node) {
       return undefined;
