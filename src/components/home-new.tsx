@@ -29,7 +29,6 @@ import { EmptyLeafNode } from "../logic/tree/base-nodes";
 import {
   buildDivetreeDisplayTree,
   buildDivetreeNavTree,
-  getMetaBranchBranchIds,
   getNodeForDisplay,
 } from "../logic/tree/display-new";
 import { Node, SemanticColor } from "../logic/tree/node";
@@ -211,10 +210,6 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
 
   const incrementalParentIndex = new IncrementalParentIndex();
 
-  const metaBranchBranchIds = useMemo(() => getMetaBranchBranchIds(tree), [
-    tree,
-  ]);
-
   const [focusedParentIndexEntry, setFocusedId] = useFocus(
     tree,
     incrementalParentIndex,
@@ -276,7 +271,8 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
         }
         focusedIdPath={idPathFromParentIndexEntry(
           focusedParentIndexEntry,
-        ).filter(id => !metaBranchBranchIds.has(id))}
+          (node, parent) => !parent || !isMetaBranchNode(parent),
+        )}
         onFocusedIdChange={setFocusedId}
         disableNav={!!inProgressAction}
         onKeyDown={key =>

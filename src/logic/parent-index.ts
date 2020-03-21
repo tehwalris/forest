@@ -17,8 +17,20 @@ export type ParentIndexEntry = {
   path: ParentPathElement[];
 };
 
-export function idPathFromParentIndexEntry(entry: ParentIndexEntry): string[] {
-  return [...entry.path.map(e => e.parent), entry.node].map(e => e.id);
+export function idPathFromParentIndexEntry(
+  entry: ParentIndexEntry,
+  filterCb?: (
+    node: Node<unknown>,
+    parent: Node<unknown> | undefined,
+  ) => boolean,
+): string[] {
+  let nodePath = [...entry.path.map(e => e.parent), entry.node];
+  if (filterCb) {
+    nodePath = nodePath.filter((n, i) =>
+      filterCb(n, i > 0 ? nodePath[i - 1] : undefined),
+    );
+  }
+  return nodePath.map(e => e.id);
 }
 
 export class IncrementalParentIndex {

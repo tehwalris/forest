@@ -20,20 +20,6 @@ export function getNodeForDisplay(
   return node;
 }
 
-export function getMetaBranchBranchIds(
-  root: Node<unknown>,
-  result = new Set<string>(),
-  parentIsMetaBranchNode = false,
-): Set<string> {
-  if (parentIsMetaBranchNode) {
-    result.add(root.id);
-  }
-  root.children.forEach(c =>
-    getMetaBranchBranchIds(c.node, result, isMetaBranchNode(root)),
-  );
-  return result;
-}
-
 export function buildDivetreeDisplayTree(
   node: Node<unknown>,
   path: string[],
