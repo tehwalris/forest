@@ -1,5 +1,4 @@
 import { Node } from "./tree/node";
-import * as R from "ramda";
 
 interface ParentLink {
   parentId: string;
