@@ -1,9 +1,5 @@
 import { Node } from "./tree/node";
-import {
-  ParentIndexEntry,
-  ParentPathElement,
-  ParentIndex,
-} from "./tree/display-new";
+import { ParentIndexEntry, ParentPathElement } from "./tree/display-new";
 
 interface ParentLink {
   parentId: string;
@@ -57,72 +53,5 @@ export class IncrementalParentIndex {
 
   has(nodeId: string): boolean {
     return this.nodesById.has(nodeId);
-  }
-}
-
-export class ParentIndexProxy {
-  private static warningCount = 0;
-
-  constructor(
-    private oldIndex: ParentIndex,
-    private incrementalIndex: IncrementalParentIndex,
-  ) {}
-
-  private static entriesAreEqual(
-    entryA: ParentIndexEntry | undefined,
-    entryB: ParentIndexEntry | undefined,
-  ): boolean {
-    if (!!entryA !== !!entryB) {
-      return false;
-    }
-    if (!entryA || !entryB) {
-      return true;
-    }
-    if (entryA.node !== entryB.node) {
-      return false;
-    }
-    if (entryA.path.length !== entryB.path.length) {
-      return false;
-    }
-    return entryA.path.every((eA, i) => {
-      const eB = entryB.path[i];
-      return eA.parent === eB.parent && eA.childKey === eB.childKey;
-    });
-  }
-
-  private warn(...args: any[]) {
-    if (ParentIndexProxy.warningCount >= 100) {
-      return;
-    }
-    ParentIndexProxy.warningCount++;
-    console.warn(...args);
-  }
-
-  get(nodeId: string) {
-    const oldRes = this.oldIndex.get(nodeId);
-    const incrementalRes = this.incrementalIndex.get(nodeId);
-    if (!ParentIndexProxy.entriesAreEqual(oldRes, incrementalRes)) {
-      this.warn(
-        "ParentIndexProxy.get mismatch",
-        nodeId,
-        oldRes,
-        incrementalRes,
-      );
-    }
-    return oldRes;
-  }
-
-  has(nodeId: string) {
-    const oldRes = this.oldIndex.has(nodeId);
-    const incrementalRes = this.incrementalIndex.has(nodeId);
-    if (oldRes !== incrementalRes) {
-      this.warn(
-        "ParentIndexProxy.has mismatch",
-        nodeId,
-        oldRes,
-        incrementalRes,
-      );
-    }
-    return oldRes;
   }
 }

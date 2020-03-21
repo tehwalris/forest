@@ -1,10 +1,10 @@
 import { NavTree, RectStyle } from "divetree-react";
 import * as _fsType from "fs";
-import * as R from "ramda";
 import * as React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HandleAction } from "../logic/editing/interfaces";
 import { handleKey } from "../logic/editing/key-handlers";
+import { IncrementalParentIndex } from "../logic/parent-index";
 import TypescriptProvider, { FileNode } from "../logic/providers/typescript";
 import {
   applyTransformsToTree,
@@ -25,21 +25,16 @@ import { EmptyLeafNode } from "../logic/tree/base-nodes";
 import {
   buildDivetreeDisplayTree,
   buildDivetreeNavTree,
-  buildParentIndex,
-  getNodeForDisplay,
-  ParentIndexEntry,
-  idPathFromParentIndexEntry,
   getMetaBranchBranchIds,
+  getNodeForDisplay,
+  idPathFromParentIndexEntry,
+  ParentIndexEntry,
 } from "../logic/tree/display-new";
 import { Node, SemanticColor } from "../logic/tree/node";
+import { useFocus } from "../logic/use-focus";
 import { PossibleActionDisplay } from "./possible-action-display";
 import { ActionFiller } from "./tree/action-filler";
 import { NodeContent } from "./tree/node-content";
-import {
-  IncrementalParentIndex,
-  ParentIndexProxy,
-} from "../logic/parent-index";
-import { useFocus } from "../logic/use-focus";
 
 interface Props {
   fs: typeof _fsType;
