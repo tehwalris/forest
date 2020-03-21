@@ -20,21 +20,6 @@ export function getNodeForDisplay(
   return node;
 }
 
-export function buildParentIndex(
-  root: Node<unknown>,
-  result: Map<string, ParentIndexEntry> = new Map(),
-  path: ParentPathElement[] = [],
-): ParentIndex {
-  result.set(root.id, { node: root, path });
-  root.children.forEach(c =>
-    buildParentIndex(c.node, result, [
-      ...path,
-      { parent: root, childKey: c.key },
-    ]),
-  );
-  return result;
-}
-
 export function getMetaBranchBranchIds(
   root: Node<unknown>,
   result = new Set<string>(),

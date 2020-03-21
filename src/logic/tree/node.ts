@@ -1,8 +1,8 @@
 import { Path, Link } from "./base";
 import { ActionSet } from "./action";
 import genUuid from "uuid/v4";
-import { ParentPathElement } from "./display-new";
 import { MetaSplit } from "../transform/transforms/split-meta";
+import { ParentPathElement } from "../parent-index";
 
 export interface Node<B> {
   unapplyTransform?(): BuildResult<Node<B>>;
