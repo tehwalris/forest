@@ -39,6 +39,7 @@ import {
   IncrementalParentIndex,
   ParentIndexProxy,
 } from "../logic/parent-index";
+import { useFocus } from "../logic/use-focus";
 
 interface Props {
   fs: typeof _fsType;
@@ -233,13 +234,15 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     [tree],
   );
 
+  const [focusedParentIndexEntry, setFocusedId] = useFocus(
+    tree,
+    incrementalParentIndex,
+  );
+
   const navTree = useMemo(() => buildDivetreeNavTree(tree, metaLevelNodeIds), [
     tree,
     metaLevelNodeIds,
   ]);
-
-  // PLAN Remove this once the nav tree is built lazily
-  buildDivetreeNavTree(tree, metaLevelNodeIds, incrementalParentIndex);
 
   const parentIndex = new ParentIndexProxy(
     oldParentIndex,
@@ -266,34 +269,22 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     _setMetaLevelNodeIds(new Set(newIds));
   };
 
-  const _lastFocusedIdPath = useRef([tree.id]);
-  const [_focusedId, setFocusedId] = useState(tree.id);
-  const _focusedIdPath = useMemo(
-    () =>
-      parentIndex.has(_focusedId)
-        ? idPathFromParentIndexEntry(parentIndex.get(_focusedId)!)
-        : _lastFocusedIdPath.current,
-    [parentIndex, _focusedId, _lastFocusedIdPath],
-  );
   useEffect(() => {
-    const focusedIds = new Set(_focusedIdPath);
+    const focusedIds = new Set(
+      idPathFromParentIndexEntry(focusedParentIndexEntry),
+    );
     const validMetaLevelNodeIds = [...metaLevelNodeIds].filter(id =>
       focusedIds.has(id),
     );
     if (validMetaLevelNodeIds.length !== metaLevelNodeIds.size) {
       _setMetaLevelNodeIds(new Set(validMetaLevelNodeIds));
     }
-  }, [_focusedIdPath, metaLevelNodeIds]);
-  const focusedId =
-    R.findLast(id => parentIndex.has(id), _focusedIdPath) || _focusedId;
-  useEffect(() => {
-    _lastFocusedIdPath.current = _focusedIdPath;
-  });
+  }, [focusedParentIndexEntry, metaLevelNodeIds]);
 
-  const apparentFocusedNode = parentIndex.get(focusedId)?.node;
-  const trueFocusedNode =
-    apparentFocusedNode &&
-    getNodeForDisplay(apparentFocusedNode, metaLevelNodeIds);
+  const trueFocusedNode = getNodeForDisplay(
+    focusedParentIndexEntry.node,
+    metaLevelNodeIds,
+  );
 
   const [copiedNode, setCopiedNode] = useState<Node<unknown>>();
 
@@ -310,20 +301,16 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
         getStyle={(id, focused) =>
           getNodeStyle(parentIndex.get(id as string), focused)
         }
-        focusedIdPath={
-          parentIndex.has(focusedId)
-            ? idPathFromParentIndexEntry(parentIndex.get(focusedId)!).filter(
-                id => !metaBranchBranchIds.has(id),
-              )
-            : []
-        }
+        focusedIdPath={idPathFromParentIndexEntry(
+          focusedParentIndexEntry,
+        ).filter(id => !metaBranchBranchIds.has(id))}
         onFocusedIdChange={setFocusedId}
         disableNav={!!inProgressAction}
         onKeyDown={key =>
           handleKey(key, {
             tree,
             parentIndex,
-            focusedId,
+            focusedId: focusedParentIndexEntry.node.id,
             setFocusedId,
             handleAction,
             cancelAction: () => setInProgressAction(undefined),
