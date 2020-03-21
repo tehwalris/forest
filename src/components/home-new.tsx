@@ -212,27 +212,11 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
 
   const [metaLevelNodeIds, _setMetaLevelNodeIds] = useState(new Set<string>());
 
-  // PLAN
-  // - Only create a partial parent index
-  //   - Contains every node which could possibly be accessed
-  // - Create an empty index when beggining rendering
-  // - Run all code which does not depend on the index
-  //   - Extend the index while running that code
-  //   - For example, build the (partial) nav tree and add every reachable node to the parent index
-  //   - This requires the path to the focused node to be known
-  // - The parent index now contains every reachable node
-  // - Run all code which depends on the index
-  //   - For example actually rendering
-
   const incrementalParentIndex = new IncrementalParentIndex();
 
-  const { parentIndex: oldParentIndex, metaBranchBranchIds } = useMemo(
-    () => ({
-      parentIndex: buildParentIndex(tree),
-      metaBranchBranchIds: getMetaBranchBranchIds(tree),
-    }),
-    [tree],
-  );
+  const metaBranchBranchIds = useMemo(() => getMetaBranchBranchIds(tree), [
+    tree,
+  ]);
 
   const [focusedParentIndexEntry, setFocusedId] = useFocus(
     tree,
@@ -244,13 +228,8 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     metaLevelNodeIds,
   ]);
 
-  const parentIndex = new ParentIndexProxy(
-    oldParentIndex,
-    incrementalParentIndex,
-  );
-
   const toggleNodeMetaLevel = (nodeId: string) => {
-    const entry = parentIndex.get(nodeId);
+    const entry = incrementalParentIndex.get(nodeId);
     if (!entry) {
       return;
     }
