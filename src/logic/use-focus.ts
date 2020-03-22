@@ -74,7 +74,7 @@ export function useFocus(
 
   const setFocusedId = (targetId: string) => {
     const entry = parentIndex.get(targetId);
-    if (entry) {
+    if (entry && nextFocusedId === undefined) {
       _setFocusedIdPath(idPathFromParentIndexEntry(entry));
     } else {
       setNextFocusedId(targetId);
