@@ -7,5 +7,6 @@ export type HandleAction = (
   target: Path,
   focus: ((newNode: Node<unknown>) => string) | undefined,
   childActionArgument: string | undefined,
+  childIndexActionArgument: number | undefined,
   nodeActionArgument: Node<unknown> | undefined,
 ) => void;

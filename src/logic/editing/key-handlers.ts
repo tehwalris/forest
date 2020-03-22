@@ -65,6 +65,7 @@ export function handleKey(
         undefined,
         targetKey,
         undefined,
+        undefined,
       );
       const targetIndex = parent.children.findIndex(e => e.key === targetKey);
       setFocusedId(
@@ -114,6 +115,7 @@ export function handleKey(
       undefined,
       undefined,
       undefined,
+      undefined,
     );
   };
   const tryAction = (
@@ -122,7 +124,14 @@ export function handleKey(
   ) => () => {
     const action = node.actions[actionKey];
     if (action) {
-      handleAction(action, trueKeyPath, focus, undefined, copiedNode);
+      handleAction(
+        action,
+        trueKeyPath,
+        focus,
+        undefined,
+        undefined,
+        copiedNode,
+      );
     }
   };
   const findClosestFileNode = (): FileNode | undefined => {

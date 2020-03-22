@@ -36,34 +36,30 @@ import { useFocus } from "../logic/use-focus";
 import { PossibleActionDisplay } from "./possible-action-display";
 import { ActionFiller } from "./tree/action-filler";
 import { NodeContent } from "./tree/node-content";
-
 interface Props {
   fs: typeof _fsType;
 }
-
 interface CombinedTrees {
   raw: Node<unknown>;
   transformed?: Node<unknown>;
 }
-
 const TRANSFORMS: Transform[][] = [
   [simpleVariableDeclarationTransform],
   [flattenIfTransform, compressUselessValuesTransform],
   [splitMetaTransform],
 ];
-
 const transformCache: MultiTransformCache = {
   apply: new WeakMap(),
   unapply: new WeakMap(),
 };
-
 type ColorPair = [number[], number[]];
-
 const DEFAULT_COLORS: ColorPair = [
   [240, 240, 240],
   [170, 170, 170],
 ];
-const COLORS: { [K in SemanticColor]: ColorPair } = {
+const COLORS: {
+  [K in SemanticColor]: ColorPair;
+} = {
   [SemanticColor.LITERAL]: [
     [232, 178, 178],
     [232, 86, 99],
@@ -81,7 +77,6 @@ const COLORS: { [K in SemanticColor]: ColorPair } = {
     [113, 169, 215],
   ],
 };
-
 function getNodeStyle(
   entry: ParentIndexEntry | undefined,
   focused: boolean,
@@ -95,34 +90,25 @@ function getNodeStyle(
   }
   return toStyle(COLORS[semanticColor]);
 }
-
 export const HomeNew: React.FC<Props> = ({ fs }) => {
   const [_trees, _setTrees] = useState<CombinedTrees>({
     raw: new EmptyLeafNode(),
   });
-
   const typescriptProvider = useRef(new TypescriptProvider(fs, "./"));
-
   const openFile = React.useCallback(async () => {
-    _setTrees({
-      raw: await typescriptProvider.current.loadTree(),
-    });
+    _setTrees({ raw: await typescriptProvider.current.loadTree() });
   }, []);
   (window as any).openFile = openFile;
   useEffect(() => {
     openFile();
   }, [openFile]);
-
   const saveFile = async (tree: FileNode) => {
     typescriptProvider.current.trySaveFile(tree);
   };
-
   let tree = _trees.transformed || _trees.raw;
-  // TODO Make this switchable from the editor
   if (tree === _trees.raw && !(window as any).noTransform) {
     tree = applyTransformsToTree(_trees.raw, TRANSFORMS, transformCache);
   }
-
   const setTree = (updater: (oldTree: Node<unknown>) => Node<unknown>) => {
     _setTrees(
       (_trees): CombinedTrees => {
@@ -146,21 +132,19 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
       },
     );
   };
-
   const updateNode = (path: Path, value: Node<unknown>) => {
     setTree(tree => tree.setDeepChild(path, value));
   };
-
   const [inProgressAction, setInProgressAction] = useState<{
     target: Path;
     action: Action<Node<unknown>>;
   }>();
-
   const handleAction: HandleAction = (
     action,
     target,
     focus,
     childActionArgument,
+    childIndexActionArgument,
     nodeActionArgument,
   ) => {
     const updateTarget = (newNode: Node<unknown>) => {
@@ -170,7 +154,6 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
         setFocusedId(newFocusedId);
       }
     };
-
     if (action.inputKind === InputKind.None) {
       updateTarget(action.apply());
     } else if (action.inputKind === InputKind.Child) {
@@ -178,6 +161,11 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
         throw new Error("Expected childActionArgument");
       }
       updateTarget(action.apply(childActionArgument));
+    } else if (action.inputKind === InputKind.ChildIndex) {
+      if (childIndexActionArgument === undefined) {
+        throw new Error("Expected childIndexActionArgument");
+      }
+      updateTarget(action.apply(childActionArgument as any));
     } else if (action.inputKind === InputKind.Node) {
       if (!nodeActionArgument) {
         throw new Error("Expected nodeActionArgument");
@@ -205,24 +193,19 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     updateNode(inProgressAction.target, updatedNode);
     setInProgressAction(undefined);
   };
-
   const [metaLevelNodeIds, _setMetaLevelNodeIds] = useState(new Set<string>());
-
   const incrementalParentIndex = useMemo(
     () => new IncrementalParentIndex(tree),
     [tree],
   );
-
   const [focusedParentIndexEntry, setFocusedId] = useFocus(
     tree,
     incrementalParentIndex,
   );
-
   const navTree = useMemo(() => buildDivetreeNavTree(tree, metaLevelNodeIds), [
     tree,
     metaLevelNodeIds,
   ]);
-
   const toggleNodeMetaLevel = (nodeId: string) => {
     const entry = incrementalParentIndex.get(nodeId);
     if (!entry) {
@@ -242,15 +225,12 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     });
     _setMetaLevelNodeIds(new Set(newIds));
   };
-
   const trueFocusedNode = getNodeForDisplay(
     focusedParentIndexEntry.node,
     metaLevelNodeIds,
   );
   incrementalParentIndex.addObservation(trueFocusedNode);
-
   const [copiedNode, setCopiedNode] = useState<Node<unknown>>();
-
   return (
     <div>
       <NavTree
