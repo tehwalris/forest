@@ -102,7 +102,7 @@ export function unapplyTransforms(
     while (cache.has(node)) {
       node = cache.get(node)!;
     }
-    return { ok: true, value: cache.get(transformedNode)! };
+    return { ok: true, value: node };
   }
 
   while (node.unapplyTransform) {
