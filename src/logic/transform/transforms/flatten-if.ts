@@ -10,7 +10,7 @@ import {
 import * as R from "ramda";
 import * as ts from "typescript";
 import { ActionSet } from "../../tree/action";
-import { Link, Path } from "../../tree/base";
+import { Path } from "../../tree/base";
 import { fromTsNode } from "../../providers/typescript/convert";
 import { unions } from "../../providers/typescript/generated/templates";
 import { ListNode } from "../../tree/base-nodes";
@@ -129,7 +129,6 @@ function _unflattenIf(branches: FlatIfBranch[]): Node<ts.Statement> {
 
 class FlatIfNode extends ListNode<FlatIfBranch, unknown> {
   flags: FlagSet = {};
-  links: Link[] = [];
 
   constructor(
     private originalNode: Node<unknown>,
@@ -221,7 +220,6 @@ class FlatIfBranchNode extends Node<FlatIfBranch> {
   children: ChildNodeEntry<any>[] = [];
   flags: FlagSet = {};
   actions: ActionSet<Node<FlatIfBranch>> = {};
-  links: Link[] = [];
 
   constructor(private branch: FlatIfBranch) {
     super();

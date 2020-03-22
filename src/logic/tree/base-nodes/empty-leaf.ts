@@ -4,7 +4,6 @@ export class EmptyLeafNode extends Node<undefined> {
   children: never[] = [];
   flags = {};
   actions: ActionSet<never> = {};
-  links: never[] = [];
   clone(): EmptyLeafNode {
     return new EmptyLeafNode();
   }

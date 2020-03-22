@@ -1,7 +1,6 @@
 import * as R from "ramda";
 import { Transform } from "..";
 import { ActionSet } from "../../tree/action";
-import { Link } from "../../tree/base";
 import { BuildResult, ChildNodeEntry, FlagSet, Node } from "../../tree/node";
 import { compressChildrenTransform } from "./compress-useless-values";
 import { ParentPathElement } from "../../parent-index";
@@ -41,7 +40,6 @@ class MetaBranchBranchNode<B> extends Node<ModifiedNode<B>> {
   children: ChildNodeEntry<unknown>[];
   flags: FlagSet;
   actions: ActionSet<Node<ModifiedNode<B>>>;
-  links: Link[];
 
   constructor(
     private original: Node<B>,
@@ -73,7 +71,6 @@ class MetaBranchBranchNode<B> extends Node<ModifiedNode<B>> {
           ]),
       };
     }, modified.actions);
-    this.links = modified.links;
 
     if (this.spreadChildren) {
       return compressChildrenTransform(this) as any;
@@ -116,7 +113,6 @@ class MetaBranchBranchNode<B> extends Node<ModifiedNode<B>> {
 export class MetaBranchNode<B> extends Node<B> {
   flags = {};
   actions = {};
-  links = [];
 
   constructor(
     private original: Node<B>,

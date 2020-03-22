@@ -1,4 +1,4 @@
-import { Path, Link } from "./base";
+import { Path } from "./base";
 import { ActionSet } from "./action";
 import genUuid from "uuid/v4";
 import { MetaSplit } from "../transform/transforms/split-meta";
@@ -14,7 +14,6 @@ export abstract class Node<B> {
   metaSplit: MetaSplit | undefined;
   abstract flags: FlagSet;
   abstract actions: ActionSet<Node<B>>;
-  abstract links: Link[];
   abstract clone(): Node<B>;
   abstract setChild(child: ChildNodeEntry<any>): Node<B>;
   abstract setFlags(flags: this["flags"]): Node<B>;

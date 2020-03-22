@@ -1,10 +1,8 @@
 import { ActionSet, InputKind } from "../action";
 import { Node, ChildNodeEntry, BuildResult } from "../node";
-import { Link } from "../base";
 export abstract class StructNode<T, B> extends Node<B> {
   actions: ActionSet<StructNode<T, B>>;
   abstract children: ChildNodeEntry<any>[];
-  abstract links: Link[];
   constructor() {
     super();
     this.actions = {

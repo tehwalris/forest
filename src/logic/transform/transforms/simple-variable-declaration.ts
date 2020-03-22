@@ -1,7 +1,6 @@
 import * as R from "ramda";
 import { Transform } from "..";
 import { ActionSet } from "../../tree/action";
-import { Link } from "../../tree/base";
 import {
   BuildResult,
   ChildNodeEntry,
@@ -78,7 +77,6 @@ class ActionMaskedNode<B> extends Node<B> {
   children: ChildNodeEntry<unknown>[];
   flags: FlagSet;
   actions: ActionSet<Node<B>>;
-  links: Link[];
 
   constructor(
     private baseNode: Node<B>,
@@ -103,7 +101,6 @@ class ActionMaskedNode<B> extends Node<B> {
           ),
       };
     }
-    this.links = baseNode.links;
   }
 
   clone(): ActionMaskedNode<B> {

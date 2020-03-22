@@ -99,7 +99,6 @@ function someDefaultFromUnion<T extends ts.Node>(
 export class StringTemplateNode<B extends ts.Node> extends Node<B> {
   children: never[] = [];
   flags = {};
-  links: never[] = [];
   actions: ActionSet<StringTemplateNode<B>> = {
     setFromString: {
       inputKind: InputKind.String,
@@ -164,7 +163,6 @@ export class ListTemplateNode<
   C extends ts.Node
 > extends ListNode<C, B> {
   // children: ChildNodeEntry<C>[]; // HACK This field should use "declare", but that's not supported in CRA at the moment
-  links = [] as never[];
   constructor(
     private template: ListTemplate<B, C>,
     private newChild: () => Node<C>,
@@ -241,7 +239,6 @@ export class StructTemplateNode<
   },
   B extends ts.Node
 > extends Node<B> {
-  links = [] as never[];
   actions: ActionSet<never> = {};
   constructor(
     private template: StructTemplate<C, B>,
@@ -353,7 +350,6 @@ export class StructTemplateNode<
 }
 export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
   flags = {};
-  links: never[] = [];
   constructor(
     private _union: Union<T>,
     private variants: LazyUnionVariant<string>[],

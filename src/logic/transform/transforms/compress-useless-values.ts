@@ -7,7 +7,6 @@ import {
   DisplayInfo,
 } from "../../tree/node";
 import { ActionSet } from "../../tree/action";
-import { Link } from "../../tree/base";
 import * as R from "ramda";
 import { isMetaBranchNode } from "./split-meta";
 import { ParentPathElement } from "../../parent-index";
@@ -27,7 +26,6 @@ export const compressChildrenTransform: Transform = node => {
       .length ||
     R.intersection(Object.keys(node.flags), Object.keys(child.node.flags))
       .length ||
-    Object.keys(child.node.links).length ||
     node.metaSplit ||
     isMetaBranchNode(child.node)
   ) {
@@ -57,7 +55,6 @@ export class CompressedNode<B> extends Node<B> {
   children: ChildNodeEntry<any>[];
   flags: FlagSet;
   actions: ActionSet<Node<B>>;
-  links: Link[];
 
   constructor(
     private parentNode: Node<B>,
@@ -68,7 +65,6 @@ export class CompressedNode<B> extends Node<B> {
     super();
     this.children = childNode.children;
     this.flags = { ...parentNode.flags, ...childNode.flags };
-    this.links = parentNode.links;
     this.metaSplit = childNode.metaSplit;
 
     this.actions = {};

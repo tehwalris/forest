@@ -82,7 +82,6 @@ export class FileNode extends ListNode<
   Map<string, ts.SourceFile>
 > {
   flags = {};
-  links: never[] = [];
   constructor(
     value: Node<ts.Statement>[],
     private file: ts.SourceFile,
@@ -163,7 +162,6 @@ class DirectoryNode extends StructNode<
   Map<string, ts.SourceFile>,
   Map<string, ts.SourceFile>
 > {
-  links: never[] = [];
   flags = {};
   constructor(public children: ChildNodeEntry<Map<string, ts.SourceFile>>[]) {
     super();

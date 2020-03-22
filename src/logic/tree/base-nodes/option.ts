@@ -2,7 +2,6 @@ import { UnionVariant } from "./union";
 import { Node, BuildResult, ChildNodeEntry } from "../node";
 import { ActionSet, InputKind } from "../action";
 export class OptionNode<B> extends Node<B | undefined> {
-  links = [] as never[];
   children: ChildNodeEntry<B>[];
   flags = {};
   actions: ActionSet<OptionNode<B>> = {

@@ -100,7 +100,6 @@ class UnsupportedSyntaxNode<T extends ts.Node> extends Node<T> {
   children = [];
   flags = {};
   actions: ActionSet<never> = {};
-  links = [];
   private original: T;
   constructor(value: T) {
     super();
@@ -125,7 +124,6 @@ class UnsupportedSyntaxNode<T extends ts.Node> extends Node<T> {
   }
 }
 export class BooleanNode extends Node<ts.BooleanLiteral> {
-  links = [];
   children = [];
   flags = {};
   original: ts.BooleanLiteral;

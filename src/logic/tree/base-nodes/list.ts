@@ -1,11 +1,9 @@
 import { ActionSet, InputKind } from "../action";
 import { Node, ChildNodeEntry, BuildResult } from "../node";
-import { Link } from "../base";
 export abstract class ListNode<T, B> extends Node<B> {
   children: ChildNodeEntry<T>[];
   actions: ActionSet<ListNode<T, B>>;
   protected value: Node<T>[];
-  abstract links: Link[];
   constructor(value: Node<T>[]) {
     super();
     this.value = value;
