@@ -46,7 +46,9 @@ function applyTransformToTree(
     });
   }
   cache.set(root, newRoot);
-  unapplyCache.set(newRoot, root);
+  if (newRoot !== root) {
+    unapplyCache.set(newRoot, root);
+  }
   return newRoot;
 }
 
