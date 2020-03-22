@@ -160,7 +160,6 @@ export function handleKey(
     "9": save,
     "0": () => console.log(prettyPrint()),
     Escape: cancelAction,
-    R: tryAction("prepend", n => (n.children[0]?.node || n).id),
     "ctrl-ArrowRight": tryAction(
       "append",
       n => (R.last(n.children)?.node || n).id,
