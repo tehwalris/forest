@@ -433,6 +433,7 @@ PropertyDeclaration
   O questionToken QuestionToken
   O type TypeNode
   O initializer Expression
+  primary initializer
   flags accesibility static readonly async abstract
   build ({name, questionToken, type, initializer}, modifiers) => ts.createProperty(undefined, modifiers, name, questionToken, type, initializer)
 MethodDeclaration
