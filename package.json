@@ -17,6 +17,7 @@
     "change-case": "^4.1.1",
     "divetree-core": "link:../divetree/packages/divetree-core",
     "divetree-react": "link:../divetree/packages/divetree-react",
+    "emotion": "^10.0.27",
     "fs-remote": "^0.1.9",
     "prettier": "^1.19.1",
     "ramda": "^0.26.1",
