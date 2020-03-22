@@ -38,6 +38,7 @@ export interface NodeInputAction<B, I extends Node<unknown>> {
   apply(inputNode: I): Node<B>;
 }
 export interface ActionSet<N extends Node<unknown>> {
+  insertChildAtIndex?: ChildIndexInputAction<N>;
   prepend?: NoInputAction<N>;
   append?: NoInputAction<N>;
   setFromString?: StringInputAction<N>;

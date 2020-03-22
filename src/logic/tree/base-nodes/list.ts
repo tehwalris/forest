@@ -11,6 +11,14 @@ export abstract class ListNode<T, B> extends Node<B> {
     this.value = value;
     this.children = value.map((e, i) => ({ key: `${i}`, node: e }));
     this.actions = {
+      insertChildAtIndex: {
+        inputKind: InputKind.ChildIndex,
+        apply: targetIndex => {
+          const newChildren = [...this.children.map(e => e.node)];
+          newChildren.splice(targetIndex, 0, this.createChild());
+          return this.setValue(newChildren);
+        },
+      },
       prepend: {
         inputKind: InputKind.None,
         apply: () =>

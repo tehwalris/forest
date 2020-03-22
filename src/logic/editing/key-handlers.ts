@@ -111,6 +111,24 @@ export function handleKey(
       {},
     );
   };
+  const insertSibling = (indexOffset: number) => {
+    const lastApparentPathEntry = R.last(apparentPath);
+    if (!lastApparentPathEntry) {
+      return;
+    }
+    const { parent, childKey } = lastApparentPathEntry;
+    const childIndex =
+      parent.children.findIndex(c => c.key === childKey) + indexOffset;
+    const action = parent?.actions.insertChildAtIndex;
+    if (parent && action) {
+      handleAction(
+        action,
+        R.dropLast(1, apparentPath).map(e => e.childKey),
+        n => (n.children[childIndex]?.node || n).id,
+        { childIndex },
+      );
+    }
+  };
   const tryAction = (
     actionKey: keyof ActionSet<any>,
     focus?: (newNode: Node<unknown>) => string,
@@ -142,8 +160,10 @@ export function handleKey(
     "9": save,
     "0": () => console.log(prettyPrint()),
     Escape: cancelAction,
-    r: tryAction("prepend", n => (n.children[0]?.node || n).id),
-    a: tryAction("append", n => (R.last(n.children)?.node || n).id),
+    R: tryAction("prepend", n => (n.children[0]?.node || n).id),
+    A: tryAction("append", n => (R.last(n.children)?.node || n).id),
+    r: () => insertSibling(0),
+    a: () => insertSibling(1),
     s: tryAction("setFromString"),
     v: tryAction("setVariant"),
     t: tryAction("toggle"),
