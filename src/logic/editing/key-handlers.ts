@@ -21,7 +21,7 @@ interface HandleKeyOptions {
   toggleNodeMetaLevel: (nodeId: string) => void;
 }
 export function handleKey(
-  key: string,
+  event: KeyboardEvent,
   {
     tree,
     parentIndex,
@@ -37,7 +37,7 @@ export function handleKey(
     toggleNodeMetaLevel,
   }: HandleKeyOptions,
 ) {
-  if (actionInProgress && key !== "Escape") {
+  if (actionInProgress && event.key !== "Escape") {
     return;
   }
   const apparentParentIndexEntry = parentIndex.get(focusedId);
@@ -161,9 +161,12 @@ export function handleKey(
     "0": () => console.log(prettyPrint()),
     Escape: cancelAction,
     R: tryAction("prepend", n => (n.children[0]?.node || n).id),
-    A: tryAction("append", n => (R.last(n.children)?.node || n).id),
-    r: () => insertSibling(0),
-    a: () => insertSibling(1),
+    "ctrl-ArrowRight": tryAction(
+      "append",
+      n => (R.last(n.children)?.node || n).id,
+    ),
+    "ctrl-ArrowUp": () => insertSibling(0),
+    "ctrl-ArrowDown": () => insertSibling(1),
     s: tryAction("setFromString"),
     v: tryAction("setVariant"),
     t: tryAction("toggle"),
@@ -175,5 +178,29 @@ export function handleKey(
     f: editFlags,
     m: () => toggleNodeMetaLevel(focusedId),
   };
-  handlers[key]?.();
+  const comboAliasReplacements: [RegExp, string][] = [
+    [/\bArrowUp\b/, "k"],
+    [/\bArrowRight\b/, "l"],
+    [/\bArrowDown\b/, "j"],
+    [/\bArrowLeft\b/, "h"],
+  ];
+  Object.keys(handlers).forEach(combo => {
+    for (const [target, replacement] of comboAliasReplacements) {
+      const altCombo = combo.replace(target, replacement);
+      if (altCombo !== combo && !handlers[altCombo]) {
+        handlers[altCombo] = handlers[combo];
+      }
+    }
+  });
+  let keyCombo = event.key;
+  if (event.ctrlKey) {
+    keyCombo = "ctrl-" + keyCombo;
+  }
+  const handler = handlers[keyCombo];
+  if (handler) {
+    handler();
+    event.preventDefault();
+    event.stopPropagation();
+    return false;
+  }
 }

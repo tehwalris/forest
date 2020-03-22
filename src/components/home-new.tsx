@@ -251,8 +251,8 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
         )}
         onFocusedIdChange={setFocusedId}
         disableNav={!!inProgressAction}
-        onKeyDown={key =>
-          handleKey(key, {
+        onKeyDown={ev =>
+          handleKey(ev, {
             tree,
             parentIndex: incrementalParentIndex,
             focusedId: focusedParentIndexEntry.node.id,
