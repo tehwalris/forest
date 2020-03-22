@@ -70,7 +70,10 @@ export const enchancers: {
     const label =
       name === undefined
         ? [{ text: "property", style: LabelStyle.TYPE_SUMMARY }]
-        : [{ text: name, style: LabelStyle.NAME }];
+        : [
+            { text: "property", style: LabelStyle.TYPE_SUMMARY },
+            { text: name, style: LabelStyle.NAME },
+          ];
     return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
   PropertyAssignment: (node: Node<ts.PropertyAssignment>) => {
@@ -78,7 +81,10 @@ export const enchancers: {
     const label =
       name === undefined
         ? [{ text: "property", style: LabelStyle.TYPE_SUMMARY }]
-        : [{ text: name, style: LabelStyle.NAME }];
+        : [
+            { text: "property", style: LabelStyle.TYPE_SUMMARY },
+            { text: name, style: LabelStyle.NAME },
+          ];
     return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
   VariableDeclarationList: (node: Node<unknown>) => {
@@ -102,7 +108,10 @@ export const enchancers: {
     const label =
       name === undefined
         ? [{ text: "parameter", style: LabelStyle.TYPE_SUMMARY }]
-        : [{ text: name, style: LabelStyle.NAME }];
+        : [
+            { text: "parameter", style: LabelStyle.TYPE_SUMMARY },
+            { text: name, style: LabelStyle.NAME },
+          ];
     return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
   MethodDeclaration: (node: Node<ts.MethodDeclaration>) => {
