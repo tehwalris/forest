@@ -14,11 +14,6 @@ type DirectoryTree =
   | {
       [pathSegment: string]: DirectoryTree;
     };
-interface WorkingSet {
-  files: Map<string, string>;
-  rootFiles: string[];
-  directoryTree: DirectoryTree;
-}
 export class TypescriptProvider {
   program?: ts.Program;
   compilerHost = new CompilerHost();
