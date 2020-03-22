@@ -1,5 +1,12 @@
 import * as ts from "typescript";
-import { Node, ChildNodeEntry, BuildResult } from "../../tree/node";
+import {
+  Node,
+  ChildNodeEntry,
+  BuildResult,
+  DisplayInfo,
+  DisplayInfoPriority,
+  LabelStyle,
+} from "../../tree/node";
 import { CompilerHost } from "./compiler-host";
 import { StructNode, ListNode } from "../../tree/base-nodes";
 import { unions } from "./generated/templates";
@@ -9,6 +16,7 @@ import { tryPrettyPrint } from "./pretty-print";
 import * as path from "path";
 import * as R from "ramda";
 import { promisify } from "util";
+import { ParentPathElement } from "../../parent-index";
 type DirectoryTree =
   | string
   | {
@@ -157,6 +165,22 @@ export class FileNode extends ListNode<
       unions.Statement,
     );
   }
+  getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo {
+    if (!parentPath.length) {
+      return {
+        label: [{ style: LabelStyle.TYPE_SUMMARY, text: "file" }],
+        priority: DisplayInfoPriority.LOW,
+      };
+    }
+    return {
+      label: [
+        { style: LabelStyle.TYPE_SUMMARY, text: "file" },
+        { style: LabelStyle.NAME, text: R.last(parentPath)!.childKey },
+      ],
+      priority: DisplayInfoPriority.MEDIUM,
+      hideKey: true,
+    };
+  }
 }
 class DirectoryNode extends StructNode<
   Map<string, ts.SourceFile>,
@@ -196,6 +220,22 @@ class DirectoryNode extends StructNode<
     const node = new DirectoryNode(children);
     node.id = this.id;
     return node;
+  }
+  getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo {
+    if (!parentPath.length) {
+      return {
+        label: [{ style: LabelStyle.TYPE_SUMMARY, text: "directory" }],
+        priority: DisplayInfoPriority.LOW,
+      };
+    }
+    return {
+      label: [
+        { style: LabelStyle.TYPE_SUMMARY, text: "directory" },
+        { style: LabelStyle.NAME, text: R.last(parentPath)!.childKey },
+      ],
+      priority: DisplayInfoPriority.MEDIUM,
+      hideKey: true,
+    };
   }
 }
 function nodeFromDirectoryTree(

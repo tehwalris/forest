@@ -1,6 +1,11 @@
 import * as React from "react";
 import * as R from "ramda";
-import { LabelStyle, LabelPart } from "../../logic/tree/node";
+import {
+  LabelStyle,
+  LabelPart,
+  DisplayInfo,
+  DisplayInfoPriority,
+} from "../../logic/tree/node";
 import { ParentIndexEntry } from "../../logic/parent-index";
 import { css } from "emotion";
 interface Props {
@@ -32,16 +37,17 @@ export const NodeContent: React.FC<Props> = React.memo(
       return null;
     }
     const { node, path } = parentIndexEntry;
-    const displayInfo = node.getDisplayInfo(path)?.label || [
-      { text: node.getDebugLabel() || "", style: LabelStyle.UNKNOWN },
-    ];
+    const displayInfo: DisplayInfo = node.getDisplayInfo(path) || {
+      label: [{ text: node.getDebugLabel() || "", style: LabelStyle.UNKNOWN }],
+      priority: DisplayInfoPriority.LOW,
+    };
     const childKey = R.last(path)?.childKey;
     return (
       <div>
-        {childKey && !childKey.match(/^\d+$/) && (
+        {childKey && !displayInfo.hideKey && !childKey.match(/^\d+$/) && (
           <div className={styles.childKey}>{childKey}</div>
         )}
-        {displayInfo.map((p, i) => (
+        {displayInfo.label.map((p, i) => (
           <div key={i}>{renderLabelPart(p)}</div>
         ))}
       </div>
