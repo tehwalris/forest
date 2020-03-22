@@ -6,10 +6,6 @@ import * as _fsType from "fs";
 const fs = createClient("http://localhost:1234") as typeof _fsType;
 
 export default class App extends React.Component {
-  state = {
-    color: "red",
-  };
-
   render() {
     return <HomeNew fs={fs} />;
   }
