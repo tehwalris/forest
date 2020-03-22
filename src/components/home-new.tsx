@@ -199,6 +199,17 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     tree,
     metaLevelNodeIds,
   ]);
+  useEffect(() => {
+    const newIds = new Set<string>();
+    focusedParentIndexEntry.path.forEach(({ parent }) => {
+      if (metaLevelNodeIds.has(parent.id) && isMetaBranchNode(parent)) {
+        newIds.add(parent.id);
+      }
+    });
+    if (newIds.size !== metaLevelNodeIds.size) {
+      _setMetaLevelNodeIds(newIds);
+    }
+  }, [focusedParentIndexEntry, metaLevelNodeIds]);
   const toggleNodeMetaLevel = (nodeId: string) => {
     const entry = incrementalParentIndex.get(nodeId);
     if (!entry) {
@@ -216,7 +227,12 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
         newIds.push(parent.id);
       }
     });
-    _setMetaLevelNodeIds(new Set(newIds));
+    const firstChildId = entry.node.children.find(c => c.key === "meta")?.node
+      .children[0]?.node.id;
+    if (firstChildId) {
+      setFocusedId(firstChildId);
+      _setMetaLevelNodeIds(new Set(newIds));
+    }
   };
   const trueFocusedNode = getNodeForDisplay(
     focusedParentIndexEntry.node,
