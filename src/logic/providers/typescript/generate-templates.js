@@ -259,7 +259,7 @@ const ${e.name}: StringTemplate<
   match: plainTypes.${e.name}.match,
   load: built => built.text,
   build: ${e.build},
-  enchancer: enchancers["${e.name}"]
+  enchancer: enchancers["${e.name}"],
 };
 `,
     ),
@@ -280,7 +280,8 @@ const ${e.name}: ListTemplate<
     .join(", ")}] as FlagKind[],
   load: built => built.${e.childKey},
   build: ${e.build || `children => ts.create${e.name}(children)`},
-  childUnion: unions.${e.childType}
+  childUnion: unions.${e.childType},
+  enchancer: enchancers["${e.name}"],
 };
 `,
     ),

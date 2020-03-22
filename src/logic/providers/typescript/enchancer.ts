@@ -81,6 +81,14 @@ export const enchancers: {
         : [{ text: name, style: LabelStyle.NAME }];
     return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
+  VariableDeclarationList: (node: Node<unknown>) => {
+    const flavor = (node.flags as any).variableFlavor?.value;
+    const label =
+      typeof flavor !== "string"
+        ? [{ text: "VariableDeclarationList", style: LabelStyle.UNKNOWN }]
+        : [{ text: flavor, style: LabelStyle.TYPE_SUMMARY }];
+    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
+  },
   VariableDeclaration: (node: Node<ts.VariableDeclaration>) => {
     const name = tryExtractName(node);
     const label =

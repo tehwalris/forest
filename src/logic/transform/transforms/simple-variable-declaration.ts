@@ -55,8 +55,8 @@ export const simpleVariableDeclarationTransform: Transform = <B>(
     key: "declarationList",
     node: newDeclarationListNode,
   });
-  newNode = compressChildrenTransform(newNode);
   newNode.id = node.id;
+  newNode = compressChildrenTransform(newNode);
   return newNode;
 };
 
@@ -69,7 +69,7 @@ const compressDeclarationListTransform: Transform = node => {
     node,
     node.getByPath([onlyChildEntry.key])!,
     compressDeclarationListTransform,
-    (p, c) => [c],
+    (p, c) => [p, c],
   );
 };
 

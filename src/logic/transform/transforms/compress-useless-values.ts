@@ -172,7 +172,13 @@ export class CompressedNode<B> extends Node<B> {
     return this.displaySelector(this.parentNode, this.childNode).reduce(
       (a: DisplayInfo | undefined, node) => {
         const c = node.getDisplayInfo(parentPath);
-        return !a || (c && c.priority >= a.priority) ? c : a;
+        if (!c || !a) {
+          return c || a;
+        }
+        if (c.priority !== a.priority) {
+          return c.priority > a.priority ? c : a;
+        }
+        return { ...a, label: [...a.label, ...c.label] };
       },
       undefined,
     );

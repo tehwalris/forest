@@ -42,6 +42,7 @@ export interface ListTemplate<B extends ts.Node, C extends ts.Node>
   build: (children: C[], modifiers: ts.Modifier[]) => B;
   flags: FlagKind[];
   childUnion: Union<C>;
+  enchancer?: Enchancer<Node<any>>;
 }
 interface BaseStructChild<T extends ts.Node> {
   union: Union<T>;
@@ -231,6 +232,10 @@ export class ListTemplateNode<
       saveNodeFlagsMutate(node, this.flags);
       return node;
     });
+  }
+  getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
+    const { enchancer } = this.template;
+    return enchancer ? enchancer(this, parentPath).displayInfo : undefined;
   }
 }
 export class StructTemplateNode<
