@@ -51,7 +51,10 @@ export const enchancers: {
     return {
       displayInfo: {
         priority: DisplayInfoPriority.MEDIUM,
-        label: [],
+        label: [
+          { text: "string", style: LabelStyle.TYPE_SUMMARY },
+          { text: "", style: LabelStyle.VALUE },
+        ],
         color: SemanticColor.LITERAL,
       },
     };
@@ -60,7 +63,10 @@ export const enchancers: {
     return {
       displayInfo: {
         priority: DisplayInfoPriority.MEDIUM,
-        label: [],
+        label: [
+          { text: "number", style: LabelStyle.TYPE_SUMMARY },
+          { text: "", style: LabelStyle.VALUE },
+        ],
         color: SemanticColor.LITERAL,
       },
     };

@@ -149,13 +149,19 @@ export class StringTemplateNode<B extends ts.Node> extends Node<B> {
   getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
     const { enchancer } = this.template;
     const infoFromEnchancer = enchancer?.(this, parentPath).displayInfo;
-    if (infoFromEnchancer?.label.length) {
-      return infoFromEnchancer;
+    const label = (infoFromEnchancer?.label || []).map(e => {
+      if (e.style === LabelStyle.VALUE && e.text === "") {
+        return { text: this.text, style: LabelStyle.VALUE };
+      }
+      return e;
+    });
+    if (!label?.length) {
+      label?.push({ text: this.text, style: LabelStyle.VALUE });
     }
     return {
       priority: DisplayInfoPriority.LOW,
       ...infoFromEnchancer,
-      label: [{ text: this.text, style: LabelStyle.VALUE }],
+      label,
     };
   }
 }
