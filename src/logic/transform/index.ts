@@ -96,11 +96,15 @@ export function unapplyTransforms(
   transformedNode: Node<unknown>,
   cache: SingleTransformCache,
 ): BuildResult<Node<unknown>> {
-  if (cache.has(transformedNode)) {
+  let node = transformedNode;
+
+  if (cache.has(node)) {
+    while (cache.has(node)) {
+      node = cache.get(node)!;
+    }
     return { ok: true, value: cache.get(transformedNode)! };
   }
 
-  let node = transformedNode;
   while (node.unapplyTransform) {
     const buildResult = node.unapplyTransform();
     if (!buildResult.ok) {
