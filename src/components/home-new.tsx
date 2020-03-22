@@ -186,7 +186,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     updateNode(inProgressAction.target, updatedNode);
     setInProgressAction(undefined);
   };
-  const [metaLevelNodeIds, _setMetaLevelNodeIds] = useState(new Set<string>());
+  const [metaLevelNodeIds, setMetaLevelNodeIds] = useState(new Set<string>());
   const incrementalParentIndex = useMemo(
     () => new IncrementalParentIndex(tree),
     [tree],
@@ -207,7 +207,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
       }
     });
     if (newIds.size !== metaLevelNodeIds.size) {
-      _setMetaLevelNodeIds(newIds);
+      setMetaLevelNodeIds(newIds);
     }
   }, [focusedParentIndexEntry, metaLevelNodeIds]);
   const toggleNodeMetaLevel = (nodeId: string) => {
@@ -231,7 +231,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
       .children[0]?.node.id;
     if (firstChildId) {
       setFocusedId(firstChildId);
-      _setMetaLevelNodeIds(new Set(newIds));
+      setMetaLevelNodeIds(new Set(newIds));
     }
   };
   const trueFocusedNode = getNodeForDisplay(
