@@ -40,20 +40,17 @@ export function handleKey(
   if (actionInProgress && key !== "Escape") {
     return;
   }
-
   const apparentParentIndexEntry = parentIndex.get(focusedId);
   if (!apparentParentIndexEntry) {
     return;
   }
   const { path: apparentPath } = apparentParentIndexEntry;
-
   const trueParentIndexEntry =
     parentIndex.get(
       getNodeForDisplay(apparentParentIndexEntry.node, metaLevelNodeIds).id,
     ) || apparentParentIndexEntry;
   const node = trueParentIndexEntry.node;
   const trueKeyPath = trueParentIndexEntry.path.map(e => e.childKey);
-
   const tryDeleteChild = () => {
     const parent = R.last(apparentPath)?.parent;
     const action = parent?.actions.deleteChild;
@@ -63,9 +60,7 @@ export function handleKey(
         action,
         R.dropLast(1, apparentPath).map(e => e.childKey),
         undefined,
-        targetKey,
-        undefined,
-        undefined,
+        { child: targetKey },
       );
       const targetIndex = parent.children.findIndex(e => e.key === targetKey);
       setFocusedId(
@@ -113,9 +108,7 @@ export function handleKey(
       },
       trueKeyPath,
       undefined,
-      undefined,
-      undefined,
-      undefined,
+      {},
     );
   };
   const tryAction = (
@@ -124,14 +117,7 @@ export function handleKey(
   ) => () => {
     const action = node.actions[actionKey];
     if (action) {
-      handleAction(
-        action,
-        trueKeyPath,
-        focus,
-        undefined,
-        undefined,
-        copiedNode,
-      );
+      handleAction(action, trueKeyPath, focus, { node: copiedNode });
     }
   };
   const findClosestFileNode = (): FileNode | undefined => {

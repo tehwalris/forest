@@ -139,14 +139,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     target: Path;
     action: Action<Node<unknown>>;
   }>();
-  const handleAction: HandleAction = (
-    action,
-    target,
-    focus,
-    childActionArgument,
-    childIndexActionArgument,
-    nodeActionArgument,
-  ) => {
+  const handleAction: HandleAction = (action, target, focus, args) => {
     const updateTarget = (newNode: Node<unknown>) => {
       updateNode(target, newNode);
       const newFocusedId = focus?.(newNode);
@@ -157,20 +150,20 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     if (action.inputKind === InputKind.None) {
       updateTarget(action.apply());
     } else if (action.inputKind === InputKind.Child) {
-      if (!childActionArgument) {
-        throw new Error("Expected childActionArgument");
+      if (!args.child) {
+        throw new Error("Expected args.child");
       }
-      updateTarget(action.apply(childActionArgument));
+      updateTarget(action.apply(args.child));
     } else if (action.inputKind === InputKind.ChildIndex) {
-      if (childIndexActionArgument === undefined) {
-        throw new Error("Expected childIndexActionArgument");
+      if (args.childIndex === undefined) {
+        throw new Error("Expected args.childIndex");
       }
-      updateTarget(action.apply(childActionArgument as any));
+      updateTarget(action.apply(args.childIndex));
     } else if (action.inputKind === InputKind.Node) {
-      if (!nodeActionArgument) {
-        throw new Error("Expected nodeActionArgument");
+      if (!args.node) {
+        throw new Error("Expected args.node");
       }
-      const newNode = action.apply(nodeActionArgument);
+      const newNode = action.apply(args.node);
       updateTarget(newNode);
     } else {
       if (focus) {
