@@ -3,7 +3,7 @@ import * as _fsType from "fs";
 import * as React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HandleAction } from "../logic/editing/interfaces";
-import { handleKey } from "../logic/editing/key-handlers";
+import { handleKey, Marks } from "../logic/editing/key-handlers";
 import {
   IncrementalParentIndex,
   ParentIndexEntry,
@@ -191,7 +191,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     () => new IncrementalParentIndex(tree),
     [tree],
   );
-  const [focusedParentIndexEntry, setFocusedId] = useFocus(
+  const [focusedParentIndexEntry, setFocusedId, setFocusedIdPath] = useFocus(
     tree,
     incrementalParentIndex,
   );
@@ -240,6 +240,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
   );
   incrementalParentIndex.addObservation(trueFocusedNode);
   const [copiedNode, setCopiedNode] = useState<Node<unknown>>();
+  const [marks, setMarks] = useState<Marks>({});
   return (
     <div>
       <NavTree
@@ -273,6 +274,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
             parentIndex: incrementalParentIndex,
             focusedId: focusedParentIndexEntry.node.id,
             setFocusedId,
+            setFocusedIdPath,
             handleAction,
             cancelAction: () => setInProgressAction(undefined),
             actionInProgress: !!inProgressAction,
@@ -281,6 +283,8 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
             saveFile,
             metaLevelNodeIds,
             toggleNodeMetaLevel,
+            marks,
+            setMarks,
           })
         }
       />

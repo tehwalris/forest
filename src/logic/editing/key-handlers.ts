@@ -5,12 +5,16 @@ import { ActionSet, InputKind } from "../tree/action";
 import { getNodeForDisplay } from "../tree/display-new";
 import { Flag, Node } from "../tree/node";
 import { HandleAction } from "./interfaces";
-import { ParentIndex } from "../parent-index";
+import { ParentIndex, idPathFromParentIndexEntry } from "../parent-index";
+export interface Marks {
+  [key: string]: string[];
+}
 interface HandleKeyOptions {
   tree: Node<unknown>;
   parentIndex: ParentIndex;
   focusedId: string;
   setFocusedId: (id: string) => void;
+  setFocusedIdPath: (idPath: string[]) => void;
   handleAction: HandleAction;
   cancelAction: () => void;
   actionInProgress: boolean;
@@ -19,6 +23,8 @@ interface HandleKeyOptions {
   saveFile: (tree: FileNode) => void;
   metaLevelNodeIds: Set<string>;
   toggleNodeMetaLevel: (nodeId: string) => void;
+  marks: Marks;
+  setMarks: (marks: Marks) => void;
 }
 export function handleKey(
   event: KeyboardEvent,
@@ -27,6 +33,7 @@ export function handleKey(
     parentIndex,
     focusedId,
     setFocusedId,
+    setFocusedIdPath,
     handleAction,
     cancelAction,
     actionInProgress,
@@ -35,6 +42,8 @@ export function handleKey(
     saveFile,
     metaLevelNodeIds,
     toggleNodeMetaLevel,
+    marks,
+    setMarks,
   }: HandleKeyOptions,
 ) {
   if (actionInProgress && event.key !== "Escape") {
@@ -176,6 +185,17 @@ export function handleKey(
     p: tryAction("replace", n => n.id),
     f: editFlags,
     m: () => toggleNodeMetaLevel(focusedId),
+    4: () =>
+      setMarks({
+        ...marks,
+        TODO: idPathFromParentIndexEntry(apparentParentIndexEntry),
+      }),
+    5: () => {
+      const path = marks.TODO;
+      if (path) {
+        setFocusedIdPath(path);
+      }
+    },
   };
   const comboAliasReplacements: [RegExp, string][] = [
     [/\bArrowUp\b/, "k"],

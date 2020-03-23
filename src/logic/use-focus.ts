@@ -6,12 +6,14 @@ import {
 import { Node } from "./tree/node";
 import { useState } from "react";
 import * as R from "ramda";
-
 function getValidPath(
   idPath: string[],
   tree: Node<unknown>,
   parentIndex: IncrementalParentIndex,
-): { path: string[]; changed: boolean } {
+): {
+  path: string[];
+  changed: boolean;
+} {
   parentIndex.addObservation(tree);
   let validIdPath = _getValidPath(idPath, tree, parentIndex);
   let changed = validIdPath.length !== idPath.length;
@@ -21,7 +23,6 @@ function getValidPath(
   }
   return { path: validIdPath, changed };
 }
-
 function _getValidPath(
   path: string[],
   subtree: Node<unknown>,
@@ -36,28 +37,21 @@ function _getValidPath(
   );
   return [path[0], ...(possiblePaths.find(p => p.length) || [])];
 }
-
 export function useFocus(
   tree: Node<unknown>,
   parentIndex: IncrementalParentIndex,
-): [ParentIndexEntry, (id: string) => void] {
+): [ParentIndexEntry, (id: string) => void, (idPath: string[]) => void] {
   const [_focusedIdPath, _setFocusedIdPath] = useState([tree.id]);
   const [nextFocusedId, setNextFocusedId] = useState<string>();
-
   let { path: focusedIdPath, changed } = getValidPath(
     _focusedIdPath,
     tree,
     parentIndex,
   );
-
   if (nextFocusedId !== undefined) {
-    // HACK This is necessary so that focusing a child that was
-    // just appended to a MetaBranchNode works correctly,
-    // since those are actually one level deeper than they appear.
     parentIndex.get(R.last(focusedIdPath)!)?.node.children.forEach(c => {
       parentIndex.addObservation(c.node);
     });
-
     const entry = parentIndex.get(nextFocusedId);
     if (entry) {
       focusedIdPath = idPathFromParentIndexEntry(entry);
@@ -67,11 +61,9 @@ export function useFocus(
       console.warn("targetId is not in parentIndex", nextFocusedId);
     }
   }
-
   if (changed) {
     _setFocusedIdPath(focusedIdPath);
   }
-
   const setFocusedId = (targetId: string) => {
     const entry = parentIndex.get(targetId);
     if (entry && nextFocusedId === undefined) {
@@ -80,8 +72,6 @@ export function useFocus(
       setNextFocusedId(targetId);
     }
   };
-
   const focusedIndexEntry = parentIndex.get(R.last(focusedIdPath)!)!;
-
-  return [focusedIndexEntry, setFocusedId];
+  return [focusedIndexEntry, setFocusedId, _setFocusedIdPath];
 }
