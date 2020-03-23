@@ -140,6 +140,14 @@ export const enchancers: {
     }
     return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
+  ReturnStatement: (node: Node<ts.ReturnStatement>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "return", style: LabelStyle.TYPE_SUMMARY }],
+      },
+    };
+  },
 };
 export function makeUnionMemberEnchancer(
   unionMemberKey: string,
