@@ -25,6 +25,8 @@ interface HandleKeyOptions {
   toggleNodeMetaLevel: (nodeId: string) => void;
   marks: Marks;
   setMarks: (marks: Marks) => void;
+  chord: string[];
+  setChord: (chord: string[]) => void;
 }
 export function handleKey(
   event: KeyboardEvent,
@@ -44,6 +46,8 @@ export function handleKey(
     toggleNodeMetaLevel,
     marks,
     setMarks,
+    chord,
+    setChord,
   }: HandleKeyOptions,
 ) {
   if (actionInProgress && event.key !== "Escape") {
@@ -197,6 +201,18 @@ export function handleKey(
       }
     },
   };
+  ["a", "b", "c"].forEach(k => {
+    handlers[`a ${k}`] = () =>
+      setMarks({
+        ...marks,
+        [k]: idPathFromParentIndexEntry(apparentParentIndexEntry),
+      });
+    handlers[`' ${k}`] = () => {
+      if (marks[k]) {
+        setFocusedIdPath(marks[k]);
+      }
+    };
+  });
   const comboAliasReplacements: [RegExp, string][] = [
     [/\bArrowUp\b/, "k"],
     [/\bArrowRight\b/, "l"],
@@ -215,6 +231,15 @@ export function handleKey(
   if (event.ctrlKey) {
     keyCombo = "ctrl-" + keyCombo;
   }
+  keyCombo = [...chord, keyCombo].join(" ");
+  if (["a", "'"].includes(keyCombo)) {
+    setChord([keyCombo]);
+    return false;
+  }
+  const wasChord = !!chord.length;
+  if (wasChord) {
+    setChord([]);
+  }
   const handler = handlers[keyCombo];
   if (handler) {
     handler();
@@ -222,4 +247,5 @@ export function handleKey(
     event.stopPropagation();
     return false;
   }
+  return !wasChord;
 }

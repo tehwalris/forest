@@ -241,6 +241,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
   incrementalParentIndex.addObservation(trueFocusedNode);
   const [copiedNode, setCopiedNode] = useState<Node<unknown>>();
   const [marks, setMarks] = useState<Marks>({});
+  const [chord, setChord] = useState<string[]>([]);
   return (
     <div>
       <NavTree
@@ -285,6 +286,8 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
             toggleNodeMetaLevel,
             marks,
             setMarks,
+            chord,
+            setChord,
           })
         }
       />
