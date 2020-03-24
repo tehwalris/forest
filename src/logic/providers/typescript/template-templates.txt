@@ -849,11 +849,11 @@ as AsExpression
 spr SpreadElement
 any AnyKeyword
 unk UnknownKeyword
-knu NumberKeyword
+nu NumberKeyword
 kob ObjectKeyword
-kbo BooleanKeyword
-kst StringKeyword
-ksy SymbolKeyword
+bo BooleanKeyword
+st StringKeyword
+sym SymbolKeyword
 th ThisKeyword
 voi VoidKeyword
 und UndefinedKeyword
