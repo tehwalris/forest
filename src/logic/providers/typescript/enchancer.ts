@@ -140,15 +140,21 @@ export const enchancers: {
     }
     return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
-  ReturnStatement: (node: Node<ts.ReturnStatement>) => {
+};
+[
+  ["ReturnStatement", "return"],
+  ["ImportDeclaration", "import"],
+  ["TypeQueryNode", "typeof"],
+].forEach(([tsType, displayType]) => {
+  enchancers[tsType] = (node: Node<unknown>) => {
     return {
       displayInfo: {
         priority: DisplayInfoPriority.MEDIUM,
-        label: [{ text: "return", style: LabelStyle.TYPE_SUMMARY }],
+        label: [{ text: displayType, style: LabelStyle.TYPE_SUMMARY }],
       },
     };
-  },
-};
+  };
+});
 export function makeUnionMemberEnchancer(
   unionMemberKey: string,
 ): Enchancer<Node<ts.Node>> {
