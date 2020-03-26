@@ -130,6 +130,26 @@ export const enchancers: {
     }
     return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
+  FunctionDeclaration: (node: Node<ts.FunctionDeclaration>) => {
+    const label: LabelPart[] = [
+      { text: "function", style: LabelStyle.TYPE_SUMMARY },
+    ];
+    const name = tryExtractName(node);
+    if (name !== undefined) {
+      label.push({ text: name, style: LabelStyle.NAME });
+    }
+    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
+  },
+  FunctionExpression: (node: Node<ts.FunctionExpression>) => {
+    const label: LabelPart[] = [
+      { text: "function", style: LabelStyle.TYPE_SUMMARY },
+    ];
+    const name = tryExtractName(node);
+    if (name !== undefined) {
+      label.push({ text: name, style: LabelStyle.NAME });
+    }
+    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
+  },
   PropertyDeclaration: (node: Node<ts.PropertyDeclaration>) => {
     const label: LabelPart[] = [
       { text: "property", style: LabelStyle.TYPE_SUMMARY },
