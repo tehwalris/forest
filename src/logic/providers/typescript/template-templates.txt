@@ -358,6 +358,16 @@ FunctionDeclaration
   primary ...body
   flags export default ambient async
   build ({asteriskToken, name, parameters, typeParameters, type, body}, modifiers) => ts.createFunctionDeclaration(undefined, modifiers, asteriskToken, name, typeParameters, parameters, type, body)
+FunctionExpression
+  O asteriskToken AsteriskToken
+  O name Identifier
+  RL parameters ParameterDeclaration
+  OL typeParameters TypeParameterDeclaration
+  O type TypeNode
+  R body FunctionBody
+  primary ...body
+  flags async
+  build ({asteriskToken, name, parameters, typeParameters, type, body}, modifiers) => ts.createFunctionExpression(modifiers, asteriskToken, name, typeParameters, parameters, type, body)
 ExpressionStatement
   R expression Expression
   build ({expression}) => ts.createStatement(expression)
