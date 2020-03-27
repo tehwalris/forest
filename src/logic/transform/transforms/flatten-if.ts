@@ -16,7 +16,7 @@ import { unions } from "../../providers/typescript/generated/templates";
 import { ListNode } from "../../tree/base-nodes";
 
 // HACK There should be a better way to get the type of a node
-function isIfStatementVlaue(node: Node<unknown>): boolean {
+function isIfStatementValue(node: Node<unknown>): boolean {
   return R.equals(
     node.children.map(c => c.key),
     ["expression", "thenStatement", "elseStatement"],
@@ -27,7 +27,7 @@ function unwrapUpToIfStatement(
   node: Node<unknown>,
   path: Path = [],
 ): { path: Path; node: Node<unknown> } | undefined {
-  if (isIfStatementVlaue(node)) {
+  if (isIfStatementValue(node)) {
     return { path, node };
   }
   if (node.children.length !== 1) {
@@ -44,7 +44,7 @@ function unwrapUpToIfStatement(
 }
 
 export const flattenIfTransform: Transform = node => {
-  if (!isIfStatementVlaue(node)) {
+  if (!isIfStatementValue(node)) {
     return node;
   }
   const flat = new FlatIfNode(
