@@ -6,6 +6,9 @@ import {
   BuildResult,
   BuildResultFailure,
   BuildResultSuccess,
+  DisplayInfo,
+  LabelStyle,
+  DisplayInfoPriority,
 } from "../../tree/node";
 import * as R from "ramda";
 import * as ts from "typescript";
@@ -14,19 +17,22 @@ import { Path } from "../../tree/base";
 import { fromTsNode } from "../../providers/typescript/convert";
 import { unions } from "../../providers/typescript/generated/templates";
 import { ListNode } from "../../tree/base-nodes";
-
-// HACK There should be a better way to get the type of a node
+import { ParentPathElement } from "../../parent-index";
 function isIfStatementValue(node: Node<unknown>): boolean {
   return R.equals(
     node.children.map(c => c.key),
     ["expression", "thenStatement", "elseStatement"],
   );
 }
-
 function unwrapUpToIfStatement(
   node: Node<unknown>,
   path: Path = [],
-): { path: Path; node: Node<unknown> } | undefined {
+):
+  | {
+      path: Path;
+      node: Node<unknown>;
+    }
+  | undefined {
   if (isIfStatementValue(node)) {
     return { path, node };
   }
@@ -42,7 +48,6 @@ function unwrapUpToIfStatement(
     node.children[0].key,
   ]);
 }
-
 export const flattenIfTransform: Transform = node => {
   if (!isIfStatementValue(node)) {
     return node;
@@ -54,12 +59,10 @@ export const flattenIfTransform: Transform = node => {
   flat.id = node.id;
   return flat;
 };
-
 interface FlatIfBranch {
   condition: Node<ts.Expression>;
   thenStatement: Node<ts.Statement>;
 }
-
 function getVirtualElseCondition(
   elseStatement: Node<ts.Statement>,
 ): Node<ts.Expression> {
@@ -67,7 +70,6 @@ function getVirtualElseCondition(
   node.id = elseStatement.id + "-virtual-else-condition";
   return node;
 }
-
 function flattenIf(nested: Node<unknown>): FlatIfBranch[] {
   const output: FlatIfBranch[] = [
     {
@@ -90,11 +92,9 @@ function flattenIf(nested: Node<unknown>): FlatIfBranch[] {
   }
   return output;
 }
-
 function unflattenIf(branches: FlatIfBranch[]): Node<unknown> {
   return _unflattenIf(branches).getByPath(["value"])!;
 }
-
 function _unflattenIf(branches: FlatIfBranch[]): Node<ts.Statement> {
   let node = fromTsNode<ts.Statement>(
     ts.createIf(ts.createLiteral(true), ts.createBlock([])),
@@ -126,34 +126,28 @@ function _unflattenIf(branches: FlatIfBranch[]): Node<ts.Statement> {
     unflattenIf(branches.slice(1)),
   );
 }
-
 class FlatIfNode extends ListNode<FlatIfBranch, unknown> {
   flags: FlagSet = {};
-
   constructor(
     private originalNode: Node<unknown>,
     branches: Node<FlatIfBranch>[],
   ) {
     super(branches);
   }
-
   clone(): FlatIfNode {
     const node = new FlatIfNode(this.originalNode, []);
     node.children = this.children;
     node.id = this.id;
     return node;
   }
-
   setChild(child: ChildNodeEntry<FlatIfBranch>): FlatIfNode {
     const node = this.clone();
     node.children = node.children.map(c => (c.key === child.key ? child : c));
     return node;
   }
-
   setFlags(flags: FlagSet): FlatIfNode {
     throw new Error("not implemented");
   }
-
   build(): BuildResult<unknown> {
     const result = this.unapplyTransform();
     if (!result.ok) {
@@ -161,7 +155,6 @@ class FlatIfNode extends ListNode<FlatIfBranch, unknown> {
     }
     return result.value.build();
   }
-
   unapplyTransform(): BuildResult<Node<unknown>> {
     const childBuildResults = this.children.map(c => ({
       key: c.key,
@@ -178,22 +171,18 @@ class FlatIfNode extends ListNode<FlatIfBranch, unknown> {
         },
       };
     }
-
     const ifNode = unflattenIf(
       childBuildResults.map(
         r => (r.result as BuildResultSuccess<FlatIfBranch>).value,
       ),
     );
-
     return { ok: true, value: ifNode };
   }
-
   protected setValue(value: Node<FlatIfBranch>[]): FlatIfNode {
     const node = new FlatIfNode(this.originalNode, value);
     node.id = this.id;
     return node;
   }
-
   protected createChild(): FlatIfBranchNode {
     fromTsNode<ts.Statement>(
       ts.createIf(ts.createLiteral(true), ts.createBlock([])),
@@ -210,50 +199,42 @@ class FlatIfNode extends ListNode<FlatIfBranch, unknown> {
       ),
     });
   }
-
   getDebugLabel(): string | undefined {
     return "FlatIfNode";
   }
+  getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo {
+    return {
+      label: [{ style: LabelStyle.TYPE_SUMMARY, text: "if" }],
+      priority: DisplayInfoPriority.MEDIUM,
+    };
+  }
 }
-
 class FlatIfBranchNode extends Node<FlatIfBranch> {
   children: ChildNodeEntry<any>[] = [];
   flags: FlagSet = {};
   actions: ActionSet<Node<FlatIfBranch>> = {};
-
   constructor(private branch: FlatIfBranch) {
     super();
     if (branch.condition) {
-      // TODO Maybe use an option
-      this.children.push({
-        key: "condition",
-        node: branch.condition,
-      });
+      this.children.push({ key: "condition", node: branch.condition });
     }
-    this.children.push({
-      key: "thenStatement",
-      node: branch.thenStatement,
-    });
+    this.children.push({ key: "thenStatement", node: branch.thenStatement });
     this.id = branch.thenStatement.id + "-flat-if-branch";
   }
-
   clone(): FlatIfBranchNode {
     const node = new FlatIfBranchNode(this.branch);
     node.children = this.children;
     node.id = this.id;
     return node;
   }
-
   setChild(child: ChildNodeEntry<unknown>): FlatIfBranchNode {
     const node = this.clone();
     node.children = node.children.map(c => (c.key === child.key ? child : c));
     return node;
   }
-
   setFlags(flags: FlagSet): FlatIfBranchNode {
     throw new Error("not implemented");
   }
-
   build(): BuildResult<FlatIfBranch> {
     return {
       ok: true,
@@ -263,8 +244,13 @@ class FlatIfBranchNode extends Node<FlatIfBranch> {
       },
     };
   }
-
   getDebugLabel(): string | undefined {
     return "FlatIfBranchNode";
+  }
+  getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo {
+    return {
+      label: [{ style: LabelStyle.TYPE_SUMMARY, text: "if" }],
+      priority: DisplayInfoPriority.MEDIUM,
+    };
   }
 }

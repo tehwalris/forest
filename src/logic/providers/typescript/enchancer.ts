@@ -167,6 +167,8 @@ export const enchancers: {
   ["TypeQueryNode", "typeof"],
   ["ArrayLiteralExpression", "array"],
   ["ObjectLiteralExpression", "object"],
+  ["CallExpression", "call"],
+  ["AsExpression", "as"],
 ].forEach(([tsType, displayType]) => {
   enchancers[tsType] = (node: Node<unknown>) => {
     return {
