@@ -249,7 +249,7 @@ class FlatIfBranchNode extends Node<FlatIfBranch> {
   }
   getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo {
     return {
-      label: [{ style: LabelStyle.TYPE_SUMMARY, text: "if" }],
+      label: [{ style: LabelStyle.TYPE_SUMMARY, text: "branch" }],
       priority: DisplayInfoPriority.MEDIUM,
     };
   }
