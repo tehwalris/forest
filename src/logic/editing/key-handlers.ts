@@ -180,7 +180,7 @@ export function handleKey(
     "ctrl-ArrowUp": () => insertSibling(0),
     "ctrl-ArrowDown": () => insertSibling(1),
     s: tryAction("setFromString"),
-    v: tryAction("setVariant"),
+    v: tryAction("setVariant", n => n.id),
     t: tryAction("toggle"),
     i: tryAction("insertByKey"),
     d: tryAction("deleteByKey"),

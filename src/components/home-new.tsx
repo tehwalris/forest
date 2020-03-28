@@ -92,6 +92,13 @@ function getNodeStyle(
   }
   return toStyle(COLORS[semanticColor]);
 }
+const treeFromCombined = (combined: CombinedTrees) => {
+  let tree = combined.transformed || combined.raw;
+  if (tree === combined.raw && !(window as any).noTransform) {
+    tree = applyTransformsToTree(combined.raw, TRANSFORMS, transformCache);
+  }
+  return tree;
+};
 export const HomeNew: React.FC<Props> = ({ fs }) => {
   const [_trees, _setTrees] = useState<CombinedTrees>({
     raw: new EmptyLeafNode(),
@@ -107,11 +114,11 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
   const saveFile = async (tree: FileNode) => {
     typescriptProvider.current.trySaveFile(tree);
   };
-  let tree = _trees.transformed || _trees.raw;
-  if (tree === _trees.raw && !(window as any).noTransform) {
-    tree = applyTransformsToTree(_trees.raw, TRANSFORMS, transformCache);
-  }
-  const setTree = (updater: (oldTree: Node<unknown>) => Node<unknown>) => {
+  const tree = treeFromCombined(_trees);
+  const setTree = (
+    updater: (oldTree: Node<unknown>) => Node<unknown>,
+    onNewKnown: (newTree: Node<unknown>) => void,
+  ) => {
     _setTrees(
       (_trees): CombinedTrees => {
         const newTransformed = updater(
@@ -130,24 +137,34 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
           output.raw = unapplyResult.value;
           output.transformed = undefined;
         }
+        onNewKnown(treeFromCombined(output));
         return output;
       },
     );
   };
-  const updateNode = (path: Path, value: Node<unknown>) => {
-    setTree(tree => tree.setDeepChild(path, value));
+  const updateNode = (
+    path: Path,
+    value: Node<unknown>,
+    focus?: (newNode: Node<unknown>) => string,
+  ) => {
+    setTree(
+      oldTree => oldTree.setDeepChild(path, value),
+      newTree => {
+        const newNode = newTree.getDeepestPossibleByPath(path);
+        if (newNode.path.length === path.length && focus) {
+          setFocusedId(focus(newNode.node));
+        }
+      },
+    );
   };
   const [inProgressAction, setInProgressAction] = useState<{
     target: Path;
     action: Action<Node<unknown>>;
+    focus?: (newNode: Node<unknown>) => string;
   }>();
   const handleAction: HandleAction = (action, target, focus, args) => {
     const updateTarget = (newNode: Node<unknown>) => {
-      updateNode(target, newNode);
-      const newFocusedId = focus?.(newNode);
-      if (newFocusedId) {
-        setFocusedId(newFocusedId);
-      }
+      updateNode(target, newNode, focus);
     };
     if (action.inputKind === InputKind.None) {
       updateTarget(action.apply());
@@ -168,12 +185,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
       const newNode = action.apply(args.node);
       updateTarget(newNode);
     } else {
-      if (focus) {
-        throw new Error(
-          `the "focus" argument is not supported with actions which take user input`,
-        );
-      }
-      setInProgressAction({ target, action });
+      setInProgressAction({ target, action, focus });
       setImmediate(() =>
         (document.querySelector(
           ".actionFiller input",
@@ -185,7 +197,7 @@ export const HomeNew: React.FC<Props> = ({ fs }) => {
     if (!inProgressAction) {
       throw new Error("Expected an action to be in-progress.");
     }
-    updateNode(inProgressAction.target, updatedNode);
+    updateNode(inProgressAction.target, updatedNode, inProgressAction.focus);
     setInProgressAction(undefined);
   };
   const [metaLevelNodeIds, setMetaLevelNodeIds] = useState(new Set<string>());
