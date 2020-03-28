@@ -634,6 +634,7 @@ EnumDeclaration
   R name Identifier
   RL members EnumMember
   flags export ambient
+  primary ...members
   build ({name, members}, modifiers) => ts.createEnumDeclaration(undefined, modifiers, name, members)
 EnumMember
   R name PropertyName
