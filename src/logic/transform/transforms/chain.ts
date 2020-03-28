@@ -40,6 +40,7 @@ interface ChainPartCall {
 }
 interface ChainPartQuestionToken {
   kind: ChainPartKind.QuestionToken;
+  id?: string;
 }
 interface ChainPartExclamationToken {
   kind: ChainPartKind.ExclamationToken;
@@ -86,7 +87,10 @@ function tryFlattenPropertyAccessExpression(
     return undefined;
   }
   if (questionTokenBuildResult.value !== undefined) {
-    output.push({ kind: ChainPartKind.QuestionToken });
+    output.push({
+      kind: ChainPartKind.QuestionToken,
+      id: valueNode.children[2].node.id + "-question",
+    });
   }
   const oldNameNode = valueNode.children[2].node as Node<ts.Identifier>;
   const nameBuildResult = oldNameNode.build();
@@ -138,7 +142,10 @@ function tryFlattenElementAccessExpression(
     return undefined;
   }
   if (questionTokenBuildResult.value !== undefined) {
-    output.push({ kind: ChainPartKind.QuestionToken });
+    output.push({
+      kind: ChainPartKind.QuestionToken,
+      id: valueNode.children[2].node.id + "-question",
+    });
   }
   const argumentBuildResult = (valueNode.children[2].node as Node<
     ts.Expression | undefined
@@ -349,7 +356,11 @@ function nodeFromChainPart(p: ChainPart): Node<ChainPart> {
   if (p.kind === ChainPartKind.Expression) {
     return new ChainPartExpressionNode(p);
   }
-  return new ChainPartConstantNode(p);
+  const node = new ChainPartConstantNode(p);
+  if (p.kind === ChainPartKind.QuestionToken && p.id) {
+    node.id = p.id;
+  }
+  return node;
 }
 export const chainTransform: Transform = node => {
   const parts = tryFlattenExpression(node);
