@@ -43,6 +43,12 @@ interface ChainPartQuestionToken {
 interface ChainPartExclamationToken {
   kind: ChainPartKind.ExclamationToken;
 }
+function tryFlattenExpression(node: Node<unknown>): ChainPart[] | undefined {
+  return (
+    tryFlattenPropertyAccessExpression(node) ||
+    tryFlattenElementAccessExpression(node)
+  );
+}
 function tryFlattenPropertyAccessExpression(
   node: Node<unknown>,
 ): ChainPart[] | undefined {
@@ -63,9 +69,7 @@ function tryFlattenPropertyAccessExpression(
     return undefined;
   }
   const output: ChainPart[] = [];
-  const flatExpression = tryFlattenPropertyAccessExpression(
-    valueNode.children[0].node,
-  );
+  const flatExpression = tryFlattenExpression(valueNode.children[0].node);
   if (flatExpression) {
     output.push(...flatExpression);
   } else {
@@ -93,6 +97,54 @@ function tryFlattenPropertyAccessExpression(
       ts.createLiteral(nameBuildResult.value.text),
       unions.Expression,
     ),
+  });
+  return output;
+}
+function tryFlattenElementAccessExpression(
+  node: Node<unknown>,
+): ChainPart[] | undefined {
+  if (
+    node.children.length !== 1 ||
+    node.children[0].key !== "value" ||
+    node.getDebugLabel() !== "ElementAccessExpression"
+  ) {
+    return undefined;
+  }
+  const valueNode = node.children[0].node;
+  if (
+    !R.equals(
+      valueNode.children.map(c => c.key),
+      ["expression", "questionDotToken", "argumentExpression"],
+    )
+  ) {
+    return undefined;
+  }
+  const output: ChainPart[] = [];
+  const flatExpression = tryFlattenExpression(valueNode.children[0].node);
+  if (flatExpression) {
+    output.push(...flatExpression);
+  } else {
+    output.push({
+      kind: ChainPartKind.Expression,
+      expression: valueNode.children[0].node,
+    });
+  }
+  const questionTokenBuildResult = valueNode.children[1].node?.build();
+  if (!questionTokenBuildResult.ok) {
+    return undefined;
+  }
+  if (questionTokenBuildResult.value !== undefined) {
+    output.push({ kind: ChainPartKind.QuestionToken });
+  }
+  const argumentBuildResult = (valueNode.children[2].node as Node<
+    ts.Expression | undefined
+  >).build();
+  if (argumentBuildResult.ok && argumentBuildResult.value === undefined) {
+    return undefined;
+  }
+  output.push({
+    kind: ChainPartKind.Expression,
+    expression: valueNode.children[2].node,
   });
   return output;
 }
@@ -176,7 +228,7 @@ function nodeFromChainPart(p: ChainPart): Node<ChainPart> {
   return new ChainPartConstantNode(p);
 }
 export const chainTransform: Transform = node => {
-  const parts = tryFlattenPropertyAccessExpression(node);
+  const parts = tryFlattenExpression(node);
   if (!parts) {
     return node;
   }
