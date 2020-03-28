@@ -17,6 +17,7 @@ import { unions } from "../../providers/typescript/generated/templates";
 import { ActionSet } from "../../tree/action";
 import { ListNode } from "../../tree/base-nodes";
 import { ParentPathElement } from "../../parent-index";
+import { StructTemplateNode } from "../../providers/typescript/template-nodes";
 enum ChainPartKind {
   Expression = "Expression",
   Call = "Call",
@@ -61,9 +62,18 @@ function tryFlattenPropertyAccessExpression(
   ) {
     return undefined;
   }
-  const output: ChainPart[] = [
-    { kind: ChainPartKind.Expression, expression: valueNode.children[0].node },
-  ];
+  const output: ChainPart[] = [];
+  const flatExpression = tryFlattenPropertyAccessExpression(
+    valueNode.children[0].node,
+  );
+  if (flatExpression) {
+    output.push(...flatExpression);
+  } else {
+    output.push({
+      kind: ChainPartKind.Expression,
+      expression: valueNode.children[0].node,
+    });
+  }
   const questionTokenBuildResult = valueNode.children[1].node?.build();
   if (!questionTokenBuildResult.ok) {
     return undefined;
@@ -84,20 +94,90 @@ function tryFlattenPropertyAccessExpression(
       unions.Expression,
     ),
   });
-  return [];
+  return output;
 }
-function unflattenChain(parts: ChainPart[]): Node<ts.Expression> {
-  // TODO
-  const node = fromTsNode(
-    ts.createIf(ts.createLiteral(""), ts.createBlock([])),
-    unions.Expression,
-  );
-  return node;
+function unflattenChain(parts: ChainPart[]): BuildResult<Node<ts.Expression>> {
+  if (parts.length === 0) {
+    return { ok: false, error: { path: [], message: "empty chain" } };
+  }
+  if (parts.length === 1) {
+    const leftPart = parts[0];
+    if (leftPart.kind !== ChainPartKind.Expression) {
+      return {
+        ok: false,
+        error: {
+          path: ["0"],
+          message: "the first part of a chain must be an expression",
+        },
+      };
+    }
+    return { ok: true, value: leftPart.expression };
+  }
+  const leftResult = unflattenChain(parts.slice(0, -1));
+  if (!leftResult.ok) {
+    return leftResult;
+  }
+  const rightPart = parts[parts.length - 1];
+  switch (rightPart.kind) {
+    case ChainPartKind.Expression: {
+      const rightResult = rightPart.expression.build();
+      if (!rightResult.ok || !ts.isStringLiteral(rightResult.value)) {
+        let node = fromTsNode(
+          ts.createElementAccess(
+            ts.createIdentifier(""),
+            ts.createIdentifier(""),
+          ),
+          unions.Expression,
+        );
+        node = node.setDeepChild(["value", "expression"], leftResult.value);
+        node = node.setDeepChild(
+          ["value", "argumentExpression"],
+          rightPart.expression,
+        );
+        return {
+          ok: true,
+          value: node,
+        };
+      }
+      let node = fromTsNode(
+        ts.createPropertyAccess(
+          ts.createIdentifier(""),
+          ts.createIdentifier(""),
+        ),
+        unions.Expression,
+      );
+      node = node.setDeepChild(["value", "expression"], leftResult.value);
+      node = node.setDeepChild(
+        ["value", "name"],
+        node
+          .getByPath(["value", "name"])!
+          .actions.setFromString!.apply(rightResult.value.text),
+      );
+      return {
+        ok: true,
+        value: node,
+      };
+    }
+    default: {
+      return {
+        ok: false,
+        error: {
+          path: ["" + (parts.length - 1)],
+          message: `unsupported ChainPartKind ${rightPart.kind}`,
+        },
+      };
+    }
+  }
 }
 export const chainTransform: Transform = node => {
-  return node;
+  const parts = tryFlattenPropertyAccessExpression(node);
+  if (!parts) {
+    return node;
+  }
+  const chainNode = new ChainNode(parts.map(p => new ConstantChainPartNode(p)));
+  return chainNode as Node<any>;
 };
-class ChainNode extends ListNode<ChainPart, unknown> {
+class ChainNode extends ListNode<ChainPart, ts.Expression> {
   flags: FlagSet = {};
   clone(): ChainNode {
     const node = new ChainNode([]);
@@ -105,22 +185,17 @@ class ChainNode extends ListNode<ChainPart, unknown> {
     node.id = this.id;
     return node;
   }
-  setChild(child: ChildNodeEntry<ChainPart>): ChainNode {
-    const node = this.clone();
-    node.children = node.children.map(c => (c.key === child.key ? child : c));
-    return node;
-  }
   setFlags(flags: FlagSet): ChainNode {
     throw new Error("not implemented");
   }
-  build(): BuildResult<unknown> {
+  build(): BuildResult<ts.Expression> {
     const result = this.unapplyTransform();
     if (!result.ok) {
       return result;
     }
     return result.value.build();
   }
-  unapplyTransform(): BuildResult<Node<unknown>> {
+  unapplyTransform(): BuildResult<Node<ts.Expression>> {
     const childBuildResults = this.children.map(c => ({
       key: c.key,
       result: c.node.build(),
@@ -136,12 +211,11 @@ class ChainNode extends ListNode<ChainPart, unknown> {
         },
       };
     }
-    const ifNode = unflattenChain(
+    return unflattenChain(
       childBuildResults.map(
         r => (r.result as BuildResultSuccess<ChainPart>).value,
       ),
     );
-    return { ok: true, value: ifNode };
   }
   protected setValue(value: Node<ChainPart>[]): ChainNode {
     const node = new ChainNode(value);

@@ -23,6 +23,7 @@ import {
   isMetaBranchNode,
   splitMetaTransform,
 } from "../logic/transform/transforms/split-meta";
+import { chainTransform } from "../logic/transform/transforms/chain";
 import { Action, InputKind } from "../logic/tree/action";
 import { Path } from "../logic/tree/base";
 import { EmptyLeafNode } from "../logic/tree/base-nodes";
@@ -45,6 +46,7 @@ interface CombinedTrees {
 }
 const TRANSFORMS: Transform[][] = [
   [simpleVariableDeclarationTransform],
+  [chainTransform],
   [flattenIfTransform, compressUselessValuesTransform],
   [splitMetaTransform],
 ];
