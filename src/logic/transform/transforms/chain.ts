@@ -1,23 +1,19 @@
-import { Transform } from "..";
-import {
-  Node,
-  ChildNodeEntry,
-  FlagSet,
-  BuildResult,
-  BuildResultFailure,
-  BuildResultSuccess,
-  DisplayInfo,
-  LabelStyle,
-  DisplayInfoPriority,
-} from "../../tree/node";
 import * as R from "ramda";
 import * as ts from "typescript";
+import { Transform } from "..";
+import { ParentPathElement } from "../../parent-index";
 import { fromTsNode } from "../../providers/typescript/convert";
 import { unions } from "../../providers/typescript/generated/templates";
 import { ActionSet, InputKind, OneOfInputAction } from "../../tree/action";
 import { ListNode } from "../../tree/base-nodes";
-import { ParentPathElement } from "../../parent-index";
-import { StructTemplateNode } from "../../providers/typescript/template-nodes";
+import {
+  BuildResult,
+  BuildResultFailure,
+  BuildResultSuccess,
+  ChildNodeEntry,
+  FlagSet,
+  Node,
+} from "../../tree/node";
 import { unreachable } from "../../util";
 enum ChainPartKind {
   Expression = "Expression",
@@ -92,18 +88,19 @@ function tryFlattenPropertyAccessExpression(
   if (questionTokenBuildResult.value !== undefined) {
     output.push({ kind: ChainPartKind.QuestionToken });
   }
-  const nameBuildResult = (valueNode.children[2].node as Node<
-    ts.Identifier
-  >).build();
+  const oldNameNode = valueNode.children[2].node as Node<ts.Identifier>;
+  const nameBuildResult = oldNameNode.build();
   if (!nameBuildResult.ok) {
     return undefined;
   }
+  const newNameNode = fromTsNode(
+    ts.createLiteral(nameBuildResult.value.text),
+    unions.Expression,
+  );
+  newNameNode.id = oldNameNode.id;
   output.push({
     kind: ChainPartKind.Expression,
-    expression: fromTsNode(
-      ts.createLiteral(nameBuildResult.value.text),
-      unions.Expression,
-    ),
+    expression: newNameNode,
   });
   return output;
 }
@@ -316,12 +313,11 @@ function _unflattenChain(
         unions.Expression,
       );
       node = node.setDeepChild(["value", "expression"], leftResult.value);
-      node = node.setDeepChild(
-        ["value", "name"],
-        node
-          .getByPath(["value", "name"])!
-          .actions.setFromString!.apply(rightResult.value.text),
-      );
+      const newNameNode = node
+        .getByPath(["value", "name"])!
+        .actions.setFromString!.apply(rightResult.value.text);
+      newNameNode.id = rightPart.expression.id;
+      node = node.setDeepChild(["value", "name"], newNameNode);
       return {
         ok: true,
         value: node,
@@ -363,6 +359,9 @@ export const chainTransform: Transform = node => {
   const chainNode = new ChainNode(
     parts.map(p => new ChainPartUnionNode(nodeFromChainPart(p))),
   );
+  if (parts[0].kind === ChainPartKind.Expression) {
+    chainNode.id = parts[0].expression.id + "-chain";
+  }
   return chainNode as Node<any>;
 };
 class ChainNode extends ListNode<ChainPart, ts.Expression> {
@@ -427,6 +426,7 @@ class ChainPartExpressionNode extends Node<ChainPartExpression> {
   actions: ActionSet<ChainPartExpressionNode>;
   constructor(private part: ChainPartExpression) {
     super();
+    this.id = part.expression.id;
     this.children = part.expression.children;
     this.flags = part.expression.flags;
     this.actions = {};
@@ -439,17 +439,13 @@ class ChainPartExpressionNode extends Node<ChainPartExpression> {
     }
   }
   private updateExpression(expression: Node<ts.Expression>) {
-    const node = new ChainPartExpressionNode({
+    return new ChainPartExpressionNode({
       ...this.part,
       expression,
     });
-    node.id = this.id;
-    return node;
   }
   clone(): ChainPartExpressionNode {
-    const node = new ChainPartExpressionNode(this.part);
-    node.id = this.id;
-    return node;
+    return new ChainPartExpressionNode(this.part);
   }
   setChild(child: ChildNodeEntry<unknown>): ChainPartExpressionNode {
     return this.updateExpression(this.part.expression.setChild(child));
@@ -498,6 +494,7 @@ class ChainPartUnionNode extends Node<ChainPart> {
   actions: ActionSet<ChainPartUnionNode>;
   constructor(private baseNode: Node<ChainPart>) {
     super();
+    this.id = baseNode.id;
     this.children = baseNode.children;
     this.flags = baseNode.flags;
     this.actions = {};
@@ -563,14 +560,10 @@ class ChainPartUnionNode extends Node<ChainPart> {
     }
   }
   private updateBaseNode(baseNode: Node<ChainPart>) {
-    const node = new ChainPartUnionNode(baseNode);
-    node.id = this.id;
-    return node;
+    return new ChainPartUnionNode(baseNode);
   }
   clone(): ChainPartUnionNode {
-    const node = new ChainPartUnionNode(this.baseNode);
-    node.id = this.id;
-    return node;
+    return new ChainPartUnionNode(this.baseNode);
   }
   setChild(child: ChildNodeEntry<unknown>): ChainPartUnionNode {
     return this.updateBaseNode(this.baseNode.setChild(child));
