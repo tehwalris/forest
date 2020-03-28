@@ -169,12 +169,18 @@ function unflattenChain(parts: ChainPart[]): BuildResult<Node<ts.Expression>> {
     }
   }
 }
+function nodeFromChainPart(p: ChainPart): Node<ChainPart> {
+  if (p.kind === ChainPartKind.Expression) {
+    return new ChainPartExpressionNode(p);
+  }
+  return new ChainPartConstantNode(p);
+}
 export const chainTransform: Transform = node => {
   const parts = tryFlattenPropertyAccessExpression(node);
   if (!parts) {
     return node;
   }
-  const chainNode = new ChainNode(parts.map(p => new ConstantChainPartNode(p)));
+  const chainNode = new ChainNode(parts.map(p => nodeFromChainPart(p)));
   return chainNode as Node<any>;
 };
 class ChainNode extends ListNode<ChainPart, ts.Expression> {
@@ -227,28 +233,74 @@ class ChainNode extends ListNode<ChainPart, ts.Expression> {
       kind: ChainPartKind.Expression,
       expression: fromTsNode(ts.createLiteral(""), unions.Expression),
     };
-    return new ConstantChainPartNode(part);
+    return new ChainPartConstantNode(part);
   }
   getDebugLabel(): string | undefined {
     return "ChainNode";
   }
 }
-class ConstantChainPartNode extends Node<ChainPart> {
+class ChainPartExpressionNode extends Node<ChainPartExpression> {
+  children: ChildNodeEntry<unknown>[];
+  flags: FlagSet;
+  actions: ActionSet<ChainPartExpressionNode>;
+  constructor(private part: ChainPartExpression) {
+    super();
+    this.children = part.expression.children;
+    this.flags = part.expression.flags;
+    this.actions = {};
+    for (const [k, a] of Object.entries(part.expression.actions)) {
+      this.actions[k] = a && {
+        ...a,
+        apply: (...args: any[]) =>
+          this.updateExpression((a.apply as any).call(a, ...args)),
+      };
+    }
+  }
+  private updateExpression(expression: Node<ts.Expression>) {
+    const node = new ChainPartExpressionNode({
+      ...this.part,
+      expression,
+    });
+    node.id = this.id;
+    return node;
+  }
+  clone(): ChainPartExpressionNode {
+    const node = new ChainPartExpressionNode(this.part);
+    node.id = this.id;
+    return node;
+  }
+  setChild(child: ChildNodeEntry<unknown>): ChainPartExpressionNode {
+    return this.updateExpression(this.part.expression.setChild(child));
+  }
+  setFlags(flags: FlagSet): ChainPartExpressionNode {
+    return this.updateExpression(this.part.expression.setFlags(flags));
+  }
+  build(): BuildResult<ChainPartExpression> {
+    return { ok: true, value: this.part };
+  }
+  getDebugLabel() {
+    return this.part.expression.getDebugLabel();
+  }
+  getDisplayInfo(parentPath: ParentPathElement[]) {
+    return this.part.expression.getDisplayInfo(parentPath);
+  }
+}
+class ChainPartConstantNode extends Node<ChainPart> {
   children: ChildNodeEntry<unknown>[] = [];
   flags: FlagSet = {};
   actions: ActionSet<Node<ChainPart>> = {};
   constructor(private part: ChainPart) {
     super();
   }
-  clone(): ConstantChainPartNode {
-    const node = new ConstantChainPartNode(this.part);
+  clone(): ChainPartConstantNode {
+    const node = new ChainPartConstantNode(this.part);
     node.id = this.id;
     return node;
   }
-  setChild(child: ChildNodeEntry<unknown>): ConstantChainPartNode {
-    throw new Error("ConstantChainPartNode can't have children");
+  setChild(child: ChildNodeEntry<unknown>): ChainPartConstantNode {
+    throw new Error("ChainPartConstantNode can't have children");
   }
-  setFlags(flags: FlagSet): ConstantChainPartNode {
+  setFlags(flags: FlagSet): ChainPartConstantNode {
     throw new Error("not implemented");
   }
   build(): BuildResult<ChainPart> {
