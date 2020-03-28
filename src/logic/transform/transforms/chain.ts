@@ -14,7 +14,7 @@ import * as R from "ramda";
 import * as ts from "typescript";
 import { fromTsNode } from "../../providers/typescript/convert";
 import { unions } from "../../providers/typescript/generated/templates";
-import { ActionSet } from "../../tree/action";
+import { ActionSet, InputKind, OneOfInputAction } from "../../tree/action";
 import { ListNode } from "../../tree/base-nodes";
 import { ParentPathElement } from "../../parent-index";
 import { StructTemplateNode } from "../../providers/typescript/template-nodes";
@@ -35,7 +35,7 @@ interface ChainPartExpression {
 }
 interface ChainPartCall {
   kind: ChainPartKind.Call;
-  arguments: Node<ts.Expression[]>;
+  arguments: Node<ts.Expression>[];
 }
 interface ChainPartQuestionToken {
   kind: ChainPartKind.QuestionToken;
@@ -232,7 +232,9 @@ export const chainTransform: Transform = node => {
   if (!parts) {
     return node;
   }
-  const chainNode = new ChainNode(parts.map(p => nodeFromChainPart(p)));
+  const chainNode = new ChainNode(
+    parts.map(p => new ChainPartUnionNode(nodeFromChainPart(p))),
+  );
   return chainNode as Node<any>;
 };
 class ChainNode extends ListNode<ChainPart, ts.Expression> {
@@ -360,5 +362,104 @@ class ChainPartConstantNode extends Node<ChainPart> {
   }
   getDebugLabel() {
     return this.part.kind;
+  }
+}
+class ChainPartUnionNode extends Node<ChainPart> {
+  children: ChildNodeEntry<unknown>[];
+  flags: FlagSet;
+  actions: ActionSet<ChainPartUnionNode>;
+  constructor(private baseNode: Node<ChainPart>) {
+    super();
+    this.children = baseNode.children;
+    this.flags = baseNode.flags;
+    this.actions = {};
+    const baseActions: ActionSet<Node<ChainPart>> = {
+      setVariant: nodeFromChainPart({
+        kind: ChainPartKind.Expression,
+        expression: fromTsNode(ts.createLiteral(""), unions.Expression),
+      }).actions.setVariant,
+      ...baseNode.actions,
+    };
+    for (const [k, a] of Object.entries(baseActions)) {
+      if (k === "setVariant" && a?.inputKind === InputKind.OneOf) {
+        type Variant =
+          | { fromBase: false; label: string; chainPart: ChainPart }
+          | {
+              fromBase: true;
+              baseVariant: unknown;
+            };
+        const newAction: OneOfInputAction<ChainPartUnionNode, Variant> = {
+          ...a,
+          oneOf: [
+            {
+              fromBase: false,
+              label: "ChainPartCall",
+              chainPart: { kind: ChainPartKind.Call, arguments: [] },
+            },
+            {
+              fromBase: false,
+              label: "ChainPartExclamationToken",
+              chainPart: { kind: ChainPartKind.ExclamationToken },
+            },
+            {
+              fromBase: false,
+              label: "ChainPartQuestionToken",
+              chainPart: { kind: ChainPartKind.QuestionToken },
+            },
+            ...a.oneOf.map(
+              (e): Variant => ({
+                fromBase: true,
+                baseVariant: e,
+              }),
+            ),
+          ],
+          apply: variant =>
+            this.updateBaseNode(
+              variant.fromBase
+                ? a.apply(variant.baseVariant)
+                : nodeFromChainPart(variant.chainPart),
+            ),
+          getLabel: variant =>
+            variant.fromBase ? a.getLabel(variant.baseVariant) : variant.label,
+          getShortcut: variant =>
+            variant.fromBase ? a.getShortcut(variant.baseVariant) : undefined,
+        };
+        this.actions.setVariant = newAction;
+      } else {
+        this.actions[k] = a && {
+          ...a,
+          apply: (...args: any[]) =>
+            this.updateBaseNode((a.apply as any).call(a, ...args)),
+        };
+      }
+    }
+  }
+  private updateBaseNode(baseNode: Node<ChainPart>) {
+    const node = new ChainPartUnionNode(baseNode);
+    node.id = this.id;
+    return node;
+  }
+  clone(): ChainPartUnionNode {
+    const node = new ChainPartUnionNode(this.baseNode);
+    node.id = this.id;
+    return node;
+  }
+  setChild(child: ChildNodeEntry<unknown>): ChainPartUnionNode {
+    return this.updateBaseNode(this.baseNode.setChild(child));
+  }
+  setFlags(flags: FlagSet): ChainPartUnionNode {
+    return this.updateBaseNode(this.baseNode.setFlags(flags));
+  }
+  unapplyTransform(): BuildResult<Node<ChainPart>> {
+    return { ok: true, value: this.baseNode };
+  }
+  build(): BuildResult<ChainPart> {
+    return this.baseNode.build();
+  }
+  getDebugLabel() {
+    return this.baseNode.getDebugLabel();
+  }
+  getDisplayInfo(parentPath: ParentPathElement[]) {
+    return this.baseNode.getDisplayInfo(parentPath);
   }
 }
