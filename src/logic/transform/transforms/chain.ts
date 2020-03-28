@@ -18,6 +18,7 @@ import { ActionSet, InputKind, OneOfInputAction } from "../../tree/action";
 import { ListNode } from "../../tree/base-nodes";
 import { ParentPathElement } from "../../parent-index";
 import { StructTemplateNode } from "../../providers/typescript/template-nodes";
+import { unreachable } from "../../util";
 enum ChainPartKind {
   Expression = "Expression",
   Call = "Call",
@@ -29,6 +30,10 @@ type ChainPart =
   | ChainPartCall
   | ChainPartQuestionToken
   | ChainPartExclamationToken;
+type SimplifiedChainPart =
+  | (ChainPartExpression & { questionToken?: boolean })
+  | (ChainPartCall & { questionToken?: boolean })
+  | (ChainPartExclamationToken & { questionToken?: never });
 interface ChainPartExpression {
   kind: ChainPartKind.Expression;
   expression: Node<ts.Expression>;
@@ -207,31 +212,87 @@ function unflattenChain(parts: ChainPart[]): BuildResult<Node<ts.Expression>> {
   if (parts.length === 0) {
     return { ok: false, error: { path: [], message: "empty chain" } };
   }
-  if (parts.length === 1) {
-    const leftPart = parts[0];
-    if (leftPart.kind !== ChainPartKind.Expression) {
-      return {
-        ok: false,
-        error: {
-          path: ["0"],
-          message: "the first part of a chain must be an expression",
-        },
-      };
-    }
-    return { ok: true, value: leftPart.expression };
+  if (parts[0].kind !== ChainPartKind.Expression) {
+    return {
+      ok: false,
+      error: {
+        path: ["0"],
+        message: "the first part of a chain must be an expression",
+      },
+    };
   }
-  const leftResult = unflattenChain(parts.slice(0, -1));
+  const simplifiedParts: SimplifiedChainPart[] = [];
+  let wasQuestion = false;
+  let wasExclamation = false;
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i];
+    switch (p.kind) {
+      case ChainPartKind.Call:
+      case ChainPartKind.Expression: {
+        simplifiedParts.push({ ...p, questionToken: wasQuestion });
+        wasQuestion = false;
+        wasExclamation = false;
+        break;
+      }
+      case ChainPartKind.ExclamationToken: {
+        if (wasQuestion) {
+          return {
+            ok: false,
+            error: {
+              path: ["" + i],
+              message:
+                "ExclamationToken can not be immediately after QuestionToken",
+            },
+          };
+        }
+        if (!wasExclamation) {
+          simplifiedParts.push(p);
+          wasExclamation = true;
+        }
+        break;
+      }
+      case ChainPartKind.QuestionToken: {
+        wasQuestion = true;
+        break;
+      }
+      default: {
+        return unreachable(p);
+      }
+    }
+  }
+  if (wasQuestion) {
+    return {
+      ok: false,
+      error: {
+        path: ["" + (parts.length - 1)],
+        message: "QuestionToken must be followed by an expression",
+      },
+    };
+  }
+  return _unflattenChain(simplifiedParts);
+}
+function _unflattenChain(
+  parts: SimplifiedChainPart[],
+): BuildResult<Node<ts.Expression>> {
+  if (parts.length === 1) {
+    return { ok: true, value: (parts[0] as ChainPartExpression).expression };
+  }
+  const leftResult = _unflattenChain(parts.slice(0, -1));
   if (!leftResult.ok) {
     return leftResult;
   }
   const rightPart = parts[parts.length - 1];
+  const questionToken = rightPart.questionToken
+    ? ts.createToken(ts.SyntaxKind.QuestionDotToken)
+    : undefined;
   switch (rightPart.kind) {
     case ChainPartKind.Expression: {
       const rightResult = rightPart.expression.build();
       if (!rightResult.ok || !ts.isStringLiteral(rightResult.value)) {
         let node = fromTsNode(
-          ts.createElementAccess(
+          ts.createElementAccessChain(
             ts.createIdentifier(""),
+            questionToken,
             ts.createIdentifier(""),
           ),
           unions.Expression,
@@ -247,8 +308,9 @@ function unflattenChain(parts: ChainPart[]): BuildResult<Node<ts.Expression>> {
         };
       }
       let node = fromTsNode(
-        ts.createPropertyAccess(
+        ts.createPropertyAccessChain(
           ts.createIdentifier(""),
+          questionToken,
           ts.createIdentifier(""),
         ),
         unions.Expression,
@@ -276,14 +338,14 @@ function unflattenChain(parts: ChainPart[]): BuildResult<Node<ts.Expression>> {
       );
       return { ok: true, value: node };
     }
-    default: {
+    case ChainPartKind.Call: {
       return {
         ok: false,
-        error: {
-          path: ["" + (parts.length - 1)],
-          message: `unsupported ChainPartKind ${rightPart.kind}`,
-        },
+        error: { path: [], message: "ChainPartKind.Call not implemented" },
       };
+    }
+    default: {
+      return unreachable(rightPart);
     }
   }
 }
