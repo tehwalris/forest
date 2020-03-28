@@ -46,7 +46,9 @@ interface ChainPartExclamationToken {
 function tryFlattenExpression(node: Node<unknown>): ChainPart[] | undefined {
   return (
     tryFlattenPropertyAccessExpression(node) ||
-    tryFlattenElementAccessExpression(node)
+    tryFlattenElementAccessExpression(node) ||
+    tryFlattenParenthesizedExpression(node) ||
+    tryFlattenNonNullExpression(node)
   );
 }
 function tryFlattenPropertyAccessExpression(
@@ -148,6 +150,59 @@ function tryFlattenElementAccessExpression(
   });
   return output;
 }
+function tryFlattenParenthesizedExpression(
+  node: Node<unknown>,
+): ChainPart[] | undefined {
+  if (
+    node.children.length !== 1 ||
+    node.children[0].key !== "value" ||
+    node.getDebugLabel() !== "ParenthesizedExpression"
+  ) {
+    return undefined;
+  }
+  const valueNode = node.children[0].node;
+  if (
+    !R.equals(
+      valueNode.children.map(c => c.key),
+      ["expression"],
+    )
+  ) {
+    return undefined;
+  }
+  return tryFlattenExpression(valueNode.children[0].node);
+}
+function tryFlattenNonNullExpression(
+  node: Node<unknown>,
+): ChainPart[] | undefined {
+  if (
+    node.children.length !== 1 ||
+    node.children[0].key !== "value" ||
+    node.getDebugLabel() !== "NonNullExpression"
+  ) {
+    return undefined;
+  }
+  const valueNode = node.children[0].node;
+  if (
+    !R.equals(
+      valueNode.children.map(c => c.key),
+      ["expression"],
+    )
+  ) {
+    return undefined;
+  }
+  const output: ChainPart[] = [];
+  const flatExpression = tryFlattenExpression(valueNode.children[0].node);
+  if (flatExpression) {
+    output.push(...flatExpression);
+  } else {
+    output.push({
+      kind: ChainPartKind.Expression,
+      expression: valueNode.children[0].node,
+    });
+  }
+  output.push({ kind: ChainPartKind.ExclamationToken });
+  return output;
+}
 function unflattenChain(parts: ChainPart[]): BuildResult<Node<ts.Expression>> {
   if (parts.length === 0) {
     return { ok: false, error: { path: [], message: "empty chain" } };
@@ -209,6 +264,17 @@ function unflattenChain(parts: ChainPart[]): BuildResult<Node<ts.Expression>> {
         ok: true,
         value: node,
       };
+    }
+    case ChainPartKind.ExclamationToken: {
+      let node = fromTsNode(
+        ts.createParen(ts.createNonNullExpression(ts.createLiteral(""))),
+        unions.Expression,
+      );
+      node = node.setDeepChild(
+        ["value", "expression", "value", "expression"],
+        leftResult.value,
+      );
+      return { ok: true, value: node };
     }
     default: {
       return {
