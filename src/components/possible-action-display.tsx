@@ -34,6 +34,7 @@ export const PossibleActionDisplay: React.FC<Props> = ({ actions }) => (
     )}
     <br />
     Other maybe possible actions: delete (x), add sibling below (ctrl-down), add
-    sibling above (ctrl-up), copy (c), paste (p), printToConsole (0), save (9)
+    sibling above (ctrl-up), copy (c), paste (p), printToConsole (0), save (9),
+    toggle meta-level (m)
   </div>
 );
