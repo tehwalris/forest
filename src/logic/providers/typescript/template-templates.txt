@@ -24,7 +24,7 @@ LiteralExpression
 Statement ...DeclarationStatement ...IterationStatement
   EmptyStatement VariableStatement ExpressionStatement
   ReturnStatement ThrowStatement TryStatement
-  ImportDeclaration IfStatement Block
+  ImportDeclaration IfStatement Block SwitchStatement
 DeclarationStatement
   FunctionDeclaration ClassDeclaration ModuleDeclaration
   InterfaceDeclaration TypeAliasDeclaration EnumDeclaration
@@ -100,6 +100,7 @@ PrefixUnaryOperator PlusPlusToken MinusMinusToken PlusToken MinusToken TildeToke
 PostfixUnaryOperator PlusPlusToken MinusMinusToken
 ReadonlyMappedToken ReadonlyToken PlusToken MinusToken
 QuestionMappedToken QuestionToken PlusToken MinusToken
+CaseOrDefaultClause CaseClause DefaultClause
 
 SECTION plainTypes
 NumericLiteral - ts.createLiteral(0)
@@ -220,6 +221,10 @@ ForOfStatement - ts.createForOf(ts.createToken(ts.SyntaxKind.AwaitKeyword), ts.c
 SpreadElement - ts.createSpread(ts.createLiteral(""))
 TryStatement - ts.createTry(ts.createBlock([]), undefined, undefined)
 CatchClause - ts.createCatchClause(undefined, ts.createBlock([]))
+SwitchStatement - ts.createSwitch(ts.createLiteral(""), ts.createCaseBlock([]))
+CaseBlock - ts.createCaseBlock([])
+CaseClause - ts.createCaseClause(ts.createLiteral(""), [])
+DefaultClause - ts.createDefaultClause([])
 
 SECTION tokenTypes
 NullLiteral NullKeyword
@@ -759,6 +764,20 @@ CatchClause
   O variableDeclaration VariableDeclaration
   R block Block
   build ({variableDeclaration, block}) => ts.createCatchClause(variableDeclaration, block)
+SwitchStatement
+  R expression Expression
+  R caseBlock CaseBlock
+  build ({expression, caseBlock}) => ts.createSwitch(expression, caseBlock)
+CaseBlock
+  RL clauses CaseOrDefaultClause
+  build ({clauses}) => ts.createCaseBlock(clauses)
+CaseClause
+  R expression Expression
+  RL statements Statement
+  build ({expression, statements}) => ts.createCaseClause(expression, statements)
+DefaultClause
+  RL statements Statement
+  build ({statements}) => ts.createDefaultClause(statements)
 
 SECTION shortcuts
 = EqualsToken
