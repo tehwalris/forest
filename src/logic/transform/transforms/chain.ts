@@ -277,14 +277,7 @@ function unflattenChain(parts: ChainPart[]): BuildResult<Node<ts.Expression>> {
       },
     };
   }
-  const unionResult = _unflattenChain(simplifiedParts);
-  if (!unionResult.ok) {
-    return unionResult;
-  }
-  return {
-    ok: true,
-    value: unionResult.value.getDeepestPossibleByPath(["value"]).node,
-  };
+  return _unflattenChain(simplifiedParts);
 }
 function _unflattenChain(
   parts: SimplifiedChainPart[],
@@ -381,17 +374,29 @@ export const chainTransform: Transform = node => {
     return node;
   }
   const chainNode = new ChainNode(
+    node,
     parts.map(p => new ChainPartUnionNode(nodeFromChainPart(p))),
   );
   if (parts[0].kind === ChainPartKind.Expression) {
     chainNode.id = parts[0].expression.id + "-chain";
   }
-  return node.setChild({ key: "value", node: chainNode });
+  return chainNode as Node<any>;
 };
 class ChainNode extends ListNode<ChainPart, ts.Expression> {
   flags: FlagSet = {};
+  constructor(private baseNode: Node<unknown>, children: Node<ChainPart>[]) {
+    super(children);
+    const baseSetVariant = baseNode.actions.setVariant;
+    if (baseSetVariant) {
+      this.actions.setVariant = {
+        ...baseSetVariant,
+        apply: (input: unknown) =>
+          chainTransform(baseSetVariant.apply(input)) as any,
+      };
+    }
+  }
   clone(): ChainNode {
-    const node = new ChainNode([]);
+    const node = new ChainNode(this.baseNode, []);
     node.children = this.children;
     node.id = this.id;
     return node;
@@ -429,7 +434,7 @@ class ChainNode extends ListNode<ChainPart, ts.Expression> {
     );
   }
   protected setValue(value: Node<ChainPart>[]): ChainNode {
-    const node = new ChainNode(value);
+    const node = new ChainNode(this.baseNode, value);
     node.id = this.id;
     return node;
   }
