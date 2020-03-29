@@ -27,9 +27,15 @@ type ChainPart =
   | ChainPartQuestionToken
   | ChainPartExclamationToken;
 type SimplifiedChainPart =
-  | (ChainPartExpression & { questionToken?: boolean })
-  | (ChainPartCall & { questionToken?: boolean })
-  | (ChainPartExclamationToken & { questionToken?: never });
+  | (ChainPartExpression & {
+      questionToken?: boolean;
+    })
+  | (ChainPartCall & {
+      questionToken?: boolean;
+    })
+  | (ChainPartExclamationToken & {
+      questionToken?: never;
+    });
 interface ChainPartExpression {
   kind: ChainPartKind.Expression;
   expression: Node<ts.Expression>;
@@ -102,10 +108,7 @@ function tryFlattenPropertyAccessExpression(
     unions.Expression,
   );
   newNameNode.id = oldNameNode.id;
-  output.push({
-    kind: ChainPartKind.Expression,
-    expression: newNameNode,
-  });
+  output.push({ kind: ChainPartKind.Expression, expression: newNameNode });
   return output;
 }
 function tryFlattenElementAccessExpression(
@@ -273,7 +276,14 @@ function unflattenChain(parts: ChainPart[]): BuildResult<Node<ts.Expression>> {
       },
     };
   }
-  return _unflattenChain(simplifiedParts);
+  const unionResult = _unflattenChain(simplifiedParts);
+  if (!unionResult.ok) {
+    return unionResult;
+  }
+  return {
+    ok: true,
+    value: unionResult.value.getDeepestPossibleByPath(["value"]).node,
+  };
 }
 function _unflattenChain(
   parts: SimplifiedChainPart[],
@@ -373,7 +383,7 @@ export const chainTransform: Transform = node => {
   if (parts[0].kind === ChainPartKind.Expression) {
     chainNode.id = parts[0].expression.id + "-chain";
   }
-  return chainNode as Node<any>;
+  return node.setChild({ key: "value", node: chainNode });
 };
 class ChainNode extends ListNode<ChainPart, ts.Expression> {
   flags: FlagSet = {};
@@ -450,10 +460,7 @@ class ChainPartExpressionNode extends Node<ChainPartExpression> {
     }
   }
   private updateExpression(expression: Node<ts.Expression>) {
-    return new ChainPartExpressionNode({
-      ...this.part,
-      expression,
-    });
+    return new ChainPartExpressionNode({ ...this.part, expression });
   }
   clone(): ChainPartExpressionNode {
     return new ChainPartExpressionNode(this.part);
@@ -519,7 +526,11 @@ class ChainPartUnionNode extends Node<ChainPart> {
     for (const [k, a] of Object.entries(baseActions)) {
       if (k === "setVariant" && a?.inputKind === InputKind.OneOf) {
         type Variant =
-          | { fromBase: false; label: string; chainPart: ChainPart }
+          | {
+              fromBase: false;
+              label: string;
+              chainPart: ChainPart;
+            }
           | {
               fromBase: true;
               baseVariant: unknown;
@@ -543,10 +554,7 @@ class ChainPartUnionNode extends Node<ChainPart> {
               chainPart: { kind: ChainPartKind.QuestionToken },
             },
             ...a.oneOf.map(
-              (e): Variant => ({
-                fromBase: true,
-                baseVariant: e,
-              }),
+              (e): Variant => ({ fromBase: true, baseVariant: e }),
             ),
           ],
           apply: variant =>
