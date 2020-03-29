@@ -50,6 +50,7 @@ interface ChainPartQuestionToken {
 }
 interface ChainPartExclamationToken {
   kind: ChainPartKind.ExclamationToken;
+  id?: string;
 }
 function tryFlattenExpression(node: Node<unknown>): ChainPart[] | undefined {
   return (
@@ -212,7 +213,7 @@ function tryFlattenNonNullExpression(
       expression: valueNode.children[0].node,
     });
   }
-  output.push({ kind: ChainPartKind.ExclamationToken });
+  output.push({ kind: ChainPartKind.ExclamationToken, id: node.id });
   return output;
 }
 function unflattenChain(parts: ChainPart[]): BuildResult<Node<ts.Expression>> {
@@ -316,10 +317,7 @@ function _unflattenChain(
           ["value", "argumentExpression"],
           rightPart.expression,
         );
-        return {
-          ok: true,
-          value: node,
-        };
+        return { ok: true, value: node };
       }
       let node = fromTsNode(
         ts.createPropertyAccessChain(
@@ -335,10 +333,7 @@ function _unflattenChain(
         .actions.setFromString!.apply(rightResult.value.text);
       newNameNode.id = rightPart.expression.id;
       node = node.setDeepChild(["value", "name"], newNameNode);
-      return {
-        ok: true,
-        value: node,
-      };
+      return { ok: true, value: node };
     }
     case ChainPartKind.ExclamationToken: {
       let node = fromTsNode(
@@ -349,6 +344,10 @@ function _unflattenChain(
         ["value", "expression", "value", "expression"],
         leftResult.value,
       );
+      if (rightPart.id) {
+        node.getDeepestPossibleByPath(["value", "expression"]).node.id =
+          rightPart.id;
+      }
       return { ok: true, value: node };
     }
     case ChainPartKind.Call: {
@@ -367,8 +366,12 @@ function nodeFromChainPart(p: ChainPart): Node<ChainPart> {
     return new ChainPartExpressionNode(p);
   }
   const node = new ChainPartConstantNode(p);
-  if (p.kind === ChainPartKind.QuestionToken && p.id) {
-    node.id = p.id;
+  if (
+    (p.kind === ChainPartKind.QuestionToken ||
+      p.kind === ChainPartKind.ExclamationToken) &&
+    p.id
+  ) {
+    node.id = p.id + "-chain-part";
   }
   return node;
 }
