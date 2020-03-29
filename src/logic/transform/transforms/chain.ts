@@ -442,11 +442,10 @@ class ChainNode extends ListNode<ChainPart, ts.Expression> {
     return node;
   }
   protected createChild(): Node<ChainPart> {
-    const part: ChainPart = {
+    return nodeFromChainPart({
       kind: ChainPartKind.Expression,
       expression: fromTsNode(ts.createLiteral(""), unions.Expression),
-    };
-    return new ChainPartConstantNode(part);
+    });
   }
   getDebugLabel(): string | undefined {
     return "ChainNode";
