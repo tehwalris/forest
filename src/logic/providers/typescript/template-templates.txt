@@ -25,6 +25,7 @@ Statement ...DeclarationStatement ...IterationStatement
   EmptyStatement VariableStatement ExpressionStatement
   ReturnStatement ThrowStatement TryStatement
   ImportDeclaration IfStatement Block SwitchStatement
+  BreakStatement ContinueStatement
 DeclarationStatement
   FunctionDeclaration ClassDeclaration ModuleDeclaration
   InterfaceDeclaration TypeAliasDeclaration EnumDeclaration
@@ -225,6 +226,8 @@ SwitchStatement - ts.createSwitch(ts.createLiteral(""), ts.createCaseBlock([]))
 CaseBlock - ts.createCaseBlock([])
 CaseClause - ts.createCaseClause(ts.createLiteral(""), [])
 DefaultClause - ts.createDefaultClause([])
+BreakStatement - ts.createBreak()
+ContinueStatement - ts.createContinue()
 
 SECTION tokenTypes
 NullLiteral NullKeyword
@@ -778,6 +781,12 @@ CaseClause
 DefaultClause
   RL statements Statement
   build ({statements}) => ts.createDefaultClause(statements)
+BreakStatement
+  O label Identifier
+  build ({label}) => ts.createBreak(label)
+ContinueStatement
+  O label Identifier
+  build ({label}) => ts.createContinue(label)
 
 SECTION shortcuts
 = EqualsToken
