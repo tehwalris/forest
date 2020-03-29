@@ -217,8 +217,11 @@ function tryFlattenNonNullExpression(
   return output;
 }
 function unflattenChain(parts: ChainPart[]): BuildResult<Node<ts.Expression>> {
-  if (parts.length === 0) {
-    return { ok: false, error: { path: [], message: "empty chain" } };
+  if (parts.length < 2) {
+    return {
+      ok: false,
+      error: { path: [], message: "chain must have at least 2 parts" },
+    };
   }
   if (parts[0].kind !== ChainPartKind.Expression) {
     return {
