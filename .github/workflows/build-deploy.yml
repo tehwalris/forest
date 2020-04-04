@@ -23,13 +23,17 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: 12.x
-    - run: yarn install --pure-lockfile
+    - run: yarn install --frozen-lockfile
       working-directory: divetree
     - run: yarn workspace divetree-core build
       working-directory: divetree
     - run: yarn workspace divetree-react build
       working-directory: divetree
-    - run: yarn install --pure-lockfile
+    - run: yarn install --frozen-lockfile
+      working-directory: forest
+    - run: ls node_modules
+      working-directory: forest
+    - run: ls -lah node_modules/divetree-core
       working-directory: forest
     - run: yarn build
       working-directory: forest
