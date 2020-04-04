@@ -2,8 +2,19 @@
 
 ## Local dev server
 
+- Configure divetree
+  - Clone [divetree](https://github.com/tehwalris/divetree)
+  - `cd divetree`
+  - `yarn`
+  - `yarn workspace divetree-core build`
+  - `yarn workspace divetree-react build`
+  - `cd divetree-core && yarn link && cd ..`
+  - `cd divetree-react && yarn link && cd ..`
 - Install dependencies
   - `yarn`
+- Link in divetree
+  - `yarn link divetree-core`
+  - `yarn link divetree-react`
 - Generate templates
   - `cd src/logic/providers/typescript/ && node generate-templates.js`
 - Start the server (**WARNING**: This is really unsafe!)
