@@ -45,6 +45,7 @@ jobs:
     - run: mkdir build
       working-directory: forest
     - run: echo 'walrus' > build/index.html
+      working-directory: forest
     - run: npx now --prod -t ${{ secrets.ZEIT_NOW_TOKEN }}
       working-directory: forest
       env:
