@@ -376,4 +376,8 @@ const ${e.name}: StructTemplate<
     "]);",
   ].join("\n") + "\n";
 
-fs.writeFileSync(path.join(__dirname, "./generated/templates.ts"), output);
+const generatedDir = path.join(__dirname, "./generated");
+if (!fs.existsSync(generatedDir)) {
+  fs.mkdirSync(generatedDir);
+}
+fs.writeFileSync(path.join(generatedDir, "./templates.ts"), output);
