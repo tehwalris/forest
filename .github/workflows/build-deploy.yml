@@ -19,7 +19,7 @@ jobs:
         node-version: 12.x
     # - run: yarn install --pure-lockfile
     - run: echo 'walrus' > build/index.html
-    uses: amondnet/now-deployment@v2.0.2
+    - uses: amondnet/now-deployment@v2.0.2
       with:
         zeit-token: ${{ secrets.ZEIT_NOW_TOKEN }}
         now-project-id: ${{ secrets.ZEIT_NOW_PROJECT_ID }}
