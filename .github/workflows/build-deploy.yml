@@ -18,6 +18,7 @@ jobs:
       with:
         node-version: 12.x
     # - run: yarn install --pure-lockfile
+    - run: mkdir build
     - run: echo 'walrus' > build/index.html
     - uses: amondnet/now-deployment@v2.0.2
       with:
