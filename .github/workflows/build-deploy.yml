@@ -50,4 +50,4 @@ jobs:
       working-directory: forest
       env:
         NOW_ORG_ID: ${{ secrets.ZEIT_NOW_ORG_ID }}
-        NOW_PROjECT_ID: ${{ secrets.ZEIT_NOW_PROJECT_ID }}
+        NOW_PROJECT_ID: ${{ secrets.ZEIT_NOW_PROJECT_ID }}
