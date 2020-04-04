@@ -13,15 +13,27 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
+      with:
+        repository: "tehwalris/divetree"
+        path: ../divetree
     - name: Use Node.js
       uses: actions/setup-node@v1
       with:
         node-version: 12.x
-    # - run: yarn install --pure-lockfile
-    - run: mkdir build
-    - run: echo 'walrus' > build/index.html
+    - run: yarn install --pure-lockfile
+      working-directory: ../divetree
+    - run: yarn workspace divetree-core build
+      working-directory: ../divetree
+    - run: yarn workspace divetree-react build
+      working-directory: ../divetree
+    - run: yarn install --pure-lockfile
+    - run: yarn build
+      env:
+        NODE_OPTIONS: "--max-old-space-size=8192"
     - uses: amondnet/now-deployment@v2.0.2
       with:
+        now-args: '--prod'
         zeit-token: ${{ secrets.ZEIT_NOW_TOKEN }}
         now-project-id: ${{ secrets.ZEIT_NOW_PROJECT_ID }}
         now-org-id: ${{ secrets.ZEIT_NOW_ORG_ID }}
