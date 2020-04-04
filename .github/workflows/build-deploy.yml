@@ -39,6 +39,8 @@ jobs:
       working-directory: forest
     - run: yarn link divetree-react
       working-directory: forest
+    - run: node generate-templates.js
+      working-directory: forest/src/logic/providers/typescript
     - run: yarn build
       working-directory: forest
       env:
