@@ -8,7 +8,7 @@ console.log("Hello world");
 
 The learning curve for this is actually pretty steep, but I'm sure you'll manage.
 
-To start, open up Forest. You should see two grey rectangles like this:
+To start, [open up Forest](https://forest.walr.is). You should see two grey rectangles like this:
 
 ![TODO image](./TODO.png)
 
