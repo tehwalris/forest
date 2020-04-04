@@ -78,7 +78,7 @@ Just like you did with the "Hello world" sting literal, use `s` (`setFromString`
 
 ![TODO image](./TODO.png)
 
-We're almost done 😩. Focus the empty `string`. That's the name of the property we're going to access. Set it to `log` using `s` (`setFromString`). And that's it!
+We're almost done. Focus the empty `string`. That's the name of the property we're going to access. Set it to `log` using `s` (`setFromString`). Done!
 
 ![TODO image](./TODO.png)
 
