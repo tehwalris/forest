@@ -43,8 +43,6 @@ export interface ActionSet<N extends Node<unknown>> {
   setFromString?: StringInputAction<N>;
   setVariant?: OneOfInputAction<N, unknown>;
   toggle?: NoInputAction<N>;
-  insertByKey?: StringInputAction<N>;
-  deleteByKey?: StringInputAction<N>;
   deleteChild?: ChildInputAction<N>;
   replace?: NodeInputAction<unknown, Node<unknown>>;
   [key: string]: Action<N> | undefined;

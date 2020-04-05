@@ -1,28 +1,8 @@
-import { ActionSet, InputKind } from "../action";
+import { ActionSet } from "../action";
 import { Node, ChildNodeEntry, BuildResult } from "../node";
 export abstract class StructNode<T, B> extends Node<B> {
-  actions: ActionSet<StructNode<T, B>>;
+  actions: ActionSet<StructNode<T, B>> = {};
   abstract children: ChildNodeEntry<any>[];
-  constructor() {
-    super();
-    this.actions = {
-      insertByKey: {
-        inputKind: InputKind.String,
-        apply: (input: string) =>
-          this.setChild({
-            key: input,
-            node: this.createChild(),
-          }),
-      },
-      deleteByKey: {
-        inputKind: InputKind.String,
-        apply: (input: string) => {
-          const newChildren = this.children.filter(e => e.key !== input);
-          return this.setChildren(newChildren);
-        },
-      },
-    };
-  }
   setChild(newChild: ChildNodeEntry<any>): StructNode<T, B> {
     let didReplace = false;
     const newChildren = this.children.map(e => {

@@ -182,8 +182,6 @@ export function handleKey(
     s: tryAction("setFromString"),
     v: tryAction("setVariant", n => n.id),
     t: tryAction("toggle"),
-    i: tryAction("insertByKey"),
-    d: tryAction("deleteByKey"),
     x: tryDeleteChild,
     c: () => copyNode(node),
     p: tryAction("replace", n => n.id),

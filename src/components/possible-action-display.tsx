@@ -11,8 +11,6 @@ const SHORTCUTS_BY_ACTION_KEY: {
   setFromString: "s",
   setVariant: "v",
   toggle: "t",
-  insertByKey: "i",
-  deleteByKey: "d",
 };
 const PARENT_SHORTCUTS = ["replace", "deleteChild", "insertChildAtIndex"];
 export const PossibleActionDisplay: React.FC<Props> = ({ actions }) => (
