@@ -20,7 +20,7 @@
 - Generate templates
   - `cd src/logic/providers/typescript/ && node generate-templates.js`
 - Start the server (**WARNING**: This is really unsafe!)
-  - `node server-unsafe.js`
+  - `cd src && node ../server-unsafe.js`
 - Start the CRA dev server
   - `yarn start`
 - Open the main page and edit (probably [http://localhost:3000](http://localhost:3000))

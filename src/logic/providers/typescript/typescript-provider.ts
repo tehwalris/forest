@@ -40,9 +40,7 @@ export class TypescriptProvider {
     );
   }
   async loadTree(): Promise<Node<Map<string, ts.SourceFile>>> {
-    const directoryTree = await this.loadDirectoryTree(
-      path.join(this.projectRoot, "src"),
-    );
+    const directoryTree = await this.loadDirectoryTree(this.projectRoot);
     const filePaths = filePathsFromDirectoryTree(directoryTree);
     await Promise.all(
       filePaths.map(async filePath => {
