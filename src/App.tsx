@@ -16,6 +16,15 @@ export const App = () => {
     <>
       <Editor fs={fsChoice.fs} projectRootDir={fsChoice.projectRootDir} />
       <RepoSwitcher fsChoice={fsChoice} />
+      <div>
+        <a
+          href="https://github.com/tehwalris/forest"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Documentation
+        </a>
+      </div>
     </>
   );
 };
