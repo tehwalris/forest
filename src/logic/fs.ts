@@ -16,7 +16,7 @@ async function loadGitRepo(
   fsClonePath: string,
   fs: typeof _fsType,
 ): Promise<void> {
-  await git.clone({
+  return git.clone({
     fs,
     http: gitHttp,
     dir: fsClonePath,
