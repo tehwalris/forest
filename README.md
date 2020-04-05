@@ -12,7 +12,7 @@ People have made [quite a few](https://www.reddit.com/r/nosyntax/wiki/projects) 
 
 ## [Try it](https://forest.walr.is)
 
-- Check out the ["Hello world" tutorial](./doc/tutorials/hello-world.md)
+- Check out the ["Hello world" tutorial](https://github.com/tehwalris/forest-tutorials/blob/master/hello-world.md)
 - [Play with Forest](https://forest.walr.is)
 
 ## More
