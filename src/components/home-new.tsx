@@ -39,6 +39,7 @@ import { ActionFiller } from "./tree/action-filler";
 import { NodeContent } from "./tree/node-content";
 interface Props {
   fs: typeof _fsType;
+  projectRootDir: string;
 }
 interface CombinedTrees {
   raw: Node<unknown>;
@@ -99,11 +100,11 @@ const treeFromCombined = (combined: CombinedTrees) => {
   }
   return tree;
 };
-export const HomeNew: React.FC<Props> = ({ fs }) => {
+export const HomeNew: React.FC<Props> = ({ fs, projectRootDir }) => {
   const [_trees, _setTrees] = useState<CombinedTrees>({
     raw: new EmptyLeafNode(),
   });
-  const typescriptProvider = useRef(new TypescriptProvider(fs, "./"));
+  const typescriptProvider = useRef(new TypescriptProvider(fs, projectRootDir));
   const openFile = React.useCallback(async () => {
     _setTrees({ raw: await typescriptProvider.current.loadTree() });
   }, []);

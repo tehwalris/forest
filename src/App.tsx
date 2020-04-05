@@ -1,12 +1,17 @@
-import * as React from "react";
+import * as React from 'react'
+import { useEffect, useState } from "react";
 import { HomeNew } from "./components/home-new";
-import createClient from "fs-remote/createClient";
-import * as _fsType from "fs";
+import { ChosenFs, configureFs } from "./logic/fs";
 
-const fs = createClient("http://localhost:1234") as typeof _fsType;
-
-export default class App extends React.Component {
-  render() {
-    return <HomeNew fs={fs} />;
+export const App = () => {
+  const [fsChoice, setFsChoice] = useState<ChosenFs>();
+  useEffect(() => {
+    configureFs(true, "https://github.com/tehwalris/divetree").then(c =>
+      setFsChoice(c),
+    );
+  }, []);
+  if (!fsChoice) {
+    return null;
   }
-}
+  return <HomeNew fs={fsChoice.fs} projectRootDir={fsChoice.projectRootDir} />;
+};

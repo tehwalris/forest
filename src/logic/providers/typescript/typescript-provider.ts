@@ -29,7 +29,7 @@ export class TypescriptProvider {
   private readFile(filePath: string): Promise<string> {
     return promisify(this.fs.readFile)(
       path.join(this.projectRoot, filePath),
-      "utf-8",
+      "utf8",
     );
   }
   private writeFile(filePath: string, content: string): Promise<void> {
