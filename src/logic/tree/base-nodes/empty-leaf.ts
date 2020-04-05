@@ -4,6 +4,9 @@ export class EmptyLeafNode extends Node<undefined> {
   children: never[] = [];
   flags = {};
   actions: ActionSet<never> = {};
+  constructor(private debugLabel?: string) {
+    super();
+  }
   clone(): EmptyLeafNode {
     return new EmptyLeafNode();
   }
@@ -15,5 +18,8 @@ export class EmptyLeafNode extends Node<undefined> {
   }
   build(): BuildResult<undefined> {
     return { ok: true, value: undefined };
+  }
+  getDebugLabel() {
+    return this.debugLabel;
   }
 }

@@ -102,7 +102,7 @@ const treeFromCombined = (combined: CombinedTrees) => {
 };
 export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
   const [_trees, _setTrees] = useState<CombinedTrees>({
-    raw: new EmptyLeafNode(),
+    raw: new EmptyLeafNode("Loading..."),
   });
   const typescriptProvider = useRef(new TypescriptProvider(fs, projectRootDir));
   const openFile = React.useCallback(async () => {
