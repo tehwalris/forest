@@ -100,7 +100,7 @@ const treeFromCombined = (combined: CombinedTrees) => {
   }
   return tree;
 };
-export const HomeNew: React.FC<Props> = ({ fs, projectRootDir }) => {
+export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
   const [_trees, _setTrees] = useState<CombinedTrees>({
     raw: new EmptyLeafNode(),
   });

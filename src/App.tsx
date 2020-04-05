@@ -1,6 +1,6 @@
-import * as React from 'react'
+import * as React from "react";
 import { useEffect, useState } from "react";
-import { HomeNew } from "./components/home-new";
+import { Editor } from "./components/editor";
 import { ChosenFs, configureFs } from "./logic/fs";
 
 export const App = () => {
@@ -13,5 +13,5 @@ export const App = () => {
   if (!fsChoice) {
     return null;
   }
-  return <HomeNew fs={fsChoice.fs} projectRootDir={fsChoice.projectRootDir} />;
+  return <Editor fs={fsChoice.fs} projectRootDir={fsChoice.projectRootDir} />;
 };
