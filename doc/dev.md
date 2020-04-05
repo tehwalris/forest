@@ -2,6 +2,9 @@
 
 ## Local dev server
 
+**You might not need this**. There's a [prebuilt version of Forest](https://forest.walr.is) and you can even let it [edit your local files](./filesystem.md). If you want to make changes to Forest though, you'll need to compile it by yourself like this:
+
+- Install Node.js 12 and [yarn](https://yarnpkg.com/)
 - Configure divetree
   - Clone [divetree](https://github.com/tehwalris/divetree)
   - `cd divetree`
@@ -19,7 +22,7 @@
   - `yarn link react`
 - Generate templates
   - `cd src/logic/providers/typescript/ && node generate-templates.js`
-- Start the server (**WARNING**: This is really unsafe!)
+- [optional] Start the server (**WARNING**: This is really unsafe! [More info](./filesystem.md))
   - `cd src && node ../server-unsafe.js`
 - Start the CRA dev server
   - `yarn start`
