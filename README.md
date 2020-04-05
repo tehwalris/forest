@@ -8,8 +8,9 @@ Forest lets you write TypeScript programs [as trees](https://en.wikipedia.org/wi
 
 ## Try it
 
-- Check out the ["Hello world" tutorial](https://github.com/tehwalris/forest-tutorials/blob/master/hello-world.md)
+- Check out the ["Hello world" tutorial video](https://www.youtube.com/watch?v=9OcT_a8V1nc) (or [text version](https://github.com/tehwalris/forest-tutorials/blob/master/hello-world.md))
 - [Play with Forest](https://forest.walr.is)
+- Watch the ["Beyond hello world" tutorial video](https://www.youtube.com/watch?v=yYMt7e5i2xs)
 
 ## Why another tree editor?
 
