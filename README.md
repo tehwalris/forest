@@ -18,4 +18,5 @@ People have made [quite a few](https://www.reddit.com/r/nosyntax/wiki/projects) 
 ## More
 
 - The [developer guide](./doc/dev.md) explains how to compile Forest yourself
-- There's a guide to [use Forest with your real filesystem](./doc/filesystem.md)
+- There's a guide to [using Forest with your real filesystem](./doc/filesystem.md)
+- There's also a [rough roadmap](./doc/roadmap.md)
