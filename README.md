@@ -4,8 +4,6 @@
 
 _A prototype tree editor for TypeScript_
 
-## What is this?
-
 Forest lets you write TypeScript programs [as trees](https://en.wikipedia.org/wiki/Abstract_syntax_tree) instead of as text. This software is a prototype - it's confusing, it's buggy and it's often slow. It's also the only tree editor for TypeScript, so it's pretty fun to try.
 
 ## Try it
