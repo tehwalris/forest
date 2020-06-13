@@ -13,7 +13,7 @@
   - `yarn workspace divetree-react build`
   - `cd divetree-core && yarn link && cd ..`
   - `cd divetree-react && yarn link && cd ..`
-  - `cd node_modules/react && yarn link && cd ..`
+  - `cd node_modules/react && yarn link && cd ../..`
 - Install dependencies
   - `yarn`
 - Link in divetree
