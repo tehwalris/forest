@@ -8,6 +8,7 @@ import {
   IncrementalParentIndex,
   ParentIndexEntry,
   idPathFromParentIndexEntry,
+  nodePathFromParentIndexEntry,
 } from "../logic/parent-index";
 import TypescriptProvider, { FileNode } from "../logic/providers/typescript";
 import {
@@ -37,6 +38,8 @@ import { useFocus } from "../logic/use-focus";
 import { PossibleActionDisplay } from "./possible-action-display";
 import { ActionFiller } from "./tree/action-filler";
 import { NodeContent } from "./tree/node-content";
+import { CodeDisplay } from "./code-display";
+import ts from "typescript";
 interface Props {
   fs: typeof _fsType;
   projectRootDir: string;
@@ -254,6 +257,12 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
     metaLevelNodeIds,
   );
   incrementalParentIndex.addObservation(trueFocusedNode);
+  const closestFile = nodePathFromParentIndexEntry(focusedParentIndexEntry)
+    .map(node => {
+      const file = (node as any).file;
+      return file && ts.isSourceFile(file) ? file : undefined;
+    })
+    .find(x => x);
   const [copiedNode, setCopiedNode] = useState<Node<unknown>>();
   const [marks, setMarks] = useState<Marks>({});
   const [chord, setChord] = useState<string[]>([]);
@@ -306,6 +315,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
           })
         }
       />
+      {closestFile && <CodeDisplay file={closestFile} />}
       {inProgressAction && (
         <ActionFiller
           action={inProgressAction.action}
