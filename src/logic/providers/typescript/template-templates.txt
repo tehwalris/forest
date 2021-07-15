@@ -57,7 +57,7 @@ JsxChild JsxText JsxExpression JsxElement JsxSelfClosingElement JsxFragment
 JsxAttributeLike JsxAttribute JsxSpreadAttribute
 JsxTagNameExpression Identifier ThisExpression JsxTagNamePropertyAccess
 JsxAttributeInitializer StringLiteral JsxExpression
-TypeNode
+TypeNode ...KeywordTypeNode
   ThisTypeNode TypeLiteralNode 
   FunctionTypeNode ConstructorTypeNode
   TypeReferenceNode TypeQueryNode
@@ -67,6 +67,10 @@ TypeNode
   LiteralTypeNode 
   ExpressionWithTypeArguments TypePredicateNode
   NamedTupleMember
+KeywordTypeNode
+  AnyKeyword UnknownKeyword NumberKeyword ObjectKeyword
+  BooleanKeyword StringKeyword SymbolKeyword
+  VoidKeyword UndefinedKeyword NeverKeyword
 TypeElement CallSignatureDeclaration ConstructSignatureDeclaration PropertySignature MethodSignature IndexSignatureDeclaration
 TypePredicateNodeParameterName Identifier ThisTypeNode
 LiteralTypeNodeLiteral NullLiteral BooleanLiteral ...LiteralExpression PrefixUnaryExpression
@@ -307,10 +311,8 @@ ObjectKeyword T
 BooleanKeyword T
 StringKeyword T
 SymbolKeyword T
-ThisKeyword T
 VoidKeyword T
 UndefinedKeyword T
-NullKeyword T
 NeverKeyword T
 
 SECTION stringTemplates

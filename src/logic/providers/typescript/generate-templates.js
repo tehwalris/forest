@@ -209,9 +209,9 @@ ${e.name}: {
       .map((e) =>
         `
 ${e.name}: {
-  match: (e: ts.Node): e is ts.KeywordTypeNode & {kind: ts.SyntaxKind.${e.name}} =>
+  match: (e: ts.Node): e is ts.KeywordTypeNode<ts.SyntaxKind.${e.name}> =>
     e.kind === ts.SyntaxKind.${e.name},
-  default: {kind: ts.SyntaxKind.${e.name} } as ts.KeywordTypeNode & {kind: ts.SyntaxKind.${e.name}}
+  default: {kind: ts.SyntaxKind.${e.name} } as ts.KeywordTypeNode<ts.SyntaxKind.${e.name}>
 },
 `.trim(),
       ),
