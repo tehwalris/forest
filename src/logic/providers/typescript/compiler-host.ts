@@ -13,7 +13,7 @@ export class CompilerHost implements ts.CompilerHost {
     if (!options.lib) {
       throw new Error("No libs specified");
     }
-    return options.lib.map(libName => `typescript/lib/lib.${libName}.d.ts`);
+    return options.lib.map((libName) => `typescript/lib/lib.${libName}.d.ts`);
   }
   public useCaseSensitiveFileNames(): boolean {
     return false;
@@ -38,7 +38,7 @@ export class CompilerHost implements ts.CompilerHost {
     return this._files[fileName];
   }
   public getAllFiles(): ts.SourceFile[] {
-    return Object.keys(this._files).map(key => this._files[key]);
+    return Object.keys(this._files).map((key) => this._files[key]);
   }
   public fileExists(fileName: string): boolean {
     return !!this.getSourceFile(fileName);

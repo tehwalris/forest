@@ -43,7 +43,7 @@ export class TypescriptProvider {
     const directoryTree = await this.loadDirectoryTree(this.projectRoot);
     const filePaths = filePathsFromDirectoryTree(directoryTree);
     await Promise.all(
-      filePaths.map(async filePath => {
+      filePaths.map(async (filePath) => {
         const fileContent = await this.readFile(filePath);
         this.compilerHost.addFile(filePath, fileContent, ts.ScriptTarget.ES5);
       }),
@@ -69,7 +69,7 @@ export class TypescriptProvider {
     } else if (stats.isDirectory()) {
       const childNames = await promisify(this.fs.readdir)(basePath, undefined);
       const childTrees = await Promise.all(
-        childNames.map(n => this.loadDirectoryTree(path.join(basePath, n))),
+        childNames.map((n) => this.loadDirectoryTree(path.join(basePath, n))),
       );
       const out: DirectoryTree = {};
       R.zip(childNames, childTrees).forEach(([k, v]) => {
@@ -102,7 +102,9 @@ export class FileNode extends ListNode<
   }
   static fromFile(file: ts.SourceFile, filePath: string): FileNode {
     return new FileNode(
-      file.statements.map(statement => fromTsNode(statement, unions.Statement)),
+      file.statements.map((statement) =>
+        fromTsNode(statement, unions.Statement),
+      ),
       file,
       filePath,
     );
@@ -112,15 +114,13 @@ export class FileNode extends ListNode<
   }
   build(): BuildResult<Map<string, ts.SourceFile>> {
     return this.listBuildHelper(
-      children =>
+      (children) =>
         new Map<string, ts.SourceFile>([
           [this.filePath, ts.updateSourceFileNode(this.file, children)],
         ]),
     );
   }
-  prettyPrint(
-    format?: (fileText: string) => string,
-  ):
+  prettyPrint(format?: (fileText: string) => string):
     | {
         node: FileNode;
         text: string;
@@ -202,7 +202,7 @@ class DirectoryNode extends StructNode<
       return builtChildren;
     }
     const files = new Map<string, ts.SourceFile>();
-    Object.values(builtChildren.value).forEach(childFiles => {
+    Object.values(builtChildren.value).forEach((childFiles) => {
       childFiles.forEach((sourceFile, filePath) =>
         files.set(filePath, sourceFile),
       );
@@ -261,7 +261,7 @@ function filePathsFromDirectoryTree(directoryTree: DirectoryTree): string[] {
   if (typeof directoryTree === "string") {
     return [directoryTree];
   }
-  return Object.values(directoryTree).flatMap(subtree =>
+  return Object.values(directoryTree).flatMap((subtree) =>
     filePathsFromDirectoryTree(subtree),
   );
 }

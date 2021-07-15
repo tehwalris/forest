@@ -20,7 +20,7 @@ import { ListNode } from "../../tree/base-nodes";
 import { ParentPathElement } from "../../parent-index";
 function isIfStatementValue(node: Node<unknown>): boolean {
   return R.equals(
-    node.children.map(c => c.key),
+    node.children.map((c) => c.key),
     ["expression", "thenStatement", "elseStatement"],
   );
 }
@@ -48,13 +48,13 @@ function unwrapUpToIfStatement(
     node.children[0].key,
   ]);
 }
-export const flattenIfTransform: Transform = node => {
+export const flattenIfTransform: Transform = (node) => {
   if (!isIfStatementValue(node)) {
     return node;
   }
   const flat = new FlatIfNode(
     node,
-    flattenIf(node).map(b => new FlatIfBranchNode(b)),
+    flattenIf(node).map((b) => new FlatIfBranchNode(b)),
   ) as any;
   flat.id = node.id;
   return flat;
@@ -142,7 +142,7 @@ class FlatIfNode extends ListNode<FlatIfBranch, unknown> {
   }
   setChild(child: ChildNodeEntry<FlatIfBranch>): FlatIfNode {
     const node = this.clone();
-    node.children = node.children.map(c => (c.key === child.key ? child : c));
+    node.children = node.children.map((c) => (c.key === child.key ? child : c));
     return node;
   }
   setFlags(flags: FlagSet): FlatIfNode {
@@ -156,11 +156,11 @@ class FlatIfNode extends ListNode<FlatIfBranch, unknown> {
     return result.value.build();
   }
   unapplyTransform(): BuildResult<Node<unknown>> {
-    const childBuildResults = this.children.map(c => ({
+    const childBuildResults = this.children.map((c) => ({
       key: c.key,
       result: c.node.build(),
     }));
-    const firstChildError = childBuildResults.find(r => !r.result.ok);
+    const firstChildError = childBuildResults.find((r) => !r.result.ok);
     if (firstChildError) {
       const error = (firstChildError.result as BuildResultFailure).error;
       return {
@@ -173,7 +173,7 @@ class FlatIfNode extends ListNode<FlatIfBranch, unknown> {
     }
     const ifNode = unflattenIf(
       childBuildResults.map(
-        r => (r.result as BuildResultSuccess<FlatIfBranch>).value,
+        (r) => (r.result as BuildResultSuccess<FlatIfBranch>).value,
       ),
     );
     return { ok: true, value: ifNode };
@@ -229,7 +229,7 @@ class FlatIfBranchNode extends Node<FlatIfBranch> {
   }
   setChild(child: ChildNodeEntry<unknown>): FlatIfBranchNode {
     const node = this.clone();
-    node.children = node.children.map(c => (c.key === child.key ? child : c));
+    node.children = node.children.map((c) => (c.key === child.key ? child : c));
     return node;
   }
   setFlags(flags: FlagSet): FlatIfBranchNode {

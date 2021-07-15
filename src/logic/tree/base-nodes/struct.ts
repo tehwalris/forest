@@ -5,7 +5,7 @@ export abstract class StructNode<T, B> extends Node<B> {
   abstract children: ChildNodeEntry<any>[];
   setChild(newChild: ChildNodeEntry<any>): StructNode<T, B> {
     let didReplace = false;
-    const newChildren = this.children.map(e => {
+    const newChildren = this.children.map((e) => {
       if (e.key === newChild.key) {
         didReplace = true;
         return newChild;

@@ -8,7 +8,7 @@ const PRETTIER_OPTIONS = {
 } as const;
 
 export function tryPrettyPrint(fileNode: FileNode): string | undefined {
-  return fileNode.prettyPrint(t => {
+  return fileNode.prettyPrint((t) => {
     try {
       return prettierFormat(t, PRETTIER_OPTIONS);
     } catch (e) {

@@ -115,11 +115,11 @@ export function unapplyTransforms(
     node = buildResult.value;
   }
 
-  const childBuildResults = node.children.map(c => ({
+  const childBuildResults = node.children.map((c) => ({
     key: c.key,
     result: unapplyTransforms(c.node, cache),
   }));
-  const failedChild = childBuildResults.find(r => !r.result.ok);
+  const failedChild = childBuildResults.find((r) => !r.result.ok);
   if (failedChild) {
     const { error } = failedChild.result as BuildResultFailure;
     return {
@@ -128,7 +128,7 @@ export function unapplyTransforms(
     };
   }
 
-  const newChildren = childBuildResults.map(e => ({
+  const newChildren = childBuildResults.map((e) => ({
     key: e.key,
     node: (e.result as BuildResultSuccess<Node<unknown>>).value,
   }));
@@ -136,7 +136,7 @@ export function unapplyTransforms(
     return { ok: true, value: node };
   }
 
-  newChildren.forEach(c => {
+  newChildren.forEach((c) => {
     node = node.setChild(c);
   });
 

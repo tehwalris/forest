@@ -63,7 +63,7 @@ export function handleKey(
       getNodeForDisplay(apparentParentIndexEntry.node, metaLevelNodeIds).id,
     ) || apparentParentIndexEntry;
   const node = trueParentIndexEntry.node;
-  const trueKeyPath = trueParentIndexEntry.path.map(e => e.childKey);
+  const trueKeyPath = trueParentIndexEntry.path.map((e) => e.childKey);
   const tryDeleteChild = () => {
     const parent = R.last(apparentPath)?.parent;
     const action = parent?.actions.deleteChild;
@@ -71,11 +71,11 @@ export function handleKey(
       const targetKey = R.last(apparentPath)!.childKey;
       handleAction(
         action,
-        R.dropLast(1, apparentPath).map(e => e.childKey),
+        R.dropLast(1, apparentPath).map((e) => e.childKey),
         undefined,
         { child: targetKey },
       );
-      const targetIndex = parent.children.findIndex(e => e.key === targetKey);
+      const targetIndex = parent.children.findIndex((e) => e.key === targetKey);
       setFocusedId(
         (
           parent.children[targetIndex + 1]?.node ||
@@ -101,7 +101,7 @@ export function handleKey(
           ];
         }
         return flag.oneOf
-          .filter(e => e !== (flag.value as string))
+          .filter((e) => e !== (flag.value as string))
           .map((e: string) => ({
             label: `${e} (${key})`,
             key,
@@ -113,7 +113,7 @@ export function handleKey(
       {
         inputKind: InputKind.OneOf,
         oneOf: options,
-        getLabel: e => e.label,
+        getLabel: (e) => e.label,
         getShortcut: () => undefined,
         apply: (e: Option): Node<unknown> => {
           return node.setFlags({ ...node.flags, [e.key]: e.flag });
@@ -131,29 +131,31 @@ export function handleKey(
     }
     const { parent, childKey } = lastApparentPathEntry;
     const childIndex =
-      parent.children.findIndex(c => c.key === childKey) + indexOffset;
+      parent.children.findIndex((c) => c.key === childKey) + indexOffset;
     const action = parent?.actions.insertChildAtIndex;
     if (parent && action) {
       handleAction(
         action,
-        R.dropLast(1, apparentPath).map(e => e.childKey),
-        n => (n.children[childIndex]?.node || n).id,
+        R.dropLast(1, apparentPath).map((e) => e.childKey),
+        (n) => (n.children[childIndex]?.node || n).id,
         { childIndex },
       );
     }
   };
-  const tryAction = (
-    actionKey: keyof ActionSet<any>,
-    focus?: (newNode: Node<unknown>) => string,
-  ) => () => {
-    const action = node.actions[actionKey];
-    if (action) {
-      handleAction(action, trueKeyPath, focus, { node: copiedNode });
-    }
-  };
+  const tryAction =
+    (
+      actionKey: keyof ActionSet<any>,
+      focus?: (newNode: Node<unknown>) => string,
+    ) =>
+    () => {
+      const action = node.actions[actionKey];
+      if (action) {
+        handleAction(action, trueKeyPath, focus, { node: copiedNode });
+      }
+    };
   const findClosestFileNode = (): FileNode | undefined => {
-    return [node, ...apparentPath.map(e => e.parent)].find(
-      maybeFileNode => maybeFileNode && maybeFileNode instanceof FileNode,
+    return [node, ...apparentPath.map((e) => e.parent)].find(
+      (maybeFileNode) => maybeFileNode && maybeFileNode instanceof FileNode,
     ) as any;
   };
   const save = () => {
@@ -175,16 +177,16 @@ export function handleKey(
     Escape: cancelAction,
     "ctrl-ArrowRight": tryAction(
       "append",
-      n => (R.last(n.children)?.node || n).id,
+      (n) => (R.last(n.children)?.node || n).id,
     ),
     "ctrl-ArrowUp": () => insertSibling(0),
     "ctrl-ArrowDown": () => insertSibling(1),
     s: tryAction("setFromString"),
-    v: tryAction("setVariant", n => n.id),
+    v: tryAction("setVariant", (n) => n.id),
     t: tryAction("toggle"),
     x: tryDeleteChild,
     c: () => copyNode(node),
-    p: tryAction("replace", n => n.id),
+    p: tryAction("replace", (n) => n.id),
     f: editFlags,
     m: () => toggleNodeMetaLevel(focusedId),
     4: () =>
@@ -199,7 +201,7 @@ export function handleKey(
       }
     },
   };
-  ["a", "b", "c"].forEach(k => {
+  ["a", "b", "c"].forEach((k) => {
     handlers[`a ${k}`] = () =>
       setMarks({
         ...marks,
@@ -217,7 +219,7 @@ export function handleKey(
     [/\bArrowDown\b/, "j"],
     [/\bArrowLeft\b/, "h"],
   ];
-  Object.keys(handlers).forEach(combo => {
+  Object.keys(handlers).forEach((combo) => {
     for (const [target, replacement] of comboAliasReplacements) {
       const altCombo = combo.replace(target, replacement);
       if (altCombo !== combo && !handlers[altCombo]) {

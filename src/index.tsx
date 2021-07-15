@@ -8,7 +8,7 @@ import * as prettierThirdParty from "prettier/third-party";
 prettierThirdParty.findParentDir = () => undefined;
 
 // HACK Automatic reload can be annoying during development
-window.onbeforeunload = function() {
+window.onbeforeunload = function () {
   return false;
 };
 

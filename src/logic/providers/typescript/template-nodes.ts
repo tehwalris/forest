@@ -78,7 +78,7 @@ export interface StructTemplate<
   C extends {
     [key: string]: StructChild<ts.Node>;
   },
-  B extends ts.Node
+  B extends ts.Node,
 > extends Template<B> {
   load: (built: B) => C;
   build: (
@@ -103,7 +103,7 @@ export class StringTemplateNode<B extends ts.Node> extends Node<B> {
   actions: ActionSet<StringTemplateNode<B>> = {
     setFromString: {
       inputKind: InputKind.String,
-      apply: v => {
+      apply: (v) => {
         const node = new StringTemplateNode(this.template, v, this.original);
         node.id = this.id;
         return node;
@@ -149,7 +149,7 @@ export class StringTemplateNode<B extends ts.Node> extends Node<B> {
   getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
     const { enchancer } = this.template;
     const infoFromEnchancer = enchancer?.(this, parentPath).displayInfo;
-    const label = (infoFromEnchancer?.label || []).map(e => {
+    const label = (infoFromEnchancer?.label || []).map((e) => {
       if (e.style === LabelStyle.VALUE && e.text === "") {
         return { text: this.text, style: LabelStyle.VALUE };
       }
@@ -167,7 +167,7 @@ export class StringTemplateNode<B extends ts.Node> extends Node<B> {
 }
 export class ListTemplateNode<
   B extends ts.Node,
-  C extends ts.Node
+  C extends ts.Node,
 > extends ListNode<C, B> {
   // children: ChildNodeEntry<C>[]; // HACK This field should use "declare", but that's not supported in CRA at the moment
   constructor(
@@ -196,7 +196,7 @@ export class ListTemplateNode<
           someDefaultFromUnion(template.childUnion, node),
           template.childUnion,
         ),
-      template.load(node).map(e => fromTsNode(e, template.childUnion)),
+      template.load(node).map((e) => fromTsNode(e, template.childUnion)),
       loadFlags(node, template.flags),
       node,
     );
@@ -230,7 +230,7 @@ export class ListTemplateNode<
     return this.newChild();
   }
   build(): BuildResult<B> {
-    return this.listBuildHelper(builtChildren => {
+    return this.listBuildHelper((builtChildren) => {
       const node = this.template.build(
         builtChildren,
         flagsToModifiers(this.flags),
@@ -248,7 +248,7 @@ export class StructTemplateNode<
   C extends {
     [key: string]: StructChild<ts.Node>;
   },
-  B extends ts.Node
+  B extends ts.Node,
 > extends Node<B> {
   actions: ActionSet<never> = {};
   constructor(
@@ -278,14 +278,14 @@ export class StructTemplateNode<
     C extends {
       [key: string]: StructChild<ts.Node>;
     },
-    B extends ts.Node
+    B extends ts.Node,
   >(
     template: StructTemplate<C, B>,
     node: B,
     fromTsNode: <CT extends ts.Node>(tsNode: CT, union: Union<CT>) => Node<CT>,
   ): StructTemplateNode<C, B> {
     const loaded = template.load(node);
-    const children = template.children.map(key => {
+    const children = template.children.map((key) => {
       const loadedChild: StructChild<any> = loaded[key];
       const childValue = loadedChild.value;
       if (loadedChild.optional) {
@@ -315,7 +315,7 @@ export class StructTemplateNode<
     },
   ): StructTemplateNode<C, B> {
     let didReplace = false;
-    const children = this.children.map(e => {
+    const children = this.children.map((e) => {
       if (e.key === child.key) {
         didReplace = true;
         return child as any;
@@ -345,7 +345,7 @@ export class StructTemplateNode<
     return node;
   }
   build(): BuildResult<B> {
-    return this.buildHelper(builtChildren => {
+    return this.buildHelper((builtChildren) => {
       const node = this.template.build(
         builtChildren as { [CK in keyof C]: C[CK]["value"] },
         flagsToModifiers(this.flags),
@@ -370,13 +370,13 @@ export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
     super(variants, value);
     this.actions.replace = {
       inputKind: InputKind.Node,
-      apply: inputNode => {
+      apply: (inputNode) => {
         const buildResult = inputNode.build();
         if (!buildResult.ok) {
           return this;
         }
         const tsNode = buildResult.value as ts.Node;
-        if (!Object.values(this._union()).some(e => e.match(tsNode))) {
+        if (!Object.values(this._union()).some((e) => e.match(tsNode))) {
           return this;
         }
         return fromTsNode(tsNode, this._union);
@@ -399,11 +399,11 @@ export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
     fromTsNode: <CT extends ts.Node>(tsNode: CT) => Node<CT>,
   ): TemplateUnionNode<T> {
     const union = _union();
-    const variants = Object.keys(union).map(key => ({
+    const variants = Object.keys(union).map((key) => ({
       key,
       children: () => [{ key: "value", node: fromTsNode(union[key].default) }],
     }));
-    let currentKey = Object.keys(union).find(k => union[k].match(node));
+    let currentKey = Object.keys(union).find((k) => union[k].match(node));
     if (!currentKey) {
       const label = ts.SyntaxKind[node.kind];
       console.warn(`Missing key for ${label}.`);

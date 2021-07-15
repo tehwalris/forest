@@ -13,11 +13,11 @@ export abstract class UnionNode<K, B> extends Node<B> {
     this.actions = {
       setVariant: {
         inputKind: InputKind.OneOf,
-        oneOf: this.oneOf.map(e => e.key),
+        oneOf: this.oneOf.map((e) => e.key),
         getLabel: this.getLabel.bind(this),
         getShortcut: this.getShortcut.bind(this),
         apply: (input: K): UnionNode<K, B> => {
-          const newValue = this.oneOf.find(e => e.key === input);
+          const newValue = this.oneOf.find((e) => e.key === input);
           if (!newValue) {
             throw new Error("Invalid union variant key");
           }
@@ -29,7 +29,7 @@ export abstract class UnionNode<K, B> extends Node<B> {
   setChild(newChild: ChildNodeEntry<any>): UnionNode<K, B> {
     return this.setValue({
       ...this.value,
-      children: this.value.children.map(c => {
+      children: this.value.children.map((c) => {
         if (c.key === newChild.key) {
           return newChild;
         }

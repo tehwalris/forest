@@ -32,12 +32,12 @@ export default <N extends Node<unknown>, T>({
     });
     return {
       options,
-      optionsByShortcut: new Map(options.map(o => [o.shortcut, o])),
+      optionsByShortcut: new Map(options.map((o) => [o.shortcut, o])),
     };
   }, [action]);
 
   const [pressedKeys, setPressedKeys] = useState("");
-  const [searching, setSearching] = useState(!options.some(o => o.shortcut));
+  const [searching, setSearching] = useState(!options.some((o) => o.shortcut));
   useEffect(() => {
     if (searching) {
       return;
@@ -45,9 +45,11 @@ export default <N extends Node<unknown>, T>({
     const handler = (e: KeyboardEvent) => {
       if (e.key === " ") {
         setSearching(true);
-        (document.querySelector(
-          ".actionFiller input",
-        ) as HTMLInputElement | null)?.focus();
+        (
+          document.querySelector(
+            ".actionFiller input",
+          ) as HTMLInputElement | null
+        )?.focus();
         return;
       }
       if (e.key === "Enter") {
@@ -60,7 +62,7 @@ export default <N extends Node<unknown>, T>({
       if (e.key.length !== 1) {
         return;
       }
-      setPressedKeys(k => k + e.key);
+      setPressedKeys((k) => k + e.key);
     };
     document.addEventListener("keydown", handler);
     return () => {
@@ -72,7 +74,7 @@ export default <N extends Node<unknown>, T>({
     if (
       option &&
       ![...optionsByShortcut.keys()].some(
-        k => k?.startsWith(pressedKeys) && k !== pressedKeys,
+        (k) => k?.startsWith(pressedKeys) && k !== pressedKeys,
       )
     ) {
       onApply(action.apply(option.original));

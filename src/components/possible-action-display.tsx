@@ -20,8 +20,8 @@ export const PossibleActionDisplay: React.FC<Props> = ({ actions }) => (
         Possible actions:{" "}
         {Object.keys(actions)
           .sort()
-          .filter(a => !PARENT_SHORTCUTS.includes(a))
-          .map(a => {
+          .filter((a) => !PARENT_SHORTCUTS.includes(a))
+          .map((a) => {
             const shortcut = SHORTCUTS_BY_ACTION_KEY[a];
             return shortcut ? `${a} (${shortcut})` : a;
           })

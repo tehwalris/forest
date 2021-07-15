@@ -15,7 +15,7 @@ export function getNodeForDisplay(
 ): Node<unknown> {
   if (isMetaBranchNode(node)) {
     const selectedBranch = metaLevelNodeIds.has(node.id) ? "meta" : "primary";
-    return node.children.find(c => c.key === selectedBranch)!.node;
+    return node.children.find((c) => c.key === selectedBranch)!.node;
   }
   return node;
 }
@@ -68,7 +68,7 @@ export function buildDivetreeDisplayTree(
     kind: NodeKind.Loose,
     id: node.id + "-loose", // HACK This suffix wont work if "id" is an arbitrary string
     parent: base,
-    children: children.map(c => {
+    children: children.map((c) => {
       return buildDivetreeDisplayTree(
         c.node,
         isOnPath ? path.slice(1) : [],
@@ -93,7 +93,7 @@ export function buildDivetreeNavTree(
   return {
     id: node.id,
     getChildren: () =>
-      nodeForDisplay.children.map(c =>
+      nodeForDisplay.children.map((c) =>
         buildDivetreeNavTree(c.node, metaLevelNodeIds, incrementalParentIndex),
       ),
   };

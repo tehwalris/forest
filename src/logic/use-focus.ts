@@ -32,10 +32,10 @@ function _getValidPath(
     return [];
   }
   parentIndex.addObservation(subtree);
-  const possiblePaths = subtree.children.map(c =>
+  const possiblePaths = subtree.children.map((c) =>
     _getValidPath(path.slice(1), c.node, parentIndex),
   );
-  return [path[0], ...(possiblePaths.find(p => p.length) || [])];
+  return [path[0], ...(possiblePaths.find((p) => p.length) || [])];
 }
 export function useFocus(
   tree: Node<unknown>,
@@ -49,7 +49,7 @@ export function useFocus(
     parentIndex,
   );
   if (nextFocusedId !== undefined) {
-    parentIndex.get(R.last(focusedIdPath)!)?.node.children.forEach(c => {
+    parentIndex.get(R.last(focusedIdPath)!)?.node.children.forEach((c) => {
       parentIndex.addObservation(c.node);
     });
     const entry = parentIndex.get(nextFocusedId);

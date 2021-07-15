@@ -24,7 +24,7 @@ export function nodePathFromParentIndexEntry(
     parent: Node<unknown> | undefined,
   ) => boolean,
 ): Node<unknown>[] {
-  let nodePath = [...entry.path.map(e => e.parent), entry.node];
+  let nodePath = [...entry.path.map((e) => e.parent), entry.node];
   if (filterCb) {
     nodePath = nodePath.filter((n, i) =>
       filterCb(n, i > 0 ? nodePath[i - 1] : undefined),
@@ -40,7 +40,7 @@ export function idPathFromParentIndexEntry(
     parent: Node<unknown> | undefined,
   ) => boolean,
 ): string[] {
-  return nodePathFromParentIndexEntry(entry, filterCb).map(e => e.id);
+  return nodePathFromParentIndexEntry(entry, filterCb).map((e) => e.id);
 }
 
 export class IncrementalParentIndex {
@@ -58,7 +58,7 @@ export class IncrementalParentIndex {
     this.observedNodes.add(node);
 
     this.nodesById.set(node.id, node);
-    node.children.forEach(c => {
+    node.children.forEach((c) => {
       this.nodesById.set(c.node.id, c.node);
       this.addLinkObservation(node.id, c.node.id, c.key);
     });

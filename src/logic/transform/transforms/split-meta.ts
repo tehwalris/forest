@@ -11,13 +11,13 @@ export function isMetaBranchNode(
   return (
     node instanceof MetaBranchNode &&
     R.equals(
-      node.children.map(c => c.key),
+      node.children.map((c) => c.key),
       ["primary", "meta"],
     )
   );
 }
 
-export const splitMetaTransform: Transform = node => {
+export const splitMetaTransform: Transform = (node) => {
   if (node instanceof MetaBranchNode || !node.metaSplit) {
     return node;
   }
@@ -55,7 +55,7 @@ class MetaBranchBranchNode<B> extends Node<ModifiedNode<B>> {
       original,
     );
     this.id = modified.id + idSuffix;
-    this.children = modified.children.filter(c =>
+    this.children = modified.children.filter((c) =>
       this.selectedChildren.includes(c.key),
     );
     this.flags = modified.flags;
@@ -67,7 +67,7 @@ class MetaBranchBranchNode<B> extends Node<ModifiedNode<B>> {
         ...action,
         apply: (...args: unknown[]) =>
           this.cloneAndModify([
-            node => (node.actions[key] as any).apply(...args),
+            (node) => (node.actions[key] as any).apply(...args),
           ]),
       };
     }, modified.actions);
@@ -92,11 +92,11 @@ class MetaBranchBranchNode<B> extends Node<ModifiedNode<B>> {
   }
 
   setChild(child: ChildNodeEntry<unknown>): MetaBranchBranchNode<B> {
-    return this.cloneAndModify([node => node.setChild(child)]);
+    return this.cloneAndModify([(node) => node.setChild(child)]);
   }
 
   setFlags(flags: FlagSet): MetaBranchBranchNode<B> {
-    return this.cloneAndModify([node => node.setFlags(flags)]);
+    return this.cloneAndModify([(node) => node.setFlags(flags)]);
   }
 
   build(): BuildResult<ModifiedNode<B>> {
@@ -126,16 +126,16 @@ export class MetaBranchNode<B> extends Node<B> {
     const wrapped = new MetaBranchNode(
       original,
       split,
-      ["primary", "meta"].map(branchKey => {
+      ["primary", "meta"].map((branchKey) => {
         const branchNode = new MetaBranchBranchNode(
           original,
           [],
           original.children
-            .filter(c => {
+            .filter((c) => {
               const isPrimary = split.primaryChildren.includes(c.key);
               return branchKey === "primary" ? isPrimary : !isPrimary;
             })
-            .map(c => c.key),
+            .map((c) => c.key),
           branchKey === "primary" && !!split.spreadPrimary,
           `-${branchKey}`,
         );
@@ -152,7 +152,7 @@ export class MetaBranchNode<B> extends Node<B> {
   private tryApplyModifications(): BuildResult<MetaBranchNode<B>> {
     const modifications: NodeModification<B>[] = [];
     for (const k of ["primary", "meta"]) {
-      const child = this.children.find(c => c.key === k)!.node;
+      const child = this.children.find((c) => c.key === k)!.node;
       const childBuildResult = child.build();
       if (!childBuildResult.ok) {
         return {
@@ -180,7 +180,7 @@ export class MetaBranchNode<B> extends Node<B> {
 
   setChild(child: ChildNodeEntry<ModifiedNode<B>>): MetaBranchNode<B> {
     const node = this.clone();
-    const i = node.children.findIndex(c => c.key === child.key);
+    const i = node.children.findIndex((c) => c.key === child.key);
     if (i < 0) {
       throw new Error(`invalid child key: ${child.key}`);
     }

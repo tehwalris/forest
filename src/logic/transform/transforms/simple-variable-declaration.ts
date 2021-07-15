@@ -17,7 +17,7 @@ import { ParentPathElement } from "../../parent-index";
 // HACK There should be a better way to get the type of a node
 function isVariableStatement(node: Node<unknown>): boolean {
   return R.equals(
-    node.children.map(c => c.key),
+    node.children.map((c) => c.key),
     ["declarationList"],
   );
 }
@@ -60,7 +60,7 @@ export const simpleVariableDeclarationTransform: Transform = <B>(
   return newNode;
 };
 
-const compressDeclarationListTransform: Transform = node => {
+const compressDeclarationListTransform: Transform = (node) => {
   const onlyChildEntry = node.children[0];
   if (!onlyChildEntry) {
     return node;

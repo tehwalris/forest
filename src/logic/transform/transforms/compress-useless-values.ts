@@ -16,7 +16,7 @@ type DisplaySelector<B> = (
   childNode: Node<unknown>,
 ) => Node<unknown>[];
 
-export const compressChildrenTransform: Transform = node => {
+export const compressChildrenTransform: Transform = (node) => {
   if (node.children.length !== 1) {
     return node;
   }
@@ -40,7 +40,7 @@ export const compressChildrenTransform: Transform = node => {
   return compressed;
 };
 
-export const compressUselessValuesTransform: Transform = node => {
+export const compressUselessValuesTransform: Transform = (node) => {
   if (node.children.length !== 1) {
     return node;
   }
@@ -164,8 +164,8 @@ export class CompressedNode<B> extends Node<B> {
   getDebugLabel(): string | undefined {
     return [...this.displaySelector(this.parentNode, this.childNode)]
       .reverse()
-      .map(v => v.getDebugLabel())
-      .find(v => v !== undefined);
+      .map((v) => v.getDebugLabel())
+      .find((v) => v !== undefined);
   }
 
   getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {

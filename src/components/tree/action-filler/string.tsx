@@ -10,7 +10,7 @@ export default <N extends Node<unknown>>({ action, onApply }: Props<N>) => {
     <input
       type="text"
       placeholder="New value"
-      onKeyPress={e =>
+      onKeyPress={(e) =>
         e.key === "Enter" && onApply(action.apply(e.currentTarget.value))
       }
     />

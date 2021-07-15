@@ -59,7 +59,7 @@ export function fromTsNode<T extends ts.Node>(
   for (const template of stringTemplates) {
     if (template.match(original)) {
       return StringTemplateNode.fromTemplate(
-        (template as any) as StringTemplate<T>,
+        template as any as StringTemplate<T>,
         original,
       ) as any;
     }
@@ -67,7 +67,7 @@ export function fromTsNode<T extends ts.Node>(
   for (const template of listTemplates) {
     if (template.match(original)) {
       return ListTemplateNode.fromTemplate(
-        (template as any) as ListTemplate<T, ts.Node>,
+        template as any as ListTemplate<T, ts.Node>,
         original,
         fromTsNode,
       ) as any;
@@ -76,7 +76,7 @@ export function fromTsNode<T extends ts.Node>(
   for (const template of structTemplates) {
     if (template.match(original)) {
       return StructTemplateNode.fromTemplate(
-        (template as any) as StructTemplate<{}, T>,
+        template as any as StructTemplate<{}, T>,
         original,
         fromTsNode,
       ) as any;

@@ -11,8 +11,8 @@ export abstract class ListNode<T, B> extends Node<B> {
     this.actions = {
       insertChildAtIndex: {
         inputKind: InputKind.ChildIndex,
-        apply: targetIndex => {
-          const newChildren = [...this.children.map(e => e.node)];
+        apply: (targetIndex) => {
+          const newChildren = [...this.children.map((e) => e.node)];
           newChildren.splice(targetIndex, 0, this.createChild());
           return this.setValue(newChildren);
         },
@@ -21,15 +21,15 @@ export abstract class ListNode<T, B> extends Node<B> {
         inputKind: InputKind.None,
         apply: () =>
           this.setValue([
-            ...this.children.map(e => e.node),
+            ...this.children.map((e) => e.node),
             this.createChild(),
           ]),
       },
       deleteChild: {
         inputKind: InputKind.Child,
-        apply: k =>
+        apply: (k) =>
           this.setValue(
-            this.children.filter(e => e.key !== k).map(e => e.node),
+            this.children.filter((e) => e.key !== k).map((e) => e.node),
           ),
       },
     };
@@ -40,7 +40,7 @@ export abstract class ListNode<T, B> extends Node<B> {
     return this.setValue(newValue);
   }
   listBuildHelper(cb: (children: T[]) => B): BuildResult<B> {
-    return this.buildHelper(children =>
+    return this.buildHelper((children) =>
       cb(Object.keys(children).map((e, i) => children[`${i}`])),
     );
   }
