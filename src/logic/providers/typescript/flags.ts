@@ -30,7 +30,7 @@ function createLoadBooleanFlag(
   from: "nodeFlags" | "modifierFlags",
   target: ts.NodeFlags | ts.ModifierFlags,
 ): (tsFlags: TsFlags) => boolean {
-  return tsFlags => {
+  return (tsFlags) => {
     return !!(tsFlags[from] & target);
   };
 }
@@ -91,16 +91,16 @@ const templates: { [K in FlagKind]: FlagTemplate<any> } = {
   ),
   [FlagKind.ACCESIBILITY]: {
     load: (_tsFlags, modifiers) => {
-      const oneOf = ["unspecified", ...ACCESIBLITY_CASES.map(e => e.name)];
+      const oneOf = ["unspecified", ...ACCESIBLITY_CASES.map((e) => e.name)];
       for (const c of ACCESIBLITY_CASES) {
-        if (modifiers.find(m => m.kind === c.kind)) {
+        if (modifiers.find((m) => m.kind === c.kind)) {
           return { value: c.name, oneOf };
         }
       }
       return { value: "unspecified", oneOf };
     },
     saveModiferFlags: ({ value }) => {
-      const c = ACCESIBLITY_CASES.find(c => c.name === value);
+      const c = ACCESIBLITY_CASES.find((c) => c.name === value);
       return c ? [ts.createToken(c.kind)] : [];
     },
   } as FlagTemplate<OneOfFlag>,
@@ -124,14 +124,14 @@ const templates: { [K in FlagKind]: FlagTemplate<any> } = {
 function loadTsFlags(node: ts.Node) {
   return {
     nodeFlags: node.flags,
-    modifierFlags: (ts as any).getModifierFlags(node),
+    modifierFlags: (ts as any).getSyntacticModifierFlags(node),
   };
 }
 export function loadFlags(node: ts.Node, kinds: FlagKind[]): FlagSet {
   const tsFlags = loadTsFlags(node);
   const modifiers: ts.Modifier[] = [...(node.modifiers || [])];
   const output: FlagSet = {};
-  kinds.forEach(k => {
+  kinds.forEach((k) => {
     output[k] = templates[k].load(tsFlags, modifiers);
   });
   return output;
@@ -147,7 +147,8 @@ export function flagsToModifiers(flags: FlagSet): ts.Modifier[] {
   return modifiers;
 }
 export function saveNodeFlagsMutate(node: ts.Node, flags: FlagSet) {
-  node.flags = R.toPairs(flags).reduce(
+  // HACK flags should be read only
+  (node as any).flags = R.toPairs(flags).reduce(
     (a, [k, v]) =>
       (templates[k as FlagKind].saveNodeFlags || ((_, old) => old))(v, a),
     node.flags,

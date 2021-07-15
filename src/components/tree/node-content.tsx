@@ -7,7 +7,7 @@ import {
   DisplayInfoPriority,
 } from "../../logic/tree/node";
 import { ParentIndexEntry } from "../../logic/parent-index";
-import { css } from "emotion";
+import { css } from "@emotion/css";
 interface Props {
   parentIndexEntry: ParentIndexEntry | undefined;
 }

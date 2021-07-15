@@ -73,7 +73,7 @@ function tryFlattenPropertyAccessExpression(
   const valueNode = node.children[0].node;
   if (
     !R.equals(
-      valueNode.children.map(c => c.key),
+      valueNode.children.map((c) => c.key),
       ["expression", "questionDotToken", "name"],
     )
   ) {
@@ -125,7 +125,7 @@ function tryFlattenElementAccessExpression(
   const valueNode = node.children[0].node;
   if (
     !R.equals(
-      valueNode.children.map(c => c.key),
+      valueNode.children.map((c) => c.key),
       ["expression", "questionDotToken", "argumentExpression"],
     )
   ) {
@@ -151,9 +151,9 @@ function tryFlattenElementAccessExpression(
       id: valueNode.children[2].node.id + "-question",
     });
   }
-  const argumentBuildResult = (valueNode.children[2].node as Node<
-    ts.Expression | undefined
-  >).build();
+  const argumentBuildResult = (
+    valueNode.children[2].node as Node<ts.Expression | undefined>
+  ).build();
   if (argumentBuildResult.ok && argumentBuildResult.value === undefined) {
     return undefined;
   }
@@ -176,7 +176,7 @@ function tryFlattenParenthesizedExpression(
   const valueNode = node.children[0].node;
   if (
     !R.equals(
-      valueNode.children.map(c => c.key),
+      valueNode.children.map((c) => c.key),
       ["expression"],
     )
   ) {
@@ -197,7 +197,7 @@ function tryFlattenNonNullExpression(
   const valueNode = node.children[0].node;
   if (
     !R.equals(
-      valueNode.children.map(c => c.key),
+      valueNode.children.map((c) => c.key),
       ["expression"],
     )
   ) {
@@ -371,14 +371,14 @@ function nodeFromChainPart(p: ChainPart): Node<ChainPart> {
   }
   return node;
 }
-export const chainTransform: Transform = node => {
+export const chainTransform: Transform = (node) => {
   const parts = tryFlattenExpression(node);
   if (!parts) {
     return node;
   }
   const chainNode = new ChainNode(
     node,
-    parts.map(p => new ChainPartUnionNode(nodeFromChainPart(p))),
+    parts.map((p) => new ChainPartUnionNode(nodeFromChainPart(p))),
   );
   if (parts[0].kind === ChainPartKind.Expression) {
     chainNode.id = parts[0].expression.id + "-chain";
@@ -415,11 +415,11 @@ class ChainNode extends ListNode<ChainPart, ts.Expression> {
     return result.value.build();
   }
   unapplyTransform(): BuildResult<Node<ts.Expression>> {
-    const childBuildResults = this.children.map(c => ({
+    const childBuildResults = this.children.map((c) => ({
       key: c.key,
       result: c.node.build(),
     }));
-    const firstChildError = childBuildResults.find(r => !r.result.ok);
+    const firstChildError = childBuildResults.find((r) => !r.result.ok);
     if (firstChildError) {
       const error = (firstChildError.result as BuildResultFailure).error;
       return {
@@ -432,7 +432,7 @@ class ChainNode extends ListNode<ChainPart, ts.Expression> {
     }
     return unflattenChain(
       childBuildResults.map(
-        r => (r.result as BuildResultSuccess<ChainPart>).value,
+        (r) => (r.result as BuildResultSuccess<ChainPart>).value,
       ),
     );
   }
@@ -567,15 +567,15 @@ class ChainPartUnionNode extends Node<ChainPart> {
               (e): Variant => ({ fromBase: true, baseVariant: e }),
             ),
           ],
-          apply: variant =>
+          apply: (variant) =>
             this.updateBaseNode(
               variant.fromBase
                 ? a.apply(variant.baseVariant)
                 : nodeFromChainPart(variant.chainPart),
             ),
-          getLabel: variant =>
+          getLabel: (variant) =>
             variant.fromBase ? a.getLabel(variant.baseVariant) : variant.label,
-          getShortcut: variant =>
+          getShortcut: (variant) =>
             variant.fromBase ? a.getShortcut(variant.baseVariant) : undefined,
         };
         this.actions.setVariant = newAction;

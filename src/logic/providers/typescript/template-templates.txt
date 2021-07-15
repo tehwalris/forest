@@ -52,28 +52,24 @@ BindingPattern ArrayBindingPattern ObjectBindingPattern
 ArrayBindingElement BindingElement OmittedExpression
 PropertyName Identifier StringLiteral NumericLiteral ComputedPropertyName
 EntityName Identifier QualifiedName
-NamedImportBindings NamespaceImport NamedImports
+MemberName Identifier PrivateIdentifier
 JsxChild JsxText JsxExpression JsxElement JsxSelfClosingElement JsxFragment
 JsxAttributeLike JsxAttribute JsxSpreadAttribute
 JsxTagNameExpression Identifier ThisExpression JsxTagNamePropertyAccess
 JsxAttributeInitializer StringLiteral JsxExpression
-TypeNode ...KeywordTypeNode
+TypeNode
   ThisTypeNode TypeLiteralNode 
   FunctionTypeNode ConstructorTypeNode
   TypeReferenceNode TypeQueryNode
   ArrayTypeNode TupleTypeNode ParenthesizedTypeNode
   UnionTypeNode IntersectionTypeNode
   TypeOperatorNode IndexedAccessTypeNode MappedTypeNode
-  LiteralTypeNode NullLiteral BooleanLiteral
+  LiteralTypeNode 
   ExpressionWithTypeArguments TypePredicateNode
-KeywordTypeNode
-  AnyKeyword UnknownKeyword NumberKeyword ObjectKeyword
-  BooleanKeyword StringKeyword SymbolKeyword
-  ThisKeyword VoidKeyword UndefinedKeyword
-  NullKeyword NeverKeyword
+  NamedTupleMember
 TypeElement CallSignatureDeclaration ConstructSignatureDeclaration PropertySignature MethodSignature IndexSignatureDeclaration
 TypePredicateNodeParameterName Identifier ThisTypeNode
-LiteralTypeNodeLiteral BooleanLiteral ...LiteralExpression PrefixUnaryExpression
+LiteralTypeNodeLiteral NullLiteral BooleanLiteral ...LiteralExpression PrefixUnaryExpression
 TemplateSpanLiteral TemplateMiddle TemplateTail
 ExponentiationOperatorToken AsteriskAsteriskToken
 MultiplicativeOperatorToken AsteriskToken SlashToken PercentToken
@@ -102,6 +98,9 @@ PostfixUnaryOperator PlusPlusToken MinusMinusToken
 ReadonlyMappedToken ReadonlyToken PlusToken MinusToken
 QuestionMappedToken QuestionToken PlusToken MinusToken
 CaseOrDefaultClause CaseClause DefaultClause
+NamedImportBindings NamespaceImport NamedImports
+NamedExportBindings NamespaceExport NamedExports
+NamedDeclaration NamespaceImport NamespaceExport
 
 SECTION plainTypes
 NumericLiteral - ts.createLiteral(0)
@@ -113,6 +112,7 @@ EmptyStatement - ts.createEmptyStatement()
 ThrowStatement - ts.createThrow(ts.createLiteral(""))
 VariableStatement - ts.createVariableStatement(undefined, ts.createVariableDeclarationList([]))
 Identifier - ts.createIdentifier("")
+PrivateIdentifier - ts.createPrivateIdentifier("#")
 FunctionDeclaration - ts.createFunctionDeclaration(undefined, undefined, undefined, undefined, undefined, [], undefined, undefined)
 Block - ts.createBlock([])
 ExpressionStatement - ts.createStatement(ts.createLiteral(""))
@@ -149,6 +149,7 @@ CallExpression - ts.createCall(ts.createIdentifier(""), undefined, [])
 ImportDeclaration - ts.createImportDeclaration(undefined, undefined, undefined, ts.createLiteral(""))
 ImportClause - ts.createImportClause(undefined, undefined)
 NamespaceImport - ts.createNamespaceImport(ts.createIdentifier(""))
+NamespaceExport - ts.createNamespaceExport(ts.createIdentifier(""))
 NamedImports - ts.createNamedImports([])
 NamedExports - ts.createNamedExports([])
 ImportSpecifier - ts.createImportSpecifier(undefined, ts.createIdentifier(""))
@@ -179,8 +180,8 @@ TemplateTail - ts.createTemplateTail("")
 TemplateSpan - ts.createTemplateSpan(ts.createLiteral(""), ts.createTemplateMiddle(""))
 AsExpression - ts.createAsExpression(ts.createLiteral(""), ts.createThisTypeNode())
 TypeParameterDeclaration - ts.createTypeParameterDeclaration("", undefined, undefined)
-FunctionTypeNode - ts.createFunctionTypeNode(undefined, [], undefined)
-ConstructorTypeNode - ts.createConstructorTypeNode(undefined, [], undefined)
+FunctionTypeNode - ts.createFunctionTypeNode(undefined, [], ts.createTypeLiteralNode(undefined))
+ConstructorTypeNode - ts.createConstructorTypeNode(undefined, [], ts.createTypeLiteralNode(undefined))
 QualifiedName - ts.createQualifiedName(ts.createIdentifier(""), "")
 TypeReferenceNode - ts.createTypeReferenceNode("", undefined)
 TypePredicateNode - ts.createTypePredicateNode("", ts.createThisTypeNode())
@@ -197,13 +198,13 @@ IntersectionTypeNode - ts.createIntersectionTypeNode([])
 ParenthesizedTypeNode - ts.createParenthesizedType(ts.createThisTypeNode())
 TypeOperatorNode - ts.createTypeOperatorNode(ts.createThisTypeNode())
 IndexedAccessTypeNode - ts.createIndexedAccessTypeNode(ts.createThisTypeNode(), ts.createThisTypeNode())
-MappedTypeNode - ts.createMappedTypeNode(undefined, ts.createTypeParameterDeclaration(""), undefined, undefined)
+MappedTypeNode - ts.createMappedTypeNode(undefined, ts.createTypeParameterDeclaration(""), undefined, undefined, undefined)
 LiteralTypeNode - ts.createLiteralTypeNode(ts.createLiteral(""))
 InterfaceDeclaration - ts.createInterfaceDeclaration(undefined, undefined, "", undefined, undefined, [])
 TypeAliasDeclaration - ts.createTypeAliasDeclaration(undefined, undefined, "", undefined, ts.createThisTypeNode())
 EnumDeclaration - ts.createEnumDeclaration(undefined, undefined, "", [])
 ModuleDeclaration - ts.createModuleDeclaration(undefined, undefined, ts.createIdentifier(""), undefined, undefined)
-ImportEqualsDeclaration - ts.createImportEqualsDeclaration(undefined, undefined, "", ts.createIdentifier(""))
+ImportEqualsDeclaration - ts.createImportEqualsDeclaration(undefined, undefined, false, "", ts.createIdentifier(""))
 NamespaceExportDeclaration - ts.createNamespaceExportDeclaration("")
 ExportDeclaration - ts.createExportDeclaration(undefined, undefined, undefined, undefined)
 ExportAssignment - ts.createExportAssignment(undefined, undefined, false, ts.createIdentifier(""))
@@ -228,6 +229,7 @@ CaseClause - ts.createCaseClause(ts.createLiteral(""), [])
 DefaultClause - ts.createDefaultClause([])
 BreakStatement - ts.createBreak()
 ContinueStatement - ts.createContinue()
+NamedTupleMember - ts.factory.createNamedTupleMember(undefined, ts.createIdentifier(""), undefined, ts.createTypeLiteralNode(undefined))
 
 SECTION tokenTypes
 NullLiteral NullKeyword
@@ -315,6 +317,7 @@ SECTION stringTemplates
 StringLiteral ts.createLiteral
 NumericLiteral (t) => { if((+t).toString() !== t) { throw new Error('Invalid number') }; return ts.createLiteral(+t) }
 Identifier ts.createIdentifier
+PrivateIdentifier ts.createPrivateIdentifier
 RegularExpressionLiteral (t) => ({ ...(ts.createTemplateHead(t) as any), kind: ts.SyntaxKind.RegularExpressionLiteral })
 TemplateHead ts.createTemplateHead
 TemplateMiddle ts.createTemplateMiddle
@@ -334,7 +337,7 @@ ObjectBindingPattern BindingElement elements
 NamedImports ImportSpecifier elements
 NamedExports ExportSpecifier elements
 TypeLiteralNode TypeElement members
-TupleTypeNode TypeNode elementTypes
+TupleTypeNode TypeNode elements
 UnionTypeNode TypeNode types
 IntersectionTypeNode TypeNode types
 ModuleBlock Statement statements 
@@ -405,7 +408,7 @@ CallExpression
 PropertyAccessExpression
   R expression LeftHandSideExpression
   O questionDotToken QuestionDotToken
-  R name Identifier
+  R name MemberName
   build ({expression, questionDotToken, name}) => ts.createPropertyAccessChain(expression, questionDotToken, name)
 ElementAccessExpression
   R expression LeftHandSideExpression
@@ -423,6 +426,9 @@ ImportClause
 NamespaceImport
   R name Identifier
   build ({name}) => ts.createNamespaceImport(name)
+NamespaceExport
+  R name Identifier
+  build ({name}) => ts.createNamespaceExport(name)
 ImportSpecifier
   O propertyName Identifier
   R name Identifier
@@ -549,12 +555,12 @@ TypeParameterDeclaration
 FunctionTypeNode
   OL typeParameters TypeParameterDeclaration
   RL parameters ParameterDeclaration
-  O type TypeNode
+  R type TypeNode
   build  ({typeParameters, parameters, type}) => ts.createFunctionTypeNode(typeParameters && [...typeParameters], [...parameters], type)
 ConstructorTypeNode
   OL typeParameters TypeParameterDeclaration
   RL parameters ParameterDeclaration
-  O type TypeNode
+  R type TypeNode
   build  ({typeParameters, parameters, type}) => ts.createConstructorTypeNode(typeParameters && [...typeParameters], [...parameters], type)
 QualifiedName
   R left EntityName
@@ -617,11 +623,12 @@ IndexedAccessTypeNode
 MappedTypeNode
   O readonlyToken ReadonlyMappedToken ts.ReadonlyToken | ts.PlusToken | ts.MinusToken
   R typeParameter TypeParameterDeclaration
+  O nameType TypeNode
   O questionToken QuestionMappedToken ts.QuestionToken | ts.PlusToken | ts.MinusToken
   O type TypeNode
-  build ({readonlyToken, typeParameter, questionToken, type}) => ts.createMappedTypeNode(readonlyToken, typeParameter, questionToken, type)
+  build ({readonlyToken, typeParameter, nameType, questionToken, type}) => ts.createMappedTypeNode(readonlyToken, typeParameter, nameType, questionToken, type)
 LiteralTypeNode
-  R literal LiteralTypeNodeLiteral ts.BooleanLiteral | ts.LiteralExpression | ts.PrefixUnaryExpression
+  R literal LiteralTypeNodeLiteral ts.NullLiteral | ts.BooleanLiteral | ts.LiteralExpression | ts.PrefixUnaryExpression
   build ({literal}) => ts.createLiteralTypeNode(literal)
 InterfaceDeclaration
   R name Identifier
@@ -656,7 +663,7 @@ ModuleDeclaration
 ImportEqualsDeclaration
   R name Identifier
   R moduleReference ModuleReference
-  build ({name, moduleReference}) => ts.createImportEqualsDeclaration(undefined, undefined, name, moduleReference)
+  build ({name, moduleReference}) => ts.createImportEqualsDeclaration(undefined, undefined, false, name, moduleReference)
 ExternalModuleReference
   O expression Expression
   build ({expression}) => { if(!expression) { throw new Error('expression required') }; return ts.createExternalModuleReference(expression)}
@@ -669,7 +676,7 @@ NamespaceDeclaration
   flags export ambient
   build ({name, body}, modifiers) => ts.createModuleDeclaration(undefined, modifiers, name, body, undefined) as ts.NamespaceDeclaration
 ExportDeclaration
-  O exportClause NamedExports
+  O exportClause NamedExportBindings
   O moduleSpecifier Expression
   flags default
   build ({exportClause, moduleSpecifier}, modifiers) => ts.createExportDeclaration(undefined, modifiers, exportClause, moduleSpecifier)
@@ -719,7 +726,7 @@ JsxExpression
   build ({dotDotDotToken, expression}) => ts.createJsxExpression(dotDotDotToken, expression)
 JsxTagNamePropertyAccess
   R expression JsxTagNameExpression
-  R name Identifier
+  R name MemberName
   build ({expression, name}) => ts.createPropertyAccess(expression, name) as ts.JsxTagNamePropertyAccess
 TypeOfExpression
   R expression Expression
@@ -787,6 +794,12 @@ BreakStatement
 ContinueStatement
   O label Identifier
   build ({label}) => ts.createContinue(label)
+NamedTupleMember
+  O dotDotDotToken DotDotDotToken
+  R name Identifier
+  O questionToken QuestionToken
+  R type TypeNode
+  build ({dotDotDotToken, name, questionToken, type}) => ts.factory.createNamedTupleMember(dotDotDotToken, name, questionToken, type)
 
 SECTION shortcuts
 = EqualsToken

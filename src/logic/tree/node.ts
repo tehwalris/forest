@@ -1,6 +1,6 @@
 import { Path } from "./base";
 import { ActionSet } from "./action";
-import genUuid from "uuid/v4";
+import { v4 as genUuid } from "uuid";
 import { MetaSplit } from "../transform/transforms/split-meta";
 import { ParentPathElement } from "../parent-index";
 
@@ -34,7 +34,7 @@ export abstract class Node<B> {
   }
   getByPath(path: Path): Node<any> | undefined {
     if (path.length) {
-      const childNode = this.children.find(e => e.key === path[0]);
+      const childNode = this.children.find((e) => e.key === path[0]);
       return childNode ? childNode.node.getByPath(path.slice(1)) : undefined;
     }
     return this;
@@ -47,7 +47,7 @@ export abstract class Node<B> {
     node: Node<any>;
   } {
     if (path.length) {
-      const childNode = this.children.find(e => e.key === path[0]);
+      const childNode = this.children.find((e) => e.key === path[0]);
       return childNode
         ? childNode.node.getDeepestPossibleByPath(path.slice(1), [
             ...traversed,

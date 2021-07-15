@@ -89,7 +89,7 @@ export default <N extends Node<unknown>, T>({
 
   return (
     <Select
-      onChange={(e: ValueType<Option<T>>) =>
+      onChange={(e: ValueType<Option<T>, false>) =>
         e && onApply(action.apply((e as Option<T>).original))
       }
       options={options}

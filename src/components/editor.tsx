@@ -23,7 +23,6 @@ import {
   isMetaBranchNode,
   splitMetaTransform,
 } from "../logic/transform/transforms/split-meta";
-import { chainTransform } from "../logic/transform/transforms/chain";
 import { Action, InputKind } from "../logic/tree/action";
 import { Path } from "../logic/tree/base";
 import { EmptyLeafNode } from "../logic/tree/base-nodes";
@@ -47,7 +46,7 @@ interface CombinedTrees {
 }
 const TRANSFORMS: Transform[][] = [
   [simpleVariableDeclarationTransform],
-  [chainTransform],
+  // [chainTransform], // TODO crashes sometimes after TS
   [flattenIfTransform, compressUselessValuesTransform],
   [splitMetaTransform],
 ];
@@ -120,28 +119,26 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
     updater: (oldTree: Node<unknown>) => Node<unknown>,
     onNewKnown: (newTree: Node<unknown>) => void,
   ) => {
-    _setTrees(
-      (_trees): CombinedTrees => {
-        const newTransformed = updater(
-          _trees.transformed ||
-            applyTransformsToTree(_trees.raw, TRANSFORMS, transformCache),
-        );
-        const output: CombinedTrees = {
-          raw: _trees.raw,
-          transformed: newTransformed,
-        };
-        const unapplyResult = unapplyTransforms(
-          newTransformed,
-          transformCache.unapply,
-        );
-        if (unapplyResult.ok) {
-          output.raw = unapplyResult.value;
-          output.transformed = undefined;
-        }
-        onNewKnown(treeFromCombined(output));
-        return output;
-      },
-    );
+    _setTrees((_trees): CombinedTrees => {
+      const newTransformed = updater(
+        _trees.transformed ||
+          applyTransformsToTree(_trees.raw, TRANSFORMS, transformCache),
+      );
+      const output: CombinedTrees = {
+        raw: _trees.raw,
+        transformed: newTransformed,
+      };
+      const unapplyResult = unapplyTransforms(
+        newTransformed,
+        transformCache.unapply,
+      );
+      if (unapplyResult.ok) {
+        output.raw = unapplyResult.value;
+        output.transformed = undefined;
+      }
+      onNewKnown(treeFromCombined(output));
+      return output;
+    });
   };
   const updateNode = (
     path: Path,
@@ -149,8 +146,8 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
     focus?: (newNode: Node<unknown>) => string,
   ) => {
     setTree(
-      oldTree => oldTree.setDeepChild(path, value),
-      newTree => {
+      (oldTree) => oldTree.setDeepChild(path, value),
+      (newTree) => {
         const newNode = newTree.getDeepestPossibleByPath(path);
         if (newNode.path.length === path.length && focus) {
           setFocusedId(focus(newNode.node));
@@ -188,9 +185,11 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
     } else {
       setInProgressAction({ target, action, focus });
       setImmediate(() =>
-        (document.querySelector(
-          ".actionFiller input",
-        ) as HTMLInputElement | null)?.focus(),
+        (
+          document.querySelector(
+            ".actionFiller input",
+          ) as HTMLInputElement | null
+        )?.focus(),
       );
     }
   };
@@ -210,10 +209,10 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
     tree,
     incrementalParentIndex,
   );
-  const navTree = useMemo(() => buildDivetreeNavTree(tree, metaLevelNodeIds), [
-    tree,
-    metaLevelNodeIds,
-  ]);
+  const navTree = useMemo(
+    () => buildDivetreeNavTree(tree, metaLevelNodeIds),
+    [tree, metaLevelNodeIds],
+  );
   useEffect(() => {
     const newIds = new Set<string>();
     focusedParentIndexEntry.path.forEach(({ parent }) => {
@@ -242,7 +241,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         newIds.push(parent.id);
       }
     });
-    const firstChildId = entry.node.children.find(c => c.key === "meta")?.node
+    const firstChildId = entry.node.children.find((c) => c.key === "meta")?.node
       .children[0]?.node.id;
     if (firstChildId) {
       setFocusedId(firstChildId);
@@ -261,7 +260,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
     <div>
       <NavTree
         navTree={navTree}
-        getDisplayTree={focusPath =>
+        getDisplayTree={(focusPath) =>
           buildDivetreeDisplayTree(
             tree,
             focusPath,
@@ -270,7 +269,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
             incrementalParentIndex,
           )
         }
-        getContent={id => (
+        getContent={(id) => (
           <NodeContent
             parentIndexEntry={incrementalParentIndex.get(id as string)}
           />
@@ -284,7 +283,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         )}
         onFocusedIdChange={setFocusedId}
         disableNav={!!inProgressAction}
-        onKeyDown={ev =>
+        onKeyDown={(ev) =>
           handleKey(ev, {
             tree,
             parentIndex: incrementalParentIndex,
