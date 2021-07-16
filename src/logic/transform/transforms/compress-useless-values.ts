@@ -183,4 +183,8 @@ export class CompressedNode<B> extends Node<B> {
       undefined,
     );
   }
+
+  getChildShortcuts() {
+    return this.childNode.getChildShortcuts();
+  }
 }

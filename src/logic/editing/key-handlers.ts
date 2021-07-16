@@ -249,7 +249,7 @@ export function handleKey(
     }
     handlers[shortcut] = () => {
       setFocusedIdPath([
-        ...idPathFromParentIndexEntry(apparentParentIndexEntry),
+        ...idPathFromParentIndexEntry(trueParentIndexEntry),
         child.id,
       ]);
     };
