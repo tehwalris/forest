@@ -1,11 +1,14 @@
 import { FileNode } from "./typescript-provider";
-import { format as prettierFormat } from "prettier";
+import { format as prettierFormat } from "prettier/standalone";
+import type { Options } from "prettier";
+import parserTypescript from "prettier/parser-typescript";
 
-const PRETTIER_OPTIONS = {
+const PRETTIER_OPTIONS: Options = {
   parser: "typescript",
   printWidth: 80,
   trailingComma: "all",
-} as const;
+  plugins: [parserTypescript],
+};
 
 export function tryPrettyPrint(fileNode: FileNode): string | undefined {
   return fileNode.prettyPrint((t) => {
