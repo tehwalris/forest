@@ -48,7 +48,7 @@ const TRANSFORMS: Transform[][] = [
   [simpleVariableDeclarationTransform],
   // [chainTransform], // TODO crashes sometimes after TS
   [flattenIfTransform, compressUselessValuesTransform],
-  [splitMetaTransform],
+  // [splitMetaTransform], // Annoying with child shortcuts
 ];
 const transformCache: MultiTransformCache = {
   apply: new WeakMap(),
