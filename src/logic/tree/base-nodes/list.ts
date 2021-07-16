@@ -44,6 +44,13 @@ export abstract class ListNode<T, B> extends Node<B> {
       cb(Object.keys(children).map((e, i) => children[`${i}`])),
     );
   }
+  getChildShortcuts() {
+    const shortcuts = new Map<string, string[]>();
+    for (const [i, { key }] of this.children.slice(0, 9).entries()) {
+      shortcuts.set(`${i + 1}`, [key]);
+    }
+    return shortcuts;
+  }
   protected abstract setValue(value: Node<T>[]): ListNode<T, B>;
   protected abstract createChild(): Node<T>;
   abstract build(): BuildResult<B>;

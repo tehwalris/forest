@@ -178,7 +178,10 @@ export function handleKey(
   const handlers: {
     [key: string]: (() => void) | undefined;
   } = {
-    Enter: () => console.log(apparentParentIndexEntry),
+    Enter: () => {
+      console.log(handlers);
+      console.log(apparentParentIndexEntry);
+    },
     "9": save,
     "0": () => console.log(prettyPrint()),
     Escape: cancelAction,
@@ -233,6 +236,24 @@ export function handleKey(
       delete handlers[oldCombo];
     }
   });
+  for (const [shortcut, childPath] of node.getChildShortcuts()) {
+    if (!shortcut.match(/^[a-z0-9]$/)) {
+      throw new Error("shortcut has invalid format");
+    }
+    if (childPath.length !== 1) {
+      throw new Error("only childPath.length === 1 is currently supported");
+    }
+    const child = node.getByPath(childPath);
+    if (!child) {
+      throw new Error("shortcut points to missing child");
+    }
+    handlers[shortcut] = () => {
+      setFocusedIdPath([
+        ...idPathFromParentIndexEntry(apparentParentIndexEntry),
+        child.id,
+      ]);
+    };
+  }
   let keyCombo = event.key;
   if (keyCombo === " ") {
     keyCombo = "space";
@@ -241,8 +262,12 @@ export function handleKey(
     keyCombo = "ctrl-" + keyCombo;
   }
   keyCombo = [...chord, keyCombo].join(" ");
-  if (["a", "'", "space"].includes(keyCombo)) {
+  if (["'", "space"].includes(keyCombo)) {
     setChord([keyCombo]);
+    return false;
+  }
+  if (keyCombo === "space a") {
+    setChord(["space", "a"]);
     return false;
   }
   const wasChord = !!chord.length;

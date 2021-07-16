@@ -64,7 +64,15 @@ export abstract class Node<B> {
     return undefined;
   }
   getChildShortcuts(): Map<string, string[]> {
-    return new Map();
+    const shortcuts = new Map<string, string[]>();
+    for (const { key: childKey } of this.children) {
+      const shortcut = childKey[0];
+      if (!childKey.length || shortcuts.has(shortcut)) {
+        continue;
+      }
+      shortcuts.set(shortcut, [childKey]);
+    }
+    return shortcuts;
   }
   protected buildHelper(
     cb: (builtChildren: { [key: string]: any }) => B,
