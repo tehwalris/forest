@@ -184,7 +184,13 @@ export function handleKey(
     },
     "9": save,
     "0": () => console.log(prettyPrint()),
-    Escape: cancelAction,
+    Escape: () => {
+      if (actionInProgress) {
+        cancelAction();
+      } else {
+        focusApparentParent();
+      }
+    },
     Backspace: focusApparentParent,
     "ctrl-ArrowRight": tryAction(
       "append",
