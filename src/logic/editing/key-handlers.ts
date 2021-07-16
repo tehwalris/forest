@@ -168,6 +168,13 @@ export function handleKey(
     const fileNode = findClosestFileNode();
     return fileNode && tryPrettyPrint(fileNode);
   };
+  const focusApparentParent = () => {
+    const parentEntry = R.last(apparentPath);
+    if (!parentEntry) {
+      return;
+    }
+    setFocusedId(parentEntry.parent.id);
+  };
   const handlers: {
     [key: string]: (() => void) | undefined;
   } = {
@@ -175,6 +182,7 @@ export function handleKey(
     "9": save,
     "0": () => console.log(prettyPrint()),
     Escape: cancelAction,
+    Backspace: focusApparentParent,
     "ctrl-ArrowRight": tryAction(
       "append",
       (n) => (R.last(n.children)?.node || n).id,
@@ -213,26 +221,27 @@ export function handleKey(
       }
     };
   });
-  const comboAliasReplacements: [RegExp, string][] = [
-    [/\bArrowUp\b/, "k"],
-    [/\bArrowRight\b/, "l"],
-    [/\bArrowDown\b/, "j"],
-    [/\bArrowLeft\b/, "h"],
-  ];
-  Object.keys(handlers).forEach((combo) => {
-    for (const [target, replacement] of comboAliasReplacements) {
-      const altCombo = combo.replace(target, replacement);
-      if (altCombo !== combo && !handlers[altCombo]) {
-        handlers[altCombo] = handlers[combo];
+  Object.keys(handlers).forEach((oldCombo) => {
+    if (oldCombo.match(/^[a-z0-9](?: |$)/)) {
+      const newCombo = `space ${oldCombo}`;
+      if (newCombo in handlers) {
+        throw new Error(
+          "adding space to oldCombo would overwrite an existing handler",
+        );
       }
+      handlers[newCombo] = handlers[oldCombo];
+      delete handlers[oldCombo];
     }
   });
   let keyCombo = event.key;
+  if (keyCombo === " ") {
+    keyCombo = "space";
+  }
   if (event.ctrlKey) {
     keyCombo = "ctrl-" + keyCombo;
   }
   keyCombo = [...chord, keyCombo].join(" ");
-  if (["a", "'"].includes(keyCombo)) {
+  if (["a", "'", "space"].includes(keyCombo)) {
     setChord([keyCombo]);
     return false;
   }

@@ -63,6 +63,9 @@ export abstract class Node<B> {
   getDebugLabel(): string | undefined {
     return undefined;
   }
+  getChildShortcuts(): Map<string, string[]> {
+    return new Map();
+  }
   protected buildHelper(
     cb: (builtChildren: { [key: string]: any }) => B,
   ): BuildResult<B> {
