@@ -1,7 +1,7 @@
 import { Node } from "../tree/node";
 import { isMetaBranchNode } from "../transform/transforms/split-meta";
 import {
-  Node as DivetreeDisplayNode,
+  RootNode as DivetreeDisplayRootNode,
   NodeKind,
   NavNode,
   TightLeafNode,
@@ -26,7 +26,7 @@ export function buildDivetreeDisplayTree(
   extraDepth: number,
   metaLevelNodeIds: Set<string>,
   incrementalParentIndex: IncrementalParentIndex,
-): DivetreeDisplayNode {
+): DivetreeDisplayRootNode {
   const isOnPath = node.id === path[0];
   const isFinal = !isOnPath || !!extraDepth;
 
