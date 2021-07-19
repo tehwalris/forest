@@ -12,9 +12,11 @@ import * as R from "ramda";
 import { noCase } from "change-case";
 import { ParentPathElement } from "../../parent-index";
 import {
+  LooseNode,
   NodeKind,
   RootNode as DivetreeDisplayRootNode,
   Split,
+  TightNode,
 } from "divetree-core";
 export function tryExtractName(node: Node<unknown>): string | undefined {
   const nameNode = node.getByPath(["name"]);
@@ -153,30 +155,75 @@ export const enchancers: {
         nodeForDisplay,
         buildChildDisplayTree,
       }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
+        const expectedTightChildKeys = [
+          "asteriskToken",
+          "name",
+          "parameters",
+          "typeParameters",
+          "type",
+        ] as const;
+        const expectedAnyChildKeys = ["body"] as const;
+        const expectedChildKeys = [
+          ...expectedTightChildKeys,
+          ...expectedAnyChildKeys,
+        ];
+        if (
+          nodeForDisplay.children.length !== expectedChildKeys.length ||
+          !nodeForDisplay.children.every(
+            (c, i) => c.key === expectedChildKeys[i],
+          )
+        ) {
+          console.warn("unexpected number or order of children");
+          return undefined;
+        }
+
+        const tightChildDisplayNodes: {
+          [K in typeof expectedTightChildKeys[number]]: TightNode;
+        } = {} as any;
+        for (const key of expectedTightChildKeys) {
+          const child = buildChildDisplayTree(nodeForDisplay.getByPath([key])!);
+          if (
+            child.kind !== NodeKind.TightLeaf &&
+            child.kind !== NodeKind.TightSplit
+          ) {
+            console.warn("unexpected type of child display node");
+            return undefined;
+          }
+          tightChildDisplayNodes[key] = child;
+        }
+
+        const anyChildDisplayNodes: {
+          [K in typeof expectedAnyChildKeys[number]]: DivetreeDisplayRootNode;
+        } = {} as any;
+        for (const key of expectedAnyChildKeys) {
+          const child = buildChildDisplayTree(nodeForDisplay.getByPath([key])!);
+          anyChildDisplayNodes[key] = child;
+        }
+
         return {
           kind: NodeKind.TightSplit,
           split: Split.Stacked,
           children: [
             {
-              kind: NodeKind.TightLeaf,
-              id: nodeForDisplay.id,
-              size: [150, 56],
+              kind: NodeKind.TightSplit,
+              split: Split.SideBySide,
+              children: [
+                {
+                  kind: NodeKind.TightLeaf,
+                  id: nodeForDisplay.id,
+                  size: [150, 56],
+                },
+                tightChildDisplayNodes.typeParameters,
+                tightChildDisplayNodes.asteriskToken,
+                tightChildDisplayNodes.name,
+                tightChildDisplayNodes.parameters,
+                tightChildDisplayNodes.type,
+              ],
             },
             {
               kind: NodeKind.Portal,
               id: `${nodeForDisplay.id}-portal`,
-              child: {
-                kind: NodeKind.Loose,
-                id: `${nodeForDisplay.id}-portal-loose`,
-                parent: {
-                  kind: NodeKind.TightLeaf,
-                  id: `${nodeForDisplay.id}-portal-loose-parent`,
-                  size: [0, 100],
-                },
-                children: nodeForDisplay.children.map((c) =>
-                  buildChildDisplayTree(c.node),
-                ),
-              },
+              child: anyChildDisplayNodes.body,
             },
           ],
         };

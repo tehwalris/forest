@@ -90,6 +90,12 @@ export function buildDivetreeDisplayTree(
       ],
     };
   }
+
+  if (!children.length) {
+    // HACK returning an loose node with no children instead breaks some code that expects tight nodes
+    return base;
+  }
+
   return {
     kind: NodeKind.Loose,
     id: node.id + "-loose", // HACK This suffix wont work if "id" is an arbitrary string
