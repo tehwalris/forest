@@ -19,10 +19,7 @@ import {
 import { compressUselessValuesTransform } from "../logic/transform/transforms/compress-useless-values";
 import { flattenIfTransform } from "../logic/transform/transforms/flatten-if";
 import { simpleVariableDeclarationTransform } from "../logic/transform/transforms/simple-variable-declaration";
-import {
-  isMetaBranchNode,
-  splitMetaTransform,
-} from "../logic/transform/transforms/split-meta";
+import { isMetaBranchNode } from "../logic/transform/transforms/split-meta";
 import { Action, InputKind } from "../logic/tree/action";
 import { Path } from "../logic/tree/base";
 import { EmptyLeafNode } from "../logic/tree/base-nodes";

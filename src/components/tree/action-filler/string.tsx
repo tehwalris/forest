@@ -5,7 +5,10 @@ interface Props<N extends Node<unknown>> {
   action: StringInputAction<N>;
   onApply: (node: N) => void;
 }
-export default <N extends Node<unknown>>({ action, onApply }: Props<N>) => {
+export const StringFiller = <N extends Node<unknown>>({
+  action,
+  onApply,
+}: Props<N>) => {
   return (
     <input
       type="text"

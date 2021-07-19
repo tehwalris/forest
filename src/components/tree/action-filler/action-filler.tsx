@@ -1,8 +1,8 @@
 import * as React from "react";
 import { Action, InputKind } from "../../../logic/tree/action";
 import { Node } from "../../../logic/tree/node";
-import StringFiller from "./string";
-import OneOfFiller from "./one-of";
+import { StringFiller } from "./string";
+import { OneOfFiller } from "./one-of";
 interface Props<N extends Node<unknown>> {
   action: Action<N>;
   onCancel: () => void;

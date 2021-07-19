@@ -12,7 +12,7 @@ interface Option<T> {
   original: T;
   label: string;
 }
-export default <N extends Node<unknown>, T>({
+export const OneOfFiller = <N extends Node<unknown>, T>({
   action,
   onApply,
 }: Props<N, T>) => {
