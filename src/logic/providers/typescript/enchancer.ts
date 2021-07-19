@@ -1,23 +1,23 @@
-import {
-  Node,
-  DisplayInfoPriority,
-  LabelStyle,
-  DisplayInfo,
-  LabelPart,
-  SemanticColor,
-  BuildDivetreeDisplayTreeArgs,
-} from "../../tree/node";
-import * as ts from "typescript";
-import * as R from "ramda";
 import { noCase } from "change-case";
-import { ParentPathElement } from "../../parent-index";
 import {
-  LooseNode,
   NodeKind,
+  PortalNode,
   RootNode as DivetreeDisplayRootNode,
   Split,
   TightNode,
 } from "divetree-core";
+import * as R from "ramda";
+import * as ts from "typescript";
+import { ParentPathElement } from "../../parent-index";
+import {
+  BuildDivetreeDisplayTreeArgs,
+  DisplayInfo,
+  DisplayInfoPriority,
+  LabelPart,
+  LabelStyle,
+  Node,
+  SemanticColor,
+} from "../../tree/node";
 export function tryExtractName(node: Node<unknown>): string | undefined {
   const nameNode = node.getByPath(["name"]);
   if (!nameNode) {
@@ -155,18 +155,14 @@ export const enchancers: {
         nodeForDisplay,
         buildChildDisplayTree,
       }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
-        const expectedTightChildKeys = [
+        const expectedChildKeys = [
           "asteriskToken",
           "name",
           "parameters",
           "typeParameters",
           "type",
+          "body",
         ] as const;
-        const expectedAnyChildKeys = ["body"] as const;
-        const expectedChildKeys = [
-          ...expectedTightChildKeys,
-          ...expectedAnyChildKeys,
-        ];
         if (
           nodeForDisplay.children.length !== expectedChildKeys.length ||
           !nodeForDisplay.children.every(
@@ -177,28 +173,21 @@ export const enchancers: {
           return undefined;
         }
 
-        const tightChildDisplayNodes: {
-          [K in typeof expectedTightChildKeys[number]]: TightNode;
+        const childDisplayNodes: {
+          [K in typeof expectedChildKeys[number]]: DivetreeDisplayRootNode;
         } = {} as any;
-        for (const key of expectedTightChildKeys) {
-          const child = buildChildDisplayTree(nodeForDisplay.getByPath([key])!);
-          if (
-            child.kind !== NodeKind.TightLeaf &&
-            child.kind !== NodeKind.TightSplit
-          ) {
-            console.warn("unexpected type of child display node");
-            return undefined;
-          }
-          tightChildDisplayNodes[key] = child;
+        for (const key of expectedChildKeys) {
+          childDisplayNodes[key] = buildChildDisplayTree(
+            nodeForDisplay.getByPath([key])!,
+          );
         }
 
-        const anyChildDisplayNodes: {
-          [K in typeof expectedAnyChildKeys[number]]: DivetreeDisplayRootNode;
-        } = {} as any;
-        for (const key of expectedAnyChildKeys) {
-          const child = buildChildDisplayTree(nodeForDisplay.getByPath([key])!);
-          anyChildDisplayNodes[key] = child;
-        }
+        const maybeWrapPortal = (
+          node: DivetreeDisplayRootNode,
+        ): TightNode | PortalNode =>
+          node.kind === NodeKind.TightLeaf || node.kind === NodeKind.TightSplit
+            ? node
+            : { kind: NodeKind.Portal, id: `${node.id}-portal`, child: node };
 
         return {
           kind: NodeKind.TightSplit,
@@ -213,17 +202,17 @@ export const enchancers: {
                   id: nodeForDisplay.id,
                   size: [150, 56],
                 },
-                tightChildDisplayNodes.typeParameters,
-                tightChildDisplayNodes.asteriskToken,
-                tightChildDisplayNodes.name,
-                tightChildDisplayNodes.parameters,
-                tightChildDisplayNodes.type,
+                maybeWrapPortal(childDisplayNodes.typeParameters),
+                maybeWrapPortal(childDisplayNodes.asteriskToken),
+                maybeWrapPortal(childDisplayNodes.name),
+                maybeWrapPortal(childDisplayNodes.parameters),
+                maybeWrapPortal(childDisplayNodes.type),
               ],
             },
             {
               kind: NodeKind.Portal,
               id: `${nodeForDisplay.id}-portal`,
-              child: anyChildDisplayNodes.body,
+              child: childDisplayNodes.body,
             },
           ],
         };
