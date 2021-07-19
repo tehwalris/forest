@@ -1,13 +1,13 @@
-import { Node } from "../tree/node";
-import { isMetaBranchNode } from "../transform/transforms/split-meta";
 import {
-  RootNode as DivetreeDisplayRootNode,
-  NodeKind,
   NavNode,
-  TightLeafNode,
+  NodeKind,
+  RootNode as DivetreeDisplayRootNode,
   Split,
+  TightLeafNode,
 } from "divetree-core";
 import { IncrementalParentIndex } from "../parent-index";
+import { isMetaBranchNode } from "../transform/transforms/split-meta";
+import { Node } from "../tree/node";
 
 export function getNodeForDisplay(
   node: Node<unknown>,
@@ -22,19 +22,45 @@ export function getNodeForDisplay(
 
 export function buildDivetreeDisplayTree(
   node: Node<unknown>,
-  path: string[],
+  focusPath: string[],
   extraDepth: number,
   metaLevelNodeIds: Set<string>,
   incrementalParentIndex: IncrementalParentIndex,
 ): DivetreeDisplayRootNode {
-  const isOnPath = node.id === path[0];
-  const isFinal = !isOnPath || !!extraDepth;
+  const isOnFocusPath = node.id === focusPath[0];
+  const isFinal = !isOnFocusPath || !!extraDepth;
 
   const nodeForDisplay = getNodeForDisplay(node, metaLevelNodeIds);
   const children = nodeForDisplay.children;
 
   incrementalParentIndex.addObservation(node);
   incrementalParentIndex.addObservation(nodeForDisplay);
+  const parentPath = incrementalParentIndex.get(nodeForDisplay.id)?.path;
+  if (!parentPath) {
+    throw new Error(
+      "could not get parentPath for node that was just added to index",
+    );
+  }
+
+  const buildChildDisplayTree = (childNode: Node<unknown>) =>
+    buildDivetreeDisplayTree(
+      childNode,
+      isOnFocusPath ? focusPath.slice(1) : [],
+      extraDepth + (isOnFocusPath ? 0 : 1),
+      metaLevelNodeIds,
+      incrementalParentIndex,
+    );
+
+  const customDisplayTree = node.buildDivetreeDisplayTree({
+    nodeForDisplay,
+    isOnFocusPath,
+    isFinal,
+    parentPath,
+    buildChildDisplayTree,
+  });
+  if (customDisplayTree) {
+    return customDisplayTree;
+  }
 
   const base: TightLeafNode = {
     kind: NodeKind.TightLeaf,
@@ -68,15 +94,7 @@ export function buildDivetreeDisplayTree(
     kind: NodeKind.Loose,
     id: node.id + "-loose", // HACK This suffix wont work if "id" is an arbitrary string
     parent: base,
-    children: children.map((c) => {
-      return buildDivetreeDisplayTree(
-        c.node,
-        isOnPath ? path.slice(1) : [],
-        extraDepth + (isOnPath ? 0 : 1),
-        metaLevelNodeIds,
-        incrementalParentIndex,
-      );
-    }),
+    children: children.map((c) => buildChildDisplayTree(c.node)),
   };
 }
 

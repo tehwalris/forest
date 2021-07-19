@@ -9,6 +9,7 @@ import {
   DisplayInfo,
   DisplayInfoPriority,
   LabelStyle,
+  BuildDivetreeDisplayTreeArgs,
 } from "../../tree/node";
 import { ActionSet, InputKind } from "../../tree/action";
 import { UnionVariant, LazyUnionVariant } from "../../tree/base-nodes/union";
@@ -22,6 +23,7 @@ import { shortcutsByType } from "./generated/templates";
 import { fromTsNode } from "./convert";
 import { MetaSplit } from "../../transform/transforms/split-meta";
 import { ParentPathElement } from "../../parent-index";
+import type { RootNode as DivetreeDisplayRootNode } from "divetree-core";
 export type Union<T extends ts.Node> = () => {
   [key: string]: {
     match: (node: ts.Node) => node is T;
@@ -164,6 +166,13 @@ export class StringTemplateNode<B extends ts.Node> extends Node<B> {
       label,
     };
   }
+  buildDivetreeDisplayTree(
+    args: BuildDivetreeDisplayTreeArgs,
+  ): DivetreeDisplayRootNode | undefined {
+    return this.template
+      .enchancer?.(this, args.parentPath)
+      .buildDivetreeDisplayTree?.(args);
+  }
 }
 export class ListTemplateNode<
   B extends ts.Node,
@@ -242,6 +251,13 @@ export class ListTemplateNode<
   getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
     const { enchancer } = this.template;
     return enchancer ? enchancer(this, parentPath).displayInfo : undefined;
+  }
+  buildDivetreeDisplayTree(
+    args: BuildDivetreeDisplayTreeArgs,
+  ): DivetreeDisplayRootNode | undefined {
+    return this.template
+      .enchancer?.(this, args.parentPath)
+      .buildDivetreeDisplayTree?.(args);
   }
 }
 export class StructTemplateNode<
@@ -357,6 +373,13 @@ export class StructTemplateNode<
   getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
     const { enchancer } = this.template;
     return enchancer ? enchancer(this, parentPath).displayInfo : undefined;
+  }
+  buildDivetreeDisplayTree(
+    args: BuildDivetreeDisplayTreeArgs,
+  ): DivetreeDisplayRootNode | undefined {
+    return this.template
+      .enchancer?.(this, args.parentPath)
+      .buildDivetreeDisplayTree?.(args);
   }
 }
 export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {

@@ -3,6 +3,15 @@ import { ActionSet } from "./action";
 import { v4 as genUuid } from "uuid";
 import { MetaSplit } from "../transform/transforms/split-meta";
 import { ParentPathElement } from "../parent-index";
+import type { RootNode as DivetreeDisplayRootNode } from "divetree-core";
+
+export interface BuildDivetreeDisplayTreeArgs {
+  nodeForDisplay: Node<unknown>;
+  isOnFocusPath: boolean;
+  isFinal: boolean;
+  parentPath: ParentPathElement[];
+  buildChildDisplayTree: (childNode: Node<unknown>) => DivetreeDisplayRootNode;
+}
 
 export interface Node<B> {
   unapplyTransform?(): BuildResult<Node<B>>;
@@ -73,6 +82,11 @@ export abstract class Node<B> {
       shortcuts.set(shortcut, [childKey]);
     }
     return shortcuts;
+  }
+  buildDivetreeDisplayTree(
+    args: BuildDivetreeDisplayTreeArgs,
+  ): DivetreeDisplayRootNode | undefined {
+    return undefined;
   }
   protected buildHelper(
     cb: (builtChildren: { [key: string]: any }) => B,

@@ -5,11 +5,17 @@ import {
   DisplayInfo,
   LabelPart,
   SemanticColor,
+  BuildDivetreeDisplayTreeArgs,
 } from "../../tree/node";
 import * as ts from "typescript";
 import * as R from "ramda";
 import { noCase } from "change-case";
 import { ParentPathElement } from "../../parent-index";
+import {
+  NodeKind,
+  RootNode as DivetreeDisplayRootNode,
+  Split,
+} from "divetree-core";
 export function tryExtractName(node: Node<unknown>): string | undefined {
   const nameNode = node.getByPath(["name"]);
   if (!nameNode) {
@@ -30,6 +36,9 @@ export type Enchancer<T extends Node<ts.Node>> = (
   parentPath: ParentPathElement[],
 ) => {
   displayInfo: DisplayInfo;
+  buildDivetreeDisplayTree?: (
+    args: BuildDivetreeDisplayTreeArgs,
+  ) => DivetreeDisplayRootNode | undefined;
 };
 export const enchancers: {
   [key: string]: Enchancer<Node<any>> | undefined;
@@ -138,7 +147,41 @@ export const enchancers: {
     if (name !== undefined) {
       label.push({ text: name, style: LabelStyle.NAME });
     }
-    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
+    return {
+      displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
+      buildDivetreeDisplayTree: ({
+        nodeForDisplay,
+        buildChildDisplayTree,
+      }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
+        return {
+          kind: NodeKind.TightSplit,
+          split: Split.Stacked,
+          children: [
+            {
+              kind: NodeKind.TightLeaf,
+              id: nodeForDisplay.id,
+              size: [150, 56],
+            },
+            {
+              kind: NodeKind.Portal,
+              id: `${nodeForDisplay.id}-portal`,
+              child: {
+                kind: NodeKind.Loose,
+                id: `${nodeForDisplay.id}-portal-loose`,
+                parent: {
+                  kind: NodeKind.TightLeaf,
+                  id: `${nodeForDisplay.id}-portal-loose-parent`,
+                  size: [0, 100],
+                },
+                children: nodeForDisplay.children.map((c) =>
+                  buildChildDisplayTree(c.node),
+                ),
+              },
+            },
+          ],
+        };
+      },
+    };
   },
   FunctionExpression: (node: Node<ts.FunctionExpression>) => {
     const label: LabelPart[] = [

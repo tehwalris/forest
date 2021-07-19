@@ -5,6 +5,7 @@ import {
   FlagSet,
   BuildResult,
   DisplayInfo,
+  BuildDivetreeDisplayTreeArgs,
 } from "../../tree/node";
 import { ActionSet } from "../../tree/action";
 import * as R from "ramda";
@@ -186,5 +187,9 @@ export class CompressedNode<B> extends Node<B> {
 
   getChildShortcuts() {
     return this.childNode.getChildShortcuts();
+  }
+
+  buildDivetreeDisplayTree(args: BuildDivetreeDisplayTreeArgs) {
+    return this.childNode.buildDivetreeDisplayTree(args);
   }
 }
