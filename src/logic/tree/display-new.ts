@@ -7,7 +7,7 @@ import {
 } from "divetree-core";
 import { IncrementalParentIndex } from "../parent-index";
 import { isMetaBranchNode } from "../transform/transforms/split-meta";
-import { Node } from "../tree/node";
+import { BuildDivetreeDisplayTreeArgs, Node } from "../tree/node";
 import { PostLayoutHints } from "../layout-hints";
 
 export function getNodeForDisplay(
@@ -29,8 +29,15 @@ export function buildDivetreeDisplayTree(
   incrementalParentIndex: IncrementalParentIndex,
   postLayoutHintsById: Map<string, PostLayoutHints>,
 ): DivetreeDisplayRootNode {
+  const updatePostLayoutHints: BuildDivetreeDisplayTreeArgs["updatePostLayoutHints"] =
+    (id, updateHints) => {
+      const oldHints: PostLayoutHints = postLayoutHintsById.get(id) || {};
+      postLayoutHintsById.set(id, updateHints(oldHints));
+    };
+
   const isOnFocusPath = node.id === focusPath[0];
   const isFinal = !isOnFocusPath || !!extraDepth;
+  const showChildNavigationHints = isOnFocusPath && focusPath.length === 1;
 
   const nodeForDisplay = getNodeForDisplay(node, metaLevelNodeIds);
   const children = nodeForDisplay.children;
@@ -42,6 +49,19 @@ export function buildDivetreeDisplayTree(
     throw new Error(
       "could not get parentPath for node that was just added to index",
     );
+  }
+
+  if (showChildNavigationHints) {
+    updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+      ...oldHints,
+      showNavigationHints: true,
+    }));
+    for (const { node: childNode } of nodeForDisplay.children) {
+      updatePostLayoutHints(childNode.id, (oldHints) => ({
+        ...oldHints,
+        showNavigationHints: true,
+      }));
+    }
   }
 
   const buildChildDisplayTree = (childNode: Node<unknown>) =>
@@ -60,7 +80,7 @@ export function buildDivetreeDisplayTree(
     isFinal,
     parentPath,
     buildChildDisplayTree,
-    setPostLayoutHints: postLayoutHintsById.set.bind(postLayoutHintsById),
+    updatePostLayoutHints,
   });
   if (customDisplayTree) {
     return customDisplayTree;

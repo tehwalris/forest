@@ -57,12 +57,15 @@ export const NodeContent: React.FC<Props> = React.memo(
       parentIndexEntry?.path && R.last(parentIndexEntry.path)?.childKey;
     return (
       <div>
-        {childKey && !displayInfo.hideKey && !childKey.match(/^\d+$/) && (
-          <div className={styles.childKey}>{childKey}</div>
-        )}
         {displayInfo.label.map((p, i) => (
           <div key={i}>{renderLabelPart(p)}</div>
         ))}
+        {childKey &&
+          postLayoutHints?.showNavigationHints &&
+          !displayInfo.hideKey &&
+          !childKey.match(/^\d+$/) && (
+            <div className={styles.childKey}>{childKey}</div>
+          )}
       </div>
     );
   },

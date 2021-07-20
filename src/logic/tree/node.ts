@@ -12,7 +12,10 @@ export interface BuildDivetreeDisplayTreeArgs {
   isFinal: boolean;
   parentPath: ParentPathElement[];
   buildChildDisplayTree: (childNode: Node<unknown>) => DivetreeDisplayRootNode;
-  setPostLayoutHints: (nodeId: string, hints: PostLayoutHints) => void;
+  updatePostLayoutHints: (
+    nodeId: string,
+    updateHints: (oldHints: PostLayoutHints) => PostLayoutHints,
+  ) => void;
 }
 
 export interface Node<B> {
