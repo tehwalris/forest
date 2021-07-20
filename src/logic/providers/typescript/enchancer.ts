@@ -280,7 +280,9 @@ export const enchancers: {
                 !shouldHideChild("asteriskToken") &&
                   maybeWrapPortal(childDisplayNodes.asteriskToken),
                 maybeWrapPortal(childDisplayNodes.name),
+                newTextNode(10, "(", LabelStyle.SYNTAX_SYMBOL),
                 maybeWrapPortal(childDisplayNodes.parameters),
+                newTextNode(10, ")", LabelStyle.SYNTAX_SYMBOL),
                 !shouldHideChild("type") &&
                   maybeWrapPortal(childDisplayNodes.type),
               ]),
