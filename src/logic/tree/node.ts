@@ -151,7 +151,6 @@ export interface TargetedDisplayInfo {
 export interface DisplayInfo {
   priority: DisplayInfoPriority;
   label: LabelPart[];
-  hideKey?: boolean;
   color?: SemanticColor;
 }
 /*

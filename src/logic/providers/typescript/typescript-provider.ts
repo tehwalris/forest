@@ -176,7 +176,6 @@ export class FileNode extends ListNode<
         { style: LabelStyle.NAME, text: R.last(parentPath)!.childKey },
       ],
       priority: DisplayInfoPriority.MEDIUM,
-      hideKey: true,
     };
   }
 }
@@ -232,7 +231,6 @@ class DirectoryNode extends StructNode<
         { style: LabelStyle.NAME, text: R.last(parentPath)!.childKey },
       ],
       priority: DisplayInfoPriority.MEDIUM,
-      hideKey: true,
     };
   }
   getChildShortcuts() {

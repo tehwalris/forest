@@ -1,14 +1,17 @@
 import {
   NavNode,
   NodeKind,
+  PortalNode,
   RootNode as DivetreeDisplayRootNode,
   Split,
   TightLeafNode,
+  TightNode,
 } from "divetree-core";
 import { IncrementalParentIndex } from "../parent-index";
 import { isMetaBranchNode } from "../transform/transforms/split-meta";
-import { BuildDivetreeDisplayTreeArgs, Node } from "../tree/node";
+import { BuildDivetreeDisplayTreeArgs, LabelStyle, Node } from "../tree/node";
 import { PostLayoutHints } from "../layout-hints";
+import * as R from "ramda";
 
 export function getNodeForDisplay(
   node: Node<unknown>,
@@ -52,16 +55,56 @@ export function buildDivetreeDisplayTree(
   }
 
   if (showChildNavigationHints) {
-    updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-      ...oldHints,
-      showNavigationHints: true,
-    }));
     for (const { node: childNode } of nodeForDisplay.children) {
       updatePostLayoutHints(childNode.id, (oldHints) => ({
         ...oldHints,
         showNavigationHints: true,
       }));
     }
+  }
+
+  function maybeWrapPortal(
+    node: DivetreeDisplayRootNode,
+  ): TightNode | PortalNode {
+    return node.kind === NodeKind.TightLeaf || node.kind === NodeKind.TightSplit
+      ? node
+      : { kind: NodeKind.Portal, id: `${node.id}-portal`, child: node };
+  }
+
+  function maybeWrapForNavigation<T extends DivetreeDisplayRootNode>(
+    base: T,
+  ): T | TightNode {
+    if (!postLayoutHintsById.get(nodeForDisplay.id)?.showNavigationHints) {
+      return base;
+    }
+
+    const childKey = R.last(parentPath!)?.childKey;
+    if (!childKey) {
+      console.warn("parent not found for node that has showNavigationHints");
+      return base;
+    }
+    let navigationText = childKey;
+    if (childKey.match(/^\d+$/)) {
+      // HACK
+      navigationText = `${1 + +childKey}`;
+    }
+    updatePostLayoutHints(`${nodeForDisplay.id}-navigation`, (oldHints) => ({
+      ...oldHints,
+      label: [{ text: navigationText, style: LabelStyle.UNKNOWN }],
+    }));
+
+    return {
+      kind: NodeKind.TightSplit,
+      split: Split.Stacked,
+      children: [
+        {
+          kind: NodeKind.TightLeaf,
+          id: `${nodeForDisplay.id}-navigation`,
+          size: [150, 20],
+        },
+        maybeWrapPortal(base),
+      ],
+    };
   }
 
   const buildChildDisplayTree = (childNode: Node<unknown>) =>
@@ -83,7 +126,7 @@ export function buildDivetreeDisplayTree(
     updatePostLayoutHints,
   });
   if (customDisplayTree) {
-    return customDisplayTree;
+    return maybeWrapForNavigation(customDisplayTree);
   }
 
   const base: TightLeafNode = {
@@ -91,15 +134,16 @@ export function buildDivetreeDisplayTree(
     id: node.id,
     size: [150, 56],
   };
+
   if (isFinal) {
     if (!children.length) {
-      return base;
+      return maybeWrapForNavigation(base);
     }
-    return {
+    return maybeWrapForNavigation({
       kind: NodeKind.TightSplit,
       split: Split.SideBySide,
       children: [
-        { ...base, size: [75, 56] },
+        base,
         {
           kind: NodeKind.TightSplit,
           split: Split.Stacked,
@@ -112,18 +156,18 @@ export function buildDivetreeDisplayTree(
           ),
         },
       ],
-    };
+    });
   }
 
   if (!children.length) {
     // HACK returning an loose node with no children instead breaks some code that expects tight nodes
-    return base;
+    return maybeWrapForNavigation(base);
   }
 
   return {
     kind: NodeKind.Loose,
     id: node.id + "-loose", // HACK This suffix wont work if "id" is an arbitrary string
-    parent: base,
+    parent: maybeWrapForNavigation(base),
     children: children.map((c) => buildChildDisplayTree(c.node)),
   };
 }

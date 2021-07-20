@@ -1,14 +1,13 @@
+import { css } from "@emotion/css";
 import * as React from "react";
-import * as R from "ramda";
+import { PostLayoutHints } from "../../logic/layout-hints";
+import { ParentIndexEntry } from "../../logic/parent-index";
 import {
-  LabelStyle,
-  LabelPart,
   DisplayInfo,
   DisplayInfoPriority,
+  LabelPart,
+  LabelStyle,
 } from "../../logic/tree/node";
-import { ParentIndexEntry } from "../../logic/parent-index";
-import { css } from "@emotion/css";
-import { PostLayoutHints } from "../../logic/layout-hints";
 interface Props {
   parentIndexEntry: ParentIndexEntry | undefined;
   postLayoutHints?: PostLayoutHints;
@@ -53,19 +52,11 @@ export const NodeContent: React.FC<Props> = React.memo(
       ],
       priority: DisplayInfoPriority.LOW,
     };
-    const childKey =
-      parentIndexEntry?.path && R.last(parentIndexEntry.path)?.childKey;
     return (
       <div>
         {displayInfo.label.map((p, i) => (
           <div key={i}>{renderLabelPart(p)}</div>
         ))}
-        {childKey &&
-          postLayoutHints?.showNavigationHints &&
-          !displayInfo.hideKey &&
-          !childKey.match(/^\d+$/) && (
-            <div className={styles.childKey}>{childKey}</div>
-          )}
       </div>
     );
   },
