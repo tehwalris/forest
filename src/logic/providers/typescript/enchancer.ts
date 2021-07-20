@@ -6,6 +6,7 @@ import {
   Node as DivetreeDisplayNode,
   Split,
   TightNode,
+  TightLeafNode,
 } from "divetree-core";
 import * as R from "ramda";
 import * as ts from "typescript";
@@ -61,6 +62,20 @@ export const enchancers: {
         color: isDeclarationName
           ? SemanticColor.DECLARATION_NAME
           : SemanticColor.REFERENCE,
+      },
+      buildDivetreeDisplayTree: ({
+        nodeForDisplay,
+        updatePostLayoutHints,
+      }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
+        updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+          ...oldHints,
+          styleAsText: true,
+        }));
+        return {
+          kind: NodeKind.TightLeaf,
+          id: nodeForDisplay.id,
+          size: [150, 22],
+        };
       },
     };
   },
@@ -221,27 +236,31 @@ export const enchancers: {
             ? node
             : { kind: NodeKind.Portal, id: `${node.id}-portal`, child: node };
 
+        let nextTextNodeIndex = 0;
+        const newTextNode = (
+          width: number,
+          labelText: string,
+          labelStyle: LabelStyle,
+        ): TightLeafNode => {
+          const id = `${nodeForDisplay.id}-extra-text-node-${nextTextNodeIndex}`;
+          nextTextNodeIndex++;
+          updatePostLayoutHints(id, (oldHints) => ({
+            ...oldHints,
+            styleAsText: true,
+            label: [{ text: labelText, style: labelStyle }],
+          }));
+          return {
+            kind: NodeKind.TightLeaf,
+            id,
+            size: [width, 22],
+          };
+        };
+
         updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
           ...oldHints,
           styleAsText: true,
           label: [{ text: "function", style: LabelStyle.KEYWORD }],
         }));
-        updatePostLayoutHints(
-          `${nodeForDisplay.id}-body-opening-paren`,
-          (oldHints) => ({
-            ...oldHints,
-            styleAsText: true,
-            label: [{ text: "{", style: LabelStyle.SYNTAX_SYMBOL }],
-          }),
-        );
-        updatePostLayoutHints(
-          `${nodeForDisplay.id}-body-closing-paren`,
-          (oldHints) => ({
-            ...oldHints,
-            styleAsText: true,
-            label: [{ text: "}", style: LabelStyle.SYNTAX_SYMBOL }],
-          }),
-        );
 
         return {
           kind: NodeKind.TightSplit,
@@ -254,7 +273,7 @@ export const enchancers: {
                 {
                   kind: NodeKind.TightLeaf,
                   id: nodeForDisplay.id,
-                  size: [150, 56],
+                  size: [72, 56],
                 },
                 !shouldHideChild("typeParameters") &&
                   maybeWrapPortal(childDisplayNodes.typeParameters),
@@ -266,21 +285,13 @@ export const enchancers: {
                   maybeWrapPortal(childDisplayNodes.type),
               ]),
             },
-            {
-              kind: NodeKind.TightLeaf,
-              id: `${nodeForDisplay.id}-body-opening-paren`,
-              size: [10, 22],
-            },
+            newTextNode(10, "{", LabelStyle.SYNTAX_SYMBOL),
             {
               kind: NodeKind.Portal,
               id: `${nodeForDisplay.id}-portal`,
               child: childDisplayNodes.body,
             },
-            {
-              kind: NodeKind.TightLeaf,
-              id: `${nodeForDisplay.id}-body-closing-paren`,
-              size: [10, 22],
-            },
+            newTextNode(10, "}", LabelStyle.SYNTAX_SYMBOL),
           ],
         };
       },
