@@ -3,6 +3,7 @@ import {
   NodeKind,
   PortalNode,
   RootNode as DivetreeDisplayRootNode,
+  Node as DivetreeDisplayNode,
   Split,
   TightNode,
 } from "divetree-core";
@@ -32,6 +33,11 @@ export function tryExtractName(node: Node<unknown>): string | undefined {
     return undefined;
   }
   return text;
+}
+export function filterTruthyChildren<T extends DivetreeDisplayNode>(
+  children: (T | boolean | undefined)[],
+): T[] {
+  return children.filter((c) => c && c !== true).map((c) => c as T);
 }
 export type Enchancer<T extends Node<ts.Node>> = (
   node: T,
@@ -155,10 +161,16 @@ export const enchancers: {
         nodeForDisplay,
         buildChildDisplayTree,
         updatePostLayoutHints,
-        isFinal,
+        expand,
+        showChildNavigationHints,
+        focusPath,
       }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
-        if (isFinal) {
-          return undefined;
+        if (!expand) {
+          return {
+            kind: NodeKind.TightLeaf,
+            id: nodeForDisplay.id,
+            size: [150, 56],
+          };
         }
 
         const expectedChildKeys = [
@@ -182,11 +194,25 @@ export const enchancers: {
         const childDisplayNodes: {
           [K in typeof expectedChildKeys[number]]: DivetreeDisplayRootNode;
         } = {} as any;
+        const childIsEmpty: {
+          [K in typeof expectedChildKeys[number]]: boolean;
+        } = {} as any;
         for (const key of expectedChildKeys) {
-          childDisplayNodes[key] = buildChildDisplayTree(
-            nodeForDisplay.getByPath([key])!,
-          );
+          const child = nodeForDisplay.getByPath([key])!;
+          childDisplayNodes[key] = buildChildDisplayTree(child);
+          childIsEmpty[key] = child.getDebugLabel() === "Option<None>"; // HACK
         }
+
+        const shouldHideChild = (
+          childKey: typeof expectedChildKeys[number],
+        ): boolean =>
+          !showChildNavigationHints &&
+          childIsEmpty[childKey] &&
+          (focusPath.length < 2 ||
+            !(
+              focusPath[0] === nodeForDisplay.id &&
+              focusPath[1] === nodeForDisplay.getByPath([childKey])!.id
+            ));
 
         const maybeWrapPortal = (
           node: DivetreeDisplayRootNode,
@@ -198,7 +224,7 @@ export const enchancers: {
         updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
           ...oldHints,
           styleAsText: true,
-          label: [{ text: "function", style: LabelStyle.UNIMPORTANT_KEYWORD }],
+          label: [{ text: "function", style: LabelStyle.KEYWORD }],
         }));
         updatePostLayoutHints(
           `${nodeForDisplay.id}-body-opening-paren`,
@@ -224,18 +250,21 @@ export const enchancers: {
             {
               kind: NodeKind.TightSplit,
               split: Split.SideBySide,
-              children: [
+              children: filterTruthyChildren([
                 {
                   kind: NodeKind.TightLeaf,
                   id: nodeForDisplay.id,
                   size: [150, 56],
                 },
-                maybeWrapPortal(childDisplayNodes.typeParameters),
-                maybeWrapPortal(childDisplayNodes.asteriskToken),
+                !shouldHideChild("typeParameters") &&
+                  maybeWrapPortal(childDisplayNodes.typeParameters),
+                !shouldHideChild("asteriskToken") &&
+                  maybeWrapPortal(childDisplayNodes.asteriskToken),
                 maybeWrapPortal(childDisplayNodes.name),
                 maybeWrapPortal(childDisplayNodes.parameters),
-                maybeWrapPortal(childDisplayNodes.type),
-              ],
+                !shouldHideChild("type") &&
+                  maybeWrapPortal(childDisplayNodes.type),
+              ]),
             },
             {
               kind: NodeKind.TightLeaf,

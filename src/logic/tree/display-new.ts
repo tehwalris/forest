@@ -119,8 +119,9 @@ export function buildDivetreeDisplayTree(
 
   const customDisplayTree = node.buildDivetreeDisplayTree({
     nodeForDisplay,
-    isOnFocusPath,
-    isFinal,
+    focusPath,
+    expand: isFinal || isOnFocusPath,
+    showChildNavigationHints,
     parentPath,
     buildChildDisplayTree,
     updatePostLayoutHints,

@@ -8,8 +8,9 @@ import { PostLayoutHints } from "../layout-hints";
 
 export interface BuildDivetreeDisplayTreeArgs {
   nodeForDisplay: Node<unknown>;
-  isOnFocusPath: boolean;
-  isFinal: boolean;
+  focusPath: string[];
+  expand: boolean;
+  showChildNavigationHints: boolean;
   parentPath: ParentPathElement[];
   buildChildDisplayTree: (childNode: Node<unknown>) => DivetreeDisplayRootNode;
   updatePostLayoutHints: (
@@ -175,7 +176,7 @@ export enum LabelStyle {
   NAME,
   TYPE_SUMMARY,
   REFERENCED_NAME,
-  UNIMPORTANT_KEYWORD,
+  KEYWORD,
   SECTION_NAME,
   VALUE,
 }
