@@ -155,7 +155,12 @@ export const enchancers: {
         nodeForDisplay,
         buildChildDisplayTree,
         updatePostLayoutHints,
+        isFinal,
       }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
+        if (isFinal) {
+          return undefined;
+        }
+
         const expectedChildKeys = [
           "asteriskToken",
           "name",
@@ -190,10 +195,16 @@ export const enchancers: {
             ? node
             : { kind: NodeKind.Portal, id: `${node.id}-portal`, child: node };
 
+        updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+          ...oldHints,
+          styleAsText: true,
+          label: [{ text: "function", style: LabelStyle.UNIMPORTANT_KEYWORD }],
+        }));
         updatePostLayoutHints(
           `${nodeForDisplay.id}-body-opening-paren`,
           (oldHints) => ({
             ...oldHints,
+            styleAsText: true,
             label: [{ text: "{", style: LabelStyle.SYNTAX_SYMBOL }],
           }),
         );
@@ -201,6 +212,7 @@ export const enchancers: {
           `${nodeForDisplay.id}-body-closing-paren`,
           (oldHints) => ({
             ...oldHints,
+            styleAsText: true,
             label: [{ text: "}", style: LabelStyle.SYNTAX_SYMBOL }],
           }),
         );

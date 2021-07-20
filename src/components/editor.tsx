@@ -79,11 +79,20 @@ const COLORS: {
 };
 function getNodeStyle(
   entry: ParentIndexEntry | undefined,
+  postLayoutHints: PostLayoutHints | undefined,
   focused: boolean,
 ): RectStyle {
-  const toStyle = (colors: ColorPair): RectStyle => ({
-    color: colors[focused ? 1 : 0],
-  });
+  const toStyle = (colors: ColorPair): RectStyle => {
+    const result: RectStyle = {
+      color: colors[focused ? 1 : 0],
+      borderColor: [0, 0, 0],
+    };
+    if (postLayoutHints?.styleAsText && !focused) {
+      result.color = [0, 0, 0, 0];
+      result.borderColor = [0, 0, 0, 0];
+    }
+    return result;
+  };
   const semanticColor = entry?.node.getDisplayInfo(entry.path)?.color;
   if (!semanticColor) {
     return toStyle(DEFAULT_COLORS);
@@ -277,7 +286,11 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
           />
         )}
         getStyle={(id, focused) =>
-          getNodeStyle(incrementalParentIndex.get(id as string), focused)
+          getNodeStyle(
+            incrementalParentIndex.get(id as string),
+            postLayoutHintsByIdRef.current.get(id as string),
+            focused,
+          )
         }
         focusedIdPath={idPathFromParentIndexEntry(
           focusedParentIndexEntry,

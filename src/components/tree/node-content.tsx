@@ -41,10 +41,10 @@ export const NodeContent: React.FC<Props> = React.memo(
     if (!parentIndexEntry && !postLayoutHints) {
       return null;
     }
-    const displayInfo: DisplayInfo = parentIndexEntry?.node.getDisplayInfo(
+    let displayInfo: DisplayInfo = parentIndexEntry?.node.getDisplayInfo(
       parentIndexEntry.path,
     ) || {
-      label: postLayoutHints?.label || [
+      label: [
         {
           text: parentIndexEntry?.node.getDebugLabel() || "",
           style: LabelStyle.UNKNOWN,
@@ -52,6 +52,9 @@ export const NodeContent: React.FC<Props> = React.memo(
       ],
       priority: DisplayInfoPriority.LOW,
     };
+    if (postLayoutHints?.label) {
+      displayInfo = { ...displayInfo, label: postLayoutHints.label };
+    }
     return (
       <div>
         {displayInfo.label.map((p, i) => (
