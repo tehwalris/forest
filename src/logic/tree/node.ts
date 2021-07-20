@@ -179,6 +179,7 @@ export enum LabelStyle {
   KEYWORD,
   SECTION_NAME,
   VALUE,
+  CHILD_KEY,
 }
 export enum SemanticColor {
   LITERAL = "LITERAL",

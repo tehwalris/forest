@@ -27,9 +27,12 @@ function renderLabelPart(p: LabelPart) {
   if (
     p.style === LabelStyle.NAME ||
     p.style === LabelStyle.VALUE ||
-    p.style === LabelStyle.SYNTAX_SYMBOL
+    p.style === LabelStyle.SYNTAX_SYMBOL ||
+    p.style === LabelStyle.KEYWORD
   ) {
     return <span>{p.text}</span>;
+  } else if (p.style === LabelStyle.CHILD_KEY) {
+    return <span className={styles.childKey}>{p.text}</span>;
   } else if (p.style === LabelStyle.TYPE_SUMMARY) {
     return <span className={styles.typeSummaryPart}>{p.text}</span>;
   } else {

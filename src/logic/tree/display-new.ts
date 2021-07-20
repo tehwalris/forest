@@ -83,14 +83,14 @@ export function buildDivetreeDisplayTree(
       console.warn("parent not found for node that has showNavigationHints");
       return base;
     }
-    let navigationText = childKey;
+    let childKeyForDisplay = childKey;
     if (childKey.match(/^\d+$/)) {
       // HACK
-      navigationText = `${1 + +childKey}`;
+      childKeyForDisplay = `${1 + +childKey}`;
     }
     updatePostLayoutHints(`${nodeForDisplay.id}-navigation`, (oldHints) => ({
       ...oldHints,
-      label: [{ text: navigationText, style: LabelStyle.UNKNOWN }],
+      label: [{ text: childKeyForDisplay, style: LabelStyle.CHILD_KEY }],
     }));
 
     return {
