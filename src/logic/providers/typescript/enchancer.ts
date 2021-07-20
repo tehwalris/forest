@@ -84,10 +84,25 @@ export const enchancers: {
       displayInfo: {
         priority: DisplayInfoPriority.MEDIUM,
         label: [
-          { text: "string", style: LabelStyle.TYPE_SUMMARY },
+          { text: '"', style: LabelStyle.SYNTAX_SYMBOL },
           { text: "", style: LabelStyle.VALUE },
+          { text: '"', style: LabelStyle.SYNTAX_SYMBOL },
         ],
         color: SemanticColor.LITERAL,
+      },
+      buildDivetreeDisplayTree: ({
+        nodeForDisplay,
+        updatePostLayoutHints,
+      }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
+        updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+          ...oldHints,
+          styleAsText: true,
+        }));
+        return {
+          kind: NodeKind.TightLeaf,
+          id: nodeForDisplay.id,
+          size: [150, 22],
+        };
       },
     };
   },
@@ -150,7 +165,127 @@ export const enchancers: {
             { text: "parameter", style: LabelStyle.TYPE_SUMMARY },
             { text: name, style: LabelStyle.NAME },
           ];
-    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
+    return {
+      displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
+      buildDivetreeDisplayTree: ({
+        expand,
+        nodeForDisplay,
+        buildChildDisplayTree,
+        showChildNavigationHints,
+        focusPath,
+        updatePostLayoutHints,
+      }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
+        if (!expand) {
+          return {
+            kind: NodeKind.TightLeaf,
+            id: nodeForDisplay.id,
+            size: [150, 56],
+          };
+        }
+
+        const expectedChildKeys = [
+          "dotDotDotToken",
+          "name",
+          "questionToken",
+          "type",
+          "initializer",
+        ] as const;
+        if (
+          nodeForDisplay.children.length !== expectedChildKeys.length ||
+          !nodeForDisplay.children.every(
+            (c, i) => c.key === expectedChildKeys[i],
+          )
+        ) {
+          console.warn("unexpected number or order of children");
+          return undefined;
+        }
+
+        const childDisplayNodes: {
+          [K in typeof expectedChildKeys[number]]: DivetreeDisplayRootNode;
+        } = {} as any;
+        const childIsEmpty: {
+          [K in typeof expectedChildKeys[number]]: boolean;
+        } = {} as any;
+        for (const key of expectedChildKeys) {
+          const child = nodeForDisplay.getByPath([key])!;
+          childDisplayNodes[key] = buildChildDisplayTree(child);
+          childIsEmpty[key] = child.getDebugLabel() === "Option<None>"; // HACK
+        }
+
+        const shouldHideChild = (
+          childKey: typeof expectedChildKeys[number],
+        ): boolean =>
+          !showChildNavigationHints &&
+          childIsEmpty[childKey] &&
+          (focusPath.length < 2 ||
+            !(
+              focusPath[0] === nodeForDisplay.id &&
+              focusPath[1] === nodeForDisplay.getByPath([childKey])!.id
+            ));
+
+        const maybeWrapPortal = (
+          node: DivetreeDisplayRootNode,
+        ): TightNode | PortalNode =>
+          node.kind === NodeKind.TightLeaf || node.kind === NodeKind.TightSplit
+            ? node
+            : { kind: NodeKind.Portal, id: `${node.id}-portal`, child: node };
+
+        let nextTextNodeIndex = 0;
+        const newTextNode = (
+          width: number,
+          labelText: string,
+          labelStyle: LabelStyle,
+        ): TightLeafNode => {
+          const id = `${nodeForDisplay.id}-extra-text-node-${nextTextNodeIndex}`;
+          nextTextNodeIndex++;
+          updatePostLayoutHints(id, (oldHints) => ({
+            ...oldHints,
+            styleAsText: true,
+            label: [{ text: labelText, style: labelStyle }],
+          }));
+          return {
+            kind: NodeKind.TightLeaf,
+            id,
+            size: [width, 22],
+          };
+        };
+
+        updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+          ...oldHints,
+          styleAsText: true,
+          label: [],
+        }));
+
+        return {
+          kind: NodeKind.TightSplit,
+          split: Split.SideBySide,
+          children: filterTruthyChildren([
+            showChildNavigationHints && {
+              kind: NodeKind.TightLeaf,
+              id: nodeForDisplay.id,
+              size: [10, 22],
+            },
+            {
+              kind: NodeKind.TightSplit,
+              split: showChildNavigationHints
+                ? Split.Stacked
+                : Split.SideBySide,
+              children: filterTruthyChildren([
+                !shouldHideChild("dotDotDotToken") &&
+                  maybeWrapPortal(childDisplayNodes.dotDotDotToken),
+                maybeWrapPortal(childDisplayNodes.name),
+                !shouldHideChild("questionToken") &&
+                  maybeWrapPortal(childDisplayNodes.questionToken),
+                !shouldHideChild("type") &&
+                  maybeWrapPortal(childDisplayNodes.type),
+                !shouldHideChild("initializer") &&
+                  maybeWrapPortal(childDisplayNodes.initializer),
+              ]),
+            },
+          ]),
+        };
+      },
+    };
   },
   MethodDeclaration: (node: Node<ts.MethodDeclaration>) => {
     const label: LabelPart[] = [

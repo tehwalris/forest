@@ -61,7 +61,7 @@ export const NodeContent: React.FC<Props> = React.memo(
     return (
       <div>
         {displayInfo.label.map((p, i) => (
-          <div key={i}>{renderLabelPart(p)}</div>
+          <React.Fragment key={i}>{renderLabelPart(p)}</React.Fragment>
         ))}
       </div>
     );
