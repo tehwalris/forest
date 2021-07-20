@@ -8,8 +8,10 @@ import {
 } from "../../logic/tree/node";
 import { ParentIndexEntry } from "../../logic/parent-index";
 import { css } from "@emotion/css";
+import { PostLayoutHints } from "../../logic/layout-hints";
 interface Props {
   parentIndexEntry: ParentIndexEntry | undefined;
+  postLayoutHints?: PostLayoutHints;
 }
 const styles = {
   typeSummaryPart: css`
@@ -23,7 +25,11 @@ const styles = {
   `,
 };
 function renderLabelPart(p: LabelPart) {
-  if (p.style === LabelStyle.NAME || p.style === LabelStyle.VALUE) {
+  if (
+    p.style === LabelStyle.NAME ||
+    p.style === LabelStyle.VALUE ||
+    p.style === LabelStyle.SYNTAX_SYMBOL
+  ) {
     return <span>{p.text}</span>;
   } else if (p.style === LabelStyle.TYPE_SUMMARY) {
     return <span className={styles.typeSummaryPart}>{p.text}</span>;
@@ -32,16 +38,23 @@ function renderLabelPart(p: LabelPart) {
   }
 }
 export const NodeContent: React.FC<Props> = React.memo(
-  ({ parentIndexEntry }) => {
-    if (!parentIndexEntry) {
+  ({ parentIndexEntry, postLayoutHints }) => {
+    if (!parentIndexEntry && !postLayoutHints) {
       return null;
     }
-    const { node, path } = parentIndexEntry;
-    const displayInfo: DisplayInfo = node.getDisplayInfo(path) || {
-      label: [{ text: node.getDebugLabel() || "", style: LabelStyle.UNKNOWN }],
+    const displayInfo: DisplayInfo = parentIndexEntry?.node.getDisplayInfo(
+      parentIndexEntry.path,
+    ) || {
+      label: postLayoutHints?.label || [
+        {
+          text: parentIndexEntry?.node.getDebugLabel() || "",
+          style: LabelStyle.UNKNOWN,
+        },
+      ],
       priority: DisplayInfoPriority.LOW,
     };
-    const childKey = R.last(path)?.childKey;
+    const childKey =
+      parentIndexEntry?.path && R.last(parentIndexEntry.path)?.childKey;
     return (
       <div>
         {childKey && !displayInfo.hideKey && !childKey.match(/^\d+$/) && (

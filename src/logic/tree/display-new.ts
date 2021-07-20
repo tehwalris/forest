@@ -8,6 +8,7 @@ import {
 import { IncrementalParentIndex } from "../parent-index";
 import { isMetaBranchNode } from "../transform/transforms/split-meta";
 import { Node } from "../tree/node";
+import { PreLayoutHints, PostLayoutHints } from "../layout-hints";
 
 export function getNodeForDisplay(
   node: Node<unknown>,
@@ -26,6 +27,8 @@ export function buildDivetreeDisplayTree(
   extraDepth: number,
   metaLevelNodeIds: Set<string>,
   incrementalParentIndex: IncrementalParentIndex,
+  preLayoutHintsById: Map<string, PreLayoutHints>,
+  postLayoutHintsById: Map<string, PostLayoutHints>,
 ): DivetreeDisplayRootNode {
   const isOnFocusPath = node.id === focusPath[0];
   const isFinal = !isOnFocusPath || !!extraDepth;
@@ -49,6 +52,8 @@ export function buildDivetreeDisplayTree(
       extraDepth + (isOnFocusPath ? 0 : 1),
       metaLevelNodeIds,
       incrementalParentIndex,
+      preLayoutHintsById,
+      postLayoutHintsById,
     );
 
   const customDisplayTree = node.buildDivetreeDisplayTree({
@@ -57,6 +62,7 @@ export function buildDivetreeDisplayTree(
     isFinal,
     parentPath,
     buildChildDisplayTree,
+    setPostLayoutHints: postLayoutHintsById.set.bind(postLayoutHintsById),
   });
   if (customDisplayTree) {
     return customDisplayTree;

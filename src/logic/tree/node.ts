@@ -4,6 +4,7 @@ import { v4 as genUuid } from "uuid";
 import { MetaSplit } from "../transform/transforms/split-meta";
 import { ParentPathElement } from "../parent-index";
 import type { RootNode as DivetreeDisplayRootNode } from "divetree-core";
+import { PostLayoutHints } from "../layout-hints";
 
 export interface BuildDivetreeDisplayTreeArgs {
   nodeForDisplay: Node<unknown>;
@@ -11,6 +12,7 @@ export interface BuildDivetreeDisplayTreeArgs {
   isFinal: boolean;
   parentPath: ParentPathElement[];
   buildChildDisplayTree: (childNode: Node<unknown>) => DivetreeDisplayRootNode;
+  setPostLayoutHints: (nodeId: string, hints: PostLayoutHints) => void;
 }
 
 export interface Node<B> {
@@ -167,6 +169,7 @@ export enum DisplayInfoPriority {
 export enum LabelStyle {
   UNKNOWN,
   WHITESPACE,
+  SYNTAX_SYMBOL,
   NAME,
   TYPE_SUMMARY,
   REFERENCED_NAME,

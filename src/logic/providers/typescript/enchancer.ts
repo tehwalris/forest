@@ -154,6 +154,7 @@ export const enchancers: {
       buildDivetreeDisplayTree: ({
         nodeForDisplay,
         buildChildDisplayTree,
+        setPostLayoutHints,
       }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
         const expectedChildKeys = [
           "asteriskToken",
@@ -189,6 +190,13 @@ export const enchancers: {
             ? node
             : { kind: NodeKind.Portal, id: `${node.id}-portal`, child: node };
 
+        setPostLayoutHints(`${nodeForDisplay.id}-body-open-paren`, {
+          label: [{ text: "{", style: LabelStyle.SYNTAX_SYMBOL }],
+        });
+        setPostLayoutHints(`${nodeForDisplay.id}-body-closing-paren`, {
+          label: [{ text: "}", style: LabelStyle.SYNTAX_SYMBOL }],
+        });
+
         return {
           kind: NodeKind.TightSplit,
           split: Split.Stacked,
@@ -210,9 +218,19 @@ export const enchancers: {
               ],
             },
             {
+              kind: NodeKind.TightLeaf,
+              id: `${nodeForDisplay.id}-body-open-paren`,
+              size: [10, 22],
+            },
+            {
               kind: NodeKind.Portal,
               id: `${nodeForDisplay.id}-portal`,
               child: childDisplayNodes.body,
+            },
+            {
+              kind: NodeKind.TightLeaf,
+              id: `${nodeForDisplay.id}-body-closing-paren`,
+              size: [10, 22],
             },
           ],
         };

@@ -33,6 +33,7 @@ import { useFocus } from "../logic/use-focus";
 import { PossibleActionDisplay } from "./possible-action-display";
 import { ActionFiller } from "./tree/action-filler";
 import { NodeContent } from "./tree/node-content";
+import { PreLayoutHints, PostLayoutHints } from "../logic/layout-hints";
 interface Props {
   fs: typeof _fsType;
   projectRootDir: string;
@@ -253,22 +254,29 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
   const [copiedNode, setCopiedNode] = useState<Node<unknown>>();
   const [marks, setMarks] = useState<Marks>({});
   const [chord, setChord] = useState<string[]>([]);
+  const preLayoutHintsByIdRef = useRef(new Map<string, PreLayoutHints>());
+  const postLayoutHintsByIdRef = useRef(new Map<string, PostLayoutHints>());
   return (
     <div>
       <NavTree
         navTree={navTree}
-        getDisplayTree={(focusPath) =>
-          buildDivetreeDisplayTree(
+        getDisplayTree={(focusPath) => {
+          preLayoutHintsByIdRef.current = new Map();
+          postLayoutHintsByIdRef.current = new Map();
+          return buildDivetreeDisplayTree(
             tree,
             focusPath,
             0,
             metaLevelNodeIds,
             incrementalParentIndex,
-          )
-        }
+            preLayoutHintsByIdRef.current,
+            postLayoutHintsByIdRef.current,
+          );
+        }}
         getContent={(id) => (
           <NodeContent
             parentIndexEntry={incrementalParentIndex.get(id as string)}
+            postLayoutHints={postLayoutHintsByIdRef.current.get(id as string)}
           />
         )}
         getStyle={(id, focused) =>
