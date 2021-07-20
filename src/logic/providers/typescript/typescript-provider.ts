@@ -58,7 +58,7 @@ export class TypescriptProvider {
   }
   async trySaveFile(file: FileNode) {
     const text = tryPrettyPrint(file);
-    if (text) {
+    if (text !== undefined) {
       await this.writeFile(file.filePath, text);
     }
   }
