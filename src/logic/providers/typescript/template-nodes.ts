@@ -1,4 +1,4 @@
-import { Enchancer } from "./enchancer";
+import { Enhancer } from "./enhancer";
 import { ListNode, OptionNode, UnionNode } from "../../tree/base-nodes";
 import * as ts from "typescript";
 import {
@@ -36,7 +36,7 @@ export interface Template<B extends ts.Node> {
 export interface StringTemplate<B extends ts.Node> extends Template<B> {
   load: (built: B) => string;
   build: (text: string) => B;
-  enchancer?: Enchancer<Node<B>>;
+  enhancer?: Enhancer<Node<B>>;
 }
 export interface ListTemplate<B extends ts.Node, C extends ts.Node>
   extends Template<B> {
@@ -44,7 +44,7 @@ export interface ListTemplate<B extends ts.Node, C extends ts.Node>
   build: (children: C[], modifiers: ts.Modifier[]) => B;
   flags: FlagKind[];
   childUnion: Union<C>;
-  enchancer?: Enchancer<Node<any>>;
+  enhancer?: Enhancer<Node<any>>;
 }
 interface BaseStructChild<T extends ts.Node> {
   union: Union<T>;
@@ -90,7 +90,7 @@ export interface StructTemplate<
   flags: FlagKind[];
   children: string[];
   metaSplit?: MetaSplit;
-  enchancer?: Enchancer<Node<B>>;
+  enhancer?: Enhancer<Node<B>>;
 }
 function someDefaultFromUnion<T extends ts.Node>(
   _union: Union<T>,
@@ -149,9 +149,9 @@ export class StringTemplateNode<B extends ts.Node> extends Node<B> {
     return this.buildHelper(() => this.template.build(this.text));
   }
   getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
-    const { enchancer } = this.template;
-    const infoFromEnchancer = enchancer?.(this, parentPath).displayInfo;
-    const label = (infoFromEnchancer?.label || []).map((e) => {
+    const { enhancer } = this.template;
+    const infoFromEnhancer = enhancer?.(this, parentPath).displayInfo;
+    const label = (infoFromEnhancer?.label || []).map((e) => {
       if (e.style === LabelStyle.VALUE && e.text === "") {
         return { text: this.text, style: LabelStyle.VALUE };
       }
@@ -162,7 +162,7 @@ export class StringTemplateNode<B extends ts.Node> extends Node<B> {
     }
     return {
       priority: DisplayInfoPriority.LOW,
-      ...infoFromEnchancer,
+      ...infoFromEnhancer,
       label,
     };
   }
@@ -170,7 +170,7 @@ export class StringTemplateNode<B extends ts.Node> extends Node<B> {
     args: BuildDivetreeDisplayTreeArgs,
   ): DivetreeDisplayRootNode | undefined {
     return this.template
-      .enchancer?.(this, args.parentPath)
+      .enhancer?.(this, args.parentPath)
       .buildDivetreeDisplayTree?.(args);
   }
 }
@@ -249,14 +249,14 @@ export class ListTemplateNode<
     });
   }
   getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
-    const { enchancer } = this.template;
-    return enchancer ? enchancer(this, parentPath).displayInfo : undefined;
+    const { enhancer } = this.template;
+    return enhancer ? enhancer(this, parentPath).displayInfo : undefined;
   }
   buildDivetreeDisplayTree(
     args: BuildDivetreeDisplayTreeArgs,
   ): DivetreeDisplayRootNode | undefined {
     return this.template
-      .enchancer?.(this, args.parentPath)
+      .enhancer?.(this, args.parentPath)
       .buildDivetreeDisplayTree?.(args);
   }
 }
@@ -371,14 +371,14 @@ export class StructTemplateNode<
     });
   }
   getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
-    const { enchancer } = this.template;
-    return enchancer ? enchancer(this, parentPath).displayInfo : undefined;
+    const { enhancer } = this.template;
+    return enhancer ? enhancer(this, parentPath).displayInfo : undefined;
   }
   buildDivetreeDisplayTree(
     args: BuildDivetreeDisplayTreeArgs,
   ): DivetreeDisplayRootNode | undefined {
     return this.template
-      .enchancer?.(this, args.parentPath)
+      .enhancer?.(this, args.parentPath)
       .buildDivetreeDisplayTree?.(args);
   }
 }

@@ -164,7 +164,7 @@ import {
   RequiredStructListChild,
   OptionalStructListChild,
 } from "../template-nodes";
-import { enchancers, makeUnionMemberEnchancer } from "../enchancer";
+import { enhancers, makeUnionMemberEnhancer } from "../enhancer";
 import {
   FlagKind
 } from "../flags";
@@ -236,10 +236,10 @@ ${e.name}: plainTypes.${e.name}
     "",
     `
 for (const k of Object.keys(unions.DeclarationStatement())) {
-  if (enchancers[k]) {
+  if (enhancers[k]) {
     continue;
   }
-  enchancers[k] = makeUnionMemberEnchancer(k);
+  enhancers[k] = makeUnionMemberEnhancer(k);
 }
 `.trim(),
     "",
@@ -251,7 +251,7 @@ const ${e.name}: StringTemplate<
   match: plainTypes.${e.name}.match,
   load: built => built.text,
   build: ${e.build},
-  enchancer: enchancers["${e.name}"],
+  enhancer: enhancers["${e.name}"],
 };
 `,
     ),
@@ -273,7 +273,7 @@ const ${e.name}: ListTemplate<
   load: built => built.${e.childKey},
   build: ${e.build || `children => ts.create${e.name}(children)`},
   childUnion: unions.${e.childType},
-  enchancer: enchancers["${e.name}"],
+  enhancer: enhancers["${e.name}"],
 };
 `,
     ),
@@ -317,7 +317,7 @@ ${c.optional ? "Optional" : "Required"}Struct${
       .join("\n")}
   }),
   build: ${e.build},
-  enchancer: enchancers["${e.name}"]
+  enhancer: enhancers["${e.name}"]
 };
     `,
     ),
@@ -332,7 +332,7 @@ const ${e.name}: StructTemplate<
   flags: [],
   load: () => ({}),
   build: () => ts.createToken(ts.SyntaxKind.${e.name}),
-  enchancer: enchancers["${e.name}"]
+  enhancer: enhancers["${e.name}"]
 };
     `,
     ),
@@ -349,7 +349,7 @@ const ${e.name}: StructTemplate<
   flags: [],
   load: () => ({}),
   build: () => plainTypes.${e.name}.default,
-  enchancer: enchancers["${e.name}"]
+  enhancer: enhancers["${e.name}"]
 };
     `,
       ),

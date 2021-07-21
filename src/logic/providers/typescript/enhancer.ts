@@ -40,7 +40,7 @@ export function filterTruthyChildren<T extends DivetreeDisplayNode>(
 ): T[] {
   return children.filter((c) => c && c !== true).map((c) => c as T);
 }
-export type Enchancer<T extends Node<ts.Node>> = (
+export type Enhancer<T extends Node<ts.Node>> = (
   node: T,
   parentPath: ParentPathElement[],
 ) => {
@@ -49,8 +49,8 @@ export type Enchancer<T extends Node<ts.Node>> = (
     args: BuildDivetreeDisplayTreeArgs,
   ) => DivetreeDisplayRootNode | undefined;
 };
-export const enchancers: {
-  [key: string]: Enchancer<Node<any>> | undefined;
+export const enhancers: {
+  [key: string]: Enhancer<Node<any>> | undefined;
 } = {
   Identifier: (node: Node<ts.Identifier>, parentPath) => {
     const lastParentEntry = R.last(parentPath);
@@ -464,7 +464,7 @@ export const enchancers: {
   ["CallExpression", "call"],
   ["AsExpression", "as"],
 ].forEach(([tsType, displayType]) => {
-  enchancers[tsType] = (node: Node<unknown>) => {
+  enhancers[tsType] = (node: Node<unknown>) => {
     return {
       displayInfo: {
         priority: DisplayInfoPriority.MEDIUM,
@@ -473,9 +473,9 @@ export const enchancers: {
     };
   };
 });
-export function makeUnionMemberEnchancer(
+export function makeUnionMemberEnhancer(
   unionMemberKey: string,
-): Enchancer<Node<ts.Node>> {
+): Enhancer<Node<ts.Node>> {
   const typeString = noCase(unionMemberKey.replace(/Declaration$/, ""));
   return (node: Node<unknown>) => {
     const label: LabelPart[] = [
