@@ -125,6 +125,7 @@ export function buildDivetreeDisplayTree(
     parentPath,
     buildChildDisplayTree,
     updatePostLayoutHints,
+    getPostLayoutHints: (nodeId) => postLayoutHintsById.get(nodeId) || {},
   });
   if (customDisplayTree) {
     return maybeWrapForNavigation(customDisplayTree);
