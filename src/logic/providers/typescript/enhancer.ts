@@ -40,7 +40,7 @@ export function filterTruthyChildren<T extends DivetreeDisplayNode>(
 ): T[] {
   return children.filter((c) => c && c !== true).map((c) => c as T);
 }
-export type Enhancer<T extends Node<ts.Node>> = (
+export type Enhancer<T extends Node<ts.Node> | Node<ts.NodeArray<ts.Node>>> = (
   node: T,
   parentPath: ParentPathElement[],
 ) => {
@@ -50,7 +50,7 @@ export type Enhancer<T extends Node<ts.Node>> = (
   ) => DivetreeDisplayRootNode | undefined;
 };
 export const enhancers: {
-  [key: string]: Enhancer<Node<any>> | undefined;
+  [key: string]: Enhancer<any> | undefined;
 } = {
   Identifier: (node: Node<ts.Identifier>, parentPath) => {
     const lastParentEntry = R.last(parentPath);
@@ -229,26 +229,6 @@ export const enhancers: {
           node.kind === NodeKind.TightLeaf || node.kind === NodeKind.TightSplit
             ? node
             : { kind: NodeKind.Portal, id: `${node.id}-portal`, child: node };
-
-        let nextTextNodeIndex = 0;
-        const newTextNode = (
-          width: number,
-          labelText: string,
-          labelStyle: LabelStyle,
-        ): TightLeafNode => {
-          const id = `${nodeForDisplay.id}-extra-text-node-${nextTextNodeIndex}`;
-          nextTextNodeIndex++;
-          updatePostLayoutHints(id, (oldHints) => ({
-            ...oldHints,
-            styleAsText: true,
-            label: [{ text: labelText, style: labelStyle }],
-          }));
-          return {
-            kind: NodeKind.TightLeaf,
-            id,
-            size: [width, 22],
-          };
-        };
 
         updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
           ...oldHints,
@@ -431,6 +411,16 @@ export const enhancers: {
             newTextNode(10, "}", LabelStyle.SYNTAX_SYMBOL),
           ],
         };
+      },
+    };
+  },
+  "FunctionDeclaration.parameters": (
+    node: Node<ts.NodeArray<ts.ParameterDeclaration>>,
+  ) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "parameters", style: LabelStyle.UNKNOWN }],
       },
     };
   },

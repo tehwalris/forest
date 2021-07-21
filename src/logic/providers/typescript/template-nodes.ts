@@ -53,23 +53,27 @@ export interface RequiredStructSingleChild<T extends ts.Node>
   extends BaseStructChild<T> {
   value: T;
   optional?: never;
+  enhancer?: never;
 }
 export interface OptionalStructSingleChild<T extends ts.Node>
   extends BaseStructChild<T> {
   value: T | undefined;
   optional: true;
+  enhancer?: never;
 }
 export interface RequiredStructListChild<T extends ts.Node>
   extends BaseStructChild<T> {
   value: ts.NodeArray<T>;
   optional?: never;
   isList: true;
+  enhancer?: Enhancer<Node<ts.NodeArray<T>>>;
 }
 export interface OptionalStructListChild<T extends ts.Node>
   extends BaseStructChild<T> {
   value: ts.NodeArray<T> | undefined;
   optional: true;
   isList: true;
+  enhancer?: Enhancer<Node<ts.NodeArray<T>>>;
 }
 type StructChild<T extends ts.Node> =
   | RequiredStructSingleChild<T>
@@ -78,7 +82,7 @@ type StructChild<T extends ts.Node> =
   | OptionalStructListChild<T>;
 export interface StructTemplate<
   C extends {
-    [key: string]: StructChild<ts.Node>;
+    [key: string]: StructChild<any>;
   },
   B extends ts.Node,
 > extends Template<B> {
@@ -298,7 +302,11 @@ export class StructTemplateNode<
   >(
     template: StructTemplate<C, B>,
     node: B,
-    fromTsNode: <CT extends ts.Node>(tsNode: CT, union: Union<CT>) => Node<CT>,
+    fromTsNode: <CT extends ts.Node>(
+      tsNode: CT,
+      union: Union<CT>,
+      listEnhancer?: Enhancer<Node<ts.NodeArray<CT>>>,
+    ) => Node<CT>,
   ): StructTemplateNode<C, B> {
     const loaded = template.load(node);
     const children = template.children.map((key) => {
@@ -311,12 +319,17 @@ export class StructTemplateNode<
         return {
           key,
           node: new OptionNode(
-            () => fromTsNode(defaultValue, loadedChild.union),
-            childValue && fromTsNode(childValue, loadedChild.union),
+            () =>
+              fromTsNode(defaultValue, loadedChild.union, loadedChild.enhancer),
+            childValue &&
+              fromTsNode(childValue, loadedChild.union, loadedChild.enhancer),
           ),
         };
       }
-      return { key, node: fromTsNode(childValue, loadedChild.union) };
+      return {
+        key,
+        node: fromTsNode(childValue, loadedChild.union, loadedChild.enhancer),
+      };
     });
     return new StructTemplateNode(
       template,

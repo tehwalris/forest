@@ -24,17 +24,21 @@ import {
   listTemplates,
   structTemplates,
 } from "./generated/templates";
+import { Enhancer } from "./enhancer";
 export function fromTsNode<T extends ts.Node>(
   original: T,
   _union?: Union<T>,
+  listEnhancer?: undefined,
 ): Node<T>;
 export function fromTsNode<T extends ts.Node>(
   original: ts.NodeArray<T>,
   _union: Union<T>,
+  listEnhancer?: Enhancer<Node<ts.NodeArray<T>>>,
 ): Node<ts.NodeArray<T>>;
 export function fromTsNode<T extends ts.Node>(
   original: T | ts.NodeArray<T>,
   _union: Union<T> | undefined,
+  listEnhancer: Enhancer<Node<ts.NodeArray<T>>> | undefined,
 ): Node<T> {
   if (isNodeArray(original)) {
     return ListTemplateNode.fromTemplate(
@@ -45,6 +49,7 @@ export function fromTsNode<T extends ts.Node>(
         build: (children: T[]) => ts.createNodeArray(children) as any,
         flags: [],
         childUnion: _union!,
+        enhancer: listEnhancer,
       },
       original,
       fromTsNode,

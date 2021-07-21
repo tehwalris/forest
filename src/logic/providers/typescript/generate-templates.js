@@ -308,9 +308,13 @@ ${c.optional ? "Optional" : "Required"}Struct${
       ${c.key}: {
         value: ${c.load || `e.${c.key}`},
         union: unions.${c.union},
-        ${[c.optional ? "optional: true" : "", c.list ? "isList: true" : ""]
-          .filter((v) => v)
-          .join(",")}
+        ${[
+            c.optional ? "optional: true" : "",
+            c.list ? "isList: true" : "",
+            c.list ? `enhancer: enhancers["${e.name}.${c.key}"]` : "",
+          ]
+            .filter((v) => v)
+            .join(",")}
       },
     `.trim(),
       )
