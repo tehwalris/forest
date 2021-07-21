@@ -49,6 +49,99 @@ export type Enhancer<T extends Node<ts.Node> | Node<ts.NodeArray<ts.Node>>> = (
     args: BuildDivetreeDisplayTreeArgs,
   ) => DivetreeDisplayRootNode | undefined;
 };
+interface ExtendedDisplayTreeArgs<CK extends string>
+  extends BuildDivetreeDisplayTreeArgs {
+  childDisplayNodes: { [K in CK]: DivetreeDisplayRootNode };
+  childIsEmpty: { [K in CK]: boolean };
+  shouldHideChild: (childKey: CK) => boolean;
+  maybeWrapPortal: (node: DivetreeDisplayRootNode) => TightNode | PortalNode;
+  newTextNode: (
+    width: number,
+    labelText: string,
+    labelStyle: LabelStyle,
+  ) => TightLeafNode;
+}
+function withExtendedArgs<CK extends string>(
+  expectedChildKeys: CK[],
+  innerBuild: (
+    args: ExtendedDisplayTreeArgs<CK>,
+  ) => DivetreeDisplayRootNode | undefined,
+): (args: BuildDivetreeDisplayTreeArgs) => DivetreeDisplayRootNode | undefined {
+  return (args: BuildDivetreeDisplayTreeArgs) => {
+    const {
+      nodeForDisplay,
+      buildChildDisplayTree,
+      showChildNavigationHints,
+      focusPath,
+      updatePostLayoutHints,
+    } = args;
+
+    if (
+      nodeForDisplay.children.length !== expectedChildKeys.length ||
+      !nodeForDisplay.children.every((c, i) => c.key === expectedChildKeys[i])
+    ) {
+      console.warn("unexpected number or order of children");
+      return undefined;
+    }
+
+    const childDisplayNodes: {
+      [K in CK]: DivetreeDisplayRootNode;
+    } = {} as any;
+    const childIsEmpty: {
+      [K in CK]: boolean;
+    } = {} as any;
+    for (const key of expectedChildKeys) {
+      const child = nodeForDisplay.getByPath([key])!;
+      childDisplayNodes[key] = buildChildDisplayTree(child);
+      childIsEmpty[key] = child.getDebugLabel() === "Option<None>"; // HACK
+    }
+
+    const shouldHideChild = (childKey: CK): boolean =>
+      !showChildNavigationHints &&
+      childIsEmpty[childKey] &&
+      (focusPath.length < 2 ||
+        !(
+          focusPath[0] === nodeForDisplay.id &&
+          focusPath[1] === nodeForDisplay.getByPath([childKey])!.id
+        ));
+
+    const maybeWrapPortal = (
+      node: DivetreeDisplayRootNode,
+    ): TightNode | PortalNode =>
+      node.kind === NodeKind.TightLeaf || node.kind === NodeKind.TightSplit
+        ? node
+        : { kind: NodeKind.Portal, id: `${node.id}-portal`, child: node };
+
+    let nextTextNodeIndex = 0;
+    const newTextNode = (
+      width: number,
+      labelText: string,
+      labelStyle: LabelStyle,
+    ): TightLeafNode => {
+      const id = `${nodeForDisplay.id}-extra-text-node-${nextTextNodeIndex}`;
+      nextTextNodeIndex++;
+      updatePostLayoutHints(id, (oldHints) => ({
+        ...oldHints,
+        styleAsText: true,
+        label: [{ text: labelText, style: labelStyle }],
+      }));
+      return {
+        kind: NodeKind.TightLeaf,
+        id,
+        size: [width, 22],
+      };
+    };
+
+    return innerBuild({
+      ...args,
+      childDisplayNodes,
+      childIsEmpty,
+      shouldHideChild,
+      maybeWrapPortal,
+      newTextNode,
+    });
+  };
+}
 export const enhancers: {
   [key: string]: Enhancer<any> | undefined;
 } = {
@@ -167,104 +260,61 @@ export const enhancers: {
           ];
     return {
       displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
-      buildDivetreeDisplayTree: ({
-        expand,
-        nodeForDisplay,
-        buildChildDisplayTree,
-        showChildNavigationHints,
-        focusPath,
-        updatePostLayoutHints,
-      }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
-        if (!expand) {
-          return {
-            kind: NodeKind.TightLeaf,
-            id: nodeForDisplay.id,
-            size: [150, 56],
-          };
-        }
-
-        const expectedChildKeys = [
-          "dotDotDotToken",
-          "name",
-          "questionToken",
-          "type",
-          "initializer",
-        ] as const;
-        if (
-          nodeForDisplay.children.length !== expectedChildKeys.length ||
-          !nodeForDisplay.children.every(
-            (c, i) => c.key === expectedChildKeys[i],
-          )
-        ) {
-          console.warn("unexpected number or order of children");
-          return undefined;
-        }
-
-        const childDisplayNodes: {
-          [K in typeof expectedChildKeys[number]]: DivetreeDisplayRootNode;
-        } = {} as any;
-        const childIsEmpty: {
-          [K in typeof expectedChildKeys[number]]: boolean;
-        } = {} as any;
-        for (const key of expectedChildKeys) {
-          const child = nodeForDisplay.getByPath([key])!;
-          childDisplayNodes[key] = buildChildDisplayTree(child);
-          childIsEmpty[key] = child.getDebugLabel() === "Option<None>"; // HACK
-        }
-
-        const shouldHideChild = (
-          childKey: typeof expectedChildKeys[number],
-        ): boolean =>
-          !showChildNavigationHints &&
-          childIsEmpty[childKey] &&
-          (focusPath.length < 2 ||
-            !(
-              focusPath[0] === nodeForDisplay.id &&
-              focusPath[1] === nodeForDisplay.getByPath([childKey])!.id
-            ));
-
-        const maybeWrapPortal = (
-          node: DivetreeDisplayRootNode,
-        ): TightNode | PortalNode =>
-          node.kind === NodeKind.TightLeaf || node.kind === NodeKind.TightSplit
-            ? node
-            : { kind: NodeKind.Portal, id: `${node.id}-portal`, child: node };
-
-        updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-          ...oldHints,
-          styleAsText: true,
-          label: [],
-        }));
-
-        return {
-          kind: NodeKind.TightSplit,
-          split: Split.SideBySide,
-          children: filterTruthyChildren([
-            showChildNavigationHints && {
+      buildDivetreeDisplayTree: withExtendedArgs(
+        ["dotDotDotToken", "name", "questionToken", "type", "initializer"],
+        ({
+          nodeForDisplay,
+          updatePostLayoutHints,
+          expand,
+          shouldHideChild,
+          maybeWrapPortal,
+          childDisplayNodes,
+          showChildNavigationHints,
+        }) => {
+          if (!expand) {
+            return {
               kind: NodeKind.TightLeaf,
               id: nodeForDisplay.id,
-              size: [10, 22],
-            },
-            {
-              kind: NodeKind.TightSplit,
-              split: showChildNavigationHints
-                ? Split.Stacked
-                : Split.SideBySide,
-              children: filterTruthyChildren([
-                !shouldHideChild("dotDotDotToken") &&
-                  maybeWrapPortal(childDisplayNodes.dotDotDotToken),
-                maybeWrapPortal(childDisplayNodes.name),
-                !shouldHideChild("questionToken") &&
-                  maybeWrapPortal(childDisplayNodes.questionToken),
-                !shouldHideChild("type") &&
-                  maybeWrapPortal(childDisplayNodes.type),
-                !shouldHideChild("initializer") &&
-                  maybeWrapPortal(childDisplayNodes.initializer),
-              ]),
-            },
-          ]),
-        };
-      },
+              size: [150, 56],
+            };
+          }
+
+          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+            ...oldHints,
+            styleAsText: true,
+            label: [],
+          }));
+
+          return {
+            kind: NodeKind.TightSplit,
+            split: Split.SideBySide,
+            children: filterTruthyChildren([
+              showChildNavigationHints && {
+                kind: NodeKind.TightLeaf,
+                id: nodeForDisplay.id,
+                size: [10, 22],
+              },
+              {
+                kind: NodeKind.TightSplit,
+                split: showChildNavigationHints
+                  ? Split.Stacked
+                  : Split.SideBySide,
+                children: filterTruthyChildren([
+                  !shouldHideChild("dotDotDotToken") &&
+                    maybeWrapPortal(childDisplayNodes.dotDotDotToken),
+                  maybeWrapPortal(childDisplayNodes.name),
+                  !shouldHideChild("questionToken") &&
+                    maybeWrapPortal(childDisplayNodes.questionToken),
+                  !shouldHideChild("type") &&
+                    maybeWrapPortal(childDisplayNodes.type),
+                  !shouldHideChild("initializer") &&
+                    maybeWrapPortal(childDisplayNodes.initializer),
+                ]),
+              },
+            ]),
+          };
+        },
+      ),
     };
   },
   MethodDeclaration: (node: Node<ts.MethodDeclaration>) => {
@@ -287,131 +337,74 @@ export const enhancers: {
     }
     return {
       displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
-      buildDivetreeDisplayTree: ({
-        nodeForDisplay,
-        buildChildDisplayTree,
-        updatePostLayoutHints,
-        expand,
-        showChildNavigationHints,
-        focusPath,
-      }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
-        if (!expand) {
-          return {
-            kind: NodeKind.TightLeaf,
-            id: nodeForDisplay.id,
-            size: [150, 56],
-          };
-        }
-
-        const expectedChildKeys = [
+      buildDivetreeDisplayTree: withExtendedArgs(
+        [
           "asteriskToken",
           "name",
           "parameters",
           "typeParameters",
           "type",
           "body",
-        ] as const;
-        if (
-          nodeForDisplay.children.length !== expectedChildKeys.length ||
-          !nodeForDisplay.children.every(
-            (c, i) => c.key === expectedChildKeys[i],
-          )
-        ) {
-          console.warn("unexpected number or order of children");
-          return undefined;
-        }
+        ],
+        ({
+          nodeForDisplay,
+          updatePostLayoutHints,
+          expand,
+          shouldHideChild,
+          maybeWrapPortal,
+          childDisplayNodes,
+          newTextNode,
+        }) => {
+          if (!expand) {
+            return {
+              kind: NodeKind.TightLeaf,
+              id: nodeForDisplay.id,
+              size: [150, 56],
+            };
+          }
 
-        const childDisplayNodes: {
-          [K in typeof expectedChildKeys[number]]: DivetreeDisplayRootNode;
-        } = {} as any;
-        const childIsEmpty: {
-          [K in typeof expectedChildKeys[number]]: boolean;
-        } = {} as any;
-        for (const key of expectedChildKeys) {
-          const child = nodeForDisplay.getByPath([key])!;
-          childDisplayNodes[key] = buildChildDisplayTree(child);
-          childIsEmpty[key] = child.getDebugLabel() === "Option<None>"; // HACK
-        }
-
-        const shouldHideChild = (
-          childKey: typeof expectedChildKeys[number],
-        ): boolean =>
-          !showChildNavigationHints &&
-          childIsEmpty[childKey] &&
-          (focusPath.length < 2 ||
-            !(
-              focusPath[0] === nodeForDisplay.id &&
-              focusPath[1] === nodeForDisplay.getByPath([childKey])!.id
-            ));
-
-        const maybeWrapPortal = (
-          node: DivetreeDisplayRootNode,
-        ): TightNode | PortalNode =>
-          node.kind === NodeKind.TightLeaf || node.kind === NodeKind.TightSplit
-            ? node
-            : { kind: NodeKind.Portal, id: `${node.id}-portal`, child: node };
-
-        let nextTextNodeIndex = 0;
-        const newTextNode = (
-          width: number,
-          labelText: string,
-          labelStyle: LabelStyle,
-        ): TightLeafNode => {
-          const id = `${nodeForDisplay.id}-extra-text-node-${nextTextNodeIndex}`;
-          nextTextNodeIndex++;
-          updatePostLayoutHints(id, (oldHints) => ({
+          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
             ...oldHints,
             styleAsText: true,
-            label: [{ text: labelText, style: labelStyle }],
+            label: [{ text: "function", style: LabelStyle.KEYWORD }],
           }));
+
           return {
-            kind: NodeKind.TightLeaf,
-            id,
-            size: [width, 22],
+            kind: NodeKind.TightSplit,
+            split: Split.Stacked,
+            children: [
+              {
+                kind: NodeKind.TightSplit,
+                split: Split.SideBySide,
+                children: filterTruthyChildren([
+                  {
+                    kind: NodeKind.TightLeaf,
+                    id: nodeForDisplay.id,
+                    size: [72, 56],
+                  },
+                  !shouldHideChild("typeParameters") &&
+                    maybeWrapPortal(childDisplayNodes.typeParameters),
+                  !shouldHideChild("asteriskToken") &&
+                    maybeWrapPortal(childDisplayNodes.asteriskToken),
+                  maybeWrapPortal(childDisplayNodes.name),
+                  newTextNode(10, "(", LabelStyle.SYNTAX_SYMBOL),
+                  maybeWrapPortal(childDisplayNodes.parameters),
+                  newTextNode(10, ")", LabelStyle.SYNTAX_SYMBOL),
+                  !shouldHideChild("type") &&
+                    maybeWrapPortal(childDisplayNodes.type),
+                ]),
+              },
+              newTextNode(10, "{", LabelStyle.SYNTAX_SYMBOL),
+              {
+                kind: NodeKind.Portal,
+                id: `${nodeForDisplay.id}-portal`,
+                child: childDisplayNodes.body,
+              },
+              newTextNode(10, "}", LabelStyle.SYNTAX_SYMBOL),
+            ],
           };
-        };
-
-        updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-          ...oldHints,
-          styleAsText: true,
-          label: [{ text: "function", style: LabelStyle.KEYWORD }],
-        }));
-
-        return {
-          kind: NodeKind.TightSplit,
-          split: Split.Stacked,
-          children: [
-            {
-              kind: NodeKind.TightSplit,
-              split: Split.SideBySide,
-              children: filterTruthyChildren([
-                {
-                  kind: NodeKind.TightLeaf,
-                  id: nodeForDisplay.id,
-                  size: [72, 56],
-                },
-                !shouldHideChild("typeParameters") &&
-                  maybeWrapPortal(childDisplayNodes.typeParameters),
-                !shouldHideChild("asteriskToken") &&
-                  maybeWrapPortal(childDisplayNodes.asteriskToken),
-                maybeWrapPortal(childDisplayNodes.name),
-                newTextNode(10, "(", LabelStyle.SYNTAX_SYMBOL),
-                maybeWrapPortal(childDisplayNodes.parameters),
-                newTextNode(10, ")", LabelStyle.SYNTAX_SYMBOL),
-                !shouldHideChild("type") &&
-                  maybeWrapPortal(childDisplayNodes.type),
-              ]),
-            },
-            newTextNode(10, "{", LabelStyle.SYNTAX_SYMBOL),
-            {
-              kind: NodeKind.Portal,
-              id: `${nodeForDisplay.id}-portal`,
-              child: childDisplayNodes.body,
-            },
-            newTextNode(10, "}", LabelStyle.SYNTAX_SYMBOL),
-          ],
-        };
-      },
+        },
+      ),
     };
   },
   "FunctionDeclaration.parameters": (
