@@ -328,6 +328,7 @@ export const enhancers: {
           return {
             kind: NodeKind.TightSplit,
             split: Split.SideBySide,
+            growLast: true,
             children: filterTruthyChildren([
               showChildNavigationHints && {
                 kind: NodeKind.TightLeaf,
@@ -339,6 +340,7 @@ export const enhancers: {
                 split: showChildNavigationHints
                   ? Split.Stacked
                   : Split.SideBySide,
+                growLast: true,
                 children: filterTruthyChildren([
                   !shouldHideChild("dotDotDotToken") &&
                     maybeWrapPortal(childDisplayNodes.dotDotDotToken),
@@ -417,10 +419,12 @@ export const enhancers: {
           return {
             kind: NodeKind.TightSplit,
             split: Split.Stacked,
+            growLast: true,
             children: filterTruthyChildren([
               {
                 kind: NodeKind.TightSplit,
                 split: Split.SideBySide,
+                growLast: true,
                 children: filterTruthyChildren([
                   {
                     kind: NodeKind.TightLeaf,
@@ -445,6 +449,7 @@ export const enhancers: {
               {
                 kind: NodeKind.TightSplit,
                 split: Split.SideBySide,
+                growLast: true,
                 children: filterTruthyChildren([
                   expandParameters && closingParen,
                   newTextNode(10, "{", LabelStyle.SYNTAX_SYMBOL),
@@ -497,6 +502,7 @@ export const enhancers: {
             (c) => ({
               kind: NodeKind.TightSplit,
               split: Split.SideBySide,
+              growLast: true,
               children: [
                 maybeWrapPortal(c),
                 newTextNode(10, ",", LabelStyle.SYNTAX_SYMBOL),
@@ -520,6 +526,7 @@ export const enhancers: {
           return {
             kind: NodeKind.TightSplit,
             split: Split.SideBySide,
+            growLast: true,
             children: [
               {
                 kind: NodeKind.TightLeaf,
@@ -529,6 +536,7 @@ export const enhancers: {
               {
                 kind: NodeKind.TightSplit,
                 split: Split.Stacked,
+                growLast: true,
                 children: childrenWithCommas,
               },
             ],
