@@ -488,6 +488,9 @@ export const enhancers: {
                 growLast: true,
                 children: filterTruthyChildren([
                   expandParameters && closingParen,
+                  expandParameters &&
+                    !shouldHideChild("type") &&
+                    maybeWrapPortal(childDisplayNodes.type),
                   newTextNode("{", LabelStyle.SYNTAX_SYMBOL),
                 ]),
               },
