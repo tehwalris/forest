@@ -32,8 +32,12 @@ import { Node, SemanticColor } from "../logic/tree/node";
 import { useFocus } from "../logic/use-focus";
 import { PossibleActionDisplay } from "./possible-action-display";
 import { ActionFiller } from "./tree/action-filler";
-import { NodeContent } from "./tree/node-content";
+import {
+  NodeContent,
+  makeTextMeasurementFunctionsByStyle,
+} from "./tree/node-content";
 import { PostLayoutHints } from "../logic/layout-hints";
+import { LabelMeasurementCache } from "../logic/text-measurement";
 interface Props {
   fs: typeof _fsType;
   projectRootDir: string;
@@ -264,12 +268,20 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
   const [marks, setMarks] = useState<Marks>({});
   const [chord, setChord] = useState<string[]>([]);
   const postLayoutHintsByIdRef = useRef(new Map<string, PostLayoutHints>());
+  const labelMeasurementCacheRef = useRef<LabelMeasurementCache>();
   return (
     <div>
       <NavTree
         navTree={navTree}
         getDisplayTree={(focusPath) => {
           postLayoutHintsByIdRef.current = new Map();
+          if (!labelMeasurementCacheRef.current) {
+            labelMeasurementCacheRef.current = new LabelMeasurementCache(
+              makeTextMeasurementFunctionsByStyle(),
+            );
+          }
+          labelMeasurementCacheRef.current.clearUnused();
+
           return buildDivetreeDisplayTree(
             tree,
             focusPath,
@@ -277,6 +289,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
             metaLevelNodeIds,
             incrementalParentIndex,
             postLayoutHintsByIdRef.current,
+            labelMeasurementCacheRef.current.measure,
           );
         }}
         getContent={(id) => (

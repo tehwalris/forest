@@ -13,6 +13,7 @@ import * as R from "ramda";
 import * as ts from "typescript";
 import { PostLayoutHints } from "../../layout-hints";
 import { ParentPathElement } from "../../parent-index";
+import { arrayFromTextSize } from "../../text-measurement";
 import {
   BuildDivetreeDisplayTreeArgs,
   DisplayInfo,
@@ -199,15 +200,24 @@ export const enhancers: {
       buildDivetreeDisplayTree: ({
         nodeForDisplay,
         updatePostLayoutHints,
+        measureLabel,
       }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
+        const label: LabelPart[] = [
+          {
+            // HACK this is a bad way to get the identifier name
+            text: nodeForDisplay.getDebugLabel() || "",
+            style: LabelStyle.VALUE,
+          },
+        ];
         updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
           ...oldHints,
           styleAsText: true,
+          label,
         }));
         return {
           kind: NodeKind.TightLeaf,
           id: nodeForDisplay.id,
-          size: [150, 22],
+          size: arrayFromTextSize(measureLabel(label)),
         };
       },
     };

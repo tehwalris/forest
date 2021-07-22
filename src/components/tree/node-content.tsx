@@ -3,6 +3,10 @@ import * as React from "react";
 import { PostLayoutHints } from "../../logic/layout-hints";
 import { ParentIndexEntry } from "../../logic/parent-index";
 import {
+  makeTextMeasurementFunction,
+  TextMeasurementFunction,
+} from "../../logic/text-measurement";
+import {
   DisplayInfo,
   DisplayInfoPriority,
   LabelPart,
@@ -12,10 +16,27 @@ interface Props {
   parentIndexEntry: ParentIndexEntry | undefined;
   postLayoutHints?: PostLayoutHints;
 }
+const defaultFont = "16px Roboto, sans-serif";
+const fontFallbackHeightPx = 19.2;
+const fontsByLabelStyle: { [K in LabelStyle]?: string } = {
+  [LabelStyle.TYPE_SUMMARY]: `500 ${defaultFont}`,
+};
+export function makeTextMeasurementFunctionsByStyle(): {
+  [K in LabelStyle]: TextMeasurementFunction;
+} {
+  const textMeasurementFunctionsByStyle: {
+    [K in LabelStyle]: TextMeasurementFunction;
+  } = {} as any;
+  for (const _style in LabelStyle) {
+    const style = _style as unknown as LabelStyle;
+    textMeasurementFunctionsByStyle[style] = makeTextMeasurementFunction(
+      fontsByLabelStyle[style] || defaultFont,
+      fontFallbackHeightPx,
+    );
+  }
+  return textMeasurementFunctionsByStyle;
+}
 const styles = {
-  typeSummaryPart: css`
-    font-weight: 500;
-  `,
   unknownPart: css`
     text-decoration: line-through;
   `,
@@ -24,19 +45,26 @@ const styles = {
   `,
 };
 function renderLabelPart(p: LabelPart) {
+  const style = { font: fontsByLabelStyle[p.style] || defaultFont };
   if (
     p.style === LabelStyle.NAME ||
     p.style === LabelStyle.VALUE ||
     p.style === LabelStyle.SYNTAX_SYMBOL ||
     p.style === LabelStyle.KEYWORD
   ) {
-    return <span>{p.text}</span>;
+    return <span style={style}>{p.text}</span>;
   } else if (p.style === LabelStyle.CHILD_KEY) {
-    return <span className={styles.childKey}>{p.text}</span>;
-  } else if (p.style === LabelStyle.TYPE_SUMMARY) {
-    return <span className={styles.typeSummaryPart}>{p.text}</span>;
+    return (
+      <span style={style} className={styles.childKey}>
+        {p.text}
+      </span>
+    );
   } else {
-    return <span className={styles.unknownPart}>{p.text}</span>;
+    return (
+      <span style={style} className={styles.unknownPart}>
+        {p.text}
+      </span>
+    );
   }
 }
 export const NodeContent: React.FC<Props> = React.memo(

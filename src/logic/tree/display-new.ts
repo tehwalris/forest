@@ -12,6 +12,7 @@ import { isMetaBranchNode } from "../transform/transforms/split-meta";
 import { BuildDivetreeDisplayTreeArgs, LabelStyle, Node } from "../tree/node";
 import { PostLayoutHints } from "../layout-hints";
 import * as R from "ramda";
+import { LabelMeasurementFunction } from "../text-measurement";
 
 export function getNodeForDisplay(
   node: Node<unknown>,
@@ -31,6 +32,7 @@ export function buildDivetreeDisplayTree(
   metaLevelNodeIds: Set<string>,
   incrementalParentIndex: IncrementalParentIndex,
   postLayoutHintsById: Map<string, PostLayoutHints>,
+  measureLabel: LabelMeasurementFunction,
 ): DivetreeDisplayRootNode {
   const updatePostLayoutHints: BuildDivetreeDisplayTreeArgs["updatePostLayoutHints"] =
     (id, updateHints) => {
@@ -115,6 +117,7 @@ export function buildDivetreeDisplayTree(
       metaLevelNodeIds,
       incrementalParentIndex,
       postLayoutHintsById,
+      measureLabel,
     );
 
   const customDisplayTree = node.buildDivetreeDisplayTree({
@@ -126,6 +129,7 @@ export function buildDivetreeDisplayTree(
     buildChildDisplayTree,
     updatePostLayoutHints,
     getPostLayoutHints: (nodeId) => postLayoutHintsById.get(nodeId) || {},
+    measureLabel,
   });
   if (customDisplayTree) {
     return maybeWrapForNavigation(customDisplayTree);

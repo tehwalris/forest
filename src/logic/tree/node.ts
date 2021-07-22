@@ -5,6 +5,7 @@ import { MetaSplit } from "../transform/transforms/split-meta";
 import { ParentPathElement } from "../parent-index";
 import type { RootNode as DivetreeDisplayRootNode } from "divetree-core";
 import { PostLayoutHints } from "../layout-hints";
+import { LabelMeasurementFunction } from "../text-measurement";
 
 export interface BuildDivetreeDisplayTreeArgs {
   nodeForDisplay: Node<unknown>;
@@ -18,6 +19,7 @@ export interface BuildDivetreeDisplayTreeArgs {
     nodeId: string,
     updateHints: (oldHints: PostLayoutHints) => PostLayoutHints,
   ) => void;
+  measureLabel: LabelMeasurementFunction;
 }
 
 export interface Node<B> {
