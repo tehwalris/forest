@@ -29,16 +29,23 @@ export const RepoSwitcher: React.FC<Props> = ({ fsChoice }) => {
   }
   let extraContent = (
     <>
-      <button onClick={() => switchRepo(undefined)}>Load empty</button>
-      <button onClick={() => switchRepo("https://github.com/tehwalris/forest")}>
+      <button tabIndex={-1} onClick={() => switchRepo(undefined)}>
+        Load empty
+      </button>
+      <button
+        tabIndex={-1}
+        onClick={() => switchRepo("https://github.com/tehwalris/forest")}
+      >
         Load Forest repo
       </button>
       <button
+        tabIndex={-1}
         onClick={() => switchRepo("https://github.com/tehwalris/divetree")}
       >
         Load divetree repo
       </button>
       <button
+        tabIndex={-1}
         onClick={() => {
           const url = prompt(
             "Enter a git repo URL",
