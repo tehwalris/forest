@@ -23,6 +23,7 @@ import {
   Node,
   SemanticColor,
 } from "../../tree/node";
+const fallbackHeight = 19.2;
 export function tryExtractName(node: Node<unknown>): string | undefined {
   const nameNode = node.getByPath(["name"]);
   if (!nameNode) {
@@ -54,11 +55,7 @@ export type Enhancer<T extends Node<ts.Node> | Node<ts.NodeArray<ts.Node>>> = (
 };
 interface ExtendedDisplayTreeArgsBase extends BuildDivetreeDisplayTreeArgs {
   maybeWrapPortal: (node: DivetreeDisplayRootNode) => TightNode | PortalNode;
-  newTextNode: (
-    width: number,
-    labelText: string,
-    labelStyle: LabelStyle,
-  ) => TightLeafNode;
+  newTextNode: (labelText: string, labelStyle: LabelStyle) => TightLeafNode;
 }
 interface ExtendedDisplayTreeArgsStruct<CK extends string>
   extends ExtendedDisplayTreeArgsBase {
@@ -87,6 +84,7 @@ function withExtendedArgsStruct<CK extends string>(
       focusPath,
       getPostLayoutHints,
       updatePostLayoutHints,
+      measureLabel,
     } = args;
 
     if (
@@ -131,21 +129,21 @@ function withExtendedArgsStruct<CK extends string>(
 
     let nextTextNodeIndex = 0;
     const newTextNode = (
-      width: number,
       labelText: string,
       labelStyle: LabelStyle,
     ): TightLeafNode => {
       const id = `${nodeForDisplay.id}-extra-text-node-${nextTextNodeIndex}`;
       nextTextNodeIndex++;
+      const label: LabelPart[] = [{ text: labelText, style: labelStyle }];
       updatePostLayoutHints(id, (oldHints) => ({
         ...oldHints,
         styleAsText: true,
-        label: [{ text: labelText, style: labelStyle }],
+        label,
       }));
       return {
         kind: NodeKind.TightLeaf,
         id,
-        size: [width, 22],
+        size: arrayFromTextSize(measureLabel(label)),
       };
     };
 
@@ -236,15 +234,26 @@ export const enhancers: {
       buildDivetreeDisplayTree: ({
         nodeForDisplay,
         updatePostLayoutHints,
+        measureLabel,
       }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
+        const label: LabelPart[] = [
+          { text: '"', style: LabelStyle.SYNTAX_SYMBOL },
+          {
+            // HACK this is a bad way to get the string content
+            text: nodeForDisplay.getDebugLabel() || "",
+            style: LabelStyle.VALUE,
+          },
+          { text: '"', style: LabelStyle.SYNTAX_SYMBOL },
+        ];
         updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
           ...oldHints,
           styleAsText: true,
+          label,
         }));
         return {
           kind: NodeKind.TightLeaf,
           id: nodeForDisplay.id,
-          size: [150, 22],
+          size: arrayFromTextSize(measureLabel(label)),
         };
       },
     };
@@ -320,6 +329,7 @@ export const enhancers: {
           maybeWrapPortal,
           childDisplayNodes,
           showChildNavigationHints,
+          newTextNode,
         }) => {
           if (!expand) {
             return {
@@ -335,6 +345,11 @@ export const enhancers: {
             label: [],
           }));
 
+          const initializerEqualsSign = newTextNode(
+            " = ",
+            LabelStyle.SYNTAX_SYMBOL,
+          );
+
           return {
             kind: NodeKind.TightSplit,
             split: Split.SideBySide,
@@ -343,7 +358,7 @@ export const enhancers: {
               showChildNavigationHints && {
                 kind: NodeKind.TightLeaf,
                 id: nodeForDisplay.id,
-                size: [10, 22],
+                size: [10, fallbackHeight],
               },
               {
                 kind: NodeKind.TightSplit,
@@ -359,8 +374,15 @@ export const enhancers: {
                     maybeWrapPortal(childDisplayNodes.questionToken),
                   !shouldHideChild("type") &&
                     maybeWrapPortal(childDisplayNodes.type),
-                  !shouldHideChild("initializer") &&
-                    maybeWrapPortal(childDisplayNodes.initializer),
+                  !shouldHideChild("initializer") && {
+                    kind: NodeKind.TightSplit,
+                    split: Split.SideBySide,
+                    growLast: true,
+                    children: [
+                      initializerEqualsSign,
+                      maybeWrapPortal(childDisplayNodes.initializer),
+                    ],
+                  },
                 ]),
               },
             ]),
@@ -407,24 +429,28 @@ export const enhancers: {
           childDisplayNodes,
           childPostLayoutHints,
           newTextNode,
+          measureLabel,
         }): DivetreeDisplayRootNode | undefined => {
           if (!expand) {
             return {
               kind: NodeKind.TightLeaf,
               id: nodeForDisplay.id,
-              size: [150, 22],
+              size: [150, fallbackHeight],
             };
           }
 
+          const keywordLabel: LabelPart[] = [
+            { text: "function ", style: LabelStyle.KEYWORD },
+          ];
           updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
             ...oldHints,
             styleAsText: true,
-            label: [{ text: "function", style: LabelStyle.KEYWORD }],
+            label: keywordLabel,
           }));
 
           const expandParameters = !!childPostLayoutHints.parameters.didBreak;
 
-          const closingParen = newTextNode(10, ")", LabelStyle.SYNTAX_SYMBOL);
+          const closingParen = newTextNode(")", LabelStyle.SYNTAX_SYMBOL);
 
           return {
             kind: NodeKind.TightSplit,
@@ -439,14 +465,14 @@ export const enhancers: {
                   {
                     kind: NodeKind.TightLeaf,
                     id: nodeForDisplay.id,
-                    size: [72, 22],
+                    size: arrayFromTextSize(measureLabel(keywordLabel)),
                   },
                   !shouldHideChild("typeParameters") &&
                     maybeWrapPortal(childDisplayNodes.typeParameters),
                   !shouldHideChild("asteriskToken") &&
                     maybeWrapPortal(childDisplayNodes.asteriskToken),
                   maybeWrapPortal(childDisplayNodes.name),
-                  newTextNode(10, "(", LabelStyle.SYNTAX_SYMBOL),
+                  newTextNode("(", LabelStyle.SYNTAX_SYMBOL),
                   !expandParameters &&
                     maybeWrapPortal(childDisplayNodes.parameters),
                   !expandParameters && closingParen,
@@ -462,7 +488,7 @@ export const enhancers: {
                 growLast: true,
                 children: filterTruthyChildren([
                   expandParameters && closingParen,
-                  newTextNode(10, "{", LabelStyle.SYNTAX_SYMBOL),
+                  newTextNode("{", LabelStyle.SYNTAX_SYMBOL),
                 ]),
               },
               {
@@ -470,7 +496,7 @@ export const enhancers: {
                 id: `${nodeForDisplay.id}-portal`,
                 child: childDisplayNodes.body,
               },
-              newTextNode(10, "}", LabelStyle.SYNTAX_SYMBOL),
+              newTextNode("}", LabelStyle.SYNTAX_SYMBOL),
             ]),
           };
         },
@@ -504,7 +530,7 @@ export const enhancers: {
             return {
               kind: NodeKind.TightLeaf,
               id: nodeForDisplay.id,
-              size: [10, 22],
+              size: [0, 0],
             };
           }
 
@@ -515,7 +541,7 @@ export const enhancers: {
               growLast: true,
               children: [
                 maybeWrapPortal(c),
-                newTextNode(10, ",", LabelStyle.SYNTAX_SYMBOL),
+                newTextNode(",", LabelStyle.SYNTAX_SYMBOL),
               ],
             }),
           );
@@ -527,7 +553,7 @@ export const enhancers: {
               parent: {
                 kind: NodeKind.TightLeaf,
                 id: nodeForDisplay.id,
-                size: [10, 22],
+                size: [10, fallbackHeight],
               },
               children: childrenWithCommas,
             };
@@ -541,7 +567,7 @@ export const enhancers: {
               {
                 kind: NodeKind.TightLeaf,
                 id: nodeForDisplay.id,
-                size: [10, 22],
+                size: [10, fallbackHeight],
               },
               {
                 kind: NodeKind.TightSplit,

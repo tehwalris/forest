@@ -45,7 +45,10 @@ const styles = {
   `,
 };
 function renderLabelPart(p: LabelPart) {
-  const style = { font: fontsByLabelStyle[p.style] || defaultFont };
+  const style: React.CSSProperties = {
+    font: fontsByLabelStyle[p.style] || defaultFont,
+    whiteSpace: "pre",
+  };
   if (
     p.style === LabelStyle.NAME ||
     p.style === LabelStyle.VALUE ||
