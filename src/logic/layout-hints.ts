@@ -4,5 +4,6 @@ export interface PostLayoutHints {
   styleAsText?: boolean;
   label?: LabelPart[];
   showNavigationHints?: boolean;
+  showShortcuts?: boolean;
   didBreak?: boolean;
 }

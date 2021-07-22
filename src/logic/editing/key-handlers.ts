@@ -27,6 +27,7 @@ interface HandleKeyOptions {
   setMarks: (marks: Marks) => void;
   chord: string[];
   setChord: (chord: string[]) => void;
+  setExpandView: (expandView: boolean) => void;
 }
 export function handleKey(
   event: KeyboardEvent,
@@ -48,6 +49,7 @@ export function handleKey(
     setMarks,
     chord,
     setChord,
+    setExpandView,
   }: HandleKeyOptions,
 ) {
   if (actionInProgress && event.key !== "Escape") {
@@ -192,6 +194,7 @@ export function handleKey(
       }
     },
     Backspace: focusApparentParent,
+    Shift: () => setExpandView(true),
     "ctrl-ArrowRight": tryAction(
       "append",
       (n) => (R.last(n.children)?.node || n).id,

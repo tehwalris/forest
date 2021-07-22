@@ -267,6 +267,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
   const [copiedNode, setCopiedNode] = useState<Node<unknown>>();
   const [marks, setMarks] = useState<Marks>({});
   const [chord, setChord] = useState<string[]>([]);
+  const [expandView, setExpandView] = useState(false);
   const postLayoutHintsByIdRef = useRef(new Map<string, PostLayoutHints>());
   const labelMeasurementCacheRef = useRef<LabelMeasurementCache>();
   return (
@@ -290,6 +291,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
             incrementalParentIndex,
             postLayoutHintsByIdRef.current,
             labelMeasurementCacheRef.current.measure,
+            expandView,
           );
         }}
         getContent={(id) => (
@@ -330,8 +332,14 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
             setMarks,
             chord,
             setChord,
+            setExpandView,
           })
         }
+        onKeyUp={(ev) => {
+          if (ev.key === "Shift") {
+            setExpandView(false);
+          }
+        }}
       />
       {inProgressAction && (
         <ActionFiller

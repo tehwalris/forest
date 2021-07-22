@@ -33,6 +33,7 @@ export function buildDivetreeDisplayTree(
   incrementalParentIndex: IncrementalParentIndex,
   postLayoutHintsById: Map<string, PostLayoutHints>,
   measureLabel: LabelMeasurementFunction,
+  expandView: boolean,
 ): DivetreeDisplayRootNode {
   const updatePostLayoutHints: BuildDivetreeDisplayTreeArgs["updatePostLayoutHints"] =
     (id, updateHints) => {
@@ -42,7 +43,10 @@ export function buildDivetreeDisplayTree(
 
   const isOnFocusPath = node.id === focusPath[0];
   const isFinal = !isOnFocusPath || !!extraDepth;
-  const showChildNavigationHints = isOnFocusPath && focusPath.length === 1;
+  const showChildNavigationHints =
+    expandView && isOnFocusPath && focusPath.length === 1;
+  const showChildShortcuts =
+    !showChildNavigationHints && isOnFocusPath && focusPath.length === 1;
 
   const nodeForDisplay = getNodeForDisplay(node, metaLevelNodeIds);
   const children = nodeForDisplay.children;
@@ -64,6 +68,14 @@ export function buildDivetreeDisplayTree(
       }));
     }
   }
+  if (showChildShortcuts) {
+    for (const { node: childNode } of nodeForDisplay.children) {
+      updatePostLayoutHints(childNode.id, (oldHints) => ({
+        ...oldHints,
+        showShortcuts: true,
+      }));
+    }
+  }
 
   function maybeWrapPortal(
     node: DivetreeDisplayRootNode,
@@ -80,15 +92,22 @@ export function buildDivetreeDisplayTree(
       return base;
     }
 
-    const childKey = R.last(parentPath!)?.childKey;
-    if (!childKey) {
+    const parentEntry = parentPath && R.last(parentPath);
+    if (!parentEntry) {
       console.warn("parent not found for node that has showNavigationHints");
       return base;
     }
+    const childKey = parentEntry.childKey;
     let childKeyForDisplay = childKey;
     if (childKey.match(/^\d+$/)) {
       // HACK
       childKeyForDisplay = `${1 + +childKey}`;
+    }
+    const childShortcut = [
+      ...parentEntry.parent.getChildShortcuts().entries(),
+    ].find(([k, p]) => p.length === 1 && p[0] === childKey)?.[0];
+    if (childShortcut) {
+      childKeyForDisplay += ` (${childShortcut})`;
     }
     updatePostLayoutHints(`${nodeForDisplay.id}-navigation`, (oldHints) => ({
       ...oldHints,
@@ -118,6 +137,7 @@ export function buildDivetreeDisplayTree(
       incrementalParentIndex,
       postLayoutHintsById,
       measureLabel,
+      expandView,
     );
 
   const customDisplayTree = node.buildDivetreeDisplayTree({
