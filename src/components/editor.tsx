@@ -91,9 +91,15 @@ function getNodeStyle(
       color: colors[focused ? 1 : 0],
       borderColor: [0, 0, 0],
     };
-    if (postLayoutHints?.styleAsText && !focused) {
+    if (
+      (postLayoutHints?.styleAsText && !focused) ||
+      postLayoutHints?.shortcutKey
+    ) {
       result.color = [0, 0, 0, 0];
       result.borderColor = [0, 0, 0, 0];
+    }
+    if (postLayoutHints?.shortcutKey) {
+      result.extra = { overflow: "visible", zIndex: 2 };
     }
     return result;
   };

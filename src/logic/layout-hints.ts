@@ -6,4 +6,5 @@ export interface PostLayoutHints {
   showNavigationHints?: boolean;
   showShortcuts?: boolean;
   didBreak?: boolean;
+  shortcutKey?: string;
 }

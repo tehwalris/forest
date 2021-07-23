@@ -88,13 +88,21 @@ export function buildDivetreeDisplayTree(
   function maybeWrapForNavigation<T extends DivetreeDisplayRootNode>(
     base: T,
   ): T | TightNode {
-    if (!postLayoutHintsById.get(nodeForDisplay.id)?.showNavigationHints) {
+    let { showNavigationHints, showShortcuts } =
+      postLayoutHintsById.get(nodeForDisplay.id) || {};
+    if (!showNavigationHints && !showShortcuts) {
       return base;
+    }
+    if (showNavigationHints) {
+      // it doesn't make sense to show both
+      showShortcuts = false;
     }
 
     const parentEntry = parentPath && R.last(parentPath);
     if (!parentEntry) {
-      console.warn("parent not found for node that has showNavigationHints");
+      console.warn(
+        "parent not found for node that has showNavigationHints or showShortcuts",
+      );
       return base;
     }
     const childKey = parentEntry.childKey;
@@ -109,23 +117,48 @@ export function buildDivetreeDisplayTree(
     if (childShortcut) {
       childKeyForDisplay += ` (${childShortcut})`;
     }
-    updatePostLayoutHints(`${nodeForDisplay.id}-navigation`, (oldHints) => ({
-      ...oldHints,
-      label: [{ text: childKeyForDisplay, style: LabelStyle.CHILD_KEY }],
-    }));
 
-    return {
-      kind: NodeKind.TightSplit,
-      split: Split.Stacked,
-      children: [
-        {
-          kind: NodeKind.TightLeaf,
-          id: `${nodeForDisplay.id}-navigation`,
-          size: [150, 20],
-        },
-        maybeWrapPortal(base),
-      ],
-    };
+    if (showNavigationHints) {
+      updatePostLayoutHints(`${nodeForDisplay.id}-navigation`, (oldHints) => ({
+        ...oldHints,
+        label: [{ text: childKeyForDisplay, style: LabelStyle.CHILD_KEY }],
+      }));
+
+      return {
+        kind: NodeKind.TightSplit,
+        split: Split.Stacked,
+        children: [
+          {
+            kind: NodeKind.TightLeaf,
+            id: `${nodeForDisplay.id}-navigation`,
+            size: [150, 20],
+          },
+          maybeWrapPortal(base),
+        ],
+      };
+    } else {
+      if (!childShortcut) {
+        return base;
+      }
+
+      updatePostLayoutHints(`${nodeForDisplay.id}-shortcut`, (oldHints) => ({
+        ...oldHints,
+        shortcutKey: childShortcut,
+      }));
+
+      return {
+        kind: NodeKind.TightSplit,
+        split: Split.Overlaid,
+        children: [
+          maybeWrapPortal(base),
+          {
+            kind: NodeKind.TightLeaf,
+            id: `${nodeForDisplay.id}-shortcut`,
+            size: [10, 10],
+          },
+        ],
+      };
+    }
   }
 
   const buildChildDisplayTree = (childNode: Node<unknown>) =>

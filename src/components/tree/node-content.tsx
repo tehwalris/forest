@@ -12,6 +12,7 @@ import {
   LabelPart,
   LabelStyle,
 } from "../../logic/tree/node";
+import { ShortcutKeyDisplay } from "./shortcut-key-display";
 interface Props {
   parentIndexEntry: ParentIndexEntry | undefined;
   postLayoutHints?: PostLayoutHints;
@@ -74,6 +75,9 @@ export const NodeContent: React.FC<Props> = React.memo(
   ({ parentIndexEntry, postLayoutHints }) => {
     if (!parentIndexEntry && !postLayoutHints) {
       return null;
+    }
+    if (postLayoutHints?.shortcutKey) {
+      return <ShortcutKeyDisplay shortcutKey={postLayoutHints?.shortcutKey} />;
     }
     let displayInfo: DisplayInfo = parentIndexEntry?.node.getDisplayInfo(
       parentIndexEntry.path,
