@@ -7,7 +7,9 @@ import { RepoSwitcher } from "./components/repo-switcher";
 export const App = () => {
   const [fsChoice, setFsChoice] = useState<ChosenFs>();
   useEffect(() => {
-    configureFs(false).then((c) => setFsChoice(c));
+    configureFs(false, undefined, window.location.hash === "#demo").then((c) =>
+      setFsChoice(c),
+    );
   }, []);
   if (!fsChoice) {
     return null;

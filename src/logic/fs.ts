@@ -54,11 +54,14 @@ async function configureRemoteFs(): Promise<ChosenFs> {
 export async function configureFs(
   wipeDemo: boolean,
   cloneGitUrl?: string,
+  forceDemo?: boolean,
 ): Promise<ChosenFs> {
-  try {
-    return await configureRemoteFs();
-  } catch (err) {
-    console.warn("Remote FS not working. Falling back to demo FS.", err);
+  if (!forceDemo) {
+    try {
+      return await configureRemoteFs();
+    } catch (err) {
+      console.warn("Remote FS not working. Falling back to demo FS.", err);
+    }
   }
   return configureDemoFs(wipeDemo, cloneGitUrl);
 }
