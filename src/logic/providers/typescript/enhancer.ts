@@ -55,7 +55,11 @@ export type Enhancer<T extends Node<ts.Node> | Node<ts.NodeArray<ts.Node>>> = (
 };
 interface ExtendedDisplayTreeArgsBase extends BuildDivetreeDisplayTreeArgs {
   maybeWrapPortal: (node: DivetreeDisplayRootNode) => TightNode | PortalNode;
-  newTextNode: (labelText: string, labelStyle: LabelStyle) => TightLeafNode;
+  newTextNode: (
+    labelText: string,
+    labelStyle: LabelStyle,
+    idSuffix?: string,
+  ) => TightLeafNode;
 }
 interface ExtendedDisplayTreeArgsStruct<CK extends string>
   extends ExtendedDisplayTreeArgsBase {
@@ -132,9 +136,13 @@ function withExtendedArgsStruct<CK extends string>(
     const newTextNode = (
       labelText: string,
       labelStyle: LabelStyle,
+      idSuffix?: string,
     ): TightLeafNode => {
-      const id = `${nodeForDisplay.id}-extra-text-node-${nextTextNodeIndex}`;
-      nextTextNodeIndex++;
+      if (!idSuffix) {
+        idSuffix = `extra-text-node-${nextTextNodeIndex}`;
+        nextTextNodeIndex++;
+      }
+      const id = `${nodeForDisplay.id}-${idSuffix}`;
       const label: LabelPart[] = [{ text: labelText, style: labelStyle }];
       updatePostLayoutHints(id, (oldHints) => ({
         ...oldHints,
@@ -603,6 +611,112 @@ export const enhancers: {
     }
     return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
+  TypeReferenceNode: (node: Node<ts.TypeReferenceNode>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "TypeReferenceNode", style: LabelStyle.UNKNOWN }],
+      },
+      buildDivetreeDisplayTree: withExtendedArgsStruct(
+        ["typeName", "typeArguments"],
+        ({
+          nodeForDisplay,
+          updatePostLayoutHints,
+          expand,
+          shouldHideChild,
+          maybeWrapPortal,
+          childDisplayNodes,
+          showChildNavigationHints,
+          newTextNode,
+        }) => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          if (!expand) {
+            return {
+              kind: NodeKind.TightLeaf,
+              id: nodeForDisplay.id,
+              size: [150, 56],
+            };
+          }
+          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+            ...oldHints,
+            styleAsText: true,
+            label: [],
+          }));
+          const openingArrow = newTextNode("<", LabelStyle.SYNTAX_SYMBOL);
+          const closingArrow = newTextNode(">", LabelStyle.SYNTAX_SYMBOL);
+          return {
+            kind: NodeKind.TightSplit,
+            split: Split.SideBySide,
+            growLast: true,
+            children: filterTruthyChildren([
+              maybeWrapPortal(childDisplayNodes.typeName),
+              !shouldHideChild("typeArguments") && {
+                kind: NodeKind.TightSplit,
+                split: Split.SideBySide,
+                growLast: true,
+                children: [
+                  openingArrow,
+                  maybeWrapPortal(childDisplayNodes.typeArguments),
+                  closingArrow,
+                ],
+              },
+            ]),
+          };
+        },
+      ),
+    };
+  },
+  "TypeReferenceNode.typeArguments": (
+    node: Node<ts.NodeArray<ts.TypeNode>>,
+  ) => {
+    return {
+      displayInfo: { priority: DisplayInfoPriority.LOW, label: [] },
+      buildDivetreeDisplayTree: withExtendedArgsList(
+        ({
+          nodeForDisplay,
+          childDisplayNodes,
+          maybeWrapPortal,
+          newTextNode,
+          updatePostLayoutHints,
+          showChildNavigationHints,
+        }) => {
+          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+            ...oldHints,
+            styleAsText: true,
+          }));
+          if (!childDisplayNodes.length) {
+            return {
+              kind: NodeKind.TightLeaf,
+              id: nodeForDisplay.id,
+              size: [0, 0],
+            };
+          }
+          const childrenWithCommas: TightSplitNode[] = childDisplayNodes.map(
+            (c) => ({
+              kind: NodeKind.TightSplit,
+              split: Split.SideBySide,
+              growLast: true,
+              children: [
+                maybeWrapPortal(c),
+                newTextNode(", ", LabelStyle.SYNTAX_SYMBOL),
+              ],
+            }),
+          );
+          return {
+            kind: NodeKind.TightSplit,
+            split: Split.SideBySide,
+            growLast: true,
+            children: [
+              ...R.dropLast(1, childrenWithCommas),
+              maybeWrapPortal(R.last(childDisplayNodes)!),
+            ],
+          };
+        },
+      ),
+    };
+  },
 };
 [
   ["ReturnStatement", "return"],
@@ -634,6 +748,7 @@ export const enhancers: {
   ["VoidKeyword", "void"],
   ["UndefinedKeyword", "undefined"],
   ["NeverKeyword", "never"],
+  ["ThisTypeNode", "this"],
 ].forEach(([tsType, displayKeyword]) => {
   enhancers[tsType] = (node: Node<unknown>, parentPath) => {
     const label: LabelPart[] = [
