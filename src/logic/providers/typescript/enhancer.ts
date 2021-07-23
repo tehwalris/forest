@@ -345,6 +345,15 @@ export const enhancers: {
             " = ",
             LabelStyle.SYNTAX_SYMBOL,
           );
+          const typeWithColon: TightSplitNode = {
+            kind: NodeKind.TightSplit,
+            split: Split.SideBySide,
+            growLast: true,
+            children: [
+              newTextNode(": ", LabelStyle.SYNTAX_SYMBOL),
+              maybeWrapPortal(childDisplayNodes.type),
+            ],
+          };
           return {
             kind: NodeKind.TightSplit,
             split: Split.SideBySide,
@@ -367,8 +376,7 @@ export const enhancers: {
                   maybeWrapPortal(childDisplayNodes.name),
                   !shouldHideChild("questionToken") &&
                     maybeWrapPortal(childDisplayNodes.questionToken),
-                  !shouldHideChild("type") &&
-                    maybeWrapPortal(childDisplayNodes.type),
+                  !shouldHideChild("type") && typeWithColon,
                   !shouldHideChild("initializer") && {
                     kind: NodeKind.TightSplit,
                     split: Split.SideBySide,
@@ -443,6 +451,15 @@ export const enhancers: {
           }));
           const expandParameters = !!childPostLayoutHints.parameters.didBreak;
           const closingParen = newTextNode(")", LabelStyle.SYNTAX_SYMBOL);
+          const typeWithColon: TightSplitNode = {
+            kind: NodeKind.TightSplit,
+            split: Split.SideBySide,
+            growLast: true,
+            children: [
+              newTextNode(": ", LabelStyle.SYNTAX_SYMBOL),
+              maybeWrapPortal(childDisplayNodes.type),
+            ],
+          };
           return {
             kind: NodeKind.TightSplit,
             split: Split.Stacked,
@@ -469,7 +486,7 @@ export const enhancers: {
                   !expandParameters && closingParen,
                   !expandParameters &&
                     !shouldHideChild("type") &&
-                    maybeWrapPortal(childDisplayNodes.type),
+                    typeWithColon,
                 ]),
               },
               expandParameters && maybeWrapPortal(childDisplayNodes.parameters),
@@ -479,9 +496,7 @@ export const enhancers: {
                 growLast: true,
                 children: filterTruthyChildren([
                   expandParameters && closingParen,
-                  expandParameters &&
-                    !shouldHideChild("type") &&
-                    maybeWrapPortal(childDisplayNodes.type),
+                  expandParameters && !shouldHideChild("type") && typeWithColon,
                   newTextNode("{", LabelStyle.SYNTAX_SYMBOL),
                 ]),
               },
@@ -587,6 +602,32 @@ export const enhancers: {
       label.push({ text: name, style: LabelStyle.NAME });
     }
     return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
+  },
+  AnyKeyword: (
+    node: Node<ts.KeywordTypeNode<ts.SyntaxKind.AnyKeyword>>,
+    parentPath,
+  ) => {
+    const label: LabelPart[] = [
+      { text: "any", style: LabelStyle.SYNTAX_SYMBOL },
+    ];
+    return {
+      displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
+      buildDivetreeDisplayTree: ({
+        nodeForDisplay,
+        updatePostLayoutHints,
+        measureLabel,
+      }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
+        updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+          ...oldHints,
+          styleAsText: true,
+        }));
+        return {
+          kind: NodeKind.TightLeaf,
+          id: nodeForDisplay.id,
+          size: arrayFromTextSize(measureLabel(label)),
+        };
+      },
+    };
   },
 };
 [
