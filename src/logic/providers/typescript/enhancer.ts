@@ -59,9 +59,15 @@ interface ExtendedDisplayTreeArgsBase extends BuildDivetreeDisplayTreeArgs {
 }
 interface ExtendedDisplayTreeArgsStruct<CK extends string>
   extends ExtendedDisplayTreeArgsBase {
-  childDisplayNodes: { [K in CK]: DivetreeDisplayRootNode };
-  childIsEmpty: { [K in CK]: boolean };
-  childPostLayoutHints: { [K in CK]: PostLayoutHints };
+  childDisplayNodes: {
+    [K in CK]: DivetreeDisplayRootNode;
+  };
+  childIsEmpty: {
+    [K in CK]: boolean;
+  };
+  childPostLayoutHints: {
+    [K in CK]: PostLayoutHints;
+  };
   shouldHideChild: (childKey: CK) => boolean;
 }
 interface ExtendedDisplayTreeArgsList extends ExtendedDisplayTreeArgsBase {
@@ -86,7 +92,6 @@ function withExtendedArgsStruct<CK extends string>(
       updatePostLayoutHints,
       measureLabel,
     } = args;
-
     if (
       nodeForDisplay.children.length !== expectedChildKeys.length ||
       !nodeForDisplay.children.every((c, i) => c.key === expectedChildKeys[i])
@@ -94,7 +99,6 @@ function withExtendedArgsStruct<CK extends string>(
       console.warn("unexpected number or order of children");
       return undefined;
     }
-
     const childDisplayNodes: {
       [K in CK]: DivetreeDisplayRootNode;
     } = {} as any;
@@ -107,10 +111,9 @@ function withExtendedArgsStruct<CK extends string>(
     for (const key of expectedChildKeys) {
       const child = nodeForDisplay.getByPath([key])!;
       childDisplayNodes[key] = buildChildDisplayTree(child);
-      childIsEmpty[key] = child.getDebugLabel() === "Option<None>"; // HACK
+      childIsEmpty[key] = child.getDebugLabel() === "Option<None>";
       childPostLayoutHints[key] = getPostLayoutHints(child.id);
     }
-
     const shouldHideChild = (childKey: CK): boolean =>
       !showChildNavigationHints &&
       childIsEmpty[childKey] &&
@@ -119,14 +122,12 @@ function withExtendedArgsStruct<CK extends string>(
           focusPath[0] === nodeForDisplay.id &&
           focusPath[1] === nodeForDisplay.getByPath([childKey])!.id
         ));
-
     const maybeWrapPortal = (
       node: DivetreeDisplayRootNode,
     ): TightNode | PortalNode =>
       node.kind === NodeKind.TightLeaf || node.kind === NodeKind.TightSplit
         ? node
         : { kind: NodeKind.Portal, id: `${node.id}-portal`, child: node };
-
     let nextTextNodeIndex = 0;
     const newTextNode = (
       labelText: string,
@@ -146,7 +147,6 @@ function withExtendedArgsStruct<CK extends string>(
         size: arrayFromTextSize(measureLabel(label)),
       };
     };
-
     return innerBuild({
       ...args,
       childDisplayNodes,
@@ -202,7 +202,6 @@ export const enhancers: {
       }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
         const label: LabelPart[] = [
           {
-            // HACK this is a bad way to get the identifier name
             text: nodeForDisplay.getDebugLabel() || "",
             style: LabelStyle.VALUE,
           },
@@ -239,7 +238,6 @@ export const enhancers: {
         const label: LabelPart[] = [
           { text: '"', style: LabelStyle.SYNTAX_SYMBOL },
           {
-            // HACK this is a bad way to get the string content
             text: nodeForDisplay.getDebugLabel() || "",
             style: LabelStyle.VALUE,
           },
@@ -338,18 +336,15 @@ export const enhancers: {
               size: [150, 56],
             };
           }
-
           updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
             ...oldHints,
             styleAsText: true,
             label: [],
           }));
-
           const initializerEqualsSign = newTextNode(
             " = ",
             LabelStyle.SYNTAX_SYMBOL,
           );
-
           return {
             kind: NodeKind.TightSplit,
             split: Split.SideBySide,
@@ -438,7 +433,6 @@ export const enhancers: {
               size: [150, fallbackHeight],
             };
           }
-
           const keywordLabel: LabelPart[] = [
             { text: "function ", style: LabelStyle.KEYWORD },
           ];
@@ -447,11 +441,8 @@ export const enhancers: {
             styleAsText: true,
             label: keywordLabel,
           }));
-
           const expandParameters = !!childPostLayoutHints.parameters.didBreak;
-
           const closingParen = newTextNode(")", LabelStyle.SYNTAX_SYMBOL);
-
           return {
             kind: NodeKind.TightSplit,
             split: Split.Stacked,
@@ -510,10 +501,7 @@ export const enhancers: {
     node: Node<ts.NodeArray<ts.ParameterDeclaration>>,
   ) => {
     return {
-      displayInfo: {
-        priority: DisplayInfoPriority.LOW,
-        label: [],
-      },
+      displayInfo: { priority: DisplayInfoPriority.LOW, label: [] },
       buildDivetreeDisplayTree: withExtendedArgsList(
         ({
           nodeForDisplay,
@@ -528,7 +516,6 @@ export const enhancers: {
             styleAsText: true,
             didBreak: !!childDisplayNodes.length,
           }));
-
           if (!childDisplayNodes.length) {
             return {
               kind: NodeKind.TightLeaf,
@@ -536,7 +523,6 @@ export const enhancers: {
               size: [0, 0],
             };
           }
-
           const childrenWithCommas: TightSplitNode[] = childDisplayNodes.map(
             (c) => ({
               kind: NodeKind.TightSplit,
@@ -548,7 +534,6 @@ export const enhancers: {
               ],
             }),
           );
-
           if (showChildNavigationHints) {
             return {
               kind: NodeKind.Loose,
@@ -561,7 +546,6 @@ export const enhancers: {
               children: childrenWithCommas,
             };
           }
-
           return {
             kind: NodeKind.TightSplit,
             split: Split.SideBySide,
