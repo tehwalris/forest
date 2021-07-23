@@ -603,12 +603,41 @@ export const enhancers: {
     }
     return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
-  AnyKeyword: (
-    node: Node<ts.KeywordTypeNode<ts.SyntaxKind.AnyKeyword>>,
-    parentPath,
-  ) => {
+};
+[
+  ["ReturnStatement", "return"],
+  ["ImportDeclaration", "import"],
+  ["TypeQueryNode", "typeof"],
+  ["ArrayLiteralExpression", "array"],
+  ["ObjectLiteralExpression", "object"],
+  ["CallExpression", "call"],
+  ["AsExpression", "as"],
+].forEach(([tsType, displayType]) => {
+  enhancers[tsType] = (node: Node<unknown>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: displayType, style: LabelStyle.TYPE_SUMMARY }],
+      },
+    };
+  };
+});
+[
+  ["AnyKeyword", "any"],
+  ["UnknownKeyword", "unknown"],
+  ["NumberKeyword", "number"],
+  ["ObjectKeyword", "object"],
+  ["NumberKeyword", "number"],
+  ["BooleanKeyword", "boolean"],
+  ["StringKeyword", "string"],
+  ["SymbolKeyword", "symbol"],
+  ["VoidKeyword", "void"],
+  ["UndefinedKeyword", "undefined"],
+  ["NeverKeyword", "never"],
+].forEach(([tsType, displayKeyword]) => {
+  enhancers[tsType] = (node: Node<unknown>, parentPath) => {
     const label: LabelPart[] = [
-      { text: "any", style: LabelStyle.SYNTAX_SYMBOL },
+      { text: displayKeyword, style: LabelStyle.KEYWORD },
     ];
     return {
       displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
@@ -626,24 +655,6 @@ export const enhancers: {
           id: nodeForDisplay.id,
           size: arrayFromTextSize(measureLabel(label)),
         };
-      },
-    };
-  },
-};
-[
-  ["ReturnStatement", "return"],
-  ["ImportDeclaration", "import"],
-  ["TypeQueryNode", "typeof"],
-  ["ArrayLiteralExpression", "array"],
-  ["ObjectLiteralExpression", "object"],
-  ["CallExpression", "call"],
-  ["AsExpression", "as"],
-].forEach(([tsType, displayType]) => {
-  enhancers[tsType] = (node: Node<unknown>) => {
-    return {
-      displayInfo: {
-        priority: DisplayInfoPriority.MEDIUM,
-        label: [{ text: displayType, style: LabelStyle.TYPE_SUMMARY }],
       },
     };
   };
