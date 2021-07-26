@@ -13,7 +13,12 @@ import { BuildDivetreeDisplayTreeArgs, LabelStyle, Node } from "../tree/node";
 import { PostLayoutHints } from "../layout-hints";
 import * as R from "ramda";
 import { LabelMeasurementFunction } from "../text-measurement";
-import { divetreeFromDoc, Doc, leafDoc } from "./display-line";
+import {
+  divetreeFromDoc,
+  Doc,
+  docIsOnlySoftLinesOrEmpty,
+  leafDoc,
+} from "./display-line";
 import { unreachable } from "../util";
 
 export function getNodeForDisplay(
@@ -45,7 +50,19 @@ type IntermediateDisplay =
   | {
       kind: IntermediateDisplayKind.Divetree;
       content: DivetreeDisplayRootNode;
+      considerEmpty?: boolean;
     };
+
+function isConsideredEmpty(intermediate: IntermediateDisplay): boolean {
+  switch (intermediate.kind) {
+    case IntermediateDisplayKind.Divetree:
+      return intermediate.considerEmpty || false;
+    case IntermediateDisplayKind.Doc:
+      return docIsOnlySoftLinesOrEmpty(intermediate.content);
+    default:
+      return unreachable(intermediate);
+  }
+}
 
 export function buildDivetreeDisplayTree(
   ...args: Parameters<typeof buildDivetreeDisplayTreeIntermediate>
@@ -77,7 +94,10 @@ function asDivetree(
 function asDoc(intermediate: IntermediateDisplay): Doc {
   switch (intermediate.kind) {
     case IntermediateDisplayKind.Divetree:
-      return leafDoc(maybeWrapPortal(intermediate.content));
+      return leafDoc(
+        maybeWrapPortal(intermediate.content),
+        isConsideredEmpty(intermediate),
+      );
     case IntermediateDisplayKind.Doc:
       return intermediate.content;
     default:
@@ -211,10 +231,11 @@ function buildDivetreeDisplayTreeIntermediate(
             {
               kind: NodeKind.TightLeaf,
               id: `${nodeForDisplay.id}-shortcut`,
-              size: [10, 10],
+              size: [0, 0],
             },
           ],
         },
+        considerEmpty: isConsideredEmpty(base),
       };
     }
   }
