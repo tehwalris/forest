@@ -122,7 +122,7 @@ function buildDivetreeDisplayTreeIntermediate(
     };
 
   const isOnFocusPath = !!focusPath.length && node.id === focusPath[0];
-  const isFinal = !isOnFocusPath && !extraDepth;
+  const isFinal = !isOnFocusPath;
   const showChildNavigationHints =
     expandView && isOnFocusPath && focusPath.length === 1;
   const showChildShortcuts =
@@ -259,7 +259,7 @@ function buildDivetreeDisplayTreeIntermediate(
   const customIntermediateArgs: BuildDivetreeDisplayTreeArgs = {
     nodeForDisplay,
     focusPath,
-    expand: isFinal || isOnFocusPath,
+    expand: isOnFocusPath,
     showChildNavigationHints,
     parentPath,
     buildChildDisplayTree,
