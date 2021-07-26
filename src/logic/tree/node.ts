@@ -6,6 +6,7 @@ import { ParentPathElement } from "../parent-index";
 import type { RootNode as DivetreeDisplayRootNode } from "divetree-core";
 import { PostLayoutHints } from "../layout-hints";
 import { LabelMeasurementFunction } from "../text-measurement";
+import { Doc } from "./display-line";
 
 export interface BuildDivetreeDisplayTreeArgs {
   nodeForDisplay: Node<unknown>;
@@ -14,6 +15,7 @@ export interface BuildDivetreeDisplayTreeArgs {
   showChildNavigationHints: boolean;
   parentPath: ParentPathElement[];
   buildChildDisplayTree: (childNode: Node<unknown>) => DivetreeDisplayRootNode;
+  buildChildDoc: (childNode: Node<unknown>) => Doc;
   getPostLayoutHints: (nodeId: string) => PostLayoutHints;
   updatePostLayoutHints: (
     nodeId: string,

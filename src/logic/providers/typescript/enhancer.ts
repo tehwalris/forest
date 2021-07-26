@@ -23,6 +23,7 @@ import {
   Node,
   SemanticColor,
 } from "../../tree/node";
+import { Doc } from "../../tree/display-line";
 const fallbackHeight = 19.2;
 export function tryExtractName(node: Node<unknown>): string | undefined {
   const nameNode = node.getByPath(["name"]);
@@ -52,6 +53,7 @@ export type Enhancer<T extends Node<ts.Node> | Node<ts.NodeArray<ts.Node>>> = (
   buildDivetreeDisplayTree?: (
     args: BuildDivetreeDisplayTreeArgs,
   ) => DivetreeDisplayRootNode | undefined;
+  buildDoc?: (args: BuildDivetreeDisplayTreeArgs) => Doc | undefined;
 };
 interface ExtendedDisplayTreeArgsBase extends BuildDivetreeDisplayTreeArgs {
   maybeWrapPortal: (node: DivetreeDisplayRootNode) => TightNode | PortalNode;
