@@ -3,16 +3,22 @@ import {
   NodeKind,
   PortalNode,
   RootNode as DivetreeDisplayRootNode,
-  Split,
-  TightNode,
   TightLeafNode,
-  TightSplitNode,
+  TightNode,
 } from "divetree-core";
 import * as R from "ramda";
 import * as ts from "typescript";
 import { PostLayoutHints } from "../../layout-hints";
 import { ParentPathElement } from "../../parent-index";
 import { arrayFromTextSize } from "../../text-measurement";
+import {
+  Doc,
+  groupDoc,
+  leafDoc,
+  lineDoc,
+  LineKind,
+  nestDoc,
+} from "../../tree/display-line";
 import {
   BuildDivetreeDisplayTreeArgs,
   DisplayInfo,
@@ -22,15 +28,6 @@ import {
   Node,
   SemanticColor,
 } from "../../tree/node";
-import {
-  Doc,
-  groupDoc,
-  leafDoc,
-  lineDoc,
-  LineKind,
-  nestDoc,
-} from "../../tree/display-line";
-const fallbackHeight = 19.2;
 export function tryExtractName(node: Node<unknown>): string | undefined {
   const nameNode = node.getByPath(["name"]);
   if (!nameNode) {
@@ -218,11 +215,11 @@ export const enhancers: {
           ? SemanticColor.DECLARATION_NAME
           : SemanticColor.REFERENCE,
       },
-      buildDivetreeDisplayTree: ({
+      buildDoc: ({
         nodeForDisplay,
         updatePostLayoutHints,
         measureLabel,
-      }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
+      }: BuildDivetreeDisplayTreeArgs): Doc | undefined => {
         const label: LabelPart[] = [
           {
             text: nodeForDisplay.getDebugLabel() || "",
@@ -234,11 +231,11 @@ export const enhancers: {
           styleAsText: true,
           label,
         }));
-        return {
+        return leafDoc({
           kind: NodeKind.TightLeaf,
           id: nodeForDisplay.id,
           size: arrayFromTextSize(measureLabel(label)),
-        };
+        });
       },
     };
   },
@@ -253,11 +250,11 @@ export const enhancers: {
         ],
         color: SemanticColor.LITERAL,
       },
-      buildDivetreeDisplayTree: ({
+      buildDoc: ({
         nodeForDisplay,
         updatePostLayoutHints,
         measureLabel,
-      }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
+      }: BuildDivetreeDisplayTreeArgs): Doc | undefined => {
         const label: LabelPart[] = [
           { text: '"', style: LabelStyle.SYNTAX_SYMBOL },
           {
@@ -271,11 +268,11 @@ export const enhancers: {
           styleAsText: true,
           label,
         }));
-        return {
+        return leafDoc({
           kind: NodeKind.TightLeaf,
           id: nodeForDisplay.id,
           size: arrayFromTextSize(measureLabel(label)),
-        };
+        });
       },
     };
   },
@@ -340,79 +337,41 @@ export const enhancers: {
           ];
     return {
       displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
-      buildDivetreeDisplayTree: withExtendedArgsStruct(
+      buildDoc: withExtendedArgsStruct(
         ["dotDotDotToken", "name", "questionToken", "type", "initializer"],
         ({
           nodeForDisplay,
           updatePostLayoutHints,
-          expand,
           shouldHideChild,
-          maybeWrapPortal,
-          childDisplayNodes,
+          childDocs,
           showChildNavigationHints,
           newTextNode,
         }) => {
-          if (!expand) {
-            return {
-              kind: NodeKind.TightLeaf,
-              id: nodeForDisplay.id,
-              size: [150, 56],
-            };
+          if (showChildNavigationHints) {
+            return undefined;
           }
           updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
             ...oldHints,
             styleAsText: true,
             label: [],
           }));
-          const initializerEqualsSign = newTextNode(
-            " = ",
-            LabelStyle.SYNTAX_SYMBOL,
-          );
-          const typeWithColon: TightSplitNode = {
-            kind: NodeKind.TightSplit,
-            split: Split.SideBySide,
-            growLast: true,
-            children: [
-              newTextNode(": ", LabelStyle.SYNTAX_SYMBOL),
-              maybeWrapPortal(childDisplayNodes.type),
-            ],
-          };
-          return {
-            kind: NodeKind.TightSplit,
-            split: Split.SideBySide,
-            growLast: true,
-            children: filterTruthyChildren([
-              showChildNavigationHints && {
-                kind: NodeKind.TightLeaf,
-                id: nodeForDisplay.id,
-                size: [10, fallbackHeight],
-              },
-              {
-                kind: NodeKind.TightSplit,
-                split: showChildNavigationHints
-                  ? Split.Stacked
-                  : Split.SideBySide,
-                growLast: true,
-                children: filterTruthyChildren([
-                  !shouldHideChild("dotDotDotToken") &&
-                    maybeWrapPortal(childDisplayNodes.dotDotDotToken),
-                  maybeWrapPortal(childDisplayNodes.name),
-                  !shouldHideChild("questionToken") &&
-                    maybeWrapPortal(childDisplayNodes.questionToken),
-                  !shouldHideChild("type") && typeWithColon,
-                  !shouldHideChild("initializer") && {
-                    kind: NodeKind.TightSplit,
-                    split: Split.SideBySide,
-                    growLast: true,
-                    children: [
-                      initializerEqualsSign,
-                      maybeWrapPortal(childDisplayNodes.initializer),
-                    ],
-                  },
-                ]),
-              },
+          const initializerWithEqualsSign = groupDoc([
+            leafDoc(newTextNode(" = ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.initializer,
+          ]);
+          const typeWithColon: Doc = groupDoc([
+            leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.type,
+          ]);
+          return groupDoc(
+            filterTruthyChildren([
+              !shouldHideChild("dotDotDotToken") && childDocs.dotDotDotToken,
+              childDocs.name,
+              !shouldHideChild("questionToken") && childDocs.questionToken,
+              !shouldHideChild("type") && typeWithColon,
+              !shouldHideChild("initializer") && initializerWithEqualsSign,
             ]),
-          };
+          );
         },
       ),
     };
@@ -551,27 +510,18 @@ export const enhancers: {
         priority: DisplayInfoPriority.MEDIUM,
         label: [{ text: "TypeReferenceNode", style: LabelStyle.UNKNOWN }],
       },
-      buildDivetreeDisplayTree: withExtendedArgsStruct(
+      buildDoc: withExtendedArgsStruct(
         ["typeName", "typeArguments"],
         ({
           nodeForDisplay,
           updatePostLayoutHints,
-          expand,
           shouldHideChild,
-          maybeWrapPortal,
-          childDisplayNodes,
+          childDocs,
           showChildNavigationHints,
           newTextNode,
-        }) => {
+        }): Doc | undefined => {
           if (showChildNavigationHints) {
             return undefined;
-          }
-          if (!expand) {
-            return {
-              kind: NodeKind.TightLeaf,
-              id: nodeForDisplay.id,
-              size: [150, 56],
-            };
           }
           updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
             ...oldHints,
@@ -580,24 +530,17 @@ export const enhancers: {
           }));
           const openingArrow = newTextNode("<", LabelStyle.SYNTAX_SYMBOL);
           const closingArrow = newTextNode(">", LabelStyle.SYNTAX_SYMBOL);
-          return {
-            kind: NodeKind.TightSplit,
-            split: Split.SideBySide,
-            growLast: true,
-            children: filterTruthyChildren([
-              maybeWrapPortal(childDisplayNodes.typeName),
-              !shouldHideChild("typeArguments") && {
-                kind: NodeKind.TightSplit,
-                split: Split.SideBySide,
-                growLast: true,
-                children: [
-                  openingArrow,
-                  maybeWrapPortal(childDisplayNodes.typeArguments),
-                  closingArrow,
-                ],
-              },
+          return groupDoc(
+            filterTruthyChildren([
+              childDocs.typeName,
+              !shouldHideChild("typeArguments") &&
+                groupDoc([
+                  leafDoc(openingArrow),
+                  childDocs.typeArguments,
+                  leafDoc(closingArrow),
+                ]),
             ]),
-          };
+          );
         },
       ),
     };
@@ -607,46 +550,22 @@ export const enhancers: {
   ) => {
     return {
       displayInfo: { priority: DisplayInfoPriority.LOW, label: [] },
-      buildDivetreeDisplayTree: withExtendedArgsList(
-        ({
-          nodeForDisplay,
-          childDisplayNodes,
-          maybeWrapPortal,
-          newTextNode,
-          updatePostLayoutHints,
-          showChildNavigationHints,
-        }) => {
+      buildDoc: withExtendedArgsList(
+        ({ nodeForDisplay, childDocs, newTextNode, updatePostLayoutHints }) => {
           updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
             ...oldHints,
             styleAsText: true,
           }));
-          if (!childDisplayNodes.length) {
-            return {
-              kind: NodeKind.TightLeaf,
-              id: nodeForDisplay.id,
-              size: [0, 0],
-            };
-          }
-          const childrenWithCommas: TightSplitNode[] = childDisplayNodes.map(
-            (c) => ({
-              kind: NodeKind.TightSplit,
-              split: Split.SideBySide,
-              growLast: true,
-              children: [
-                maybeWrapPortal(c),
-                newTextNode(", ", LabelStyle.SYNTAX_SYMBOL),
-              ],
-            }),
+          return groupDoc(
+            childDocs.map((c, i) =>
+              i === 0
+                ? c
+                : groupDoc([
+                    leafDoc(newTextNode(", ", LabelStyle.SYNTAX_SYMBOL)),
+                    c,
+                  ]),
+            ),
           );
-          return {
-            kind: NodeKind.TightSplit,
-            split: Split.SideBySide,
-            growLast: true,
-            children: [
-              ...R.dropLast(1, childrenWithCommas),
-              maybeWrapPortal(R.last(childDisplayNodes)!),
-            ],
-          };
         },
       ),
     };
@@ -690,20 +609,20 @@ export const enhancers: {
     ];
     return {
       displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
-      buildDivetreeDisplayTree: ({
+      buildDoc: ({
         nodeForDisplay,
         updatePostLayoutHints,
         measureLabel,
-      }: BuildDivetreeDisplayTreeArgs): DivetreeDisplayRootNode | undefined => {
+      }: BuildDivetreeDisplayTreeArgs): Doc | undefined => {
         updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
           ...oldHints,
           styleAsText: true,
         }));
-        return {
+        return leafDoc({
           kind: NodeKind.TightLeaf,
           id: nodeForDisplay.id,
           size: arrayFromTextSize(measureLabel(label)),
-        };
+        });
       },
     };
   };
