@@ -501,6 +501,49 @@ export const enhancers: {
     }
     return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
+  PropertyAccessExpression: (node: Node<ts.PropertyAccessExpression>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [
+          { text: "PropertyAccessExpression", style: LabelStyle.UNKNOWN },
+        ],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["expression", "questionDotToken", "name"],
+        ({
+          nodeForDisplay,
+          updatePostLayoutHints,
+          shouldHideChild,
+          childDocs,
+          childIsEmpty,
+          showChildNavigationHints,
+          newTextNode,
+        }): Doc | undefined => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+            ...oldHints,
+            styleAsText: true,
+            label: [],
+          }));
+          const questionToken = newTextNode("?", LabelStyle.SYNTAX_SYMBOL);
+          return groupDoc(
+            filterTruthyChildren([
+              childDocs.expression,
+              !shouldHideChild("questionDotToken") &&
+                (childIsEmpty.questionDotToken
+                  ? childDocs.questionDotToken
+                  : leafDoc(questionToken)),
+              leafDoc(newTextNode(".", LabelStyle.SYNTAX_SYMBOL)),
+              childDocs.name,
+            ]),
+          );
+        },
+      ),
+    };
+  },
   TypeReferenceNode: (node: Node<ts.TypeReferenceNode>) => {
     return {
       displayInfo: {
