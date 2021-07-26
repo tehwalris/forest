@@ -84,7 +84,6 @@ function linesFromDoc(rootDoc: Doc): Line[] {
 }
 
 export function divetreeFromDoc(doc: Doc): TightNode {
-  console.log("DEBUG divetreeFromDoc", doc, linesFromDoc(doc));
   return {
     kind: NodeKind.TightSplit,
     split: Split.Stacked,
