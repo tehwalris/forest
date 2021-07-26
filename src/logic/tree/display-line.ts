@@ -1,5 +1,6 @@
 import { NodeKind, PortalNode, Split, TightNode } from "divetree-core";
 import { unreachable } from "../util";
+import * as R from "ramda";
 
 enum DocKind {
   Nest,
@@ -51,33 +52,39 @@ interface Line {
   content: (TightNode | PortalNode)[];
 }
 
-function linesFromDoc(doc: Doc): Line[] {
-  switch (doc.kind) {
-    case DocKind.Nest: {
-      const lines = linesFromDoc(doc.content);
-      if (!lines.length) {
-        return lines;
+function linesFromDoc(rootDoc: Doc): Line[] {
+  const docQueue: Doc[] = [rootDoc];
+  let currentLine: Line = { indent: 0, content: [] };
+  const output: Line[] = [currentLine];
+  let nextIndent = 0;
+  while (docQueue.length) {
+    const doc = docQueue.pop()!;
+    switch (doc.kind) {
+      case DocKind.Nest: {
+        nextIndent += doc.amount;
+        docQueue.push(doc.content);
+        break;
       }
-      return [
-        lines[0],
-        ...lines.slice(1).map((l) => ({
-          ...l,
-          indent: l.indent + doc.amount,
-        })),
-      ];
+      case DocKind.Leaf:
+        currentLine.content.push(doc.content);
+        break;
+      case DocKind.Line:
+        const newLine: Line = { indent: nextIndent, content: [] };
+        output.push(newLine);
+        currentLine = newLine;
+        break;
+      case DocKind.Group:
+        docQueue.push(...R.reverse(doc.content));
+        break;
+      default:
+        unreachable(doc);
     }
-    case DocKind.Leaf:
-      return [{ indent: 0, content: [doc.content] }];
-    case DocKind.Line:
-      return [{ indent: 0, content: [] }];
-    case DocKind.Group:
-      return doc.content.flatMap((c) => linesFromDoc(c));
-    default:
-      return unreachable(doc);
   }
+  return output;
 }
 
 export function divetreeFromDoc(doc: Doc): TightNode {
+  console.log("DEBUG divetreeFromDoc", doc, linesFromDoc(doc));
   return {
     kind: NodeKind.TightSplit,
     split: Split.Stacked,

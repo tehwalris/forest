@@ -192,4 +192,8 @@ export class CompressedNode<B> extends Node<B> {
   buildDivetreeDisplayTree(args: BuildDivetreeDisplayTreeArgs) {
     return this.childNode.buildDivetreeDisplayTree(args);
   }
+
+  buildDoc(args: BuildDivetreeDisplayTreeArgs) {
+    return this.childNode.buildDoc(args);
+  }
 }

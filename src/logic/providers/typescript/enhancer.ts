@@ -3,7 +3,6 @@ import {
   NodeKind,
   PortalNode,
   RootNode as DivetreeDisplayRootNode,
-  Node as DivetreeDisplayNode,
   Split,
   TightNode,
   TightLeafNode,
@@ -23,7 +22,13 @@ import {
   Node,
   SemanticColor,
 } from "../../tree/node";
-import { Doc } from "../../tree/display-line";
+import {
+  Doc,
+  groupDoc,
+  leafDoc,
+  lineDoc,
+  nestDoc,
+} from "../../tree/display-line";
 const fallbackHeight = 19.2;
 export function tryExtractName(node: Node<unknown>): string | undefined {
   const nameNode = node.getByPath(["name"]);
@@ -40,7 +45,7 @@ export function tryExtractName(node: Node<unknown>): string | undefined {
   }
   return text;
 }
-export function filterTruthyChildren<T extends DivetreeDisplayNode>(
+export function filterTruthyChildren<T extends Object>(
   children: (T | boolean | undefined)[],
 ): T[] {
   return children.filter((c) => c && c !== true).map((c) => c as T);
@@ -65,6 +70,9 @@ interface ExtendedDisplayTreeArgsBase extends BuildDivetreeDisplayTreeArgs {
 }
 interface ExtendedDisplayTreeArgsStruct<CK extends string>
   extends ExtendedDisplayTreeArgsBase {
+  childDocs: {
+    [K in CK]: Doc;
+  };
   childDisplayNodes: {
     [K in CK]: DivetreeDisplayRootNode;
   };
@@ -77,20 +85,20 @@ interface ExtendedDisplayTreeArgsStruct<CK extends string>
   shouldHideChild: (childKey: CK) => boolean;
 }
 interface ExtendedDisplayTreeArgsList extends ExtendedDisplayTreeArgsBase {
+  childDocs: Doc[];
   childDisplayNodes: DivetreeDisplayRootNode[];
   childIsEmpty: boolean[];
   childPostLayoutHints: PostLayoutHints[];
   shouldHideChild: (childKey: number) => boolean;
 }
-function withExtendedArgsStruct<CK extends string>(
+function withExtendedArgsStruct<CK extends string, R>(
   expectedChildKeys: CK[],
-  innerBuild: (
-    args: ExtendedDisplayTreeArgsStruct<CK>,
-  ) => DivetreeDisplayRootNode | undefined,
-): (args: BuildDivetreeDisplayTreeArgs) => DivetreeDisplayRootNode | undefined {
+  innerBuild: (args: ExtendedDisplayTreeArgsStruct<CK>) => R | undefined,
+): (args: BuildDivetreeDisplayTreeArgs) => R | undefined {
   return (args: BuildDivetreeDisplayTreeArgs) => {
     const {
       nodeForDisplay,
+      buildChildDoc,
       buildChildDisplayTree,
       showChildNavigationHints,
       focusPath,
@@ -105,6 +113,9 @@ function withExtendedArgsStruct<CK extends string>(
       console.warn("unexpected number or order of children");
       return undefined;
     }
+    const childDocs: {
+      [K in CK]: Doc;
+    } = {} as any;
     const childDisplayNodes: {
       [K in CK]: DivetreeDisplayRootNode;
     } = {} as any;
@@ -116,6 +127,7 @@ function withExtendedArgsStruct<CK extends string>(
     } = {} as any;
     for (const key of expectedChildKeys) {
       const child = nodeForDisplay.getByPath([key])!;
+      childDocs[key] = buildChildDoc(child);
       childDisplayNodes[key] = buildChildDisplayTree(child);
       childIsEmpty[key] = child.getDebugLabel() === "Option<None>";
       childPostLayoutHints[key] = getPostLayoutHints(child.id);
@@ -159,6 +171,7 @@ function withExtendedArgsStruct<CK extends string>(
     };
     return innerBuild({
       ...args,
+      childDocs,
       childDisplayNodes,
       childIsEmpty,
       childPostLayoutHints,
@@ -179,6 +192,7 @@ function withExtendedArgsList(
     return withExtendedArgsStruct(childKeys, (structArgs) => {
       return innerBuild({
         ...structArgs,
+        childDocs: childKeys.map((k) => structArgs.childDocs[k]),
         childDisplayNodes: childKeys.map(
           (k) => structArgs.childDisplayNodes[k],
         ),
@@ -518,6 +532,65 @@ export const enhancers: {
               newTextNode("}", LabelStyle.SYNTAX_SYMBOL),
             ]),
           };
+        },
+      ),
+      buildDoc: withExtendedArgsStruct(
+        [
+          "asteriskToken",
+          "name",
+          "parameters",
+          "typeParameters",
+          "type",
+          "body",
+        ],
+        ({
+          nodeForDisplay,
+          updatePostLayoutHints,
+          expand,
+          shouldHideChild,
+          childDocs,
+          newTextNode,
+          measureLabel,
+        }): Doc | undefined => {
+          if (!expand) {
+            return undefined;
+          }
+          const keywordLabel: LabelPart[] = [
+            { text: "function ", style: LabelStyle.KEYWORD },
+          ];
+          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+            ...oldHints,
+            styleAsText: true,
+            label: keywordLabel,
+          }));
+          const typeWithColon: Doc = groupDoc([
+            leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.type,
+          ]);
+          return groupDoc(
+            filterTruthyChildren([
+              leafDoc({
+                kind: NodeKind.TightLeaf,
+                id: nodeForDisplay.id,
+                size: arrayFromTextSize(measureLabel(keywordLabel)),
+              }),
+              !shouldHideChild("typeParameters") && childDocs.typeParameters,
+              !shouldHideChild("asteriskToken") && childDocs.asteriskToken,
+              childDocs.name,
+              leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
+              lineDoc(),
+              nestDoc(1, childDocs.parameters),
+              lineDoc(),
+              leafDoc(newTextNode(")", LabelStyle.SYNTAX_SYMBOL)),
+              leafDoc(newTextNode(" ", LabelStyle.SYNTAX_SYMBOL)),
+              !shouldHideChild("type") && typeWithColon,
+              leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
+              lineDoc(),
+              nestDoc(1, childDocs.body),
+              lineDoc(),
+              leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
+            ]),
+          );
         },
       ),
     };

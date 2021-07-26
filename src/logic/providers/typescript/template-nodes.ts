@@ -24,6 +24,7 @@ import { fromTsNode } from "./convert";
 import { MetaSplit } from "../../transform/transforms/split-meta";
 import { ParentPathElement } from "../../parent-index";
 import type { RootNode as DivetreeDisplayRootNode } from "divetree-core";
+import type { Doc } from "../../tree/display-line";
 export type Union<T extends ts.Node> = () => {
   [key: string]: {
     match: (node: ts.Node) => node is T;
@@ -177,6 +178,9 @@ export class StringTemplateNode<B extends ts.Node> extends Node<B> {
       .enhancer?.(this, args.parentPath)
       .buildDivetreeDisplayTree?.(args);
   }
+  buildDoc(args: BuildDivetreeDisplayTreeArgs): Doc | undefined {
+    return this.template.enhancer?.(this, args.parentPath).buildDoc?.(args);
+  }
 }
 export class ListTemplateNode<
   B extends ts.Node,
@@ -262,6 +266,9 @@ export class ListTemplateNode<
     return this.template
       .enhancer?.(this, args.parentPath)
       .buildDivetreeDisplayTree?.(args);
+  }
+  buildDoc(args: BuildDivetreeDisplayTreeArgs): Doc | undefined {
+    return this.template.enhancer?.(this, args.parentPath).buildDoc?.(args);
   }
 }
 export class StructTemplateNode<
@@ -393,6 +400,9 @@ export class StructTemplateNode<
     return this.template
       .enhancer?.(this, args.parentPath)
       .buildDivetreeDisplayTree?.(args);
+  }
+  buildDoc(args: BuildDivetreeDisplayTreeArgs): Doc | undefined {
+    return this.template.enhancer?.(this, args.parentPath).buildDoc?.(args);
   }
 }
 export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {

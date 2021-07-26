@@ -235,7 +235,7 @@ function buildDivetreeDisplayTreeIntermediate(
   const buildChildDoc = (childNode: Node<unknown>) =>
     asDoc(buildChildIntermediate(childNode));
 
-  const customDisplayTree = node.buildDivetreeDisplayTree({
+  const customIntermediateArgs: BuildDivetreeDisplayTreeArgs = {
     nodeForDisplay,
     focusPath,
     expand: isFinal || isOnFocusPath,
@@ -246,12 +246,22 @@ function buildDivetreeDisplayTreeIntermediate(
     updatePostLayoutHints,
     getPostLayoutHints: (nodeId) => postLayoutHintsById.get(nodeId) || {},
     measureLabel,
-  });
-  if (customDisplayTree) {
-    return maybeWrapForNavigation({
-      kind: IntermediateDisplayKind.Divetree,
-      content: customDisplayTree,
-    });
+  };
+  const mapIfDefined = <A, B>(
+    v: A | undefined,
+    cb: (v: A) => B,
+  ): B | undefined => (v === undefined ? undefined : cb(v));
+  const customIntermediate: IntermediateDisplay | undefined =
+    mapIfDefined(node.buildDoc(customIntermediateArgs), (content) => ({
+      kind: IntermediateDisplayKind.Doc,
+      content,
+    })) ||
+    mapIfDefined(
+      node.buildDivetreeDisplayTree(customIntermediateArgs),
+      (content) => ({ kind: IntermediateDisplayKind.Divetree, content }),
+    );
+  if (customIntermediate) {
+    return maybeWrapForNavigation(customIntermediate);
   }
 
   const base: TightLeafNode = {
