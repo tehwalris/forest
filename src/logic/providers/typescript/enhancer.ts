@@ -428,15 +428,11 @@ export const enhancers: {
         ({
           nodeForDisplay,
           updatePostLayoutHints,
-          expand,
           shouldHideChild,
           childDocs,
           newTextNode,
           measureLabel,
         }): Doc | undefined => {
-          if (!expand) {
-            return undefined;
-          }
           const keywordLabel: LabelPart[] = [
             { text: "function ", style: LabelStyle.KEYWORD },
           ];
@@ -470,10 +466,7 @@ export const enhancers: {
               leafDoc(newTextNode(")", LabelStyle.SYNTAX_SYMBOL)),
               !shouldHideChild("type") && typeWithColon,
               leafDoc(newTextNode(" ", LabelStyle.SYNTAX_SYMBOL)),
-              leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
-              nestDoc(1, groupDoc([lineDoc(), childDocs.body])),
-              lineDoc(),
-              leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
+              !shouldHideChild("body") && childDocs.body,
             ]),
           );
         },
@@ -640,6 +633,43 @@ export const enhancers: {
             label: [],
           }));
           return childDocs.expression;
+        },
+      ),
+    };
+  },
+  Block: (node: Node<ts.ExpressionStatement>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "block", style: LabelStyle.TYPE_SUMMARY }],
+      },
+      buildDoc: withExtendedArgsList(
+        ({
+          nodeForDisplay,
+          updatePostLayoutHints,
+          childDocs,
+          expand,
+          newTextNode,
+        }): Doc | undefined => {
+          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+            ...oldHints,
+            styleAsText: true,
+            label: [],
+          }));
+          const ellipsis = newTextNode("...", LabelStyle.UNKNOWN);
+          return groupDoc([
+            leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
+            expand
+              ? groupDoc([
+                  nestDoc(
+                    1,
+                    groupDoc(childDocs.map((c) => groupDoc([lineDoc(), c]))),
+                  ),
+                  lineDoc(),
+                ])
+              : leafDoc(ellipsis),
+            leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
+          ]);
         },
       ),
     };

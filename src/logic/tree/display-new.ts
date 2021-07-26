@@ -121,8 +121,8 @@ function buildDivetreeDisplayTreeIntermediate(
       postLayoutHintsById.set(id, updateHints(oldHints));
     };
 
-  const isOnFocusPath = node.id === focusPath[0];
-  const isFinal = !isOnFocusPath || !!extraDepth;
+  const isOnFocusPath = !!focusPath.length && node.id === focusPath[0];
+  const isFinal = !isOnFocusPath && !extraDepth;
   const showChildNavigationHints =
     expandView && isOnFocusPath && focusPath.length === 1;
   const showChildShortcuts =
