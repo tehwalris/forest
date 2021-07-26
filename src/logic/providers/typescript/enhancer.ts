@@ -617,6 +617,33 @@ export const enhancers: {
   },
   "CallExpression.typeArguments": singleLineCommaListEnhancer,
   "CallExpression.arguments": singleLineCommaListEnhancer,
+  ExpressionStatement: (node: Node<ts.ExpressionStatement>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "ExpressionStatement", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["expression"],
+        ({
+          nodeForDisplay,
+          updatePostLayoutHints,
+          childDocs,
+          showChildNavigationHints,
+        }): Doc | undefined => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+            ...oldHints,
+            styleAsText: true,
+            label: [],
+          }));
+          return childDocs.expression;
+        },
+      ),
+    };
+  },
   TypeReferenceNode: (node: Node<ts.TypeReferenceNode>) => {
     return {
       displayInfo: {
