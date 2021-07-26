@@ -53,9 +53,6 @@ export type Enhancer<T extends Node<ts.Node> | Node<ts.NodeArray<ts.Node>>> = (
   parentPath: ParentPathElement[],
 ) => {
   displayInfo: DisplayInfo;
-  buildDivetreeDisplayTree?: (
-    args: BuildDivetreeDisplayTreeArgs,
-  ) => DivetreeDisplayRootNode | undefined;
   buildDoc?: (args: BuildDivetreeDisplayTreeArgs) => Doc | undefined;
 };
 interface ExtendedDisplayTreeArgsBase extends BuildDivetreeDisplayTreeArgs {

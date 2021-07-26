@@ -23,7 +23,6 @@ import { shortcutsByType } from "./generated/templates";
 import { fromTsNode } from "./convert";
 import { MetaSplit } from "../../transform/transforms/split-meta";
 import { ParentPathElement } from "../../parent-index";
-import type { RootNode as DivetreeDisplayRootNode } from "divetree-core";
 import type { Doc } from "../../tree/display-line";
 export type Union<T extends ts.Node> = () => {
   [key: string]: {
@@ -171,13 +170,6 @@ export class StringTemplateNode<B extends ts.Node> extends Node<B> {
       label,
     };
   }
-  buildDivetreeDisplayTree(
-    args: BuildDivetreeDisplayTreeArgs,
-  ): DivetreeDisplayRootNode | undefined {
-    return this.template
-      .enhancer?.(this, args.parentPath)
-      .buildDivetreeDisplayTree?.(args);
-  }
   buildDoc(args: BuildDivetreeDisplayTreeArgs): Doc | undefined {
     return this.template.enhancer?.(this, args.parentPath).buildDoc?.(args);
   }
@@ -259,13 +251,6 @@ export class ListTemplateNode<
   getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
     const { enhancer } = this.template;
     return enhancer ? enhancer(this, parentPath).displayInfo : undefined;
-  }
-  buildDivetreeDisplayTree(
-    args: BuildDivetreeDisplayTreeArgs,
-  ): DivetreeDisplayRootNode | undefined {
-    return this.template
-      .enhancer?.(this, args.parentPath)
-      .buildDivetreeDisplayTree?.(args);
   }
   buildDoc(args: BuildDivetreeDisplayTreeArgs): Doc | undefined {
     return this.template.enhancer?.(this, args.parentPath).buildDoc?.(args);
@@ -393,13 +378,6 @@ export class StructTemplateNode<
   getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
     const { enhancer } = this.template;
     return enhancer ? enhancer(this, parentPath).displayInfo : undefined;
-  }
-  buildDivetreeDisplayTree(
-    args: BuildDivetreeDisplayTreeArgs,
-  ): DivetreeDisplayRootNode | undefined {
-    return this.template
-      .enhancer?.(this, args.parentPath)
-      .buildDivetreeDisplayTree?.(args);
   }
   buildDoc(args: BuildDivetreeDisplayTreeArgs): Doc | undefined {
     return this.template.enhancer?.(this, args.parentPath).buildDoc?.(args);

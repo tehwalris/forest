@@ -94,11 +94,6 @@ export abstract class Node<B> {
     }
     return shortcuts;
   }
-  buildDivetreeDisplayTree(
-    args: BuildDivetreeDisplayTreeArgs,
-  ): DivetreeDisplayRootNode | undefined {
-    return undefined;
-  }
   buildDoc(args: BuildDivetreeDisplayTreeArgs): Doc | undefined {
     return undefined;
   }

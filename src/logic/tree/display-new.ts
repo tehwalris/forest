@@ -272,15 +272,13 @@ function buildDivetreeDisplayTreeIntermediate(
     v: A | undefined,
     cb: (v: A) => B,
   ): B | undefined => (v === undefined ? undefined : cb(v));
-  const customIntermediate: IntermediateDisplay | undefined =
-    mapIfDefined(node.buildDoc(customIntermediateArgs), (content) => ({
+  const customIntermediate: IntermediateDisplay | undefined = mapIfDefined(
+    node.buildDoc(customIntermediateArgs),
+    (content) => ({
       kind: IntermediateDisplayKind.Doc,
       content,
-    })) ||
-    mapIfDefined(
-      node.buildDivetreeDisplayTree(customIntermediateArgs),
-      (content) => ({ kind: IntermediateDisplayKind.Divetree, content }),
-    );
+    }),
+  );
   if (customIntermediate) {
     return maybeWrapForNavigation(customIntermediate);
   }
