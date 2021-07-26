@@ -198,6 +198,29 @@ function withExtendedArgsList<R>(
     })(originalArgs);
   };
 }
+const singleLineCommaListEnhancer: Enhancer<Node<ts.NodeArray<ts.Node>>> = (
+  node,
+) => ({
+  displayInfo: { priority: DisplayInfoPriority.LOW, label: [] },
+  buildDoc: withExtendedArgsList(
+    ({ nodeForDisplay, childDocs, newTextNode, updatePostLayoutHints }) => {
+      updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+        ...oldHints,
+        styleAsText: true,
+      }));
+      return groupDoc(
+        childDocs.map((c, i) =>
+          i === 0
+            ? c
+            : groupDoc([
+                leafDoc(newTextNode(", ", LabelStyle.SYNTAX_SYMBOL)),
+                c,
+              ]),
+        ),
+      );
+    },
+  ),
+});
 export const enhancers: {
   [key: string]: Enhancer<any> | undefined;
 } = {
@@ -505,9 +528,7 @@ export const enhancers: {
     return {
       displayInfo: {
         priority: DisplayInfoPriority.MEDIUM,
-        label: [
-          { text: "PropertyAccessExpression", style: LabelStyle.UNKNOWN },
-        ],
+        label: [{ text: "property access", style: LabelStyle.TYPE_SUMMARY }],
       },
       buildDoc: withExtendedArgsStruct(
         ["expression", "questionDotToken", "name"],
@@ -544,6 +565,58 @@ export const enhancers: {
       ),
     };
   },
+  CallExpression: (node: Node<ts.CallExpression>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "call", style: LabelStyle.TYPE_SUMMARY }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["expression", "questionDotToken", "typeArguments", "arguments"],
+        ({
+          nodeForDisplay,
+          updatePostLayoutHints,
+          shouldHideChild,
+          childDocs,
+          childIsEmpty,
+          showChildNavigationHints,
+          newTextNode,
+        }): Doc | undefined => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+            ...oldHints,
+            styleAsText: true,
+            label: [],
+          }));
+          const questionDotToken = newTextNode("?.", LabelStyle.SYNTAX_SYMBOL);
+          const openingArrow = newTextNode("<", LabelStyle.SYNTAX_SYMBOL);
+          const closingArrow = newTextNode(">", LabelStyle.SYNTAX_SYMBOL);
+          return groupDoc(
+            filterTruthyChildren([
+              childDocs.expression,
+              !shouldHideChild("questionDotToken") &&
+                (childIsEmpty.questionDotToken
+                  ? childDocs.questionDotToken
+                  : leafDoc(questionDotToken)),
+              !shouldHideChild("typeArguments") &&
+                groupDoc([
+                  leafDoc(openingArrow),
+                  childDocs.typeArguments,
+                  leafDoc(closingArrow),
+                ]),
+              leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
+              childDocs.arguments,
+              leafDoc(newTextNode(")", LabelStyle.SYNTAX_SYMBOL)),
+            ]),
+          );
+        },
+      ),
+    };
+  },
+  "CallExpression.typeArguments": singleLineCommaListEnhancer,
+  "CallExpression.arguments": singleLineCommaListEnhancer,
   TypeReferenceNode: (node: Node<ts.TypeReferenceNode>) => {
     return {
       displayInfo: {
@@ -585,31 +658,7 @@ export const enhancers: {
       ),
     };
   },
-  "TypeReferenceNode.typeArguments": (
-    node: Node<ts.NodeArray<ts.TypeNode>>,
-  ) => {
-    return {
-      displayInfo: { priority: DisplayInfoPriority.LOW, label: [] },
-      buildDoc: withExtendedArgsList(
-        ({ nodeForDisplay, childDocs, newTextNode, updatePostLayoutHints }) => {
-          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-            ...oldHints,
-            styleAsText: true,
-          }));
-          return groupDoc(
-            childDocs.map((c, i) =>
-              i === 0
-                ? c
-                : groupDoc([
-                    leafDoc(newTextNode(", ", LabelStyle.SYNTAX_SYMBOL)),
-                    c,
-                  ]),
-            ),
-          );
-        },
-      ),
-    };
-  },
+  "TypeReferenceNode.typeArguments": singleLineCommaListEnhancer,
 };
 [
   ["ReturnStatement", "return"],
@@ -617,7 +666,6 @@ export const enhancers: {
   ["TypeQueryNode", "typeof"],
   ["ArrayLiteralExpression", "array"],
   ["ObjectLiteralExpression", "object"],
-  ["CallExpression", "call"],
   ["AsExpression", "as"],
 ].forEach(([tsType, displayType]) => {
   enhancers[tsType] = (node: Node<unknown>) => {
