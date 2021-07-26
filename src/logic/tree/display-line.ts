@@ -1,4 +1,10 @@
-import { NodeKind, PortalNode, Split, TightNode } from "divetree-core";
+import {
+  NodeKind,
+  PortalNode,
+  Split,
+  TightLeafNode,
+  TightNode,
+} from "divetree-core";
 import { unreachable } from "../util";
 import * as R from "ramda";
 
@@ -79,15 +85,26 @@ export function docIsOnlySoftLinesOrEmpty(doc: Doc): boolean {
 }
 
 function linesFromDoc(rootDoc: Doc): Line[] {
-  const docQueue: Doc[] = [rootDoc];
+  const docQueue: (Doc | "popIndent")[] = [rootDoc];
   let currentLine: Line = { indent: 0, content: [] };
   const output: Line[] = [currentLine];
   let nextIndent = 0;
+  const indentStack: number[] = [];
   while (docQueue.length) {
     const doc = docQueue.pop()!;
+    if (doc === "popIndent") {
+      const poppedIndent = indentStack.pop();
+      if (poppedIndent === undefined) {
+        throw new Error("indent stack underflow");
+      }
+      nextIndent = poppedIndent;
+      continue;
+    }
     switch (doc.kind) {
       case DocKind.Nest: {
+        indentStack.push(nextIndent);
         nextIndent += doc.amount;
+        docQueue.push("popIndent");
         docQueue.push(doc.content);
         break;
       }
@@ -115,6 +132,16 @@ function linesFromDoc(rootDoc: Doc): Line[] {
   return output;
 }
 
+function makeIndentNodes(indent: number): TightLeafNode[] {
+  if (indent === 0) {
+    return [];
+  } else if (indent > 0) {
+    return [{ kind: NodeKind.TightLeaf, size: [indent * 10, 0] }];
+  } else {
+    throw new Error("indent must be non-negative");
+  }
+}
+
 export function divetreeFromDoc(doc: Doc): TightNode {
   return {
     kind: NodeKind.TightSplit,
@@ -124,8 +151,7 @@ export function divetreeFromDoc(doc: Doc): TightNode {
       kind: NodeKind.TightSplit,
       split: Split.SideBySide,
       growLast: true,
-      // TODO indent
-      children: line.content,
+      children: [...makeIndentNodes(line.indent), ...line.content],
     })),
   };
 }
