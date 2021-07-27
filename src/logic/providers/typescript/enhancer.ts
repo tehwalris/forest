@@ -614,7 +614,7 @@ export const enhancers: {
   },
   "CallExpression.typeArguments": singleLineCommaListEnhancer,
   "CallExpression.arguments": singleLineCommaListEnhancer,
-  TypeParameterDeclaration: (node: Node<ts.CallExpression>) => {
+  TypeParameterDeclaration: (node: Node<ts.TypeParameterDeclaration>) => {
     return {
       displayInfo: {
         priority: DisplayInfoPriority.MEDIUM,
@@ -655,6 +655,40 @@ export const enhancers: {
               !shouldHideChild("default") && defaultWithEquals,
             ]),
           );
+        },
+      ),
+    };
+  },
+  BinaryExpression: (node: Node<ts.BinaryExpression>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "BinaryExpression", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["left", "operatorToken", "right"],
+        ({
+          nodeForDisplay,
+          updatePostLayoutHints,
+          childDocs,
+          showChildNavigationHints,
+          newTextNode,
+        }): Doc | undefined => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+            ...oldHints,
+            styleAsText: true,
+            label: [],
+          }));
+          return groupDoc([
+            childDocs.left,
+            leafDoc(newTextNode(" ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.operatorToken,
+            leafDoc(newTextNode(" ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.right,
+          ]);
         },
       ),
     };
