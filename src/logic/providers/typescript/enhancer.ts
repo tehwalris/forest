@@ -443,6 +443,11 @@ export const enhancers: {
             leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
             childDocs.type,
           ]);
+          const typeParametersWithArrows: Doc = groupDoc([
+            leafDoc(newTextNode("<", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.typeParameters,
+            leafDoc(newTextNode(">", LabelStyle.SYNTAX_SYMBOL)),
+          ]);
           return groupDoc(
             filterTruthyChildren([
               leafDoc({
@@ -450,7 +455,7 @@ export const enhancers: {
                 id: nodeForDisplay.id,
                 size: arrayFromTextSize(measureLabel(keywordLabel)),
               }),
-              !shouldHideChild("typeParameters") && childDocs.typeParameters,
+              !shouldHideChild("typeParameters") && typeParametersWithArrows,
               !shouldHideChild("asteriskToken") && childDocs.asteriskToken,
               childDocs.name,
               leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
@@ -495,6 +500,7 @@ export const enhancers: {
       ),
     };
   },
+  "FunctionDeclaration.typeParameters": singleLineCommaListEnhancer,
   FunctionExpression: (node: Node<ts.FunctionExpression>) => {
     const label: LabelPart[] = [
       { text: "function", style: LabelStyle.TYPE_SUMMARY },
@@ -608,6 +614,51 @@ export const enhancers: {
   },
   "CallExpression.typeArguments": singleLineCommaListEnhancer,
   "CallExpression.arguments": singleLineCommaListEnhancer,
+  TypeParameterDeclaration: (node: Node<ts.CallExpression>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [
+          { text: "TypeParameterDeclaration", style: LabelStyle.UNKNOWN },
+        ],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["name", "constraint", "default"],
+        ({
+          nodeForDisplay,
+          updatePostLayoutHints,
+          shouldHideChild,
+          childDocs,
+          showChildNavigationHints,
+          newTextNode,
+        }): Doc | undefined => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+            ...oldHints,
+            styleAsText: true,
+            label: [],
+          }));
+          const constraintWithExtends = groupDoc([
+            leafDoc(newTextNode(" extends ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.constraint,
+          ]);
+          const defaultWithEquals = groupDoc([
+            leafDoc(newTextNode(" = ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.default,
+          ]);
+          return groupDoc(
+            filterTruthyChildren([
+              childDocs.name,
+              !shouldHideChild("constraint") && constraintWithExtends,
+              !shouldHideChild("default") && defaultWithEquals,
+            ]),
+          );
+        },
+      ),
+    };
+  },
   ExpressionStatement: (node: Node<ts.ExpressionStatement>) => {
     return {
       displayInfo: {
