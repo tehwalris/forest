@@ -579,16 +579,14 @@ export const enhancers: {
           if (showChildNavigationHints) {
             return undefined;
           }
-          const questionToken = newTextNode("?", LabelStyle.SYNTAX_SYMBOL);
+          const dotToken = newTextNode(".", LabelStyle.SYNTAX_SYMBOL);
           return groupDoc(
             filterTruthyChildren([
               newFocusMarker(),
               childDocs.expression,
-              !shouldHideChild("questionDotToken") &&
-                (childIsEmpty.questionDotToken
-                  ? childDocs.questionDotToken
-                  : leafDoc(questionToken)),
-              leafDoc(newTextNode(".", LabelStyle.SYNTAX_SYMBOL)),
+              shouldHideChild("questionDotToken")
+                ? leafDoc(dotToken)
+                : childDocs.questionDotToken,
               childDocs.name,
             ]),
           );
@@ -615,7 +613,6 @@ export const enhancers: {
           if (showChildNavigationHints) {
             return undefined;
           }
-          const questionDotToken = newTextNode("?.", LabelStyle.SYNTAX_SYMBOL);
           const openingArrow = newTextNode("<", LabelStyle.SYNTAX_SYMBOL);
           const closingArrow = newTextNode(">", LabelStyle.SYNTAX_SYMBOL);
           return groupDoc(
@@ -623,9 +620,7 @@ export const enhancers: {
               newFocusMarker(),
               childDocs.expression,
               !shouldHideChild("questionDotToken") &&
-                (childIsEmpty.questionDotToken
-                  ? childDocs.questionDotToken
-                  : leafDoc(questionDotToken)),
+                childDocs.questionDotToken,
               !shouldHideChild("typeArguments") &&
                 groupDoc([
                   leafDoc(openingArrow),
@@ -873,6 +868,7 @@ export const enhancers: {
   ["AmpersandEqualsToken", "&="],
   ["BarEqualsToken", "|="],
   ["CaretEqualsToken", "^="],
+  ["QuestionDotToken", "?."],
 ].forEach(([tsType, displayKeyword]) => {
   enhancers[tsType] = (node: Node<unknown>, parentPath) => {
     const label: LabelPart[] = [
