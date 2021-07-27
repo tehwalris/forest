@@ -94,7 +94,6 @@ function withExtendedArgsStruct<CK extends string, R>(
     const {
       nodeForDisplay,
       buildChildDoc,
-      buildChildDisplayTree,
       showChildNavigationHints,
       focusPath,
       getPostLayoutHints,
@@ -123,7 +122,6 @@ function withExtendedArgsStruct<CK extends string, R>(
     for (const key of expectedChildKeys) {
       const child = nodeForDisplay.getByPath([key])!;
       childDocs[key] = buildChildDoc(child);
-      childDisplayNodes[key] = buildChildDisplayTree(child);
       childIsEmpty[key] = child.getDebugLabel() === "Option<None>";
       childPostLayoutHints[key] = getPostLayoutHints(child.id);
     }

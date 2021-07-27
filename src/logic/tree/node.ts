@@ -3,7 +3,6 @@ import { ActionSet } from "./action";
 import { v4 as genUuid } from "uuid";
 import { MetaSplit } from "../transform/transforms/split-meta";
 import { ParentPathElement } from "../parent-index";
-import type { RootNode as DivetreeDisplayRootNode } from "divetree-core";
 import { PostLayoutHints } from "../layout-hints";
 import { LabelMeasurementFunction } from "../text-measurement";
 import type { Doc } from "./display-line";
@@ -14,7 +13,6 @@ export interface BuildDivetreeDisplayTreeArgs {
   expand: boolean;
   showChildNavigationHints: boolean;
   parentPath: ParentPathElement[];
-  buildChildDisplayTree: (childNode: Node<unknown>) => DivetreeDisplayRootNode;
   buildChildDoc: (childNode: Node<unknown>) => Doc;
   getPostLayoutHints: (nodeId: string) => PostLayoutHints;
   updatePostLayoutHints: (

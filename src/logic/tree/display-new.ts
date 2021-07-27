@@ -262,7 +262,6 @@ function buildDivetreeDisplayTreeIntermediate(
     expand: isOnFocusPath,
     showChildNavigationHints,
     parentPath,
-    buildChildDisplayTree,
     buildChildDoc,
     updatePostLayoutHints,
     getPostLayoutHints: (nodeId) => postLayoutHintsById.get(nodeId) || {},
