@@ -465,9 +465,9 @@ export const enhancers: {
                 id: nodeForDisplay.id,
                 size: arrayFromTextSize(measureLabel(keywordLabel)),
               }),
-              !shouldHideChild("typeParameters") && typeParametersWithArrows,
               !shouldHideChild("asteriskToken") && childDocs.asteriskToken,
               childDocs.name,
+              !shouldHideChild("typeParameters") && typeParametersWithArrows,
               leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
               groupDoc([
                 nestDoc(
