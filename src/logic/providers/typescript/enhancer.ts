@@ -728,7 +728,7 @@ export const enhancers: {
       ),
     };
   },
-  Block: (node: Node<ts.ExpressionStatement>) => {
+  Block: (node: Node<ts.Block>) => {
     return {
       displayInfo: {
         priority: DisplayInfoPriority.MEDIUM,
@@ -755,6 +755,42 @@ export const enhancers: {
                 ])
               : leafDoc(ellipsis),
             leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
+          ]);
+        },
+      ),
+    };
+  },
+  ArrayLiteralExpression: (node: Node<ts.ArrayLiteralExpression>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "array", style: LabelStyle.TYPE_SUMMARY }],
+      },
+      buildDoc: withExtendedArgsList(
+        ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
+          var openingSquareBracket = leafDoc(
+            newTextNode("[", LabelStyle.SYNTAX_SYMBOL),
+          );
+          var closingSquareBracket = leafDoc(
+            newTextNode("]", LabelStyle.SYNTAX_SYMBOL),
+          );
+          return groupDoc([
+            newFocusMarker(),
+            openingSquareBracket,
+            nestDoc(
+              1,
+              groupDoc(
+                childDocs.map((c) =>
+                  groupDoc([
+                    lineDoc(),
+                    c,
+                    leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
+                  ]),
+                ),
+              ),
+            ),
+            lineDoc(),
+            closingSquareBracket,
           ]);
         },
       ),
@@ -821,7 +857,6 @@ export const enhancers: {
   ["ReturnStatement", "return"],
   ["ImportDeclaration", "import"],
   ["TypeQueryNode", "typeof"],
-  ["ArrayLiteralExpression", "array"],
   ["ObjectLiteralExpression", "object"],
   ["AsExpression", "as"],
 ].forEach(([tsType, displayType]) => {
