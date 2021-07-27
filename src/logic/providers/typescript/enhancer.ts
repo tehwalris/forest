@@ -357,7 +357,39 @@ export const enhancers: {
       name === undefined
         ? [{ text: "VariableDeclaration", style: LabelStyle.UNKNOWN }]
         : [{ text: name, style: LabelStyle.NAME }];
-    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
+    return {
+      displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
+      buildDoc: withExtendedArgsStruct(
+        ["name", "type", "initializer"],
+        ({
+          showChildNavigationHints,
+          shouldHideChild,
+          childDocs,
+          newTextNode,
+          newFocusMarker,
+        }): Doc | undefined => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          const typeWithColon: Doc = groupDoc([
+            leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.type,
+          ]);
+          const initializerWithEqualsSign: Doc = groupDoc([
+            leafDoc(newTextNode(" = ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.initializer,
+          ]);
+          return groupDoc(
+            filterTruthyChildren([
+              newFocusMarker(),
+              childDocs.name,
+              !shouldHideChild("type") && typeWithColon,
+              !shouldHideChild("initializer") && initializerWithEqualsSign,
+            ]),
+          );
+        },
+      ),
+    };
   },
   ParameterDeclaration: (node: Node<ts.ParameterDeclaration>) => {
     const name = tryExtractName(node);

@@ -6,6 +6,8 @@ import {
   ChildNodeEntry,
   DisplayInfo,
   FlagSet,
+  LabelPart,
+  LabelStyle,
   Node,
 } from "../../tree/node";
 import {
@@ -13,6 +15,9 @@ import {
   CompressedNode,
 } from "./compress-useless-values";
 import { ParentPathElement } from "../../parent-index";
+import { groupDoc, leafDoc } from "../../tree/display-line";
+import { arrayFromTextSize } from "../../text-measurement";
+import { NodeKind } from "divetree-core";
 
 // HACK There should be a better way to get the type of a node
 function isVariableStatement(node: Node<unknown>): boolean {
@@ -34,7 +39,7 @@ export const simpleVariableDeclarationTransform: Transform = <B>(
   }
   const onlyChildEntry = declarationListNode.children[0];
   const initializerNode = onlyChildEntry.node.getByPath(["initializer"]);
-  if (!initializerNode?.actions.toggle || !initializerNode.children.length) {
+  if (!initializerNode?.actions.toggle) {
     return node;
   }
 
@@ -44,7 +49,7 @@ export const simpleVariableDeclarationTransform: Transform = <B>(
   );
   newDeclarationListNode = newDeclarationListNode.setDeepChild(
     [onlyChildEntry.key, "initializer"],
-    new ActionMaskedNode(initializerNode, ["toggle"]),
+    initializerNode,
   );
   newDeclarationListNode = compressDeclarationListTransform(
     newDeclarationListNode,
@@ -70,6 +75,35 @@ const compressDeclarationListTransform: Transform = (node) => {
     node.getByPath([onlyChildEntry.key])!,
     compressDeclarationListTransform,
     (p, c) => [p, c],
+    (args) => {
+      const childDoc = onlyChildEntry.node.buildDoc(args);
+      const flavor = (node.flags as any).variableFlavor?.value;
+      const {
+        nodeForDisplay,
+        measureLabel,
+        showChildNavigationHints,
+        updatePostLayoutHints,
+      } = args;
+      if (showChildNavigationHints || !childDoc || !flavor) {
+        return childDoc;
+      }
+      const label: LabelPart[] = [
+        { text: flavor + " ", style: LabelStyle.SYNTAX_SYMBOL },
+      ];
+      updatePostLayoutHints(`${nodeForDisplay.id}-flavor`, (oldHints) => ({
+        ...oldHints,
+        styleAsText: true,
+        label,
+      }));
+      return groupDoc([
+        leafDoc({
+          kind: NodeKind.TightLeaf,
+          id: `${nodeForDisplay.id}-flavor`,
+          size: arrayFromTextSize(measureLabel(label)),
+        }),
+        childDoc,
+      ]);
+    },
   );
 };
 

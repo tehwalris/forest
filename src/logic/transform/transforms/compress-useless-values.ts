@@ -62,6 +62,7 @@ export class CompressedNode<B> extends Node<B> {
     private childNode: Node<unknown>,
     private reapplyTransform: Transform,
     private displaySelector: DisplaySelector<B> = (p, c) => [p, c],
+    private buildDocOverride?: Node<B>["buildDoc"],
   ) {
     super();
     this.children = childNode.children;
@@ -190,6 +191,6 @@ export class CompressedNode<B> extends Node<B> {
   }
 
   buildDoc(args: BuildDivetreeDisplayTreeArgs) {
-    return this.childNode.buildDoc(args);
+    return this.buildDocOverride?.(args) ?? this.childNode.buildDoc(args);
   }
 }
