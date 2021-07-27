@@ -62,6 +62,7 @@ interface ExtendedDisplayTreeArgsBase extends BuildDivetreeDisplayTreeArgs {
     labelStyle: LabelStyle,
     idSuffix?: string,
   ) => TightLeafNode;
+  newFocusMarker: () => Doc;
 }
 interface ExtendedDisplayTreeArgsStruct<CK extends string>
   extends ExtendedDisplayTreeArgsBase {
@@ -162,6 +163,22 @@ function withExtendedArgsStruct<CK extends string, R>(
         size: arrayFromTextSize(measureLabel(label)),
       };
     };
+    let focusMarkerCreated = false;
+    const newFocusMarker = () => {
+      if (focusMarkerCreated) {
+        throw new Error("newFocusMarker can only be called once");
+      }
+      focusMarkerCreated = true;
+      updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+        ...oldHints,
+        hideFocus: true,
+        label: [],
+      }));
+      return leafDoc(
+        { kind: NodeKind.TightLeaf, id: nodeForDisplay.id, size: [0, 0] },
+        true,
+      );
+    };
     return innerBuild({
       ...args,
       childDocs,
@@ -171,6 +188,7 @@ function withExtendedArgsStruct<CK extends string, R>(
       shouldHideChild,
       maybeWrapPortal,
       newTextNode,
+      newFocusMarker,
     });
   };
 }
@@ -201,13 +219,10 @@ const singleLineCommaListEnhancer: Enhancer<Node<ts.NodeArray<ts.Node>>> = (
 ) => ({
   displayInfo: { priority: DisplayInfoPriority.LOW, label: [] },
   buildDoc: withExtendedArgsList(
-    ({ nodeForDisplay, childDocs, newTextNode, updatePostLayoutHints }) => {
-      updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-        ...oldHints,
-        styleAsText: true,
-      }));
-      return groupDoc(
-        childDocs.map((c, i) =>
+    ({ childDocs, newTextNode, newFocusMarker }) => {
+      return groupDoc([
+        newFocusMarker(),
+        ...childDocs.map((c, i) =>
           i === 0
             ? c
             : groupDoc([
@@ -215,7 +230,7 @@ const singleLineCommaListEnhancer: Enhancer<Node<ts.NodeArray<ts.Node>>> = (
                 c,
               ]),
         ),
-      );
+      ]);
     },
   ),
 });
@@ -358,21 +373,15 @@ export const enhancers: {
       buildDoc: withExtendedArgsStruct(
         ["dotDotDotToken", "name", "questionToken", "type", "initializer"],
         ({
-          nodeForDisplay,
-          updatePostLayoutHints,
           shouldHideChild,
           childDocs,
           showChildNavigationHints,
           newTextNode,
+          newFocusMarker,
         }) => {
           if (showChildNavigationHints) {
             return undefined;
           }
-          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-            ...oldHints,
-            styleAsText: true,
-            label: [],
-          }));
           const initializerWithEqualsSign = groupDoc([
             leafDoc(newTextNode(" = ", LabelStyle.SYNTAX_SYMBOL)),
             childDocs.initializer,
@@ -383,6 +392,7 @@ export const enhancers: {
           ]);
           return groupDoc(
             filterTruthyChildren([
+              newFocusMarker(),
               !shouldHideChild("dotDotDotToken") && childDocs.dotDotDotToken,
               childDocs.name,
               !shouldHideChild("questionToken") && childDocs.questionToken,
@@ -482,20 +492,17 @@ export const enhancers: {
     return {
       displayInfo: { priority: DisplayInfoPriority.LOW, label: [] },
       buildDoc: withExtendedArgsList(
-        ({ nodeForDisplay, childDocs, newTextNode, updatePostLayoutHints }) => {
-          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-            ...oldHints,
-            styleAsText: true,
-          }));
-          return groupDoc(
-            childDocs.map((c) =>
+        ({ childDocs, newTextNode, newFocusMarker }) => {
+          return groupDoc([
+            newFocusMarker(),
+            ...childDocs.map((c) =>
               groupDoc([
                 c,
                 leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
                 lineDoc(),
               ]),
             ),
-          );
+          ]);
         },
       ),
     };
@@ -530,25 +537,20 @@ export const enhancers: {
       buildDoc: withExtendedArgsStruct(
         ["expression", "questionDotToken", "name"],
         ({
-          nodeForDisplay,
-          updatePostLayoutHints,
           shouldHideChild,
           childDocs,
           childIsEmpty,
           showChildNavigationHints,
           newTextNode,
+          newFocusMarker,
         }): Doc | undefined => {
           if (showChildNavigationHints) {
             return undefined;
           }
-          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-            ...oldHints,
-            styleAsText: true,
-            label: [],
-          }));
           const questionToken = newTextNode("?", LabelStyle.SYNTAX_SYMBOL);
           return groupDoc(
             filterTruthyChildren([
+              newFocusMarker(),
               childDocs.expression,
               !shouldHideChild("questionDotToken") &&
                 (childIsEmpty.questionDotToken
@@ -571,27 +573,22 @@ export const enhancers: {
       buildDoc: withExtendedArgsStruct(
         ["expression", "questionDotToken", "typeArguments", "arguments"],
         ({
-          nodeForDisplay,
-          updatePostLayoutHints,
           shouldHideChild,
           childDocs,
           childIsEmpty,
           showChildNavigationHints,
           newTextNode,
+          newFocusMarker,
         }): Doc | undefined => {
           if (showChildNavigationHints) {
             return undefined;
           }
-          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-            ...oldHints,
-            styleAsText: true,
-            label: [],
-          }));
           const questionDotToken = newTextNode("?.", LabelStyle.SYNTAX_SYMBOL);
           const openingArrow = newTextNode("<", LabelStyle.SYNTAX_SYMBOL);
           const closingArrow = newTextNode(">", LabelStyle.SYNTAX_SYMBOL);
           return groupDoc(
             filterTruthyChildren([
+              newFocusMarker(),
               childDocs.expression,
               !shouldHideChild("questionDotToken") &&
                 (childIsEmpty.questionDotToken
@@ -625,21 +622,15 @@ export const enhancers: {
       buildDoc: withExtendedArgsStruct(
         ["name", "constraint", "default"],
         ({
-          nodeForDisplay,
-          updatePostLayoutHints,
           shouldHideChild,
           childDocs,
           showChildNavigationHints,
           newTextNode,
+          newFocusMarker,
         }): Doc | undefined => {
           if (showChildNavigationHints) {
             return undefined;
           }
-          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-            ...oldHints,
-            styleAsText: true,
-            label: [],
-          }));
           const constraintWithExtends = groupDoc([
             leafDoc(newTextNode(" extends ", LabelStyle.SYNTAX_SYMBOL)),
             childDocs.constraint,
@@ -650,6 +641,7 @@ export const enhancers: {
           ]);
           return groupDoc(
             filterTruthyChildren([
+              newFocusMarker(),
               childDocs.name,
               !shouldHideChild("constraint") && constraintWithExtends,
               !shouldHideChild("default") && defaultWithEquals,
@@ -668,21 +660,16 @@ export const enhancers: {
       buildDoc: withExtendedArgsStruct(
         ["left", "operatorToken", "right"],
         ({
-          nodeForDisplay,
-          updatePostLayoutHints,
           childDocs,
           showChildNavigationHints,
           newTextNode,
+          newFocusMarker,
         }): Doc | undefined => {
           if (showChildNavigationHints) {
             return undefined;
           }
-          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-            ...oldHints,
-            styleAsText: true,
-            label: [],
-          }));
           return groupDoc([
+            newFocusMarker(),
             childDocs.left,
             leafDoc(newTextNode(" ", LabelStyle.SYNTAX_SYMBOL)),
             childDocs.operatorToken,
@@ -702,20 +689,14 @@ export const enhancers: {
       buildDoc: withExtendedArgsStruct(
         ["expression"],
         ({
-          nodeForDisplay,
-          updatePostLayoutHints,
           childDocs,
           showChildNavigationHints,
+          newFocusMarker,
         }): Doc | undefined => {
           if (showChildNavigationHints) {
             return undefined;
           }
-          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-            ...oldHints,
-            styleAsText: true,
-            label: [],
-          }));
-          return childDocs.expression;
+          return groupDoc([newFocusMarker(), childDocs.expression]);
         },
       ),
     };
@@ -728,19 +709,14 @@ export const enhancers: {
       },
       buildDoc: withExtendedArgsList(
         ({
-          nodeForDisplay,
-          updatePostLayoutHints,
           childDocs,
           expand,
           newTextNode,
+          newFocusMarker,
         }): Doc | undefined => {
-          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-            ...oldHints,
-            styleAsText: true,
-            label: [],
-          }));
           const ellipsis = newTextNode("...", LabelStyle.UNKNOWN);
           return groupDoc([
+            newFocusMarker(),
             leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
             expand
               ? groupDoc([
@@ -766,25 +742,20 @@ export const enhancers: {
       buildDoc: withExtendedArgsStruct(
         ["typeName", "typeArguments"],
         ({
-          nodeForDisplay,
-          updatePostLayoutHints,
           shouldHideChild,
           childDocs,
           showChildNavigationHints,
           newTextNode,
+          newFocusMarker,
         }): Doc | undefined => {
           if (showChildNavigationHints) {
             return undefined;
           }
-          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-            ...oldHints,
-            styleAsText: true,
-            label: [],
-          }));
           const openingArrow = newTextNode("<", LabelStyle.SYNTAX_SYMBOL);
           const closingArrow = newTextNode(">", LabelStyle.SYNTAX_SYMBOL);
           return groupDoc(
             filterTruthyChildren([
+              newFocusMarker(),
               childDocs.typeName,
               !shouldHideChild("typeArguments") &&
                 groupDoc([

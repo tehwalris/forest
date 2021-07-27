@@ -93,7 +93,8 @@ function getNodeStyle(
     };
     if (
       (postLayoutHints?.styleAsText && !focused) ||
-      postLayoutHints?.shortcutKey
+      postLayoutHints?.shortcutKey ||
+      postLayoutHints?.hideFocus
     ) {
       result.color = [0, 0, 0, 0];
       result.borderColor = [0, 0, 0, 0];
