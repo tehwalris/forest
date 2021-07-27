@@ -797,6 +797,25 @@ export const enhancers: {
     };
   },
   "TypeReferenceNode.typeArguments": singleLineCommaListEnhancer,
+  QualifiedName: (node: Node<ts.QualifiedName>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "QualifiedName", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["left", "right"],
+        ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
+          return groupDoc([
+            newFocusMarker(),
+            childDocs.left,
+            leafDoc(newTextNode(".", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.right,
+          ]);
+        },
+      ),
+    };
+  },
 };
 [
   ["ReturnStatement", "return"],
