@@ -4,6 +4,7 @@ import {
   Split,
   TightLeafNode,
   TightNode,
+  TightSplitNode,
 } from "divetree-core";
 import { unreachable } from "../util";
 import * as R from "ramda";
@@ -147,11 +148,20 @@ export function divetreeFromDoc(doc: Doc): TightNode {
     kind: NodeKind.TightSplit,
     split: Split.Stacked,
     growLast: true,
-    children: linesFromDoc(doc).map((line) => ({
-      kind: NodeKind.TightSplit,
-      split: Split.SideBySide,
-      growLast: true,
-      children: [...makeIndentNodes(line.indent), ...line.content],
-    })),
+    children: [
+      ...linesFromDoc(doc).map(
+        (line): TightSplitNode => ({
+          kind: NodeKind.TightSplit,
+          split: Split.SideBySide,
+          growLast: true,
+          children: [
+            ...makeIndentNodes(line.indent),
+            ...line.content,
+            { kind: NodeKind.TightLeaf, size: [0, 0] },
+          ],
+        }),
+      ),
+      { kind: NodeKind.TightLeaf, size: [0, 0] },
+    ],
   };
 }
