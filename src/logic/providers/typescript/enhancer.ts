@@ -549,6 +549,59 @@ export const enhancers: {
     };
   },
   "FunctionDeclaration.typeParameters": singleLineCommaListEnhancer,
+  ArrowFunction: (node: Node<ts.ArrowFunction>) => {
+    return {
+      displayInfo: { priority: DisplayInfoPriority.MEDIUM, label: [{text: "ArrowFunction", style: LabelStyle.UNKNOWN}] },
+      buildDoc: withExtendedArgsStruct(
+        [
+          "typeParameters",
+          "parameters",
+          "type",
+          "body",
+        ],
+        ({
+          shouldHideChild,
+          showChildNavigationHints,
+          childDocs,
+          newTextNode,
+          newFocusMarker,
+        }): Doc | undefined => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          const typeWithColon: Doc = groupDoc([
+            leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.type,
+          ]);
+          const typeParametersWithArrows: Doc = groupDoc([
+            leafDoc(newTextNode("<", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.typeParameters,
+            leafDoc(newTextNode(">", LabelStyle.SYNTAX_SYMBOL)),
+          ]);
+          return groupDoc(
+            filterTruthyChildren([
+              newFocusMarker(),
+              !shouldHideChild("typeParameters") && typeParametersWithArrows,
+              leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
+              groupDoc([
+                nestDoc(
+                  1,
+                  [lineDoc(LineKind.Soft), childDocs.parameters],
+                ),
+                lineDoc(LineKind.Soft),
+              ]),
+              leafDoc(newTextNode(")", LabelStyle.SYNTAX_SYMBOL)),
+              !shouldHideChild("type") && typeWithColon,
+              leafDoc(newTextNode(" => ", LabelStyle.SYNTAX_SYMBOL)),
+              childDocs.body,
+            ]),
+          );
+        },
+      ),
+    };
+  },
+  "ArrowFunction.parameters": singleLineCommaListEnhancer,
+  "ArrowFunction.typeParameters": singleLineCommaListEnhancer,
   FunctionExpression: (node: Node<ts.FunctionExpression>) => {
     const label: LabelPart[] = [
       { text: "function", style: LabelStyle.TYPE_SUMMARY },
