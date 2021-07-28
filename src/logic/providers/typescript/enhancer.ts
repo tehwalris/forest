@@ -919,6 +919,41 @@ export const enhancers: {
       ),
     };
   },
+  ReturnStatement: (node: Node<ts.ReturnStatement>) => {
+    const label = [{ text: "return", style: LabelStyle.SYNTAX_SYMBOL }];
+    return {
+      displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
+      buildDoc: withExtendedArgsStruct(
+        ["expression"],
+        ({
+          shouldHideChild,
+          childDocs,
+          showChildNavigationHints,
+          updatePostLayoutHints,
+          nodeForDisplay,
+          newTextNode,
+          measureLabel,
+        }) => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+            ...oldHints,
+            styleAsText: true,
+          }));
+          return groupDoc([
+            leafDoc({
+              kind: NodeKind.TightLeaf,
+              id: nodeForDisplay.id,
+              size: arrayFromTextSize(measureLabel(label)),
+            }),
+            leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
+            childDocs.expression,
+          ]);
+        },
+      ),
+    };
+  },
   TypeReferenceNode: (node: Node<ts.TypeReferenceNode>) => {
     return {
       displayInfo: {
@@ -977,7 +1012,6 @@ export const enhancers: {
   },
 };
 [
-  ["ReturnStatement", "return"],
   ["ImportDeclaration", "import"],
   ["TypeQueryNode", "typeof"],
   ["ObjectLiteralExpression", "object"],
