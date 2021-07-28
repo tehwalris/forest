@@ -85,49 +85,173 @@ export function docIsOnlySoftLinesOrEmpty(doc: Doc): boolean {
   }
 }
 
-function linesFromDoc(rootDoc: Doc): Line[] {
-  const docQueue: (Doc | "popIndent")[] = [rootDoc];
-  let currentLine: Line = { indent: 0, content: [] };
-  const output: Line[] = [currentLine];
-  let nextIndent = 0;
-  const indentStack: number[] = [];
-  while (docQueue.length) {
-    const doc = docQueue.pop()!;
-    if (doc === "popIndent") {
-      const poppedIndent = indentStack.pop();
-      if (poppedIndent === undefined) {
-        throw new Error("indent stack underflow");
+enum PrintBreakMode {
+  Flat,
+  Break,
+}
+
+function measureDivetreeNodeWidth(
+  node: TightNode | PortalNode,
+): number | undefined {
+  switch (node.kind) {
+    case NodeKind.Portal:
+      return undefined;
+    case NodeKind.TightSplit:
+      if (!node.children.length) {
+        return 0;
       }
-      nextIndent = poppedIndent;
+      const childWidths = node.children.map((c) => measureDivetreeNodeWidth(c));
+      if (childWidths.some((w) => w === undefined)) {
+        return undefined;
+      }
+      const aggregationFunction: (widths: number[]) => number =
+        node.split === Split.SideBySide
+          ? R.sum
+          : (widths: number[]) => Math.max(...widths);
+      return aggregationFunction(childWidths.map((w) => w!));
+    case NodeKind.TightLeaf:
+      return node.size[0];
+    default:
+      return unreachable(node);
+  }
+}
+
+const spaceWidth = 10;
+
+function fits(
+  doc: Doc,
+  mode: PrintBreakMode,
+  originalRemainingWidth: number,
+): boolean {
+  let remainingWidth = originalRemainingWidth;
+  interface InternalCommand {
+    doc: Doc | "popIndent";
+    mode: PrintBreakMode;
+  }
+  const commands: InternalCommand[] = [{ doc, mode }];
+  const indentStack: number[] = [0];
+  while (remainingWidth >= 0) {
+    if (!commands.length) {
+      return true;
+    }
+    const { doc, mode } = commands.pop()!;
+    if (doc === "popIndent") {
+      indentStack.pop();
       continue;
     }
     switch (doc.kind) {
       case DocKind.Nest: {
-        indentStack.push(nextIndent);
-        nextIndent += doc.amount;
-        docQueue.push("popIndent");
-        docQueue.push(doc.content);
+        indentStack.push(R.last(indentStack)! + doc.amount);
+        remainingWidth -= doc.amount;
+        commands.push({ doc: "popIndent", mode });
+        commands.push({ doc: doc.content, mode });
         break;
       }
-      case DocKind.Leaf:
+      case DocKind.Leaf: {
+        if (doc.considerEmpty) {
+          break;
+        }
+        const width = measureDivetreeNodeWidth(doc.content);
+        if (width === undefined) {
+          return false;
+        }
+        remainingWidth -= width;
+        break;
+      }
+      case DocKind.Line: {
+        if (mode === PrintBreakMode.Break) {
+          return true;
+        }
+        remainingWidth = originalRemainingWidth - R.last(indentStack)!;
+        break;
+      }
+      case DocKind.Group: {
+        commands.push(...R.reverse(doc.content).map((c) => ({ doc: c, mode })));
+        break;
+      }
+      default: {
+        return unreachable(doc);
+      }
+    }
+  }
+  return false;
+}
+
+function linesFromDoc(rootDoc: Doc): Line[] {
+  interface InternalCommand {
+    doc: Doc | "popIndent";
+    mode: PrintBreakMode;
+  }
+
+  const maxLineWidth = 500;
+
+  const docQueue: InternalCommand[] = [
+    { doc: rootDoc, mode: PrintBreakMode.Break },
+  ];
+  let currentLine: Line = { indent: 0, content: [] };
+  let currentPos: number | undefined = currentLine.indent;
+  const output: Line[] = [currentLine];
+  const indentStack: number[] = [0];
+  while (docQueue.length) {
+    const { doc, mode } = docQueue.pop()!;
+    if (doc === "popIndent") {
+      indentStack.pop();
+      if (indentStack.length < 1) {
+        throw new Error("indent stack underflow");
+      }
+      continue;
+    }
+    switch (doc.kind) {
+      case DocKind.Nest: {
+        indentStack.push(R.last(indentStack)! + doc.amount);
+        docQueue.push({ doc: "popIndent", mode });
+        docQueue.push({ doc: doc.content, mode });
+        break;
+      }
+      case DocKind.Leaf: {
+        const width = measureDivetreeNodeWidth(doc.content);
+        currentPos =
+          currentPos === undefined || width === undefined
+            ? undefined
+            : currentPos + width;
         currentLine.content.push(doc.content);
         break;
+      }
       case DocKind.Line:
-        const newLine: Line = { indent: nextIndent, content: [] };
-        output.push(newLine);
-        currentLine = newLine;
-        break;
-      case DocKind.Group:
-        if (docIsOnlySoftLinesOrEmpty(doc)) {
-          docQueue.push(
-            ...R.reverse(doc.content.filter((c) => c.kind !== DocKind.Line)),
-          );
-        } else {
-          docQueue.push(...R.reverse(doc.content));
+        switch (mode) {
+          case PrintBreakMode.Break:
+            const newLine: Line = { indent: R.last(indentStack)!, content: [] };
+            output.push(newLine);
+            currentLine = newLine;
+            currentPos = newLine.indent;
+            break;
+          case PrintBreakMode.Flat:
+            // TODO use the real width of a space
+            currentLine.content.push({
+              kind: NodeKind.TightLeaf,
+              size: [spaceWidth, 0],
+            });
+            if (currentPos !== undefined) {
+              currentPos += spaceWidth;
+            }
+            break;
+          default:
+            return unreachable(mode);
         }
         break;
+      case DocKind.Group:
+        const newMode =
+          mode === PrintBreakMode.Break &&
+          (currentPos === undefined ||
+            !fits(doc, PrintBreakMode.Flat, maxLineWidth - currentPos))
+            ? PrintBreakMode.Break
+            : PrintBreakMode.Flat;
+        docQueue.push(
+          ...R.reverse(doc.content).map((c) => ({ doc: c, mode: newMode })),
+        );
+        break;
       default:
-        unreachable(doc);
+        return unreachable(doc);
     }
   }
   return output;
