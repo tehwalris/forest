@@ -1046,6 +1046,44 @@ export const enhancers: {
     };
   },
   "TypeReferenceNode.typeArguments": singleLineCommaListEnhancer,
+  ArrayTypeNode: (node: Node<ts.ArrayTypeNode>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "array", style: LabelStyle.TYPE_SUMMARY }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["elementType"],
+        ({
+          childDocs,
+          showChildNavigationHints,
+          nodeForDisplay,
+          updatePostLayoutHints,
+          measureLabel,
+        }) => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          const label: LabelPart[] = [
+            { text: "[]", style: LabelStyle.SYNTAX_SYMBOL },
+          ];
+          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+            ...oldHints,
+            styleAsText: true,
+            label,
+          }));
+          return groupDoc([
+            childDocs.elementType,
+            leafDoc({
+              kind: NodeKind.TightLeaf,
+              id: nodeForDisplay.id,
+              size: arrayFromTextSize(measureLabel(label)),
+            }),
+          ]);
+        },
+      ),
+    };
+  },
   QualifiedName: (node: Node<ts.QualifiedName>) => {
     return {
       displayInfo: {
