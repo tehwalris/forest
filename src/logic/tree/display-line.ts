@@ -217,7 +217,7 @@ function linesFromDoc(rootDoc: Doc): Line[] {
     mode: PrintBreakMode;
   }
 
-  const maxLineWidth = 300;
+  const maxLineWidth = 600;
 
   const docQueue: InternalCommand[] = [
     { doc: rootDoc, mode: PrintBreakMode.Break },
