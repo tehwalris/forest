@@ -809,20 +809,29 @@ export const enhancers: {
           newFocusMarker,
         }): Doc | undefined => {
           const ellipsis = newTextNode("...", LabelStyle.UNKNOWN);
-          return groupDoc([
-            newFocusMarker(),
-            leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
-            expand
-              ? groupDoc([
-                  nestDoc(
-                    1,
-                    childDocs.map((c) => [lineDoc(LineKind.Hard), c]),
-                  ),
-                  lineDoc(LineKind.Hard),
-                ])
-              : leafDoc(ellipsis),
-            leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
-          ]);
+          const focusMarker = newFocusMarker();
+          return groupDoc(
+            filterTruthyChildren([
+              (expand || !childDocs.length) && focusMarker,
+              leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
+              expand
+                ? groupDoc([
+                    nestDoc(
+                      1,
+                      childDocs.map((c, i) =>
+                        filterTruthyChildren([
+                          lineDoc(LineKind.Hard),
+                          i === 0 && focusMarker,
+                          c,
+                        ]),
+                      ),
+                    ),
+                    lineDoc(LineKind.Hard),
+                  ])
+                : leafDoc(ellipsis),
+              leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
+            ]),
+          );
         },
       ),
     };
