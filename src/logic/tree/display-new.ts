@@ -125,12 +125,10 @@ function buildDivetreeDisplayTreeIntermediate(
   const isFinal = !isOnFocusPath;
 
   // HACK disable navigation for now to prevent document tree from breaking due to conversions
-  const showChildNavigationHints = false;
-  const showChildShortcuts = false;
-  // const showChildNavigationHints =
-  //   expandView && isOnFocusPath && focusPath.length === 1;
-  // const showChildShortcuts =
-  //   !showChildNavigationHints && isOnFocusPath && focusPath.length === 1;
+  const showChildNavigationHints =
+    expandView && isOnFocusPath && focusPath.length === 1;
+  const showChildShortcuts =
+    !showChildNavigationHints && isOnFocusPath && focusPath.length === 1;
 
   const nodeForDisplay = getNodeForDisplay(node, metaLevelNodeIds);
   const children = nodeForDisplay.children;
@@ -226,20 +224,18 @@ function buildDivetreeDisplayTreeIntermediate(
       }));
 
       return {
-        kind: IntermediateDisplayKind.Divetree,
-        content: {
-          kind: NodeKind.TightSplit,
-          split: Split.Overlaid,
-          children: [
-            maybeWrapPortal(asDivetree(base)),
+        kind: IntermediateDisplayKind.Doc,
+        content: [
+          leafDoc(
             {
               kind: NodeKind.TightLeaf,
               id: `${nodeForDisplay.id}-shortcut`,
               size: [0, 0],
             },
-          ],
-        },
-        considerEmpty: isConsideredEmpty(base),
+            true,
+          ),
+          asDoc(base),
+        ],
       };
     }
   }
