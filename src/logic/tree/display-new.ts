@@ -123,10 +123,14 @@ function buildDivetreeDisplayTreeIntermediate(
 
   const isOnFocusPath = !!focusPath.length && node.id === focusPath[0];
   const isFinal = !isOnFocusPath;
-  const showChildNavigationHints =
-    expandView && isOnFocusPath && focusPath.length === 1;
-  const showChildShortcuts =
-    !showChildNavigationHints && isOnFocusPath && focusPath.length === 1;
+
+  // HACK disable navigation for now to prevent document tree from breaking due to conversions
+  const showChildNavigationHints = false;
+  const showChildShortcuts = false;
+  // const showChildNavigationHints =
+  //   expandView && isOnFocusPath && focusPath.length === 1;
+  // const showChildShortcuts =
+  //   !showChildNavigationHints && isOnFocusPath && focusPath.length === 1;
 
   const nodeForDisplay = getNodeForDisplay(node, metaLevelNodeIds);
   const children = nodeForDisplay.children;
