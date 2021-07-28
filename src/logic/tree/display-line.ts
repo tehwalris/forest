@@ -6,9 +6,8 @@ import {
   TightNode,
   TightSplitNode,
 } from "divetree-core";
-import { unreachable } from "../util";
 import * as R from "ramda";
-import { arrayFromTextSize } from "../text-measurement";
+import { unreachable } from "../util";
 
 enum DocKind {
   Nest,
@@ -45,6 +44,7 @@ interface LineDoc {
 interface GroupDoc {
   kind: DocKind.Group;
   content: Doc;
+  break: boolean;
 }
 
 export function nestDoc(amount: number, content: Doc): Doc {
@@ -63,7 +63,11 @@ export function lineDoc(lineKind: LineKind = LineKind.Normal): Doc {
 }
 
 export function groupDoc(content: Doc): Doc {
-  return { kind: DocKind.Group, content };
+  return {
+    kind: DocKind.Group,
+    content,
+    break: containsDefiniteBreak(content),
+  };
 }
 
 interface Line {
@@ -85,6 +89,25 @@ export function docIsOnlySoftLinesOrEmpty(doc: Doc): boolean {
       return doc.lineKind === LineKind.Soft;
     case DocKind.Group:
       return docIsOnlySoftLinesOrEmpty(doc.content);
+    default:
+      unreachable(doc);
+  }
+}
+
+function containsDefiniteBreak(doc: Doc): boolean {
+  if (Array.isArray(doc)) {
+    return doc.some((c) => containsDefiniteBreak(c));
+  }
+  switch (doc.kind) {
+    case DocKind.Nest: {
+      return containsDefiniteBreak(doc.content);
+    }
+    case DocKind.Leaf:
+      return false;
+    case DocKind.Line:
+      return doc.lineKind === LineKind.Hard;
+    case DocKind.Group:
+      return doc.break;
     default:
       unreachable(doc);
   }
@@ -255,9 +278,10 @@ function linesFromDoc(rootDoc: Doc): Line[] {
       }
       case DocKind.Group: {
         const newMode =
-          mode === PrintBreakMode.Break &&
-          (currentPos === undefined ||
-            !fits(doc, PrintBreakMode.Flat, maxLineWidth - currentPos))
+          doc.break ||
+          (mode === PrintBreakMode.Break &&
+            (currentPos === undefined ||
+              !fits(doc, PrintBreakMode.Flat, maxLineWidth - currentPos)))
             ? PrintBreakMode.Break
             : PrintBreakMode.Flat;
         docQueue.push({ doc: doc.content, mode: newMode });
