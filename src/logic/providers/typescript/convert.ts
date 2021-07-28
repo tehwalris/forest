@@ -5,6 +5,8 @@ import {
   DisplayInfoPriority,
   LabelStyle,
   SemanticColor,
+  BuildDivetreeDisplayTreeArgs,
+  LabelPart,
 } from "../../tree/node";
 import { UnionVariant } from "../../tree/base-nodes";
 import { ActionSet, InputKind } from "../../tree/action";
@@ -25,6 +27,9 @@ import {
   structTemplates,
 } from "./generated/templates";
 import { Enhancer } from "./enhancer";
+import { leafDoc } from "../../tree/display-line";
+import { arrayFromTextSize } from "../../text-measurement";
+import { NodeKind } from "divetree-core";
 export function fromTsNode<T extends ts.Node>(
   original: T,
   _union?: Union<T>,
@@ -45,7 +50,6 @@ export function fromTsNode<T extends ts.Node>(
       {
         match: (() => false) as any,
         load: (built: any) => built as ts.NodeArray<T>,
-        // HACK ts.NodeArray<any> is not a ts.Node
         build: (children: T[]) => ts.createNodeArray(children) as any,
         flags: [],
         childUnion: _union!,
@@ -176,8 +180,27 @@ export class BooleanNode extends Node<ts.BooleanLiteral> {
   getDisplayInfo() {
     return {
       priority: DisplayInfoPriority.MEDIUM,
-      label: [{ text: this.value.toString(), style: LabelStyle.VALUE }],
+      label: this.getLabel(),
       color: SemanticColor.LITERAL,
     };
+  }
+  getLabel(): LabelPart[] {
+    return [{ text: this.value.toString(), style: LabelStyle.VALUE }];
+  }
+  buildDoc({
+    measureLabel,
+    nodeForDisplay,
+    updatePostLayoutHints,
+  }: BuildDivetreeDisplayTreeArgs) {
+    updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+      ...oldHints,
+      styleAsText: true,
+    }));
+    const label = this.getLabel();
+    return leafDoc({
+      kind: NodeKind.TightLeaf,
+      id: nodeForDisplay.id,
+      size: arrayFromTextSize(measureLabel(label)),
+    });
   }
 }
