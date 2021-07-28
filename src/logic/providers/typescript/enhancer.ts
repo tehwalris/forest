@@ -779,17 +779,13 @@ export const enhancers: {
             openingSquareBracket,
             nestDoc(
               1,
-              groupDoc(
-                childDocs.map((c) =>
-                  groupDoc([
-                    lineDoc(),
-                    c,
-                    leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
-                  ]),
-                ),
-              ),
+              childDocs.map((c) => [
+                lineDoc(LineKind.Soft),
+                c,
+                leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
+              ]),
             ),
-            lineDoc(),
+            lineDoc(LineKind.Soft),
             closingSquareBracket,
           ]);
         },

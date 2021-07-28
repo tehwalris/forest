@@ -8,6 +8,7 @@ import {
 } from "divetree-core";
 import { unreachable } from "../util";
 import * as R from "ramda";
+import { arrayFromTextSize } from "../text-measurement";
 
 enum DocKind {
   Nest,
@@ -16,7 +17,7 @@ enum DocKind {
   Group,
 }
 
-export type Doc = NestDoc | LeafDoc | LineDoc | GroupDoc;
+export type Doc = Doc[] | NestDoc | LeafDoc | LineDoc | GroupDoc;
 
 interface NestDoc {
   kind: DocKind.Nest;
@@ -42,7 +43,7 @@ interface LineDoc {
 
 interface GroupDoc {
   kind: DocKind.Group;
-  content: Doc[];
+  content: Doc;
 }
 
 export function nestDoc(amount: number, content: Doc): Doc {
@@ -60,7 +61,7 @@ export function lineDoc(lineKind: LineKind = LineKind.Normal): Doc {
   return { kind: DocKind.Line, lineKind };
 }
 
-export function groupDoc(content: Doc[]): Doc {
+export function groupDoc(content: Doc): Doc {
   return { kind: DocKind.Group, content };
 }
 
@@ -70,6 +71,9 @@ interface Line {
 }
 
 export function docIsOnlySoftLinesOrEmpty(doc: Doc): boolean {
+  if (Array.isArray(doc)) {
+    return doc.every((c) => docIsOnlySoftLinesOrEmpty(c));
+  }
   switch (doc.kind) {
     case DocKind.Nest: {
       return docIsOnlySoftLinesOrEmpty(doc.content);
@@ -79,7 +83,7 @@ export function docIsOnlySoftLinesOrEmpty(doc: Doc): boolean {
     case DocKind.Line:
       return doc.lineKind === LineKind.Soft;
     case DocKind.Group:
-      return doc.content.every((c) => docIsOnlySoftLinesOrEmpty(c));
+      return docIsOnlySoftLinesOrEmpty(doc.content);
     default:
       unreachable(doc);
   }
@@ -139,6 +143,10 @@ function fits(
       indentStack.pop();
       continue;
     }
+    if (Array.isArray(doc)) {
+      commands.push(...R.reverse(doc).map((c) => ({ doc: c, mode })));
+      continue;
+    }
     switch (doc.kind) {
       case DocKind.Nest: {
         indentStack.push(R.last(indentStack)! + doc.amount);
@@ -162,11 +170,13 @@ function fits(
         if (mode === PrintBreakMode.Break) {
           return true;
         }
-        remainingWidth = originalRemainingWidth - R.last(indentStack)!;
+        if (doc.lineKind === LineKind.Normal) {
+          remainingWidth = originalRemainingWidth - R.last(indentStack)!;
+        }
         break;
       }
       case DocKind.Group: {
-        commands.push(...R.reverse(doc.content).map((c) => ({ doc: c, mode })));
+        commands.push({ doc: doc.content, mode });
         break;
       }
       default: {
@@ -183,7 +193,7 @@ function linesFromDoc(rootDoc: Doc): Line[] {
     mode: PrintBreakMode;
   }
 
-  const maxLineWidth = 500;
+  const maxLineWidth = 300;
 
   const docQueue: InternalCommand[] = [
     { doc: rootDoc, mode: PrintBreakMode.Break },
@@ -199,6 +209,10 @@ function linesFromDoc(rootDoc: Doc): Line[] {
       if (indentStack.length < 1) {
         throw new Error("indent stack underflow");
       }
+      continue;
+    }
+    if (Array.isArray(doc)) {
+      docQueue.push(...R.reverse(doc).map((c) => ({ doc: c, mode })));
       continue;
     }
     switch (doc.kind) {
@@ -219,39 +233,44 @@ function linesFromDoc(rootDoc: Doc): Line[] {
       }
       case DocKind.Line:
         switch (mode) {
-          case PrintBreakMode.Break:
+          case PrintBreakMode.Break: {
             const newLine: Line = { indent: R.last(indentStack)!, content: [] };
             output.push(newLine);
             currentLine = newLine;
             currentPos = newLine.indent;
             break;
-          case PrintBreakMode.Flat:
-            // TODO use the real width of a space
-            currentLine.content.push({
-              kind: NodeKind.TightLeaf,
-              size: [spaceWidth, 0],
-            });
-            if (currentPos !== undefined) {
-              currentPos += spaceWidth;
+          }
+          case PrintBreakMode.Flat: {
+            if (doc.lineKind === LineKind.Normal) {
+              // TODO use the real width of a space
+              currentLine.content.push({
+                kind: NodeKind.TightLeaf,
+                size: [spaceWidth, 0],
+              });
+              if (currentPos !== undefined) {
+                currentPos += spaceWidth;
+              }
             }
             break;
-          default:
+          }
+          default: {
             return unreachable(mode);
+          }
         }
         break;
-      case DocKind.Group:
+      case DocKind.Group: {
         const newMode =
           mode === PrintBreakMode.Break &&
           (currentPos === undefined ||
             !fits(doc, PrintBreakMode.Flat, maxLineWidth - currentPos))
             ? PrintBreakMode.Break
             : PrintBreakMode.Flat;
-        docQueue.push(
-          ...R.reverse(doc.content).map((c) => ({ doc: c, mode: newMode })),
-        );
+        docQueue.push({ doc: doc.content, mode: newMode });
         break;
-      default:
+      }
+      default: {
         return unreachable(doc);
+      }
     }
   }
   return output;
