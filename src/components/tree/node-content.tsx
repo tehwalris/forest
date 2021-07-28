@@ -44,11 +44,13 @@ const styles = {
   childKey: css`
     opacity: 0.5;
   `,
+  wrapper: css`
+    white-space: pre;
+  `,
 };
 function renderLabelPart(p: LabelPart) {
   const style: React.CSSProperties = {
     font: fontsByLabelStyle[p.style] || defaultFont,
-    whiteSpace: "pre",
   };
   if (
     p.style === LabelStyle.NAME ||
@@ -94,7 +96,7 @@ export const NodeContent: React.FC<Props> = React.memo(
       displayInfo = { ...displayInfo, label: postLayoutHints.label };
     }
     return (
-      <div>
+      <div className={styles.wrapper}>
         {displayInfo.label.map((p, i) => (
           <React.Fragment key={i}>{renderLabelPart(p)}</React.Fragment>
         ))}
