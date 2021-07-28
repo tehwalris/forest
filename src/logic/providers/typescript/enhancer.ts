@@ -939,22 +939,24 @@ export const enhancers: {
       buildDoc: withExtendedArgsList(
         ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
           const focusMarker = newFocusMarker();
-          return groupDoc([
-            focusMarker,
-            leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
-            groupDoc([
-              nestDoc(
-                1,
-                childDocs.map((c, i) => [
-                  i === 0 ? [lineDoc(LineKind.Soft), focusMarker] : lineDoc(),
-                  c,
-                  leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
-                ]),
-              ),
-              lineDoc(LineKind.Soft),
+          return groupDoc(
+            filterTruthyChildren([
+              !childDocs.length && focusMarker,
+              leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
+              groupDoc([
+                nestDoc(
+                  1,
+                  childDocs.map((c, i) => [
+                    i === 0 ? [lineDoc(LineKind.Soft), focusMarker] : lineDoc(),
+                    c,
+                    leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
+                  ]),
+                ),
+                lineDoc(LineKind.Soft),
+              ]),
+              leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
             ]),
-            leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
-          ]);
+          );
         },
       ),
     };
@@ -1052,6 +1054,37 @@ export const enhancers: {
             }),
             childDocs.expression,
           ]);
+        },
+      ),
+    };
+  },
+  ObjectBindingPattern: (node: Node<ts.ObjectBindingPattern>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "ObjectBindingPattern", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsList(
+        ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
+          const focusMarker = newFocusMarker();
+          return groupDoc(
+            filterTruthyChildren([
+              !childDocs.length && focusMarker,
+              leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
+              groupDoc([
+                nestDoc(
+                  1,
+                  childDocs.map((c, i) => [
+                    i === 0 ? [lineDoc(LineKind.Soft), focusMarker] : lineDoc(),
+                    c,
+                    leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
+                  ]),
+                ),
+                lineDoc(LineKind.Soft),
+              ]),
+              leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
+            ]),
+          );
         },
       ),
     };
