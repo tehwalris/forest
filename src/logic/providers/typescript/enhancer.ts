@@ -359,17 +359,6 @@ export const enhancers: {
           ];
     return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
-  PropertyAssignment: (node: Node<ts.PropertyAssignment>) => {
-    const name = tryExtractName(node);
-    const label =
-      name === undefined
-        ? [{ text: "property", style: LabelStyle.TYPE_SUMMARY }]
-        : [
-            { text: "property", style: LabelStyle.TYPE_SUMMARY },
-            { text: name, style: LabelStyle.NAME },
-          ];
-    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
-  },
   VariableDeclarationList: (node: Node<unknown>) => {
     const flavor = (node.flags as any).variableFlavor?.value;
     const label =
@@ -941,6 +930,132 @@ export const enhancers: {
       ),
     };
   },
+  ObjectLiteralExpression: (node: Node<ts.ObjectLiteralExpression>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "object", style: LabelStyle.TYPE_SUMMARY }],
+      },
+      buildDoc: withExtendedArgsList(
+        ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
+          const focusMarker = newFocusMarker();
+          return groupDoc([
+            focusMarker,
+            leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
+            groupDoc([
+              nestDoc(
+                1,
+                childDocs.map((c, i) => [
+                  i === 0 ? [lineDoc(LineKind.Soft), focusMarker] : lineDoc(),
+                  c,
+                  leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
+                ]),
+              ),
+              lineDoc(LineKind.Soft),
+            ]),
+            leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
+          ]);
+        },
+      ),
+    };
+  },
+  PropertyAssignment: (node: Node<ts.PropertyAssignment>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "property", style: LabelStyle.TYPE_SUMMARY }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["name", "initializer"],
+        ({
+          childDocs,
+          showChildNavigationHints,
+          newTextNode,
+          newFocusMarker,
+        }) => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          return groupDoc([
+            newFocusMarker(),
+            childDocs.name,
+            leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.initializer,
+          ]);
+        },
+      ),
+    };
+  },
+  ShorthandPropertyAssignment: (node: Node<ts.ShorthandPropertyAssignment>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "shorthand property", style: LabelStyle.TYPE_SUMMARY }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["name", "objectAssignmentInitializer"],
+        ({
+          childDocs,
+          showChildNavigationHints,
+          shouldHideChild,
+          newTextNode,
+          newFocusMarker,
+        }) => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          const initializerWithColon: Doc = [
+            leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.objectAssignmentInitializer,
+          ];
+          return groupDoc(
+            filterTruthyChildren([
+              newFocusMarker(),
+              childDocs.name,
+              !shouldHideChild("objectAssignmentInitializer") &&
+                initializerWithColon,
+            ]),
+          );
+        },
+      ),
+    };
+  },
+  SpreadAssignment: (node: Node<ts.SpreadAssignment>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "spread", style: LabelStyle.TYPE_SUMMARY }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["expression"],
+        ({
+          childDocs,
+          showChildNavigationHints,
+          updatePostLayoutHints,
+          nodeForDisplay,
+          measureLabel,
+        }) => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          const label = [{ text: "...", style: LabelStyle.SYNTAX_SYMBOL }];
+          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+            ...oldHints,
+            styleAsText: true,
+            label,
+          }));
+          return groupDoc([
+            leafDoc({
+              kind: NodeKind.TightLeaf,
+              id: nodeForDisplay.id,
+              size: arrayFromTextSize(measureLabel(label)),
+            }),
+            childDocs.expression,
+          ]);
+        },
+      ),
+    };
+  },
   ReturnStatement: (node: Node<ts.ReturnStatement>) => {
     const label = [{ text: "return", style: LabelStyle.SYNTAX_SYMBOL }];
     return {
@@ -1107,7 +1222,6 @@ export const enhancers: {
 [
   ["ImportDeclaration", "import"],
   ["TypeQueryNode", "typeof"],
-  ["ObjectLiteralExpression", "object"],
   ["AsExpression", "as"],
 ].forEach(([tsType, displayType]) => {
   enhancers[tsType] = (node: Node<unknown>) => {
