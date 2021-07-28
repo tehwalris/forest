@@ -954,6 +954,40 @@ export const enhancers: {
       ),
     };
   },
+  PrefixUnaryExpression: (node: Node<ts.PrefixUnaryExpression>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "PrefixUnaryExpression", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["operator", "operand"],
+        ({ childDocs, showChildNavigationHints }) => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          return groupDoc([childDocs.operator, childDocs.operand]);
+        },
+      ),
+    };
+  },
+  PostfixUnaryExpression: (node: Node<ts.PostfixUnaryExpression>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "PostfixUnaryExpression", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["operand", "operator"],
+        ({ childDocs, showChildNavigationHints }) => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          return groupDoc([childDocs.operand, childDocs.operator]);
+        },
+      ),
+    };
+  },
   TypeReferenceNode: (node: Node<ts.TypeReferenceNode>) => {
     return {
       displayInfo: {
