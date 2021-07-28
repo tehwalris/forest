@@ -880,6 +880,45 @@ export const enhancers: {
       ),
     };
   },
+  BindingElement: (node: Node<ts.BindingElement>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "BindingElement", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["propertyName", "dotDotDotToken", "name", "initializer"],
+        ({
+          shouldHideChild,
+          childDocs,
+          showChildNavigationHints,
+          newTextNode,
+          newFocusMarker,
+        }) => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          const propertyNameWithColon = groupDoc([
+            childDocs.propertyName,
+            leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
+          ]);
+          const initializerWithEqualsSign = groupDoc([
+            leafDoc(newTextNode(" = ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.initializer,
+          ]);
+          return groupDoc(
+            filterTruthyChildren([
+              newFocusMarker(),
+              !shouldHideChild("dotDotDotToken") && childDocs.dotDotDotToken,
+              !shouldHideChild("propertyName") && propertyNameWithColon,
+              childDocs.name,
+              !shouldHideChild("initializer") && initializerWithEqualsSign,
+            ]),
+          );
+        },
+      ),
+    };
+  },
   TypeReferenceNode: (node: Node<ts.TypeReferenceNode>) => {
     return {
       displayInfo: {
@@ -1007,6 +1046,7 @@ export const enhancers: {
   ["BarEqualsToken", "|="],
   ["CaretEqualsToken", "^="],
   ["QuestionDotToken", "?."],
+  ["DotDotDotToken", "..."],
 ].forEach(([tsType, displayKeyword]) => {
   enhancers[tsType] = (node: Node<unknown>, parentPath) => {
     const label: LabelPart[] = [
