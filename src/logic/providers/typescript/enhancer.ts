@@ -222,14 +222,17 @@ const singleLineCommaListEnhancer: Enhancer<Node<ts.NodeArray<ts.Node>>> = (
     ({ childDocs, newTextNode, newFocusMarker }) => {
       return groupDoc([
         newFocusMarker(),
+        lineDoc(LineKind.Soft),
         ...childDocs.map((c, i) =>
           i === 0
             ? c
-            : groupDoc([
-                leafDoc(newTextNode(", ", LabelStyle.SYNTAX_SYMBOL)),
+            : [
+                leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
+                lineDoc(),
                 c,
-              ]),
+              ],
         ),
+        lineDoc(LineKind.Soft),
       ]);
     },
   ),
@@ -605,7 +608,6 @@ export const enhancers: {
         ({
           shouldHideChild,
           childDocs,
-          childIsEmpty,
           showChildNavigationHints,
           newTextNode,
           newFocusMarker,
@@ -628,7 +630,7 @@ export const enhancers: {
                   leafDoc(closingArrow),
                 ]),
               leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
-              childDocs.arguments,
+              nestDoc(1, childDocs.arguments),
               leafDoc(newTextNode(")", LabelStyle.SYNTAX_SYMBOL)),
             ]),
           );
