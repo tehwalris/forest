@@ -195,7 +195,7 @@ function fits(
           return true;
         }
         if (doc.lineKind === LineKind.Normal) {
-          remainingWidth = originalRemainingWidth - R.last(indentStack)!;
+          remainingWidth -= spaceWidth;
         }
         break;
       }
