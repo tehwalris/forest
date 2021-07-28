@@ -474,10 +474,14 @@ export const enhancers: {
           nodeForDisplay,
           updatePostLayoutHints,
           shouldHideChild,
+          showChildNavigationHints,
           childDocs,
           newTextNode,
           measureLabel,
         }): Doc | undefined => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
           const keywordLabel: LabelPart[] = [
             { text: "function ", style: LabelStyle.KEYWORD },
           ];
