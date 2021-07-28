@@ -551,14 +551,12 @@ export const enhancers: {
   "FunctionDeclaration.typeParameters": singleLineCommaListEnhancer,
   ArrowFunction: (node: Node<ts.ArrowFunction>) => {
     return {
-      displayInfo: { priority: DisplayInfoPriority.MEDIUM, label: [{text: "ArrowFunction", style: LabelStyle.UNKNOWN}] },
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "ArrowFunction", style: LabelStyle.UNKNOWN }],
+      },
       buildDoc: withExtendedArgsStruct(
-        [
-          "typeParameters",
-          "parameters",
-          "type",
-          "body",
-        ],
+        ["typeParameters", "parameters", "type", "body"],
         ({
           shouldHideChild,
           showChildNavigationHints,
@@ -584,10 +582,7 @@ export const enhancers: {
               !shouldHideChild("typeParameters") && typeParametersWithArrows,
               leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
               groupDoc([
-                nestDoc(
-                  1,
-                  [lineDoc(LineKind.Soft), childDocs.parameters],
-                ),
+                nestDoc(1, [lineDoc(LineKind.Soft), childDocs.parameters]),
                 lineDoc(LineKind.Soft),
               ]),
               leafDoc(newTextNode(")", LabelStyle.SYNTAX_SYMBOL)),
@@ -840,8 +835,40 @@ export const enhancers: {
             openingSquareBracket,
             nestDoc(
               1,
-              childDocs.map((c) => [
-                lineDoc(LineKind.Soft),
+              childDocs.map((c, i) => [
+                lineDoc(i === 0 ? LineKind.Soft : LineKind.Normal),
+                c,
+                leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
+              ]),
+            ),
+            lineDoc(LineKind.Soft),
+            closingSquareBracket,
+          ]);
+        },
+      ),
+    };
+  },
+  ArrayBindingPattern: (node: Node<ts.ArrayBindingPattern>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "ArrayBindingPattern", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsList(
+        ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
+          var openingSquareBracket = leafDoc(
+            newTextNode("[", LabelStyle.SYNTAX_SYMBOL),
+          );
+          var closingSquareBracket = leafDoc(
+            newTextNode("]", LabelStyle.SYNTAX_SYMBOL),
+          );
+          return groupDoc([
+            newFocusMarker(),
+            openingSquareBracket,
+            nestDoc(
+              1,
+              childDocs.map((c, i) => [
+                lineDoc(i === 0 ? LineKind.Soft : LineKind.Normal),
                 c,
                 leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
               ]),
