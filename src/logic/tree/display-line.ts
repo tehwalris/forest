@@ -34,6 +34,7 @@ interface LeafDoc {
 export enum LineKind {
   Normal,
   Soft,
+  Hard,
 }
 
 interface LineDoc {
@@ -167,7 +168,7 @@ function fits(
         break;
       }
       case DocKind.Line: {
-        if (mode === PrintBreakMode.Break) {
+        if (mode === PrintBreakMode.Break || doc.lineKind === LineKind.Hard) {
           return true;
         }
         if (doc.lineKind === LineKind.Normal) {
@@ -231,33 +232,27 @@ function linesFromDoc(rootDoc: Doc): Line[] {
         currentLine.content.push(doc.content);
         break;
       }
-      case DocKind.Line:
-        switch (mode) {
-          case PrintBreakMode.Break: {
-            const newLine: Line = { indent: R.last(indentStack)!, content: [] };
-            output.push(newLine);
-            currentLine = newLine;
-            currentPos = newLine.indent;
-            break;
-          }
-          case PrintBreakMode.Flat: {
-            if (doc.lineKind === LineKind.Normal) {
-              // TODO use the real width of a space
-              currentLine.content.push({
-                kind: NodeKind.TightLeaf,
-                size: [spaceWidth, 0],
-              });
-              if (currentPos !== undefined) {
-                currentPos += spaceWidth;
-              }
-            }
-            break;
-          }
-          default: {
-            return unreachable(mode);
+      case DocKind.Line: {
+        if (mode === PrintBreakMode.Break || doc.lineKind === LineKind.Hard) {
+          const newLine: Line = { indent: R.last(indentStack)!, content: [] };
+          output.push(newLine);
+          currentLine = newLine;
+          currentPos = newLine.indent;
+        } else if (
+          mode === PrintBreakMode.Flat &&
+          doc.lineKind === LineKind.Normal
+        ) {
+          // TODO use the real width of a space
+          currentLine.content.push({
+            kind: NodeKind.TightLeaf,
+            size: [spaceWidth, 0],
+          });
+          if (currentPos !== undefined) {
+            currentPos += spaceWidth;
           }
         }
         break;
+      }
       case DocKind.Group: {
         const newMode =
           mode === PrintBreakMode.Break &&

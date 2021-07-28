@@ -749,9 +749,9 @@ export const enhancers: {
               ? groupDoc([
                   nestDoc(
                     1,
-                    groupDoc(childDocs.map((c) => groupDoc([lineDoc(), c]))),
+                    childDocs.map((c) => [lineDoc(LineKind.Hard), c]),
                   ),
-                  lineDoc(),
+                  lineDoc(LineKind.Hard),
                 ])
               : leafDoc(ellipsis),
             leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
