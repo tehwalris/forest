@@ -324,6 +324,28 @@ export const enhancers: {
         ],
         color: SemanticColor.LITERAL,
       },
+      buildDoc: ({
+        nodeForDisplay,
+        updatePostLayoutHints,
+        measureLabel,
+      }: BuildDivetreeDisplayTreeArgs): Doc | undefined => {
+        const label: LabelPart[] = [
+          {
+            text: nodeForDisplay.getDebugLabel() || "number",
+            style: LabelStyle.VALUE,
+          },
+        ];
+        updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+          ...oldHints,
+          styleAsText: true,
+          label,
+        }));
+        return leafDoc({
+          kind: NodeKind.TightLeaf,
+          id: nodeForDisplay.id,
+          size: arrayFromTextSize(measureLabel(label)),
+        });
+      },
     };
   },
   PropertySignature: (node: Node<ts.PropertySignature>) => {
@@ -926,7 +948,6 @@ export const enhancers: {
       buildDoc: withExtendedArgsStruct(
         ["expression"],
         ({
-          shouldHideChild,
           childDocs,
           showChildNavigationHints,
           updatePostLayoutHints,
