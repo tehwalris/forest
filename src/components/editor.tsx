@@ -243,6 +243,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
       case DelayedInputKind.KeyDown:
         handleKey(input.event, {
           parentIndex: incrementalParentIndex,
+          postLayoutHintsById: postLayoutHintsByIdRef.current,
           focusedId: focusedParentIndexEntry.node.id,
           setFocusedId,
           setFocusedIdPath,

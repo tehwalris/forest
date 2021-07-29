@@ -5,11 +5,13 @@ import { ActionSet, InputKind } from "../tree/action";
 import { Flag, Node } from "../tree/node";
 import { HandleAction } from "./interfaces";
 import { ParentIndex, idPathFromParentIndexEntry } from "../parent-index";
+import type { PostLayoutHints } from "../layout-hints";
 export interface Marks {
   [key: string]: string[];
 }
 interface HandleKeyOptions {
   parentIndex: ParentIndex;
+  postLayoutHintsById: Map<string, PostLayoutHints>;
   focusedId: string;
   setFocusedId: (id: string) => void;
   setFocusedIdPath: (idPath: string[]) => void;
@@ -29,6 +31,7 @@ export function handleKey(
   event: KeyboardEvent,
   {
     parentIndex,
+    postLayoutHintsById,
     focusedId,
     setFocusedId,
     setFocusedIdPath,
@@ -169,8 +172,9 @@ export function handleKey(
     [key: string]: (() => void) | undefined;
   } = {
     Enter: () => {
-      console.log(handlers);
-      console.log(parentIndexEntry);
+      console.log("handlers", handlers);
+      console.log("parentIndexEntry", parentIndexEntry);
+      console.log("postLayoutHints", postLayoutHintsById.get(focusedId));
     },
     "9": save,
     "0": () => console.log(prettyPrint()),

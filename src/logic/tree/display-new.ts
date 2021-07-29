@@ -18,7 +18,11 @@ import {
   docIsOnlySoftLinesOrEmpty,
   leafDoc,
 } from "./display-line";
-import { unreachable } from "../util";
+import {
+  mergeIntoMapNoDuplicates,
+  mergeIntoMapNoOverwrite,
+  unreachable,
+} from "../util";
 
 function maybeWrapPortal(
   node: DivetreeDisplayRootNode,
@@ -178,13 +182,15 @@ function buildDivetreeDisplayTreeCacheable(
     childNode: Node<unknown>,
   ) => {
     const childCacheEntry = buildDivetreeDisplayTreeCacheable(childNode, args);
-    for (const [id, hints] of childCacheEntry.subtreePostLayoutHintsById) {
-      subtreePostLayoutHintsById.set(id, hints);
-    }
+    mergeIntoMapNoDuplicates(
+      subtreePostLayoutHintsById,
+      childCacheEntry.subtreePostLayoutHintsById,
+    );
     return asDoc(childCacheEntry.intermediateDisplay);
   };
 
   const customDoc = node.buildDoc({
+    nodeForDisplay: node,
     focusPath: [],
     expand: false,
     showChildNavigationHints: false,
@@ -307,9 +313,7 @@ function buildDivetreeDisplayTreeNonCacheable(
   if (!isOnFocusPath) {
     const { intermediateDisplay, subtreePostLayoutHintsById } =
       buildDivetreeDisplayTreeCacheable(node, cacheableArgs);
-    for (const [id, hints] of subtreePostLayoutHintsById) {
-      postLayoutHintsById.set(id, hints);
-    }
+    mergeIntoMapNoOverwrite(postLayoutHintsById, subtreePostLayoutHintsById);
     return maybeWrapForNavigation(intermediateDisplay);
   }
 
@@ -332,6 +336,7 @@ function buildDivetreeDisplayTreeNonCacheable(
     };
 
   const customIntermediateArgs: BuildDivetreeDisplayTreeArgs = {
+    nodeForDisplay: node,
     focusPath,
     expand: isOnFocusPath,
     showChildNavigationHints,

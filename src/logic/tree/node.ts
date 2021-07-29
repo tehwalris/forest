@@ -7,6 +7,7 @@ import { LabelMeasurementFunction } from "../text-measurement";
 import type { Doc } from "./display-line";
 
 export interface BuildDivetreeDisplayTreeArgs {
+  nodeForDisplay: Node<unknown>;
   focusPath: string[];
   expand: boolean;
   showChildNavigationHints: boolean;
