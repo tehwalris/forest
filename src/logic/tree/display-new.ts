@@ -8,7 +8,6 @@ import {
   TightNode,
 } from "divetree-core";
 import { IncrementalParentIndex } from "../parent-index";
-import { isMetaBranchNode } from "../transform/transforms/split-meta";
 import { BuildDivetreeDisplayTreeArgs, LabelStyle, Node } from "../tree/node";
 import { PostLayoutHints } from "../layout-hints";
 import * as R from "ramda";
@@ -20,17 +19,6 @@ import {
   leafDoc,
 } from "./display-line";
 import { unreachable } from "../util";
-
-export function getNodeForDisplay(
-  node: Node<unknown>,
-  metaLevelNodeIds: Set<string>,
-): Node<unknown> {
-  if (isMetaBranchNode(node)) {
-    const selectedBranch = metaLevelNodeIds.has(node.id) ? "meta" : "primary";
-    return node.children.find((c) => c.key === selectedBranch)!.node;
-  }
-  return node;
-}
 
 function maybeWrapPortal(
   node: DivetreeDisplayRootNode,
@@ -100,7 +88,6 @@ function asDoc(intermediate: IntermediateDisplay): Doc {
 function buildDivetreeDisplayTreeIntermediate(
   node: Node<unknown>,
   focusPath: string[],
-  metaLevelNodeIds: Set<string>,
   incrementalParentIndex: IncrementalParentIndex,
   postLayoutHintsById: Map<string, PostLayoutHints>,
   measureLabel: LabelMeasurementFunction,
@@ -121,12 +108,10 @@ function buildDivetreeDisplayTreeIntermediate(
   const showChildShortcuts =
     !showChildNavigationHints && isOnFocusPath && focusPath.length === 1;
 
-  const nodeForDisplay = getNodeForDisplay(node, metaLevelNodeIds);
-  const children = nodeForDisplay.children;
+  const children = node.children;
 
   incrementalParentIndex.addObservation(node);
-  incrementalParentIndex.addObservation(nodeForDisplay);
-  const parentPath = incrementalParentIndex.get(nodeForDisplay.id)?.path;
+  const parentPath = incrementalParentIndex.get(node.id)?.path;
   if (!parentPath) {
     throw new Error(
       "could not get parentPath for node that was just added to index",
@@ -134,7 +119,7 @@ function buildDivetreeDisplayTreeIntermediate(
   }
 
   if (showChildNavigationHints) {
-    for (const { node: childNode } of nodeForDisplay.children) {
+    for (const { node: childNode } of node.children) {
       updatePostLayoutHints(childNode.id, (oldHints) => ({
         ...oldHints,
         showNavigationHints: true,
@@ -142,7 +127,7 @@ function buildDivetreeDisplayTreeIntermediate(
     }
   }
   if (showChildShortcuts) {
-    for (const { node: childNode } of nodeForDisplay.children) {
+    for (const { node: childNode } of node.children) {
       updatePostLayoutHints(childNode.id, (oldHints) => ({
         ...oldHints,
         showShortcuts: true,
@@ -154,7 +139,7 @@ function buildDivetreeDisplayTreeIntermediate(
     base: IntermediateDisplay,
   ): IntermediateDisplay {
     let { showNavigationHints, showShortcuts } =
-      postLayoutHintsById.get(nodeForDisplay.id) || {};
+      postLayoutHintsById.get(node.id) || {};
     if (!showNavigationHints && !showShortcuts) {
       return base;
     }
@@ -184,7 +169,7 @@ function buildDivetreeDisplayTreeIntermediate(
     }
 
     if (showNavigationHints) {
-      updatePostLayoutHints(`${nodeForDisplay.id}-navigation`, (oldHints) => ({
+      updatePostLayoutHints(`${node.id}-navigation`, (oldHints) => ({
         ...oldHints,
         label: [{ text: childKeyForDisplay, style: LabelStyle.CHILD_KEY }],
       }));
@@ -197,7 +182,7 @@ function buildDivetreeDisplayTreeIntermediate(
           children: [
             {
               kind: NodeKind.TightLeaf,
-              id: `${nodeForDisplay.id}-navigation`,
+              id: `${node.id}-navigation`,
               size: [150, 20],
             },
             maybeWrapPortal(asDivetree(base)),
@@ -209,7 +194,7 @@ function buildDivetreeDisplayTreeIntermediate(
         return base;
       }
 
-      updatePostLayoutHints(`${nodeForDisplay.id}-shortcut`, (oldHints) => ({
+      updatePostLayoutHints(`${node.id}-shortcut`, (oldHints) => ({
         ...oldHints,
         shortcutKey: childShortcut,
       }));
@@ -220,7 +205,7 @@ function buildDivetreeDisplayTreeIntermediate(
           leafDoc(
             {
               kind: NodeKind.TightLeaf,
-              id: `${nodeForDisplay.id}-shortcut`,
+              id: `${node.id}-shortcut`,
               size: [0, 0],
             },
             true,
@@ -235,7 +220,6 @@ function buildDivetreeDisplayTreeIntermediate(
     buildDivetreeDisplayTreeIntermediate(
       childNode,
       isOnFocusPath ? focusPath.slice(1) : [],
-      metaLevelNodeIds,
       incrementalParentIndex,
       postLayoutHintsById,
       measureLabel,
@@ -247,7 +231,6 @@ function buildDivetreeDisplayTreeIntermediate(
     asDoc(buildChildIntermediate(childNode));
 
   const customIntermediateArgs: BuildDivetreeDisplayTreeArgs = {
-    nodeForDisplay,
     focusPath,
     expand: isOnFocusPath,
     showChildNavigationHints,
@@ -333,19 +316,16 @@ function buildDivetreeDisplayTreeIntermediate(
 
 export function buildDivetreeNavTree(
   node: Node<unknown>,
-  metaLevelNodeIds: Set<string>,
   incrementalParentIndex?: IncrementalParentIndex,
 ): NavNode {
-  const nodeForDisplay = getNodeForDisplay(node, metaLevelNodeIds);
   if (incrementalParentIndex) {
     incrementalParentIndex.addObservation(node);
-    incrementalParentIndex.addObservation(nodeForDisplay);
   }
   return {
     id: node.id,
     getChildren: () =>
-      nodeForDisplay.children.map((c) =>
-        buildDivetreeNavTree(c.node, metaLevelNodeIds, incrementalParentIndex),
+      node.children.map((c) =>
+        buildDivetreeNavTree(c.node, incrementalParentIndex),
       ),
   };
 }

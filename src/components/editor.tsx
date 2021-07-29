@@ -19,14 +19,12 @@ import {
 import { compressUselessValuesTransform } from "../logic/transform/transforms/compress-useless-values";
 import { flattenIfTransform } from "../logic/transform/transforms/flatten-if";
 import { simpleVariableDeclarationTransform } from "../logic/transform/transforms/simple-variable-declaration";
-import { isMetaBranchNode } from "../logic/transform/transforms/split-meta";
 import { Action, InputKind } from "../logic/tree/action";
 import { Path } from "../logic/tree/base";
 import { EmptyLeafNode } from "../logic/tree/base-nodes";
 import {
   buildDivetreeDisplayTree,
   buildDivetreeNavTree,
-  getNodeForDisplay,
 } from "../logic/tree/display-new";
 import { Node, SemanticColor } from "../logic/tree/node";
 import { useFocus } from "../logic/use-focus";
@@ -52,7 +50,6 @@ const TRANSFORMS: Transform[][] = [
   [simpleVariableDeclarationTransform],
   // [chainTransform], // TODO crashes sometimes after TS
   [flattenIfTransform, compressUselessValuesTransform],
-  // [splitMetaTransform], // Annoying with child shortcuts
 ];
 const transformCache: MultiTransformCache = {
   apply: new WeakMap(),
@@ -220,7 +217,6 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
     updateNode(inProgressAction.target, updatedNode, inProgressAction.focus);
     setInProgressAction(undefined);
   };
-  const [metaLevelNodeIds, setMetaLevelNodeIds] = useState(new Set<string>());
   const incrementalParentIndex = useMemo(
     () => new IncrementalParentIndex(tree),
     [tree],
@@ -229,50 +225,9 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
     tree,
     incrementalParentIndex,
   );
-  const navTree = useMemo(
-    () => buildDivetreeNavTree(tree, metaLevelNodeIds),
-    [tree, metaLevelNodeIds],
-  );
-  useEffect(() => {
-    const newIds = new Set<string>();
-    focusedParentIndexEntry.path.forEach(({ parent }) => {
-      if (metaLevelNodeIds.has(parent.id) && isMetaBranchNode(parent)) {
-        newIds.add(parent.id);
-      }
-    });
-    if (newIds.size !== metaLevelNodeIds.size) {
-      setMetaLevelNodeIds(newIds);
-    }
-  }, [focusedParentIndexEntry, metaLevelNodeIds]);
-  const toggleNodeMetaLevel = (nodeId: string) => {
-    const entry = incrementalParentIndex.get(nodeId);
-    if (!entry) {
-      return;
-    }
-    if (!isMetaBranchNode(entry.node)) {
-      return;
-    }
-    const newIds: string[] = [];
-    if (!metaLevelNodeIds.has(nodeId)) {
-      newIds.push(nodeId);
-    }
-    entry.path.forEach(({ parent }) => {
-      if (metaLevelNodeIds.has(parent.id) && isMetaBranchNode(parent)) {
-        newIds.push(parent.id);
-      }
-    });
-    const firstChildId = entry.node.children.find((c) => c.key === "meta")?.node
-      .children[0]?.node.id;
-    if (firstChildId) {
-      setFocusedId(firstChildId);
-      setMetaLevelNodeIds(new Set(newIds));
-    }
-  };
-  const trueFocusedNode = getNodeForDisplay(
-    focusedParentIndexEntry.node,
-    metaLevelNodeIds,
-  );
-  incrementalParentIndex.addObservation(trueFocusedNode);
+  const navTree = useMemo(() => buildDivetreeNavTree(tree), [tree]);
+  const focusedNode = focusedParentIndexEntry.node;
+  incrementalParentIndex.addObservation(focusedNode);
   const [copiedNode, setCopiedNode] = useState<Node<unknown>>();
   const [marks, setMarks] = useState<Marks>({});
   const [chord, setChord] = useState<string[]>([]);
@@ -283,7 +238,6 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
     switch (input.kind) {
       case DelayedInputKind.KeyDown:
         handleKey(input.event, {
-          tree,
           parentIndex: incrementalParentIndex,
           focusedId: focusedParentIndexEntry.node.id,
           setFocusedId,
@@ -294,8 +248,6 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
           copyNode: setCopiedNode,
           copiedNode,
           saveFile,
-          metaLevelNodeIds,
-          toggleNodeMetaLevel,
           marks,
           setMarks,
           chord,
@@ -328,7 +280,6 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
           return buildDivetreeDisplayTree(
             tree,
             focusPath,
-            metaLevelNodeIds,
             incrementalParentIndex,
             postLayoutHintsByIdRef.current,
             labelMeasurementCacheRef.current.measure,
@@ -348,10 +299,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
             focused,
           )
         }
-        focusedIdPath={idPathFromParentIndexEntry(
-          focusedParentIndexEntry,
-          (node, parent) => !parent || !isMetaBranchNode(parent),
-        )}
+        focusedIdPath={idPathFromParentIndexEntry(focusedParentIndexEntry)}
         onFocusedIdChange={setFocusedId}
         disableNav={!!inProgressAction}
         onKeyDown={(event) => {
@@ -372,7 +320,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         />
       )}
       {!inProgressAction && (
-        <PossibleActionDisplay actions={trueFocusedNode?.actions || {}} />
+        <PossibleActionDisplay actions={focusedNode?.actions || {}} />
       )}
     </div>
   );

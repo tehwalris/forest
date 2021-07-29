@@ -189,17 +189,16 @@ export class BooleanNode extends Node<ts.BooleanLiteral> {
   }
   buildDoc({
     measureLabel,
-    nodeForDisplay,
     updatePostLayoutHints,
   }: BuildDivetreeDisplayTreeArgs) {
-    updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+    updatePostLayoutHints(this.id, (oldHints) => ({
       ...oldHints,
       styleAsText: true,
     }));
     const label = this.getLabel();
     return leafDoc({
       kind: NodeKind.TightLeaf,
-      id: nodeForDisplay.id,
+      id: this.id,
       size: arrayFromTextSize(measureLabel(label)),
     });
   }

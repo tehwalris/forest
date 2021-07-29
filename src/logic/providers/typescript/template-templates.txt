@@ -350,7 +350,6 @@ VariableDeclaration
   R name BindingName
   O type TypeNode
   O initializer Expression
-  primary initializer
   build ({name, type, initializer}) => ts.createVariableDeclaration(name, type, initializer)
 EmptyStatement
   build ts.createEmptyStatement
@@ -368,7 +367,6 @@ FunctionDeclaration
   OL typeParameters TypeParameterDeclaration
   O type TypeNode
   O body FunctionBody
-  primary ...body
   flags export default ambient async
   build ({asteriskToken, name, parameters, typeParameters, type, body}, modifiers) => ts.createFunctionDeclaration(undefined, modifiers, asteriskToken, name, typeParameters, parameters, type, body)
 FunctionExpression
@@ -378,7 +376,6 @@ FunctionExpression
   OL typeParameters TypeParameterDeclaration
   O type TypeNode
   R body FunctionBody
-  primary ...body
   flags async
   build ({asteriskToken, name, parameters, typeParameters, type, body}, modifiers) => ts.createFunctionExpression(modifiers, asteriskToken, name, typeParameters, parameters, type, body)
 ExpressionStatement
@@ -444,7 +441,6 @@ ClassDeclaration
   OL typeParameters TypeParameterDeclaration
   OL heritageClauses HeritageClause
   RL members ClassElement
-  primary ...members
   flags export default ambient abstract
   build ({name, typeParameters, heritageClauses, members}, modifiers) => ts.createClassDeclaration(undefined, modifiers, name, typeParameters, heritageClauses || [], members)
 HeritageClause
@@ -459,7 +455,6 @@ PropertyDeclaration
   O questionToken QuestionToken
   O type TypeNode
   O initializer Expression
-  primary initializer
   flags accesibility static readonly async abstract
   build ({name, questionToken, type, initializer}, modifiers) => ts.createProperty(undefined, modifiers, name, questionToken, type, initializer)
 MethodDeclaration
@@ -470,7 +465,6 @@ MethodDeclaration
   RL parameters ParameterDeclaration
   O type TypeNode
   O body FunctionBody
-  primary ...body
   flags accesibility static async abstract
   build ({asteriskToken, name, questionToken, typeParameters, parameters, type, body}, modifiers) => ts.createMethod(undefined, modifiers, asteriskToken, name, questionToken, typeParameters, parameters, type, body)
 ConstructorDeclaration
@@ -501,7 +495,6 @@ ArrowFunction
 PropertyAssignment
   R name PropertyName
   R initializer Expression
-  primary initializer
   build ({name, initializer}) => ts.createPropertyAssignment(name, initializer)
 ReturnStatement
   O expression Expression
@@ -594,7 +587,6 @@ PropertySignature
   O questionToken QuestionToken
   O type TypeNode
   O initializer Expression
-  primary type initializer
   flags readonly
   build ({name, questionToken, type, initializer}, modifiers) => ts.createPropertySignature(modifiers, name, questionToken, type, initializer)
 MethodSignature
@@ -637,7 +629,6 @@ InterfaceDeclaration
   OL typeParameters TypeParameterDeclaration
   OL heritageClauses HeritageClause
   RL members TypeElement
-  primary ...members
   flags export default ambient
   build ({name, typeParameters, heritageClauses, members}, modifiers) => ts.createInterfaceDeclaration(undefined, modifiers, name, typeParameters, heritageClauses, members)
 TypeAliasDeclaration
@@ -645,13 +636,11 @@ TypeAliasDeclaration
   OL typeParameters TypeParameterDeclaration
   R type TypeNode
   flags export ambient
-  primary type
   build ({name, typeParameters, type}, modifiers) => ts.createTypeAliasDeclaration(undefined, modifiers, name, typeParameters, type)
 EnumDeclaration
   R name Identifier
   RL members EnumMember
   flags export ambient
-  primary ...members
   build ({name, members}, modifiers) => ts.createEnumDeclaration(undefined, modifiers, name, members)
 EnumMember
   R name PropertyName

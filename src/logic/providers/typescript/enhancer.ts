@@ -83,12 +83,12 @@ interface ExtendedDisplayTreeArgsList extends ExtendedDisplayTreeArgsBase {
   shouldHideChild: (childKey: number) => boolean;
 }
 function withExtendedArgsStruct<CK extends string, R>(
+  node: Node<unknown>,
   expectedChildKeys: CK[],
   innerBuild: (args: ExtendedDisplayTreeArgsStruct<CK>) => R | undefined,
 ): (args: BuildDivetreeDisplayTreeArgs) => R | undefined {
   return (args: BuildDivetreeDisplayTreeArgs) => {
     const {
-      nodeForDisplay,
       buildChildDoc,
       showChildNavigationHints,
       focusPath,
@@ -96,8 +96,8 @@ function withExtendedArgsStruct<CK extends string, R>(
       measureLabel,
     } = args;
     if (
-      nodeForDisplay.children.length !== expectedChildKeys.length ||
-      !nodeForDisplay.children.every((c, i) => c.key === expectedChildKeys[i])
+      node.children.length !== expectedChildKeys.length ||
+      !node.children.every((c, i) => c.key === expectedChildKeys[i])
     ) {
       console.warn("unexpected number or order of children");
       return undefined;
@@ -112,7 +112,7 @@ function withExtendedArgsStruct<CK extends string, R>(
       [K in CK]: boolean;
     } = {} as any;
     for (const key of expectedChildKeys) {
-      const child = nodeForDisplay.getByPath([key])!;
+      const child = node.getByPath([key])!;
       childDocs[key] = buildChildDoc(child);
       childIsEmpty[key] = child.getDebugLabel() === "Option<None>";
     }
@@ -121,8 +121,8 @@ function withExtendedArgsStruct<CK extends string, R>(
       childIsEmpty[childKey] &&
       (focusPath.length < 2 ||
         !(
-          focusPath[0] === nodeForDisplay.id &&
-          focusPath[1] === nodeForDisplay.getByPath([childKey])!.id
+          focusPath[0] === node.id &&
+          focusPath[1] === node.getByPath([childKey])!.id
         ));
     const maybeWrapPortal = (
       node: DivetreeDisplayRootNode,
@@ -140,7 +140,7 @@ function withExtendedArgsStruct<CK extends string, R>(
         idSuffix = `extra-text-node-${nextTextNodeIndex}`;
         nextTextNodeIndex++;
       }
-      const id = `${nodeForDisplay.id}-${idSuffix}`;
+      const id = `${node.id}-${idSuffix}`;
       const label: LabelPart[] = [{ text: labelText, style: labelStyle }];
       updatePostLayoutHints(id, (oldHints) => ({
         ...oldHints,
@@ -159,13 +159,13 @@ function withExtendedArgsStruct<CK extends string, R>(
         throw new Error("newFocusMarker can only be called once");
       }
       focusMarkerCreated = true;
-      updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+      updatePostLayoutHints(node.id, (oldHints) => ({
         ...oldHints,
         hideFocus: true,
         label: [],
       }));
       return leafDoc(
-        { kind: NodeKind.TightLeaf, id: nodeForDisplay.id, size: [0, 0] },
+        { kind: NodeKind.TightLeaf, id: node.id, size: [0, 0] },
         true,
       );
     };
@@ -182,12 +182,12 @@ function withExtendedArgsStruct<CK extends string, R>(
   };
 }
 function withExtendedArgsList<R>(
+  node: Node<unknown>,
   innerBuild: (args: ExtendedDisplayTreeArgsList) => R | undefined,
 ): (args: BuildDivetreeDisplayTreeArgs) => R | undefined {
   return (originalArgs: BuildDivetreeDisplayTreeArgs) => {
-    const { nodeForDisplay } = originalArgs;
-    const childKeys = nodeForDisplay.children.map((c) => c.key);
-    return withExtendedArgsStruct(childKeys, (structArgs) => {
+    const childKeys = node.children.map((c) => c.key);
+    return withExtendedArgsStruct(node, childKeys, (structArgs) => {
       return innerBuild({
         ...structArgs,
         childDocs: childKeys.map((k) => structArgs.childDocs[k]),
@@ -205,6 +205,7 @@ const singleLineCommaListEnhancer: Enhancer<Node<ts.NodeArray<ts.Node>>> = (
 ) => ({
   displayInfo: { priority: DisplayInfoPriority.LOW, label: [] },
   buildDoc: withExtendedArgsList(
+    node,
     ({ childDocs, newTextNode, newFocusMarker }) => {
       return groupDoc([
         newFocusMarker(),
@@ -240,24 +241,23 @@ export const enhancers: {
           : SemanticColor.REFERENCE,
       },
       buildDoc: ({
-        nodeForDisplay,
         updatePostLayoutHints,
         measureLabel,
       }: BuildDivetreeDisplayTreeArgs): Doc | undefined => {
         const label: LabelPart[] = [
           {
-            text: nodeForDisplay.getDebugLabel() || "",
+            text: node.getDebugLabel() || "",
             style: LabelStyle.VALUE,
           },
         ];
-        updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+        updatePostLayoutHints(node.id, (oldHints) => ({
           ...oldHints,
           styleAsText: true,
           label,
         }));
         return leafDoc({
           kind: NodeKind.TightLeaf,
-          id: nodeForDisplay.id,
+          id: node.id,
           size: arrayFromTextSize(measureLabel(label)),
         });
       },
@@ -275,26 +275,25 @@ export const enhancers: {
         color: SemanticColor.LITERAL,
       },
       buildDoc: ({
-        nodeForDisplay,
         updatePostLayoutHints,
         measureLabel,
       }: BuildDivetreeDisplayTreeArgs): Doc | undefined => {
         const label: LabelPart[] = [
           { text: '"', style: LabelStyle.SYNTAX_SYMBOL },
           {
-            text: nodeForDisplay.getDebugLabel() || "",
+            text: node.getDebugLabel() || "",
             style: LabelStyle.VALUE,
           },
           { text: '"', style: LabelStyle.SYNTAX_SYMBOL },
         ];
-        updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+        updatePostLayoutHints(node.id, (oldHints) => ({
           ...oldHints,
           styleAsText: true,
           label,
         }));
         return leafDoc({
           kind: NodeKind.TightLeaf,
-          id: nodeForDisplay.id,
+          id: node.id,
           size: arrayFromTextSize(measureLabel(label)),
         });
       },
@@ -311,24 +310,23 @@ export const enhancers: {
         color: SemanticColor.LITERAL,
       },
       buildDoc: ({
-        nodeForDisplay,
         updatePostLayoutHints,
         measureLabel,
       }: BuildDivetreeDisplayTreeArgs): Doc | undefined => {
         const label: LabelPart[] = [
           {
-            text: nodeForDisplay.getDebugLabel() || "number",
+            text: node.getDebugLabel() || "number",
             style: LabelStyle.VALUE,
           },
         ];
-        updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+        updatePostLayoutHints(node.id, (oldHints) => ({
           ...oldHints,
           styleAsText: true,
           label,
         }));
         return leafDoc({
           kind: NodeKind.TightLeaf,
-          id: nodeForDisplay.id,
+          id: node.id,
           size: arrayFromTextSize(measureLabel(label)),
         });
       },
@@ -362,6 +360,7 @@ export const enhancers: {
     return {
       displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["name", "type", "initializer"],
         ({
           showChildNavigationHints,
@@ -405,6 +404,7 @@ export const enhancers: {
     return {
       displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["dotDotDotToken", "name", "questionToken", "type", "initializer"],
         ({
           shouldHideChild,
@@ -459,6 +459,7 @@ export const enhancers: {
     return {
       displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
       buildDoc: withExtendedArgsStruct(
+        node,
         [
           "asteriskToken",
           "name",
@@ -468,7 +469,6 @@ export const enhancers: {
           "body",
         ],
         ({
-          nodeForDisplay,
           updatePostLayoutHints,
           shouldHideChild,
           showChildNavigationHints,
@@ -482,7 +482,7 @@ export const enhancers: {
           const keywordLabel: LabelPart[] = [
             { text: "function ", style: LabelStyle.KEYWORD },
           ];
-          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+          updatePostLayoutHints(node.id, (oldHints) => ({
             ...oldHints,
             styleAsText: true,
             label: keywordLabel,
@@ -500,7 +500,7 @@ export const enhancers: {
             filterTruthyChildren([
               leafDoc({
                 kind: NodeKind.TightLeaf,
-                id: nodeForDisplay.id,
+                id: node.id,
                 size: arrayFromTextSize(measureLabel(keywordLabel)),
               }),
               !shouldHideChild("asteriskToken") && childDocs.asteriskToken,
@@ -530,6 +530,7 @@ export const enhancers: {
     return {
       displayInfo: { priority: DisplayInfoPriority.LOW, label: [] },
       buildDoc: withExtendedArgsList(
+        node,
         ({ childDocs, newTextNode, newFocusMarker }) => {
           return groupDoc([
             newFocusMarker(),
@@ -553,6 +554,7 @@ export const enhancers: {
         label: [{ text: "ArrowFunction", style: LabelStyle.UNKNOWN }],
       },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["typeParameters", "parameters", "type", "body"],
         ({
           shouldHideChild,
@@ -621,6 +623,7 @@ export const enhancers: {
         label: [{ text: "property access", style: LabelStyle.TYPE_SUMMARY }],
       },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["expression", "questionDotToken", "name"],
         ({
           shouldHideChild,
@@ -655,6 +658,7 @@ export const enhancers: {
         label: [{ text: "call", style: LabelStyle.TYPE_SUMMARY }],
       },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["expression", "questionDotToken", "typeArguments", "arguments"],
         ({
           shouldHideChild,
@@ -700,6 +704,7 @@ export const enhancers: {
         ],
       },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["name", "constraint", "default"],
         ({
           shouldHideChild,
@@ -738,6 +743,7 @@ export const enhancers: {
         label: [{ text: "BinaryExpression", style: LabelStyle.UNKNOWN }],
       },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["left", "operatorToken", "right"],
         ({
           childDocs,
@@ -767,6 +773,7 @@ export const enhancers: {
         label: [{ text: "ExpressionStatement", style: LabelStyle.UNKNOWN }],
       },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["expression"],
         ({
           childDocs,
@@ -788,6 +795,7 @@ export const enhancers: {
         label: [{ text: "block", style: LabelStyle.TYPE_SUMMARY }],
       },
       buildDoc: withExtendedArgsList(
+        node,
         ({
           childDocs,
           expand,
@@ -829,6 +837,7 @@ export const enhancers: {
         label: [{ text: "array", style: LabelStyle.TYPE_SUMMARY }],
       },
       buildDoc: withExtendedArgsList(
+        node,
         ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
           var openingSquareBracket = leafDoc(
             newTextNode("[", LabelStyle.SYNTAX_SYMBOL),
@@ -861,6 +870,7 @@ export const enhancers: {
         label: [{ text: "ArrayBindingPattern", style: LabelStyle.UNKNOWN }],
       },
       buildDoc: withExtendedArgsList(
+        node,
         ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
           var openingSquareBracket = leafDoc(
             newTextNode("[", LabelStyle.SYNTAX_SYMBOL),
@@ -893,6 +903,7 @@ export const enhancers: {
         label: [{ text: "BindingElement", style: LabelStyle.UNKNOWN }],
       },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["propertyName", "dotDotDotToken", "name", "initializer"],
         ({
           shouldHideChild,
@@ -932,6 +943,7 @@ export const enhancers: {
         label: [{ text: "object", style: LabelStyle.TYPE_SUMMARY }],
       },
       buildDoc: withExtendedArgsList(
+        node,
         ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
           const focusMarker = newFocusMarker();
           return groupDoc(
@@ -963,6 +975,7 @@ export const enhancers: {
         label: [{ text: "property", style: LabelStyle.TYPE_SUMMARY }],
       },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["name", "initializer"],
         ({
           childDocs,
@@ -990,6 +1003,7 @@ export const enhancers: {
         label: [{ text: "shorthand property", style: LabelStyle.TYPE_SUMMARY }],
       },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["name", "objectAssignmentInitializer"],
         ({
           childDocs,
@@ -1024,19 +1038,19 @@ export const enhancers: {
         label: [{ text: "spread", style: LabelStyle.TYPE_SUMMARY }],
       },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["expression"],
         ({
           childDocs,
           showChildNavigationHints,
           updatePostLayoutHints,
-          nodeForDisplay,
           measureLabel,
         }) => {
           if (showChildNavigationHints) {
             return undefined;
           }
           const label = [{ text: "...", style: LabelStyle.SYNTAX_SYMBOL }];
-          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+          updatePostLayoutHints(node.id, (oldHints) => ({
             ...oldHints,
             styleAsText: true,
             label,
@@ -1044,7 +1058,7 @@ export const enhancers: {
           return groupDoc([
             leafDoc({
               kind: NodeKind.TightLeaf,
-              id: nodeForDisplay.id,
+              id: node.id,
               size: arrayFromTextSize(measureLabel(label)),
             }),
             childDocs.expression,
@@ -1060,6 +1074,7 @@ export const enhancers: {
         label: [{ text: "ObjectBindingPattern", style: LabelStyle.UNKNOWN }],
       },
       buildDoc: withExtendedArgsList(
+        node,
         ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
           const focusMarker = newFocusMarker();
           return groupDoc(
@@ -1089,26 +1104,26 @@ export const enhancers: {
     return {
       displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["expression"],
         ({
           childDocs,
           showChildNavigationHints,
           updatePostLayoutHints,
-          nodeForDisplay,
           newTextNode,
           measureLabel,
         }) => {
           if (showChildNavigationHints) {
             return undefined;
           }
-          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+          updatePostLayoutHints(node.id, (oldHints) => ({
             ...oldHints,
             styleAsText: true,
           }));
           return groupDoc([
             leafDoc({
               kind: NodeKind.TightLeaf,
-              id: nodeForDisplay.id,
+              id: node.id,
               size: arrayFromTextSize(measureLabel(label)),
             }),
             leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
@@ -1125,6 +1140,7 @@ export const enhancers: {
         label: [{ text: "PrefixUnaryExpression", style: LabelStyle.UNKNOWN }],
       },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["operator", "operand"],
         ({ childDocs, showChildNavigationHints }) => {
           if (showChildNavigationHints) {
@@ -1142,6 +1158,7 @@ export const enhancers: {
         label: [{ text: "PostfixUnaryExpression", style: LabelStyle.UNKNOWN }],
       },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["operand", "operator"],
         ({ childDocs, showChildNavigationHints }) => {
           if (showChildNavigationHints) {
@@ -1159,6 +1176,7 @@ export const enhancers: {
         label: [{ text: "TypeReferenceNode", style: LabelStyle.UNKNOWN }],
       },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["typeName", "typeArguments"],
         ({
           shouldHideChild,
@@ -1196,11 +1214,11 @@ export const enhancers: {
         label: [{ text: "array", style: LabelStyle.TYPE_SUMMARY }],
       },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["elementType"],
         ({
           childDocs,
           showChildNavigationHints,
-          nodeForDisplay,
           updatePostLayoutHints,
           measureLabel,
         }) => {
@@ -1210,7 +1228,7 @@ export const enhancers: {
           const label: LabelPart[] = [
             { text: "[]", style: LabelStyle.SYNTAX_SYMBOL },
           ];
-          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+          updatePostLayoutHints(node.id, (oldHints) => ({
             ...oldHints,
             styleAsText: true,
             label,
@@ -1219,7 +1237,7 @@ export const enhancers: {
             childDocs.elementType,
             leafDoc({
               kind: NodeKind.TightLeaf,
-              id: nodeForDisplay.id,
+              id: node.id,
               size: arrayFromTextSize(measureLabel(label)),
             }),
           ]);
@@ -1234,6 +1252,7 @@ export const enhancers: {
         label: [{ text: "QualifiedName", style: LabelStyle.UNKNOWN }],
       },
       buildDoc: withExtendedArgsStruct(
+        node,
         ["left", "right"],
         ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
           return groupDoc([
@@ -1324,17 +1343,16 @@ export const enhancers: {
     return {
       displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
       buildDoc: ({
-        nodeForDisplay,
         updatePostLayoutHints,
         measureLabel,
       }: BuildDivetreeDisplayTreeArgs): Doc | undefined => {
-        updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+        updatePostLayoutHints(node.id, (oldHints) => ({
           ...oldHints,
           styleAsText: true,
         }));
         return leafDoc({
           kind: NodeKind.TightLeaf,
-          id: nodeForDisplay.id,
+          id: node.id,
           size: arrayFromTextSize(measureLabel(label)),
         });
       },

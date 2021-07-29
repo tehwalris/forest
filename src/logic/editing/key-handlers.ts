@@ -2,7 +2,6 @@ import * as R from "ramda";
 import { FileNode } from "../providers/typescript";
 import { tryPrettyPrint } from "../providers/typescript/pretty-print";
 import { ActionSet, InputKind } from "../tree/action";
-import { getNodeForDisplay } from "../tree/display-new";
 import { Flag, Node } from "../tree/node";
 import { HandleAction } from "./interfaces";
 import { ParentIndex, idPathFromParentIndexEntry } from "../parent-index";
@@ -10,7 +9,6 @@ export interface Marks {
   [key: string]: string[];
 }
 interface HandleKeyOptions {
-  tree: Node<unknown>;
   parentIndex: ParentIndex;
   focusedId: string;
   setFocusedId: (id: string) => void;
@@ -21,8 +19,6 @@ interface HandleKeyOptions {
   copyNode: (node: Node<unknown>) => void;
   copiedNode: Node<unknown> | undefined;
   saveFile: (tree: FileNode) => void;
-  metaLevelNodeIds: Set<string>;
-  toggleNodeMetaLevel: (nodeId: string) => void;
   marks: Marks;
   setMarks: (marks: Marks) => void;
   chord: string[];
@@ -32,7 +28,6 @@ interface HandleKeyOptions {
 export function handleKey(
   event: KeyboardEvent,
   {
-    tree,
     parentIndex,
     focusedId,
     setFocusedId,
@@ -43,8 +38,6 @@ export function handleKey(
     copyNode,
     copiedNode,
     saveFile,
-    metaLevelNodeIds,
-    toggleNodeMetaLevel,
     marks,
     setMarks,
     chord,
@@ -55,25 +48,20 @@ export function handleKey(
   if (actionInProgress && event.key !== "Escape") {
     return;
   }
-  const apparentParentIndexEntry = parentIndex.get(focusedId);
-  if (!apparentParentIndexEntry) {
+  const parentIndexEntry = parentIndex.get(focusedId);
+  if (!parentIndexEntry) {
     return;
   }
-  const { path: apparentPath } = apparentParentIndexEntry;
-  const trueParentIndexEntry =
-    parentIndex.get(
-      getNodeForDisplay(apparentParentIndexEntry.node, metaLevelNodeIds).id,
-    ) || apparentParentIndexEntry;
-  const node = trueParentIndexEntry.node;
-  const trueKeyPath = trueParentIndexEntry.path.map((e) => e.childKey);
+  const node = parentIndexEntry.node;
+  const keyPath = parentIndexEntry.path.map((e) => e.childKey);
   const tryDeleteChild = () => {
-    const parent = R.last(apparentPath)?.parent;
+    const parent = R.last(parentIndexEntry.path)?.parent;
     const action = parent?.actions.deleteChild;
     if (parent && action) {
-      const targetKey = R.last(apparentPath)!.childKey;
+      const targetKey = R.last(parentIndexEntry.path)!.childKey;
       handleAction(
         action,
-        R.dropLast(1, apparentPath).map((e) => e.childKey),
+        R.dropLast(1, parentIndexEntry.path).map((e) => e.childKey),
         undefined,
         { child: targetKey },
       );
@@ -121,13 +109,13 @@ export function handleKey(
           return node.setFlags({ ...node.flags, [e.key]: e.flag });
         },
       },
-      trueKeyPath,
+      keyPath,
       undefined,
       {},
     );
   };
   const insertSibling = (indexOffset: number) => {
-    const lastApparentPathEntry = R.last(apparentPath);
+    const lastApparentPathEntry = R.last(parentIndexEntry.path);
     if (!lastApparentPathEntry) {
       return;
     }
@@ -138,7 +126,7 @@ export function handleKey(
     if (parent && action) {
       handleAction(
         action,
-        R.dropLast(1, apparentPath).map((e) => e.childKey),
+        R.dropLast(1, parentIndexEntry.path).map((e) => e.childKey),
         (n) => (n.children[childIndex]?.node || n).id,
         { childIndex },
       );
@@ -152,11 +140,11 @@ export function handleKey(
     () => {
       const action = node.actions[actionKey];
       if (action) {
-        handleAction(action, trueKeyPath, focus, { node: copiedNode });
+        handleAction(action, keyPath, focus, { node: copiedNode });
       }
     };
   const findClosestFileNode = (): FileNode | undefined => {
-    return [node, ...apparentPath.map((e) => e.parent)].find(
+    return [node, ...parentIndexEntry.path.map((e) => e.parent)].find(
       (maybeFileNode) => maybeFileNode && maybeFileNode instanceof FileNode,
     ) as any;
   };
@@ -171,7 +159,7 @@ export function handleKey(
     return fileNode && tryPrettyPrint(fileNode);
   };
   const focusApparentParent = () => {
-    const parentEntry = R.last(apparentPath);
+    const parentEntry = R.last(parentIndexEntry.path);
     if (!parentEntry) {
       return;
     }
@@ -182,7 +170,7 @@ export function handleKey(
   } = {
     Enter: () => {
       console.log(handlers);
-      console.log(apparentParentIndexEntry);
+      console.log(parentIndexEntry);
     },
     "9": save,
     "0": () => console.log(prettyPrint()),
@@ -208,11 +196,10 @@ export function handleKey(
     c: () => copyNode(node),
     p: tryAction("replace", (n) => n.id),
     f: editFlags,
-    m: () => toggleNodeMetaLevel(focusedId),
     4: () =>
       setMarks({
         ...marks,
-        TODO: idPathFromParentIndexEntry(apparentParentIndexEntry),
+        TODO: idPathFromParentIndexEntry(parentIndexEntry),
       }),
     5: () => {
       const path = marks.TODO;
@@ -225,7 +212,7 @@ export function handleKey(
     handlers[`a ${k}`] = () =>
       setMarks({
         ...marks,
-        [k]: idPathFromParentIndexEntry(apparentParentIndexEntry),
+        [k]: idPathFromParentIndexEntry(parentIndexEntry),
       });
     handlers[`' ${k}`] = () => {
       if (marks[k]) {
@@ -258,7 +245,7 @@ export function handleKey(
     }
     handlers[shortcut] = () => {
       setFocusedIdPath([
-        ...idPathFromParentIndexEntry(trueParentIndexEntry),
+        ...idPathFromParentIndexEntry(parentIndexEntry),
         child.id,
       ]);
     };

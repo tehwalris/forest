@@ -1,14 +1,12 @@
 import { Path } from "./base";
 import { ActionSet } from "./action";
 import { v4 as genUuid } from "uuid";
-import { MetaSplit } from "../transform/transforms/split-meta";
 import { ParentPathElement } from "../parent-index";
 import { PostLayoutHints } from "../layout-hints";
 import { LabelMeasurementFunction } from "../text-measurement";
 import type { Doc } from "./display-line";
 
 export interface BuildDivetreeDisplayTreeArgs {
-  nodeForDisplay: Node<unknown>;
   focusPath: string[];
   expand: boolean;
   showChildNavigationHints: boolean;
@@ -28,7 +26,6 @@ export interface Node<B> {
 export abstract class Node<B> {
   id: string = genUuid();
   abstract children: ChildNodeEntry<any>[];
-  metaSplit: MetaSplit | undefined;
   abstract flags: FlagSet;
   abstract actions: ActionSet<Node<B>>;
   abstract clone(): Node<B>;

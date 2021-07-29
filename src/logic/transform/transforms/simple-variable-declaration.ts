@@ -78,19 +78,15 @@ const compressDeclarationListTransform: Transform = (node) => {
     (args) => {
       const childDoc = onlyChildEntry.node.buildDoc(args);
       const flavor = (node.flags as any).variableFlavor?.value;
-      const {
-        nodeForDisplay,
-        measureLabel,
-        showChildNavigationHints,
-        updatePostLayoutHints,
-      } = args;
+      const { measureLabel, showChildNavigationHints, updatePostLayoutHints } =
+        args;
       if (showChildNavigationHints || !childDoc || !flavor) {
         return childDoc;
       }
       const label: LabelPart[] = [
         { text: flavor + " ", style: LabelStyle.SYNTAX_SYMBOL },
       ];
-      updatePostLayoutHints(`${nodeForDisplay.id}-flavor`, (oldHints) => ({
+      updatePostLayoutHints(`${node.id}-flavor`, (oldHints) => ({
         ...oldHints,
         styleAsText: true,
         label,
@@ -98,7 +94,7 @@ const compressDeclarationListTransform: Transform = (node) => {
       return groupDoc([
         leafDoc({
           kind: NodeKind.TightLeaf,
-          id: `${nodeForDisplay.id}-flavor`,
+          id: `${node.id}-flavor`,
           size: arrayFromTextSize(measureLabel(label)),
         }),
         childDoc,
@@ -119,7 +115,6 @@ class ActionMaskedNode<B> extends Node<B> {
     super();
     this.id = baseNode.id;
     this.children = baseNode.children;
-    this.metaSplit = baseNode.metaSplit;
     this.flags = baseNode.flags;
     this.actions = {};
     for (const [k, a] of Object.entries(baseNode.actions)) {
