@@ -14,7 +14,6 @@ export interface BuildDivetreeDisplayTreeArgs {
   showChildNavigationHints: boolean;
   parentPath: ParentPathElement[];
   buildChildDoc: (childNode: Node<unknown>) => Doc;
-  getPostLayoutHints: (nodeId: string) => PostLayoutHints;
   updatePostLayoutHints: (
     nodeId: string,
     updateHints: (oldHints: PostLayoutHints) => PostLayoutHints,

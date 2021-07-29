@@ -312,7 +312,6 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         return unreachable(input);
     }
   });
-  console.log("DEBUG Editor.render");
   return (
     <div>
       <NavTree

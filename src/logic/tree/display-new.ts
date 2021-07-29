@@ -264,7 +264,6 @@ function buildDivetreeDisplayTreeIntermediate(
     parentPath,
     buildChildDoc,
     updatePostLayoutHints,
-    getPostLayoutHints: (nodeId) => postLayoutHintsById.get(nodeId) || {},
     measureLabel,
   };
   const mapIfDefined = <A, B>(

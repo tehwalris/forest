@@ -8,7 +8,6 @@ import {
 } from "divetree-core";
 import * as R from "ramda";
 import * as ts from "typescript";
-import { PostLayoutHints } from "../../layout-hints";
 import { ParentPathElement } from "../../parent-index";
 import { arrayFromTextSize } from "../../text-measurement";
 import {
@@ -75,16 +74,12 @@ interface ExtendedDisplayTreeArgsStruct<CK extends string>
   childIsEmpty: {
     [K in CK]: boolean;
   };
-  childPostLayoutHints: {
-    [K in CK]: PostLayoutHints;
-  };
   shouldHideChild: (childKey: CK) => boolean;
 }
 interface ExtendedDisplayTreeArgsList extends ExtendedDisplayTreeArgsBase {
   childDocs: Doc[];
   childDisplayNodes: DivetreeDisplayRootNode[];
   childIsEmpty: boolean[];
-  childPostLayoutHints: PostLayoutHints[];
   shouldHideChild: (childKey: number) => boolean;
 }
 function withExtendedArgsStruct<CK extends string, R>(
@@ -97,7 +92,6 @@ function withExtendedArgsStruct<CK extends string, R>(
       buildChildDoc,
       showChildNavigationHints,
       focusPath,
-      getPostLayoutHints,
       updatePostLayoutHints,
       measureLabel,
     } = args;
@@ -117,14 +111,10 @@ function withExtendedArgsStruct<CK extends string, R>(
     const childIsEmpty: {
       [K in CK]: boolean;
     } = {} as any;
-    const childPostLayoutHints: {
-      [K in CK]: PostLayoutHints;
-    } = {} as any;
     for (const key of expectedChildKeys) {
       const child = nodeForDisplay.getByPath([key])!;
       childDocs[key] = buildChildDoc(child);
       childIsEmpty[key] = child.getDebugLabel() === "Option<None>";
-      childPostLayoutHints[key] = getPostLayoutHints(child.id);
     }
     const shouldHideChild = (childKey: CK): boolean =>
       !showChildNavigationHints &&
@@ -184,7 +174,6 @@ function withExtendedArgsStruct<CK extends string, R>(
       childDocs,
       childDisplayNodes,
       childIsEmpty,
-      childPostLayoutHints,
       shouldHideChild,
       maybeWrapPortal,
       newTextNode,
@@ -206,9 +195,6 @@ function withExtendedArgsList<R>(
           (k) => structArgs.childDisplayNodes[k],
         ),
         childIsEmpty: childKeys.map((k) => structArgs.childIsEmpty[k]),
-        childPostLayoutHints: childKeys.map(
-          (k) => structArgs.childPostLayoutHints[k],
-        ),
         shouldHideChild: (i) => structArgs.shouldHideChild(childKeys[i]),
       });
     })(originalArgs);
