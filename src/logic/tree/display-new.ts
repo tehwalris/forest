@@ -53,9 +53,9 @@ function isConsideredEmpty(intermediate: IntermediateDisplay): boolean {
 }
 
 export function buildDivetreeDisplayTree(
-  ...args: Parameters<typeof buildDivetreeDisplayTreeIntermediate>
+  ...args: Parameters<typeof buildDivetreeDisplayTreeNonCacheable>
 ): DivetreeDisplayRootNode {
-  return asDivetree(buildDivetreeDisplayTreeIntermediate(...args));
+  return asDivetree(buildDivetreeDisplayTreeNonCacheable(...args));
 }
 
 function asDivetree(
@@ -85,30 +85,66 @@ function asDoc(intermediate: IntermediateDisplay): Doc {
   }
 }
 
-function buildDivetreeDisplayTreeIntermediate(
+function buildFinalGenericDisplayTree(
   node: Node<unknown>,
-  focusPath: string[],
-  incrementalParentIndex: IncrementalParentIndex,
-  postLayoutHintsById: Map<string, PostLayoutHints>,
-  measureLabel: LabelMeasurementFunction,
-  expandView: boolean,
 ): IntermediateDisplay {
-  const updatePostLayoutHints: BuildDivetreeDisplayTreeArgs["updatePostLayoutHints"] =
-    (id, updateHints) => {
-      const oldHints: PostLayoutHints = postLayoutHintsById.get(id) || {};
-      postLayoutHintsById.set(id, updateHints(oldHints));
+  const base: TightLeafNode = {
+    kind: NodeKind.TightLeaf,
+    id: node.id,
+    size: [150, 56],
+  };
+
+  if (!node.children.length) {
+    return {
+      kind: IntermediateDisplayKind.Divetree,
+      content: base,
     };
+  }
 
-  const isOnFocusPath = !!focusPath.length && node.id === focusPath[0];
-  const isFinal = !isOnFocusPath;
+  return {
+    kind: IntermediateDisplayKind.Divetree,
+    content: {
+      kind: NodeKind.TightSplit,
+      split: Split.SideBySide,
+      children: [
+        base,
+        {
+          kind: NodeKind.TightSplit,
+          split: Split.Stacked,
+          children: node.children.slice(0, 4).map(
+            (c): TightLeafNode => ({
+              kind: NodeKind.TightLeaf,
+              id: c.node.id,
+              size: [75, 25],
+            }),
+          ),
+        },
+      ],
+    },
+  };
+}
 
-  // HACK disable navigation for now to prevent document tree from breaking due to conversions
-  const showChildNavigationHints =
-    expandView && isOnFocusPath && focusPath.length === 1;
-  const showChildShortcuts =
-    !showChildNavigationHints && isOnFocusPath && focusPath.length === 1;
+export interface DisplayTreeCacheEntry {
+  intermediateDisplay: IntermediateDisplay;
+  subtreePostLayoutHintsById: Map<string, PostLayoutHints>;
+}
 
-  const children = node.children;
+interface DisplayTreeCacheableArgs {
+  measureLabel: LabelMeasurementFunction;
+  displayTreeCache: WeakMap<Node<unknown>, DisplayTreeCacheEntry>;
+  incrementalParentIndex: IncrementalParentIndex;
+}
+
+function buildDivetreeDisplayTreeCacheable(
+  node: Node<unknown>,
+  args: DisplayTreeCacheableArgs,
+): DisplayTreeCacheEntry {
+  const { measureLabel, displayTreeCache, incrementalParentIndex } = args;
+
+  const oldCacheEntry = displayTreeCache.get(node);
+  if (oldCacheEntry) {
+    return oldCacheEntry;
+  }
 
   incrementalParentIndex.addObservation(node);
   const parentPath = incrementalParentIndex.get(node.id)?.path;
@@ -118,34 +154,90 @@ function buildDivetreeDisplayTreeIntermediate(
     );
   }
 
-  if (showChildNavigationHints) {
-    for (const { node: childNode } of node.children) {
-      updatePostLayoutHints(childNode.id, (oldHints) => ({
-        ...oldHints,
-        showNavigationHints: true,
-      }));
+  const subtreePostLayoutHintsById = new Map<string, PostLayoutHints>();
+  const updatePostLayoutHints: BuildDivetreeDisplayTreeArgs["updatePostLayoutHints"] =
+    (id, updateHints) => {
+      const oldHints: PostLayoutHints =
+        subtreePostLayoutHintsById.get(id) || {};
+      const newHints: PostLayoutHints = updateHints(oldHints);
+      subtreePostLayoutHintsById.set(id, newHints);
+    };
+
+  const beforeReturn = (
+    intermediateDisplay: IntermediateDisplay,
+  ): DisplayTreeCacheEntry => {
+    const newCacheEntry: DisplayTreeCacheEntry = {
+      intermediateDisplay,
+      subtreePostLayoutHintsById,
+    };
+    displayTreeCache.set(node, newCacheEntry);
+    return newCacheEntry;
+  };
+
+  const buildChildDoc: BuildDivetreeDisplayTreeArgs["buildChildDoc"] = (
+    childNode: Node<unknown>,
+  ) => {
+    const childCacheEntry = buildDivetreeDisplayTreeCacheable(childNode, args);
+    for (const [id, hints] of childCacheEntry.subtreePostLayoutHintsById) {
+      subtreePostLayoutHintsById.set(id, hints);
     }
+    return asDoc(childCacheEntry.intermediateDisplay);
+  };
+
+  const customDoc = node.buildDoc({
+    focusPath: [],
+    expand: false,
+    showChildNavigationHints: false,
+    parentPath,
+    buildChildDoc,
+    updatePostLayoutHints,
+    measureLabel,
+  });
+  if (customDoc) {
+    return beforeReturn({
+      kind: IntermediateDisplayKind.Doc,
+      content: customDoc,
+    });
   }
-  if (showChildShortcuts) {
-    for (const { node: childNode } of node.children) {
-      updatePostLayoutHints(childNode.id, (oldHints) => ({
-        ...oldHints,
-        showShortcuts: true,
-      }));
-    }
+
+  return beforeReturn(buildFinalGenericDisplayTree(node));
+}
+
+interface DisplayTreeNonCacheableArgs {
+  focusPath: string[];
+  expandView: boolean;
+  showNavigationHints: boolean;
+  showShortcuts: boolean;
+  postLayoutHintsById: Map<string, PostLayoutHints>;
+}
+
+function buildDivetreeDisplayTreeNonCacheable(
+  node: Node<unknown>,
+  cacheableArgs: DisplayTreeCacheableArgs,
+  nonCacheableArgs: DisplayTreeNonCacheableArgs,
+): IntermediateDisplay {
+  const { measureLabel, incrementalParentIndex } = cacheableArgs;
+  const {
+    focusPath,
+    expandView,
+    showNavigationHints,
+    showShortcuts,
+    postLayoutHintsById,
+  } = nonCacheableArgs;
+
+  incrementalParentIndex.addObservation(node);
+  const parentPath = incrementalParentIndex.get(node.id)?.path;
+  if (!parentPath) {
+    throw new Error(
+      "could not get parentPath for node that was just added to index",
+    );
   }
 
   function maybeWrapForNavigation(
     base: IntermediateDisplay,
   ): IntermediateDisplay {
-    let { showNavigationHints, showShortcuts } =
-      postLayoutHintsById.get(node.id) || {};
     if (!showNavigationHints && !showShortcuts) {
       return base;
-    }
-    if (showNavigationHints) {
-      // it doesn't make sense to show both
-      showShortcuts = false;
     }
 
     const parentEntry = parentPath && R.last(parentPath);
@@ -169,11 +261,9 @@ function buildDivetreeDisplayTreeIntermediate(
     }
 
     if (showNavigationHints) {
-      updatePostLayoutHints(`${node.id}-navigation`, (oldHints) => ({
-        ...oldHints,
+      postLayoutHintsById.set(`${node.id}-navigation`, {
         label: [{ text: childKeyForDisplay, style: LabelStyle.CHILD_KEY }],
-      }));
-
+      });
       return {
         kind: IntermediateDisplayKind.Divetree,
         content: {
@@ -193,12 +283,9 @@ function buildDivetreeDisplayTreeIntermediate(
       if (!childShortcut) {
         return base;
       }
-
-      updatePostLayoutHints(`${node.id}-shortcut`, (oldHints) => ({
-        ...oldHints,
+      postLayoutHintsById.set(`${node.id}-shortcut`, {
         shortcutKey: childShortcut,
-      }));
-
+      });
       return {
         kind: IntermediateDisplayKind.Doc,
         content: [
@@ -216,42 +303,49 @@ function buildDivetreeDisplayTreeIntermediate(
     }
   }
 
+  const isOnFocusPath = !!focusPath.length && node.id === focusPath[0];
+  if (!isOnFocusPath) {
+    const { intermediateDisplay, subtreePostLayoutHintsById } =
+      buildDivetreeDisplayTreeCacheable(node, cacheableArgs);
+    for (const [id, hints] of subtreePostLayoutHintsById) {
+      postLayoutHintsById.set(id, hints);
+    }
+    return maybeWrapForNavigation(intermediateDisplay);
+  }
+
+  const showChildNavigationHints = focusPath.length === 1 && expandView;
+  const showChildShortcuts = focusPath.length === 1 && !expandView;
   const buildChildIntermediate = (childNode: Node<unknown>) =>
-    buildDivetreeDisplayTreeIntermediate(
-      childNode,
-      isOnFocusPath ? focusPath.slice(1) : [],
-      incrementalParentIndex,
-      postLayoutHintsById,
-      measureLabel,
+    buildDivetreeDisplayTreeNonCacheable(childNode, cacheableArgs, {
+      focusPath: focusPath.slice(1),
       expandView,
-    );
-  const buildChildDisplayTree = (childNode: Node<unknown>) =>
-    asDivetree(buildChildIntermediate(childNode));
-  const buildChildDoc = (childNode: Node<unknown>) =>
-    asDoc(buildChildIntermediate(childNode));
+      showNavigationHints: showChildNavigationHints,
+      showShortcuts: showChildShortcuts,
+      postLayoutHintsById,
+    });
+
+  const updatePostLayoutHints: BuildDivetreeDisplayTreeArgs["updatePostLayoutHints"] =
+    (id, updateHints) => {
+      const oldHints: PostLayoutHints = postLayoutHintsById.get(id) || {};
+      const newHints: PostLayoutHints = updateHints(oldHints);
+      postLayoutHintsById.set(id, newHints);
+    };
 
   const customIntermediateArgs: BuildDivetreeDisplayTreeArgs = {
     focusPath,
     expand: isOnFocusPath,
     showChildNavigationHints,
     parentPath,
-    buildChildDoc,
+    buildChildDoc: (childNode) => asDoc(buildChildIntermediate(childNode)),
     updatePostLayoutHints,
     measureLabel,
   };
-  const mapIfDefined = <A, B>(
-    v: A | undefined,
-    cb: (v: A) => B,
-  ): B | undefined => (v === undefined ? undefined : cb(v));
-  const customIntermediate: IntermediateDisplay | undefined = mapIfDefined(
-    node.buildDoc(customIntermediateArgs),
-    (content) => ({
+  const customDoc = node.buildDoc(customIntermediateArgs);
+  if (customDoc) {
+    return maybeWrapForNavigation({
       kind: IntermediateDisplayKind.Doc,
-      content,
-    }),
-  );
-  if (customIntermediate) {
-    return maybeWrapForNavigation(customIntermediate);
+      content: customDoc,
+    });
   }
 
   const base: TightLeafNode = {
@@ -259,45 +353,13 @@ function buildDivetreeDisplayTreeIntermediate(
     id: node.id,
     size: [150, 56],
   };
-
-  if (isFinal) {
-    if (!children.length) {
-      return maybeWrapForNavigation({
-        kind: IntermediateDisplayKind.Divetree,
-        content: base,
-      });
-    }
-    return maybeWrapForNavigation({
-      kind: IntermediateDisplayKind.Divetree,
-      content: {
-        kind: NodeKind.TightSplit,
-        split: Split.SideBySide,
-        children: [
-          base,
-          {
-            kind: NodeKind.TightSplit,
-            split: Split.Stacked,
-            children: children.slice(0, 4).map(
-              (c): TightLeafNode => ({
-                kind: NodeKind.TightLeaf,
-                id: c.node.id,
-                size: [75, 25],
-              }),
-            ),
-          },
-        ],
-      },
-    });
-  }
-
-  if (!children.length) {
+  if (!node.children.length) {
     // HACK returning an loose node with no children instead breaks some code that expects tight nodes
     return maybeWrapForNavigation({
       kind: IntermediateDisplayKind.Divetree,
       content: base,
     });
   }
-
   return {
     kind: IntermediateDisplayKind.Divetree,
     content: {
@@ -309,7 +371,9 @@ function buildDivetreeDisplayTreeIntermediate(
           content: base,
         }),
       ) as typeof base | TightNode, // HACK Properly preserving the type here is impractical
-      children: children.map((c) => buildChildDisplayTree(c.node)),
+      children: node.children.map((c) =>
+        asDivetree(buildChildIntermediate(c.node)),
+      ),
     },
   };
 }

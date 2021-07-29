@@ -25,6 +25,7 @@ import { EmptyLeafNode } from "../logic/tree/base-nodes";
 import {
   buildDivetreeDisplayTree,
   buildDivetreeNavTree,
+  DisplayTreeCacheEntry,
 } from "../logic/tree/display-new";
 import { Node, SemanticColor } from "../logic/tree/node";
 import { useFocus } from "../logic/use-focus";
@@ -234,6 +235,9 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
   const [expandView, setExpandView] = useState(false);
   const postLayoutHintsByIdRef = useRef(new Map<string, PostLayoutHints>());
   const labelMeasurementCacheRef = useRef<LabelMeasurementCache>();
+  const displayTreeCacheRef = useRef(
+    new Map<Node<unknown>, DisplayTreeCacheEntry>(),
+  );
   const queueInput = useDelayedInput((input) => {
     switch (input.kind) {
       case DelayedInputKind.KeyDown:
@@ -279,11 +283,18 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
 
           return buildDivetreeDisplayTree(
             tree,
-            focusPath,
-            incrementalParentIndex,
-            postLayoutHintsByIdRef.current,
-            labelMeasurementCacheRef.current.measure,
-            expandView,
+            {
+              measureLabel: labelMeasurementCacheRef.current.measure,
+              displayTreeCache: displayTreeCacheRef.current,
+              incrementalParentIndex,
+            },
+            {
+              focusPath,
+              expandView,
+              showNavigationHints: false,
+              showShortcuts: false,
+              postLayoutHintsById: postLayoutHintsByIdRef.current,
+            },
           );
         }}
         getContent={(id) => (
