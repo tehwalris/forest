@@ -67,15 +67,7 @@ function isConsideredEmpty(intermediate: IntermediateDisplay): boolean {
 export function buildDivetreeDisplayTree(
   ...args: Parameters<typeof buildDivetreeDisplayTreeIntermediate>
 ): DivetreeDisplayRootNode {
-  const intermediate = buildDivetreeDisplayTreeIntermediate(...args);
-  switch (intermediate.kind) {
-    case IntermediateDisplayKind.Divetree:
-      return intermediate.content;
-    case IntermediateDisplayKind.Doc:
-      return divetreeFromDoc(intermediate.content);
-    default:
-      return unreachable(intermediate);
-  }
+  return asDivetree(buildDivetreeDisplayTreeIntermediate(...args));
 }
 
 function asDivetree(
@@ -108,7 +100,6 @@ function asDoc(intermediate: IntermediateDisplay): Doc {
 function buildDivetreeDisplayTreeIntermediate(
   node: Node<unknown>,
   focusPath: string[],
-  extraDepth: number,
   metaLevelNodeIds: Set<string>,
   incrementalParentIndex: IncrementalParentIndex,
   postLayoutHintsById: Map<string, PostLayoutHints>,
@@ -244,7 +235,6 @@ function buildDivetreeDisplayTreeIntermediate(
     buildDivetreeDisplayTreeIntermediate(
       childNode,
       isOnFocusPath ? focusPath.slice(1) : [],
-      extraDepth + (isOnFocusPath ? 0 : 1),
       metaLevelNodeIds,
       incrementalParentIndex,
       postLayoutHintsById,

@@ -328,7 +328,6 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
           return buildDivetreeDisplayTree(
             tree,
             focusPath,
-            0,
             metaLevelNodeIds,
             incrementalParentIndex,
             postLayoutHintsByIdRef.current,
