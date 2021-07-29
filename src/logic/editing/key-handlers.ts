@@ -273,11 +273,11 @@ export function handleKey(
   keyCombo = [...chord, keyCombo].join(" ");
   if (["'", "space"].includes(keyCombo)) {
     setChord([keyCombo]);
-    return false;
+    return;
   }
   if (keyCombo === "space a") {
     setChord(["space", "a"]);
-    return false;
+    return;
   }
   const wasChord = !!chord.length;
   if (wasChord) {
@@ -288,7 +288,5 @@ export function handleKey(
     handler();
     event.preventDefault();
     event.stopPropagation();
-    return false;
   }
-  return !wasChord;
 }

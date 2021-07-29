@@ -38,6 +38,8 @@ import {
 } from "./tree/node-content";
 import { PostLayoutHints } from "../logic/layout-hints";
 import { LabelMeasurementCache } from "../logic/text-measurement";
+import { useDelayedInput, DelayedInputKind } from "../logic/delayed-input";
+import { unreachable } from "../logic/util";
 interface Props {
   fs: typeof _fsType;
   projectRootDir: string;
@@ -277,6 +279,40 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
   const [expandView, setExpandView] = useState(false);
   const postLayoutHintsByIdRef = useRef(new Map<string, PostLayoutHints>());
   const labelMeasurementCacheRef = useRef<LabelMeasurementCache>();
+  const queueInput = useDelayedInput((input) => {
+    switch (input.kind) {
+      case DelayedInputKind.KeyDown:
+        handleKey(input.event, {
+          tree,
+          parentIndex: incrementalParentIndex,
+          focusedId: focusedParentIndexEntry.node.id,
+          setFocusedId,
+          setFocusedIdPath,
+          handleAction,
+          cancelAction: () => setInProgressAction(undefined),
+          actionInProgress: !!inProgressAction,
+          copyNode: setCopiedNode,
+          copiedNode,
+          saveFile,
+          metaLevelNodeIds,
+          toggleNodeMetaLevel,
+          marks,
+          setMarks,
+          chord,
+          setChord,
+          setExpandView,
+        });
+        break;
+      case DelayedInputKind.KeyUp:
+        if (input.event.key === "Shift") {
+          setExpandView(false);
+        }
+        break;
+      default:
+        return unreachable(input);
+    }
+  });
+  console.log("DEBUG Editor.render");
   return (
     <div>
       <NavTree
@@ -320,31 +356,13 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         )}
         onFocusedIdChange={setFocusedId}
         disableNav={!!inProgressAction}
-        onKeyDown={(ev) =>
-          handleKey(ev, {
-            tree,
-            parentIndex: incrementalParentIndex,
-            focusedId: focusedParentIndexEntry.node.id,
-            setFocusedId,
-            setFocusedIdPath,
-            handleAction,
-            cancelAction: () => setInProgressAction(undefined),
-            actionInProgress: !!inProgressAction,
-            copyNode: setCopiedNode,
-            copiedNode,
-            saveFile,
-            metaLevelNodeIds,
-            toggleNodeMetaLevel,
-            marks,
-            setMarks,
-            chord,
-            setChord,
-            setExpandView,
-          })
-        }
-        onKeyUp={(ev) => {
-          if (ev.key === "Shift") {
-            setExpandView(false);
+        onKeyDown={(event) => {
+          queueInput({ kind: DelayedInputKind.KeyDown, event });
+          return undefined;
+        }}
+        onKeyUp={(event) => {
+          if (event.key === "Shift") {
+            queueInput({ kind: DelayedInputKind.KeyUp, event });
           }
         }}
       />
