@@ -100,7 +100,7 @@ function getNodeStyle(
       result.borderColor = [0, 0, 0, 0];
     }
     if (postLayoutHints?.shortcutKey) {
-      result.extra = { overflow: "visible", zIndex: 2 };
+      result.extra = { overflow: "visible", contain: "layout size", zIndex: 2 };
     }
     return result;
   };
