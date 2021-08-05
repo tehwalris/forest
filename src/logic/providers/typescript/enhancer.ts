@@ -1309,6 +1309,52 @@ export const enhancers: {
       ),
     };
   },
+  ParenthesizedExpression: (node: Node<ts.ParenthesizedExpression>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "ParenthesizedExpression", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["expression"],
+        ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
+          const openingParen = newTextNode("(", LabelStyle.SYNTAX_SYMBOL);
+          const closingParen = newTextNode(")", LabelStyle.SYNTAX_SYMBOL);
+          return groupDoc(
+            filterTruthyChildren([
+              newFocusMarker(),
+              leafDoc(openingParen),
+              childDocs.expression,
+              leafDoc(closingParen),
+            ]),
+          );
+        },
+      ),
+    };
+  },
+  ParenthesizedTypeNode: (node: Node<ts.ParenthesizedTypeNode>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "ParenthesizedTypeNode", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["type"],
+        ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
+          const openingParen = newTextNode("(", LabelStyle.SYNTAX_SYMBOL);
+          const closingParen = newTextNode(")", LabelStyle.SYNTAX_SYMBOL);
+          return groupDoc(
+            filterTruthyChildren([
+              newFocusMarker(),
+              leafDoc(openingParen),
+              childDocs.type,
+              leafDoc(closingParen),
+            ]),
+          );
+        },
+      ),
+    };
+  },
 };
 [
   ["ImportDeclaration", "import"],
