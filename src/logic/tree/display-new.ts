@@ -17,12 +17,15 @@ import {
   Doc,
   docIsOnlySoftLinesOrEmpty,
   leafDoc,
+  LineCache,
 } from "./display-line";
 import {
   mergeIntoMapNoDuplicates,
   mergeIntoMapNoOverwrite,
   unreachable,
 } from "../util";
+
+const globalLineCache: LineCache = new WeakMap();
 
 function maybeWrapPortal(
   node: DivetreeDisplayRootNode,
@@ -69,7 +72,7 @@ function asDivetree(
     case IntermediateDisplayKind.Divetree:
       return intermediate.content;
     case IntermediateDisplayKind.Doc:
-      return divetreeFromDoc(intermediate.content);
+      return divetreeFromDoc(intermediate.content, globalLineCache);
     default:
       return unreachable(intermediate);
   }

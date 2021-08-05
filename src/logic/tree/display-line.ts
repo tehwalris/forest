@@ -211,39 +211,139 @@ function fits(
   return false;
 }
 
-function linesFromDoc(rootDoc: Doc): Line[] {
-  interface InternalCommand {
-    doc: Doc | "popIndent";
+interface CacheRelevantState {
+  mode: PrintBreakMode;
+  currentPos: number | undefined;
+  indentStack: number[];
+}
+
+interface StateUpdate {
+  currentPos: number | undefined;
+  indentStack: number[];
+  newContentInOldLine: (TightNode | PortalNode)[];
+  newLines: Line[];
+}
+
+interface StateUpdateReferencePoint {
+  state: CacheRelevantState;
+  lineCount: number;
+  currentLineContentLength: number;
+}
+
+interface LineCacheEntry {
+  state: CacheRelevantState;
+  update: StateUpdate;
+}
+
+export type LineCache = WeakMap<Doc, LineCacheEntry>;
+
+function linesFromDoc(rootDoc: Doc, cache: LineCache): Line[] {
+  enum InternalCommandKind {
+    PrintDoc,
+    DocFinished,
+  }
+
+  interface PrintDocCommand {
+    kind: InternalCommandKind.PrintDoc;
+    doc: Doc;
     mode: PrintBreakMode;
   }
 
+  interface DocFinishedCommand {
+    kind: InternalCommandKind.DocFinished;
+    doc: Doc;
+    startedAt: StateUpdateReferencePoint;
+  }
+
+  type InternalCommand = PrintDocCommand | DocFinishedCommand;
+
   const maxLineWidth = 600;
 
-  const docQueue: InternalCommand[] = [
-    { doc: rootDoc, mode: PrintBreakMode.Break },
+  const commands: InternalCommand[] = [
+    {
+      kind: InternalCommandKind.PrintDoc,
+      doc: rootDoc,
+      mode: PrintBreakMode.Break,
+    },
   ];
   let currentLine: Line = { indent: 0, content: [] };
   let currentPos: number | undefined = currentLine.indent;
   const output: Line[] = [currentLine];
   const indentStack: number[] = [0];
-  while (docQueue.length) {
-    const { doc, mode } = docQueue.pop()!;
-    if (doc === "popIndent") {
-      indentStack.pop();
-      if (indentStack.length < 1) {
-        throw new Error("indent stack underflow");
+  while (commands.length) {
+    const command = commands.pop()!;
+    if (command.kind === InternalCommandKind.DocFinished) {
+      const { doc, startedAt } = command;
+      if (!Array.isArray(doc) && doc.kind === DocKind.Nest) {
+        indentStack.pop();
+        if (indentStack.length < 1) {
+          throw new Error("indent stack underflow");
+        }
       }
+      cache.set(doc, {
+        state: startedAt.state,
+        update: {
+          currentPos,
+          indentStack: [...indentStack],
+          newContentInOldLine: output[startedAt.lineCount - 1].content.slice(
+            startedAt.currentLineContentLength,
+          ),
+          newLines: output.slice(startedAt.lineCount),
+        },
+      });
       continue;
     }
+    const { doc, mode } = command;
+    const oldCacheEntry = cache.get(doc);
+    if (
+      oldCacheEntry &&
+      oldCacheEntry.state.mode === mode &&
+      oldCacheEntry.state.currentPos === currentPos &&
+      oldCacheEntry.state.indentStack.length === indentStack.length &&
+      oldCacheEntry.state.indentStack.every((v, i) => v === indentStack[i])
+    ) {
+      currentPos = oldCacheEntry.update.currentPos;
+      while (indentStack.length) {
+        indentStack.pop();
+      }
+      indentStack.push(...oldCacheEntry.update.indentStack);
+      currentLine.content.push(...oldCacheEntry.update.newContentInOldLine);
+      output.push(...oldCacheEntry.update.newLines);
+      continue;
+    }
+    commands.push({
+      kind: InternalCommandKind.DocFinished,
+      doc,
+      startedAt: {
+        state: {
+          mode,
+          currentPos,
+          indentStack: [...indentStack],
+        },
+        lineCount: output.length,
+        currentLineContentLength: currentLine.content.length,
+      },
+    });
     if (Array.isArray(doc)) {
-      docQueue.push(...R.reverse(doc).map((c) => ({ doc: c, mode })));
+      commands.push(
+        ...R.reverse(doc).map(
+          (c): InternalCommand => ({
+            kind: InternalCommandKind.PrintDoc,
+            doc: c,
+            mode,
+          }),
+        ),
+      );
       continue;
     }
     switch (doc.kind) {
       case DocKind.Nest: {
         indentStack.push(R.last(indentStack)! + doc.amount);
-        docQueue.push({ doc: "popIndent", mode });
-        docQueue.push({ doc: doc.content, mode });
+        commands.push({
+          kind: InternalCommandKind.PrintDoc,
+          doc: doc.content,
+          mode,
+        });
         break;
       }
       case DocKind.Leaf: {
@@ -284,7 +384,11 @@ function linesFromDoc(rootDoc: Doc): Line[] {
               !fits(doc, PrintBreakMode.Flat, maxLineWidth - currentPos)))
             ? PrintBreakMode.Break
             : PrintBreakMode.Flat;
-        docQueue.push({ doc: doc.content, mode: newMode });
+        commands.push({
+          kind: InternalCommandKind.PrintDoc,
+          doc: doc.content,
+          mode: newMode,
+        });
         break;
       }
       default: {
@@ -305,13 +409,13 @@ function makeIndentNodes(indent: number): TightLeafNode[] {
   }
 }
 
-export function divetreeFromDoc(doc: Doc): TightNode {
+export function divetreeFromDoc(doc: Doc, cache: LineCache): TightNode {
   return {
     kind: NodeKind.TightSplit,
     split: Split.Stacked,
     growLast: true,
     children: [
-      ...linesFromDoc(doc).map(
+      ...linesFromDoc(doc, cache).map(
         (line): TightSplitNode => ({
           kind: NodeKind.TightSplit,
           split: Split.SideBySide,
