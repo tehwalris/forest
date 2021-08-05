@@ -315,7 +315,9 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         onFocusedIdChange={setFocusedId}
         disableNav={!!inProgressAction}
         onKeyDown={(event) => {
-          queueInput({ kind: DelayedInputKind.KeyDown, event });
+          if (!inProgressAction || event.key === "Escape") {
+            queueInput({ kind: DelayedInputKind.KeyDown, event });
+          }
           return undefined;
         }}
         onKeyUp={(event) => {
