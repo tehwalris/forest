@@ -245,10 +245,7 @@ export const enhancers: {
         measureLabel,
       }: BuildDivetreeDisplayTreeArgs): Doc | undefined => {
         const label: LabelPart[] = [
-          {
-            text: node.getDebugLabel() || "",
-            style: LabelStyle.VALUE,
-          },
+          { text: node.getDebugLabel() || "", style: LabelStyle.VALUE },
         ];
         updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
           ...oldHints,
@@ -281,10 +278,7 @@ export const enhancers: {
       }: BuildDivetreeDisplayTreeArgs): Doc | undefined => {
         const label: LabelPart[] = [
           { text: '"', style: LabelStyle.SYNTAX_SYMBOL },
-          {
-            text: node.getDebugLabel() || "",
-            style: LabelStyle.VALUE,
-          },
+          { text: node.getDebugLabel() || "", style: LabelStyle.VALUE },
           { text: '"', style: LabelStyle.SYNTAX_SYMBOL },
         ];
         updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
@@ -316,10 +310,7 @@ export const enhancers: {
         measureLabel,
       }: BuildDivetreeDisplayTreeArgs): Doc | undefined => {
         const label: LabelPart[] = [
-          {
-            text: node.getDebugLabel() || "number",
-            style: LabelStyle.VALUE,
-          },
+          { text: node.getDebugLabel() || "number", style: LabelStyle.VALUE },
         ];
         updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
           ...oldHints,
@@ -1222,6 +1213,78 @@ export const enhancers: {
               id: nodeForDisplay.id,
               size: arrayFromTextSize(measureLabel(label)),
             }),
+          ]);
+        },
+      ),
+    };
+  },
+  UnionTypeNode: (node: Node<ts.UnionTypeNode>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "UnionTypeNode", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsList(
+        ({
+          childDocs,
+          showChildNavigationHints,
+          newTextNode,
+          newFocusMarker,
+        }): Doc | undefined => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          return groupDoc([
+            newFocusMarker(),
+            nestDoc(1, [
+              lineDoc(LineKind.Soft),
+              childDocs.map((c, i) =>
+                i === 0
+                  ? c
+                  : [
+                      leafDoc(newTextNode(" |", LabelStyle.SYNTAX_SYMBOL)),
+                      lineDoc(),
+                      c,
+                    ],
+              ),
+            ]),
+            lineDoc(LineKind.Soft),
+          ]);
+        },
+      ),
+    };
+  },
+  IntersectionTypeNode: (node: Node<ts.IntersectionTypeNode>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "IntersectionTypeNode", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsList(
+        ({
+          childDocs,
+          showChildNavigationHints,
+          newTextNode,
+          newFocusMarker,
+        }): Doc | undefined => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          return groupDoc([
+            newFocusMarker(),
+            nestDoc(1, [
+              lineDoc(LineKind.Soft),
+              childDocs.map((c, i) =>
+                i === 0
+                  ? c
+                  : [
+                      leafDoc(newTextNode(" &", LabelStyle.SYNTAX_SYMBOL)),
+                      lineDoc(),
+                      c,
+                    ],
+              ),
+            ]),
+            lineDoc(LineKind.Soft),
           ]);
         },
       ),
