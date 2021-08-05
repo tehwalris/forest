@@ -1234,22 +1234,24 @@ export const enhancers: {
           if (showChildNavigationHints) {
             return undefined;
           }
-          return groupDoc([
-            newFocusMarker(),
-            nestDoc(1, [
+          return groupDoc(
+            filterTruthyChildren([
+              !childDocs.length && newFocusMarker(),
+              nestDoc(1, [
+                lineDoc(LineKind.Soft),
+                childDocs.map((c, i) =>
+                  i === 0
+                    ? [newFocusMarker(), c]
+                    : [
+                        leafDoc(newTextNode(" |", LabelStyle.SYNTAX_SYMBOL)),
+                        lineDoc(),
+                        c,
+                      ],
+                ),
+              ]),
               lineDoc(LineKind.Soft),
-              childDocs.map((c, i) =>
-                i === 0
-                  ? c
-                  : [
-                      leafDoc(newTextNode(" |", LabelStyle.SYNTAX_SYMBOL)),
-                      lineDoc(),
-                      c,
-                    ],
-              ),
             ]),
-            lineDoc(LineKind.Soft),
-          ]);
+          );
         },
       ),
     };
@@ -1270,22 +1272,24 @@ export const enhancers: {
           if (showChildNavigationHints) {
             return undefined;
           }
-          return groupDoc([
-            newFocusMarker(),
-            nestDoc(1, [
+          return groupDoc(
+            filterTruthyChildren([
+              !childDocs.length && newFocusMarker(),
+              nestDoc(1, [
+                lineDoc(LineKind.Soft),
+                childDocs.map((c, i) =>
+                  i === 0
+                    ? [newFocusMarker(), c]
+                    : [
+                        leafDoc(newTextNode(" &", LabelStyle.SYNTAX_SYMBOL)),
+                        lineDoc(),
+                        c,
+                      ],
+                ),
+              ]),
               lineDoc(LineKind.Soft),
-              childDocs.map((c, i) =>
-                i === 0
-                  ? c
-                  : [
-                      leafDoc(newTextNode(" &", LabelStyle.SYNTAX_SYMBOL)),
-                      lineDoc(),
-                      c,
-                    ],
-              ),
             ]),
-            lineDoc(LineKind.Soft),
-          ]);
+          );
         },
       ),
     };
