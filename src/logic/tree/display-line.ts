@@ -75,6 +75,19 @@ interface Line {
   content: (TightNode | PortalNode)[];
 }
 
+function copyLine(line: Line): Line {
+  return { indent: line.indent, content: [...line.content] };
+}
+
+function withCopiedLastLine(lines: Line[]): Line[] {
+  if (lines.length === 0) {
+    return [];
+  }
+  const output = [...lines];
+  output[output.length - 1] = copyLine(output[output.length - 1]);
+  return output;
+}
+
 export function docIsOnlySoftLinesOrEmpty(doc: Doc): boolean {
   if (Array.isArray(doc)) {
     return doc.every((c) => docIsOnlySoftLinesOrEmpty(c));
@@ -288,7 +301,7 @@ function linesFromDoc(rootDoc: Doc, cache: LineCache): Line[] {
           newContentInOldLine: output[startedAt.lineCount - 1].content.slice(
             startedAt.currentLineContentLength,
           ),
-          newLines: output.slice(startedAt.lineCount),
+          newLines: withCopiedLastLine(output.slice(startedAt.lineCount)),
         },
       });
       continue;
@@ -308,7 +321,10 @@ function linesFromDoc(rootDoc: Doc, cache: LineCache): Line[] {
       }
       indentStack.push(...oldCacheEntry.update.indentStack);
       currentLine.content.push(...oldCacheEntry.update.newContentInOldLine);
-      output.push(...oldCacheEntry.update.newLines);
+      output.push(...withCopiedLastLine(oldCacheEntry.update.newLines));
+      if (oldCacheEntry.update.newLines.length) {
+        currentLine = output[output.length - 1];
+      }
       continue;
     }
     commands.push({
