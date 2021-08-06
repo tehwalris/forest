@@ -134,6 +134,7 @@ function buildFinalGenericDisplayTree(
 export interface DisplayTreeCacheEntry {
   intermediateDisplay: IntermediateDisplay;
   subtreePostLayoutHintsById: Map<string, PostLayoutHints>;
+  subtreeObservedNodes: Node<unknown>[];
 }
 
 interface DisplayTreeCacheableArgs {
@@ -170,12 +171,17 @@ function buildDivetreeDisplayTreeCacheable(
       subtreePostLayoutHintsById.set(id, newHints);
     };
 
+  const subtreeObservedNodes: Node<unknown>[] = node.children.map(
+    (c) => c.node,
+  );
+
   const beforeReturn = (
     intermediateDisplay: IntermediateDisplay,
   ): DisplayTreeCacheEntry => {
     const newCacheEntry: DisplayTreeCacheEntry = {
       intermediateDisplay,
       subtreePostLayoutHintsById,
+      subtreeObservedNodes,
     };
     displayTreeCache.set(node, newCacheEntry);
     return newCacheEntry;
@@ -189,6 +195,7 @@ function buildDivetreeDisplayTreeCacheable(
       subtreePostLayoutHintsById,
       childCacheEntry.subtreePostLayoutHintsById,
     );
+    subtreeObservedNodes.push(...childCacheEntry.subtreeObservedNodes);
     return asDoc(childCacheEntry.intermediateDisplay);
   };
 
@@ -314,9 +321,15 @@ function buildDivetreeDisplayTreeNonCacheable(
 
   const isOnFocusPath = !!focusPath.length && node.id === focusPath[0];
   if (!isOnFocusPath) {
-    const { intermediateDisplay, subtreePostLayoutHintsById } =
-      buildDivetreeDisplayTreeCacheable(node, cacheableArgs);
+    const {
+      intermediateDisplay,
+      subtreePostLayoutHintsById,
+      subtreeObservedNodes,
+    } = buildDivetreeDisplayTreeCacheable(node, cacheableArgs);
     mergeIntoMapNoOverwrite(postLayoutHintsById, subtreePostLayoutHintsById);
+    for (const observedNode of subtreeObservedNodes) {
+      incrementalParentIndex.addObservation(observedNode);
+    }
     return maybeWrapForNavigation(intermediateDisplay);
   }
 
