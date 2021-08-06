@@ -82,7 +82,7 @@ interface ExtendedDisplayTreeArgsList extends ExtendedDisplayTreeArgsBase {
   childIsEmpty: boolean[];
   shouldHideChild: (childKey: number) => boolean;
 }
-function withExtendedArgsStruct<CK extends string, R>(
+export function withExtendedArgsStruct<CK extends string, R>(
   expectedChildKeys: CK[],
   innerBuild: (args: ExtendedDisplayTreeArgsStruct<CK>) => R | undefined,
 ): (args: BuildDivetreeDisplayTreeArgs) => R | undefined {
@@ -181,7 +181,7 @@ function withExtendedArgsStruct<CK extends string, R>(
     });
   };
 }
-function withExtendedArgsList<R>(
+export function withExtendedArgsList<R>(
   innerBuild: (args: ExtendedDisplayTreeArgsList) => R | undefined,
 ): (args: BuildDivetreeDisplayTreeArgs) => R | undefined {
   return (originalArgs: BuildDivetreeDisplayTreeArgs) => {

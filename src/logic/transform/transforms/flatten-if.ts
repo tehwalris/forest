@@ -14,10 +14,15 @@ import * as R from "ramda";
 import * as ts from "typescript";
 import { ActionSet } from "../../tree/action";
 import { Path } from "../../tree/base";
+import { Doc, leafDoc, lineDoc, LineKind } from "../../tree/display-line";
 import { fromTsNode } from "../../providers/typescript/convert";
 import { unions } from "../../providers/typescript/generated/templates";
 import { ListNode } from "../../tree/base-nodes";
 import { ParentPathElement } from "../../parent-index";
+import {
+  withExtendedArgsList,
+  withExtendedArgsStruct,
+} from "../../providers/typescript/enhancer";
 function isIfStatementValue(node: Node<unknown>): boolean {
   return R.equals(
     node.children.map((c) => c.key),
@@ -208,6 +213,18 @@ class FlatIfNode extends ListNode<FlatIfBranch, unknown> {
       priority: DisplayInfoPriority.MEDIUM,
     };
   }
+  buildDoc = withExtendedArgsList(
+    ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
+      return [
+        newFocusMarker(),
+        childDocs.map((c, i) =>
+          i === 0
+            ? c
+            : [leafDoc(newTextNode("else ", LabelStyle.SYNTAX_SYMBOL)), c],
+        ),
+      ];
+    },
+  );
 }
 class FlatIfBranchNode extends Node<FlatIfBranch> {
   children: ChildNodeEntry<any>[] = [];
@@ -253,4 +270,18 @@ class FlatIfBranchNode extends Node<FlatIfBranch> {
       priority: DisplayInfoPriority.MEDIUM,
     };
   }
+  buildDoc = withExtendedArgsStruct(
+    ["condition", "thenStatement"],
+    ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
+      return [
+        newFocusMarker(),
+        leafDoc(newTextNode("if ", LabelStyle.SYNTAX_SYMBOL)),
+        leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
+        childDocs.condition,
+        leafDoc(newTextNode(") ", LabelStyle.SYNTAX_SYMBOL)),
+        childDocs.thenStatement,
+        lineDoc(LineKind.Hard),
+      ];
+    },
+  );
 }
