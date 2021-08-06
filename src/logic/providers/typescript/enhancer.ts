@@ -682,6 +682,52 @@ export const enhancers: {
   },
   "CallExpression.typeArguments": singleLineCommaListEnhancer,
   "CallExpression.arguments": singleLineCommaListEnhancer,
+  NewExpression: (node: Node<ts.NewExpression>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "new", style: LabelStyle.TYPE_SUMMARY }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["expression", "typeArguments", "arguments"],
+        ({
+          shouldHideChild,
+          childDocs,
+          showChildNavigationHints,
+          newTextNode,
+          newFocusMarker,
+        }): Doc | undefined => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          const openingArrow = newTextNode("<", LabelStyle.SYNTAX_SYMBOL);
+          const closingArrow = newTextNode(">", LabelStyle.SYNTAX_SYMBOL);
+          const openingParen = newTextNode("(", LabelStyle.SYNTAX_SYMBOL);
+          const closingParen = newTextNode(")", LabelStyle.SYNTAX_SYMBOL);
+          return groupDoc(
+            filterTruthyChildren([
+              newFocusMarker(),
+              leafDoc(newTextNode("new ", LabelStyle.SYNTAX_SYMBOL)),
+              childDocs.expression,
+              !shouldHideChild("typeArguments") &&
+                groupDoc([
+                  leafDoc(openingArrow),
+                  childDocs.typeArguments,
+                  leafDoc(closingArrow),
+                ]),
+              !shouldHideChild("arguments") && [
+                leafDoc(openingParen),
+                childDocs.arguments,
+                leafDoc(closingParen),
+              ],
+            ]),
+          );
+        },
+      ),
+    };
+  },
+  "NewExpression.arguments": singleLineCommaListEnhancer,
+  "NewExpression.typeArguments": singleLineCommaListEnhancer,
   TypeParameterDeclaration: (node: Node<ts.TypeParameterDeclaration>) => {
     return {
       displayInfo: {
