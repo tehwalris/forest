@@ -1605,6 +1605,40 @@ export const enhancers: {
     };
   },
   TypeLiteralNode: makeWrappedListEnhancer("TypeLiteralNode", "{", ",", "}"),
+  IndexSignatureDeclaration: (node: Node<ts.IndexSignatureDeclaration>) => ({
+    displayInfo: {
+      priority: DisplayInfoPriority.MEDIUM,
+      label: [{ text: "IndexSignatureDeclaration", style: LabelStyle.UNKNOWN }],
+    },
+    buildDoc: withExtendedArgsStruct(
+      ["parameters", "type"],
+      ({
+        shouldHideChild,
+        childDocs,
+        showChildNavigationHints,
+        newTextNode,
+        newFocusMarker,
+      }) => {
+        if (showChildNavigationHints) {
+          return undefined;
+        }
+        const typeWithColon = groupDoc([
+          leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
+          childDocs.type,
+        ]);
+        return groupDoc(
+          filterTruthyChildren([
+            newFocusMarker(),
+            leafDoc(newTextNode("[", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.parameters,
+            leafDoc(newTextNode("]", LabelStyle.SYNTAX_SYMBOL)),
+            !shouldHideChild("type") && typeWithColon,
+          ]),
+        );
+      },
+    ),
+  }),
+  "IndexSignatureDeclaration.parameters": commaListEnhancer,
 };
 [
   ["TypeQueryNode", "typeof"],
