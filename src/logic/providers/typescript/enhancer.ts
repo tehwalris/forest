@@ -361,6 +361,43 @@ const makeReturnLikeEnhancer = (keyword: string) => () => {
     ),
   };
 };
+const makePropertyDeclarationLikeEnhancer = (typeName: string) => () => ({
+  displayInfo: {
+    priority: DisplayInfoPriority.MEDIUM,
+    label: [{ text: typeName, style: LabelStyle.UNKNOWN }],
+  },
+  buildDoc: withExtendedArgsStruct(
+    ["name", "questionToken", "type", "initializer"],
+    ({
+      shouldHideChild,
+      childDocs,
+      showChildNavigationHints,
+      newTextNode,
+      newFocusMarker,
+    }) => {
+      if (showChildNavigationHints) {
+        return undefined;
+      }
+      const typeWithColon = groupDoc([
+        leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
+        childDocs.type,
+      ]);
+      const initializerWithEqualsSign = groupDoc([
+        leafDoc(newTextNode(" = ", LabelStyle.SYNTAX_SYMBOL)),
+        childDocs.initializer,
+      ]);
+      return groupDoc(
+        filterTruthyChildren([
+          newFocusMarker(),
+          childDocs.name,
+          !shouldHideChild("questionToken") && childDocs.questionToken,
+          !shouldHideChild("type") && typeWithColon,
+          !shouldHideChild("initializer") && initializerWithEqualsSign,
+        ]),
+      );
+    },
+  ),
+});
 export const enhancers: {
   [key: string]: Enhancer<any> | undefined;
 } = {
@@ -461,17 +498,7 @@ export const enhancers: {
       },
     };
   },
-  PropertySignature: (node: Node<ts.PropertySignature>) => {
-    const name = tryExtractName(node);
-    const label =
-      name === undefined
-        ? [{ text: "property", style: LabelStyle.TYPE_SUMMARY }]
-        : [
-            { text: "property", style: LabelStyle.TYPE_SUMMARY },
-            { text: name, style: LabelStyle.NAME },
-          ];
-    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
-  },
+  PropertySignature: makePropertyDeclarationLikeEnhancer("PropertySignature"),
   VariableDeclarationList: (node: Node<unknown>) => {
     const flavor = (node.flags as any).variableFlavor?.value;
     const label =
@@ -723,45 +750,9 @@ export const enhancers: {
   },
   "ClassDeclaration.typeParameters": commaListEnhancer,
   "ClassDeclaration.members": onePerLineEnhancer,
-  PropertyDeclaration: (node: Node<ts.PropertyDeclaration>) => {
-    return {
-      displayInfo: {
-        priority: DisplayInfoPriority.MEDIUM,
-        label: [{ text: "PropertyDeclaration", style: LabelStyle.UNKNOWN }],
-      },
-      buildDoc: withExtendedArgsStruct(
-        ["name", "questionToken", "type", "initializer"],
-        ({
-          shouldHideChild,
-          childDocs,
-          showChildNavigationHints,
-          newTextNode,
-          newFocusMarker,
-        }) => {
-          if (showChildNavigationHints) {
-            return undefined;
-          }
-          const typeWithColon = groupDoc([
-            leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
-            childDocs.type,
-          ]);
-          const initializerWithEqualsSign = groupDoc([
-            leafDoc(newTextNode(" = ", LabelStyle.SYNTAX_SYMBOL)),
-            childDocs.initializer,
-          ]);
-          return groupDoc(
-            filterTruthyChildren([
-              newFocusMarker(),
-              childDocs.name,
-              !shouldHideChild("questionToken") && childDocs.questionToken,
-              !shouldHideChild("type") && typeWithColon,
-              !shouldHideChild("initializer") && initializerWithEqualsSign,
-            ]),
-          );
-        },
-      ),
-    };
-  },
+  PropertyDeclaration: makePropertyDeclarationLikeEnhancer(
+    "PropertyDeclaration",
+  ),
   MethodDeclaration: makeFunctionOrMethodEnhancer(
     "MethodDeclaration",
     undefined,
