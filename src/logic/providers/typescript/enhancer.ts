@@ -585,6 +585,48 @@ export const enhancers: {
   },
   "ArrowFunction.parameters": singleLineCommaListEnhancer,
   "ArrowFunction.typeParameters": singleLineCommaListEnhancer,
+  FunctionTypeNode: (node: Node<ts.FunctionTypeNode>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "FunctionTypeNode", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["typeParameters", "parameters", "type"],
+        ({
+          shouldHideChild,
+          showChildNavigationHints,
+          childDocs,
+          newTextNode,
+          newFocusMarker,
+        }): Doc | undefined => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          const typeParametersWithArrows: Doc = groupDoc([
+            leafDoc(newTextNode("<", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.typeParameters,
+            leafDoc(newTextNode(">", LabelStyle.SYNTAX_SYMBOL)),
+          ]);
+          return groupDoc(
+            filterTruthyChildren([
+              newFocusMarker(),
+              !shouldHideChild("typeParameters") && typeParametersWithArrows,
+              leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
+              groupDoc([
+                nestDoc(1, [lineDoc(LineKind.Soft), childDocs.parameters]),
+                lineDoc(LineKind.Soft),
+              ]),
+              leafDoc(newTextNode(") => ", LabelStyle.SYNTAX_SYMBOL)),
+              childDocs.type,
+            ]),
+          );
+        },
+      ),
+    };
+  },
+  "FunctionTypeNode.parameters": singleLineCommaListEnhancer,
+  "FunctionTypeNode.typeParameters": singleLineCommaListEnhancer,
   FunctionExpression: (node: Node<ts.FunctionExpression>) => {
     const label: LabelPart[] = [
       { text: "function", style: LabelStyle.TYPE_SUMMARY },

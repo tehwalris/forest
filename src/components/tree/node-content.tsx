@@ -56,7 +56,8 @@ function renderLabelPart(p: LabelPart) {
     p.style === LabelStyle.NAME ||
     p.style === LabelStyle.VALUE ||
     p.style === LabelStyle.SYNTAX_SYMBOL ||
-    p.style === LabelStyle.KEYWORD
+    p.style === LabelStyle.KEYWORD ||
+    p.style === LabelStyle.WHITESPACE
   ) {
     return <span style={style}>{p.text}</span>;
   } else if (p.style === LabelStyle.CHILD_KEY) {
