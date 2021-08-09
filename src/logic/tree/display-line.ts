@@ -157,7 +157,7 @@ function measureDivetreeNodeWidth(
   }
 }
 
-const spaceWidth = 10;
+const spaceWidth = 5;
 
 function fits(
   doc: Doc,
