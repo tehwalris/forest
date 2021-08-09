@@ -245,6 +245,88 @@ const commaListEnhancer = makeWrappedListEnhancer(
   ",",
   undefined,
 );
+const onePerLineEnhancer: Enhancer<Node<ts.NodeArray<ts.Node>>> = () => ({
+  displayInfo: {
+    priority: DisplayInfoPriority.LOW,
+    label: [],
+  },
+  buildDoc: withExtendedArgsList(
+    ({ childDocs, newFocusMarker }): Doc | undefined => {
+      return groupDoc([
+        newFocusMarker(),
+        childDocs.map((c, i) => (i === 0 ? c : [lineDoc(LineKind.Hard), c])),
+      ]);
+    },
+  ),
+});
+const makeFunctionOrMethodEnhancer = (
+  typeName: string,
+  keyword: string | undefined,
+  childKeys: (
+    | "asteriskToken"
+    | "name"
+    | "questionToken"
+    | "parameters"
+    | "typeParameters"
+    | "type"
+    | "body"
+  )[],
+): Enhancer<Node<ts.Node>> => {
+  return () => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: typeName, style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        childKeys,
+        ({
+          shouldHideChild,
+          showChildNavigationHints,
+          childDocs,
+          newTextNode,
+          newFocusMarker,
+        }): Doc | undefined => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          const typeWithColon: Doc = groupDoc([
+            leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.type,
+          ]);
+          const typeParametersWithArrows: Doc = groupDoc([
+            leafDoc(newTextNode("<", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.typeParameters,
+            leafDoc(newTextNode(">", LabelStyle.SYNTAX_SYMBOL)),
+          ]);
+          return groupDoc(
+            filterTruthyChildren([
+              newFocusMarker(),
+              !!keyword &&
+                leafDoc(newTextNode(keyword + " ", LabelStyle.KEYWORD)),
+              !shouldHideChild("asteriskToken") && childDocs.asteriskToken,
+              childDocs.name,
+              !shouldHideChild("questionToken") && childDocs.questionToken,
+              !shouldHideChild("typeParameters") && typeParametersWithArrows,
+              leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
+              groupDoc([
+                nestDoc(
+                  1,
+                  groupDoc([lineDoc(LineKind.Soft), childDocs.parameters]),
+                ),
+                lineDoc(LineKind.Soft),
+              ]),
+              leafDoc(newTextNode(")", LabelStyle.SYNTAX_SYMBOL)),
+              !shouldHideChild("type") && typeWithColon,
+              leafDoc(newTextNode(" ", LabelStyle.SYNTAX_SYMBOL)),
+              !shouldHideChild("body") && childDocs.body,
+            ]),
+          );
+        },
+      ),
+    };
+  };
+};
 export const enhancers: {
   [key: string]: Enhancer<any> | undefined;
 } = {
@@ -449,92 +531,11 @@ export const enhancers: {
       ),
     };
   },
-  MethodDeclaration: (node: Node<ts.MethodDeclaration>) => {
-    const label: LabelPart[] = [
-      { text: "method", style: LabelStyle.TYPE_SUMMARY },
-    ];
-    const name = tryExtractName(node);
-    if (name !== undefined) {
-      label.push({ text: name, style: LabelStyle.NAME });
-    }
-    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
-  },
-  FunctionDeclaration: (node: Node<ts.FunctionDeclaration>) => {
-    const label: LabelPart[] = [
-      { text: "function", style: LabelStyle.TYPE_SUMMARY },
-    ];
-    const name = tryExtractName(node);
-    if (name !== undefined) {
-      label.push({ text: name, style: LabelStyle.NAME });
-    }
-    return {
-      displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
-      buildDoc: withExtendedArgsStruct(
-        [
-          "asteriskToken",
-          "name",
-          "parameters",
-          "typeParameters",
-          "type",
-          "body",
-        ],
-        ({
-          nodeForDisplay,
-          updatePostLayoutHints,
-          shouldHideChild,
-          showChildNavigationHints,
-          childDocs,
-          newTextNode,
-          measureLabel,
-        }): Doc | undefined => {
-          if (showChildNavigationHints) {
-            return undefined;
-          }
-          const keywordLabel: LabelPart[] = [
-            { text: "function ", style: LabelStyle.KEYWORD },
-          ];
-          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-            ...oldHints,
-            styleAsText: true,
-            label: keywordLabel,
-          }));
-          const typeWithColon: Doc = groupDoc([
-            leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
-            childDocs.type,
-          ]);
-          const typeParametersWithArrows: Doc = groupDoc([
-            leafDoc(newTextNode("<", LabelStyle.SYNTAX_SYMBOL)),
-            childDocs.typeParameters,
-            leafDoc(newTextNode(">", LabelStyle.SYNTAX_SYMBOL)),
-          ]);
-          return groupDoc(
-            filterTruthyChildren([
-              leafDoc({
-                kind: NodeKind.TightLeaf,
-                id: nodeForDisplay.id,
-                size: arrayFromTextSize(measureLabel(keywordLabel)),
-              }),
-              !shouldHideChild("asteriskToken") && childDocs.asteriskToken,
-              childDocs.name,
-              !shouldHideChild("typeParameters") && typeParametersWithArrows,
-              leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
-              groupDoc([
-                nestDoc(
-                  1,
-                  groupDoc([lineDoc(LineKind.Soft), childDocs.parameters]),
-                ),
-                lineDoc(LineKind.Soft),
-              ]),
-              leafDoc(newTextNode(")", LabelStyle.SYNTAX_SYMBOL)),
-              !shouldHideChild("type") && typeWithColon,
-              leafDoc(newTextNode(" ", LabelStyle.SYNTAX_SYMBOL)),
-              !shouldHideChild("body") && childDocs.body,
-            ]),
-          );
-        },
-      ),
-    };
-  },
+  FunctionDeclaration: makeFunctionOrMethodEnhancer(
+    "FunctionDeclaration",
+    "function",
+    ["asteriskToken", "name", "parameters", "typeParameters", "type", "body"],
+  ),
   "FunctionDeclaration.parameters": commaListEnhancer,
   "FunctionDeclaration.typeParameters": commaListEnhancer,
   ArrowFunction: (node: Node<ts.ArrowFunction>) => {
@@ -637,16 +638,114 @@ export const enhancers: {
     }
     return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
-  PropertyDeclaration: (node: Node<ts.PropertyDeclaration>) => {
-    const label: LabelPart[] = [
-      { text: "property", style: LabelStyle.TYPE_SUMMARY },
-    ];
-    const name = tryExtractName(node);
-    if (name !== undefined) {
-      label.push({ text: name, style: LabelStyle.NAME });
-    }
-    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
+  ClassDeclaration: (node: Node<ts.ClassDeclaration>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "ClassDeclaration", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["name", "typeParameters", "heritageClauses", "members"],
+        ({
+          shouldHideChild,
+          showChildNavigationHints,
+          childDocs,
+          newTextNode,
+          newFocusMarker,
+        }): Doc | undefined => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          const nameWithSpace: Doc = [
+            leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
+            childDocs.name,
+          ];
+          const typeParametersWithArrows: Doc = [
+            leafDoc(newTextNode("<", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.typeParameters,
+            leafDoc(newTextNode(">", LabelStyle.SYNTAX_SYMBOL)),
+          ];
+          const heritageClausesWithSpace: Doc = [
+            leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
+            childDocs.heritageClauses,
+          ];
+          return groupDoc(
+            filterTruthyChildren([
+              newFocusMarker(),
+              leafDoc(newTextNode("class", LabelStyle.SYNTAX_SYMBOL)),
+              !shouldHideChild("name") && nameWithSpace,
+              !shouldHideChild("typeParameters") && typeParametersWithArrows,
+              !shouldHideChild("heritageClauses") && heritageClausesWithSpace,
+              leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
+              leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
+              nestDoc(1, [
+                lineDoc(LineKind.Hard),
+                childDocs.members,
+                lineDoc(LineKind.Hard),
+              ]),
+              leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
+            ]),
+          );
+        },
+      ),
+    };
   },
+  "ClassDeclaration.typeParameters": commaListEnhancer,
+  "ClassDeclaration.members": onePerLineEnhancer,
+  PropertyDeclaration: (node: Node<ts.PropertyDeclaration>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "PropertyDeclaration", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["name", "questionToken", "type", "initializer"],
+        ({
+          shouldHideChild,
+          childDocs,
+          showChildNavigationHints,
+          newTextNode,
+          newFocusMarker,
+        }) => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          const typeWithColon = groupDoc([
+            leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.type,
+          ]);
+          const initializerWithEqualsSign = groupDoc([
+            leafDoc(newTextNode(" = ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.initializer,
+          ]);
+          return groupDoc(
+            filterTruthyChildren([
+              newFocusMarker(),
+              childDocs.name,
+              !shouldHideChild("questionToken") && childDocs.questionToken,
+              !shouldHideChild("type") && typeWithColon,
+              !shouldHideChild("initializer") && initializerWithEqualsSign,
+            ]),
+          );
+        },
+      ),
+    };
+  },
+  MethodDeclaration: makeFunctionOrMethodEnhancer(
+    "MethodDeclaration",
+    undefined,
+    [
+      "asteriskToken",
+      "name",
+      "questionToken",
+      "typeParameters",
+      "parameters",
+      "type",
+      "body",
+    ],
+  ),
+  "MethodDeclaration.parameters": commaListEnhancer,
+  "MethodDeclaration.typeParameters": commaListEnhancer,
   PropertyAccessExpression: (node: Node<ts.PropertyAccessExpression>) => {
     return {
       displayInfo: {
@@ -1481,7 +1580,7 @@ export const enhancers: {
       ),
     };
   },
-  NamedImports: makeWrappedListEnhancer("ObjectBindingPattern", "{", ",", "}"),
+  NamedImports: makeWrappedListEnhancer("NamedImports", "{", ",", "}"),
   ImportSpecifier: (node: Node<ts.ImportSpecifier>) => {
     return {
       displayInfo: {
@@ -1515,6 +1614,7 @@ export const enhancers: {
       ),
     };
   },
+  TypeLiteralNode: makeWrappedListEnhancer("TypeLiteralNode", "{", ",", "}"),
 };
 [
   ["TypeQueryNode", "typeof"],
@@ -1583,6 +1683,7 @@ export const enhancers: {
   ["BarEqualsToken", "|="],
   ["CaretEqualsToken", "^="],
   ["QuestionDotToken", "?."],
+  ["QuestionToken", "?"],
   ["DotDotDotToken", "..."],
 ].forEach(([tsType, displayKeyword]) => {
   enhancers[tsType] = (node: Node<unknown>, parentPath) => {
