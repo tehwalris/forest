@@ -327,6 +327,40 @@ const makeFunctionOrMethodEnhancer = (
     };
   };
 };
+const makeReturnLikeEnhancer = (keyword: string) => () => {
+  const label = [{ text: keyword, style: LabelStyle.SYNTAX_SYMBOL }];
+  return {
+    displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
+    buildDoc: withExtendedArgsStruct(
+      ["expression"],
+      ({
+        nodeForDisplay,
+        childDocs,
+        showChildNavigationHints,
+        updatePostLayoutHints,
+        newTextNode,
+        measureLabel,
+      }) => {
+        if (showChildNavigationHints) {
+          return undefined;
+        }
+        updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+          ...oldHints,
+          styleAsText: true,
+        }));
+        return groupDoc([
+          leafDoc({
+            kind: NodeKind.TightLeaf,
+            id: nodeForDisplay.id,
+            size: arrayFromTextSize(measureLabel(label)),
+          }),
+          leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
+          nestDoc(1, childDocs.expression),
+        ]);
+      },
+    ),
+  };
+};
 export const enhancers: {
   [key: string]: Enhancer<any> | undefined;
 } = {
@@ -1192,40 +1226,8 @@ export const enhancers: {
     ",",
     "}",
   ),
-  ReturnStatement: (node: Node<ts.ReturnStatement>) => {
-    const label = [{ text: "return", style: LabelStyle.SYNTAX_SYMBOL }];
-    return {
-      displayInfo: { priority: DisplayInfoPriority.MEDIUM, label },
-      buildDoc: withExtendedArgsStruct(
-        ["expression"],
-        ({
-          nodeForDisplay,
-          childDocs,
-          showChildNavigationHints,
-          updatePostLayoutHints,
-          newTextNode,
-          measureLabel,
-        }) => {
-          if (showChildNavigationHints) {
-            return undefined;
-          }
-          updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-            ...oldHints,
-            styleAsText: true,
-          }));
-          return groupDoc([
-            leafDoc({
-              kind: NodeKind.TightLeaf,
-              id: nodeForDisplay.id,
-              size: arrayFromTextSize(measureLabel(label)),
-            }),
-            leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
-            nestDoc(1, childDocs.expression),
-          ]);
-        },
-      ),
-    };
-  },
+  ReturnStatement: makeReturnLikeEnhancer("return"),
+  ThrowStatement: makeReturnLikeEnhancer("throw"),
   PrefixUnaryExpression: (node: Node<ts.PrefixUnaryExpression>) => {
     return {
       displayInfo: {
