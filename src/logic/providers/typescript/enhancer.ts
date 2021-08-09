@@ -118,6 +118,7 @@ export function withExtendedArgsStruct<CK extends string, R>(
     }
     const shouldHideChild = (childKey: CK): boolean =>
       !showChildNavigationHints &&
+      expectedChildKeys.includes(childKey) &&
       childIsEmpty[childKey] &&
       (focusPath.length < 2 ||
         !(
@@ -361,43 +362,152 @@ const makeReturnLikeEnhancer = (keyword: string) => () => {
     ),
   };
 };
-const makePropertyDeclarationLikeEnhancer = (typeName: string) => () => ({
-  displayInfo: {
-    priority: DisplayInfoPriority.MEDIUM,
-    label: [{ text: typeName, style: LabelStyle.UNKNOWN }],
-  },
-  buildDoc: withExtendedArgsStruct(
-    ["name", "questionToken", "type", "initializer"],
-    ({
-      shouldHideChild,
-      childDocs,
-      showChildNavigationHints,
-      newTextNode,
-      newFocusMarker,
-    }) => {
-      if (showChildNavigationHints) {
-        return undefined;
-      }
-      const typeWithColon = groupDoc([
-        leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
-        childDocs.type,
-      ]);
-      const initializerWithEqualsSign = groupDoc([
-        leafDoc(newTextNode(" = ", LabelStyle.SYNTAX_SYMBOL)),
-        childDocs.initializer,
-      ]);
-      return groupDoc(
-        filterTruthyChildren([
-          newFocusMarker(),
-          childDocs.name,
-          !shouldHideChild("questionToken") && childDocs.questionToken,
-          !shouldHideChild("type") && typeWithColon,
-          !shouldHideChild("initializer") && initializerWithEqualsSign,
-        ]),
-      );
+const makePropertyDeclarationLikeEnhancer =
+  (typeName: string): Enhancer<Node<ts.Node>> =>
+  () => ({
+    displayInfo: {
+      priority: DisplayInfoPriority.MEDIUM,
+      label: [{ text: typeName, style: LabelStyle.UNKNOWN }],
     },
-  ),
-});
+    buildDoc: withExtendedArgsStruct(
+      ["name", "questionToken", "type", "initializer"],
+      ({
+        shouldHideChild,
+        childDocs,
+        showChildNavigationHints,
+        newTextNode,
+        newFocusMarker,
+      }) => {
+        if (showChildNavigationHints) {
+          return undefined;
+        }
+        const typeWithColon = groupDoc([
+          leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
+          childDocs.type,
+        ]);
+        const initializerWithEqualsSign = groupDoc([
+          leafDoc(newTextNode(" = ", LabelStyle.SYNTAX_SYMBOL)),
+          childDocs.initializer,
+        ]);
+        return groupDoc(
+          filterTruthyChildren([
+            newFocusMarker(),
+            childDocs.name,
+            !shouldHideChild("questionToken") && childDocs.questionToken,
+            !shouldHideChild("type") && typeWithColon,
+            !shouldHideChild("initializer") && initializerWithEqualsSign,
+          ]),
+        );
+      },
+    ),
+  });
+const makeClassDeclarationLikeEnhancer =
+  (typeName: string, keyword: string): Enhancer<Node<ts.Node>> =>
+  () => ({
+    displayInfo: {
+      priority: DisplayInfoPriority.MEDIUM,
+      label: [{ text: typeName, style: LabelStyle.UNKNOWN }],
+    },
+    buildDoc: withExtendedArgsStruct(
+      ["name", "typeParameters", "heritageClauses", "members"],
+      ({
+        shouldHideChild,
+        showChildNavigationHints,
+        childDocs,
+        newTextNode,
+        newFocusMarker,
+      }): Doc | undefined => {
+        if (showChildNavigationHints) {
+          return undefined;
+        }
+        const nameWithSpace: Doc = [
+          leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
+          childDocs.name,
+        ];
+        const typeParametersWithArrows: Doc = [
+          leafDoc(newTextNode("<", LabelStyle.SYNTAX_SYMBOL)),
+          childDocs.typeParameters,
+          leafDoc(newTextNode(">", LabelStyle.SYNTAX_SYMBOL)),
+        ];
+        const heritageClausesWithSpace: Doc = [
+          leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
+          childDocs.heritageClauses,
+        ];
+        return groupDoc(
+          filterTruthyChildren([
+            newFocusMarker(),
+            leafDoc(newTextNode(keyword, LabelStyle.SYNTAX_SYMBOL)),
+            !shouldHideChild("name") && nameWithSpace,
+            !shouldHideChild("typeParameters") && typeParametersWithArrows,
+            !shouldHideChild("heritageClauses") && heritageClausesWithSpace,
+            leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
+            leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
+            nestDoc(1, [lineDoc(LineKind.Hard), childDocs.members]),
+            lineDoc(LineKind.Hard),
+            leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
+          ]),
+        );
+      },
+    ),
+  });
+const makeMethodSignatureLikeEnhancer =
+  (
+    typeName: string,
+    keyword: string | undefined,
+    childKeys: (
+      | "name"
+      | "questionToken"
+      | "typeParameters"
+      | "parameters"
+      | "type"
+    )[],
+  ): Enhancer<Node<ts.Node>> =>
+  () => ({
+    displayInfo: {
+      priority: DisplayInfoPriority.MEDIUM,
+      label: [{ text: typeName, style: LabelStyle.UNKNOWN }],
+    },
+    buildDoc: withExtendedArgsStruct(
+      childKeys,
+      ({
+        shouldHideChild,
+        showChildNavigationHints,
+        childDocs,
+        newTextNode,
+        newFocusMarker,
+      }): Doc | undefined => {
+        if (showChildNavigationHints) {
+          return undefined;
+        }
+        const typeWithColon: Doc = groupDoc([
+          leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
+          childDocs.type,
+        ]);
+        const typeParametersWithArrows: Doc = groupDoc([
+          leafDoc(newTextNode("<", LabelStyle.SYNTAX_SYMBOL)),
+          childDocs.typeParameters,
+          leafDoc(newTextNode(">", LabelStyle.SYNTAX_SYMBOL)),
+        ]);
+        return groupDoc(
+          filterTruthyChildren([
+            newFocusMarker(),
+            !!keyword &&
+              leafDoc(newTextNode(keyword + " ", LabelStyle.SYNTAX_SYMBOL)),
+            !shouldHideChild("name") && childDocs.name,
+            !shouldHideChild("questionToken") && childDocs.questionToken,
+            !shouldHideChild("typeParameters") && typeParametersWithArrows,
+            leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
+            groupDoc([
+              nestDoc(1, [lineDoc(LineKind.Soft), childDocs.parameters]),
+              lineDoc(LineKind.Soft),
+            ]),
+            leafDoc(newTextNode(")", LabelStyle.SYNTAX_SYMBOL)),
+            !shouldHideChild("type") && typeWithColon,
+          ]),
+        );
+      },
+    ),
+  });
 export const enhancers: {
   [key: string]: Enhancer<any> | undefined;
 } = {
@@ -699,57 +809,18 @@ export const enhancers: {
     }
     return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
   },
-  ClassDeclaration: (node: Node<ts.ClassDeclaration>) => {
-    return {
-      displayInfo: {
-        priority: DisplayInfoPriority.MEDIUM,
-        label: [{ text: "ClassDeclaration", style: LabelStyle.UNKNOWN }],
-      },
-      buildDoc: withExtendedArgsStruct(
-        ["name", "typeParameters", "heritageClauses", "members"],
-        ({
-          shouldHideChild,
-          showChildNavigationHints,
-          childDocs,
-          newTextNode,
-          newFocusMarker,
-        }): Doc | undefined => {
-          if (showChildNavigationHints) {
-            return undefined;
-          }
-          const nameWithSpace: Doc = [
-            leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
-            childDocs.name,
-          ];
-          const typeParametersWithArrows: Doc = [
-            leafDoc(newTextNode("<", LabelStyle.SYNTAX_SYMBOL)),
-            childDocs.typeParameters,
-            leafDoc(newTextNode(">", LabelStyle.SYNTAX_SYMBOL)),
-          ];
-          const heritageClausesWithSpace: Doc = [
-            leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
-            childDocs.heritageClauses,
-          ];
-          return groupDoc(
-            filterTruthyChildren([
-              newFocusMarker(),
-              leafDoc(newTextNode("class", LabelStyle.SYNTAX_SYMBOL)),
-              !shouldHideChild("name") && nameWithSpace,
-              !shouldHideChild("typeParameters") && typeParametersWithArrows,
-              !shouldHideChild("heritageClauses") && heritageClausesWithSpace,
-              leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
-              leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
-              nestDoc(1, [lineDoc(LineKind.Hard), childDocs.members]),
-              lineDoc(LineKind.Hard),
-              leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
-            ]),
-          );
-        },
-      ),
-    };
-  },
+  ClassDeclaration: makeClassDeclarationLikeEnhancer(
+    "ClassDeclaration",
+    "class",
+  ),
   "ClassDeclaration.typeParameters": commaListEnhancer,
   "ClassDeclaration.members": onePerLineEnhancer,
+  InterfaceDeclaration: makeClassDeclarationLikeEnhancer(
+    "InterfaceDeclaration",
+    "interface",
+  ),
+  "InterfaceDeclaration.typeParameters": commaListEnhancer,
+  "InterfaceDeclaration.members": onePerLineEnhancer,
   PropertyDeclaration: makePropertyDeclarationLikeEnhancer(
     "PropertyDeclaration",
   ),
@@ -1639,6 +1710,27 @@ export const enhancers: {
     ),
   }),
   "IndexSignatureDeclaration.parameters": commaListEnhancer,
+  MethodSignature: makeMethodSignatureLikeEnhancer(
+    "MethodSignature",
+    undefined,
+    ["name", "questionToken", "typeParameters", "parameters", "type"],
+  ),
+  "MethodSignature.parameters": commaListEnhancer,
+  "MethodSignature.typeParameters": commaListEnhancer,
+  CallSignatureDeclaration: makeMethodSignatureLikeEnhancer(
+    "CallSignatureDeclaration",
+    undefined,
+    ["typeParameters", "parameters", "type"],
+  ),
+  "CallSignatureDeclaration.parameters": commaListEnhancer,
+  "CallSignatureDeclaration.typeParameters": commaListEnhancer,
+  ConstructSignatureDeclaration: makeMethodSignatureLikeEnhancer(
+    "ConstructSignatureDeclaration",
+    "new",
+    ["typeParameters", "parameters", "type"],
+  ),
+  "ConstructSignatureDeclaration.parameters": commaListEnhancer,
+  "ConstructSignatureDeclaration.typeParameters": commaListEnhancer,
 };
 [
   ["TypeQueryNode", "typeof"],
