@@ -1504,9 +1504,153 @@ export const enhancers: {
       ),
     };
   },
+  ImportDeclaration: (node: Node<ts.ImportDeclaration>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "ImportDeclaration", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["importClause", "moduleSpecifier"],
+        ({
+          childDocs,
+          shouldHideChild,
+          newTextNode,
+          newFocusMarker,
+        }): Doc | undefined => {
+          const fromKeyword = leafDoc(
+            newTextNode(" from ", LabelStyle.SYNTAX_SYMBOL),
+          );
+          return groupDoc(
+            filterTruthyChildren([
+              newFocusMarker(),
+              leafDoc(newTextNode("import ", LabelStyle.SYNTAX_SYMBOL)),
+              !shouldHideChild("importClause") && [
+                childDocs.importClause,
+                fromKeyword,
+              ],
+              childDocs.moduleSpecifier,
+            ]),
+          );
+        },
+      ),
+    };
+  },
+  ImportClause: (node: Node<ts.ImportClause>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "ImportClause", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["name", "namedBindings"],
+        ({
+          childDocs,
+          shouldHideChild,
+          newTextNode,
+          newFocusMarker,
+        }): Doc | undefined => {
+          const comma = leafDoc(newTextNode(", ", LabelStyle.SYNTAX_SYMBOL));
+          return groupDoc(
+            filterTruthyChildren([
+              newFocusMarker(),
+              !shouldHideChild("name") && childDocs.name,
+              !shouldHideChild("name") &&
+                !shouldHideChild("namedBindings") &&
+                comma,
+              !shouldHideChild("namedBindings") && childDocs.namedBindings,
+            ]),
+          );
+        },
+      ),
+    };
+  },
+  NamespaceImport: (node: Node<ts.NamespaceImport>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "NamespaceImport", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["name"],
+        ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
+          return groupDoc(
+            filterTruthyChildren([
+              newFocusMarker(),
+              leafDoc(newTextNode("* as ", LabelStyle.SYNTAX_SYMBOL)),
+              childDocs.name,
+            ]),
+          );
+        },
+      ),
+    };
+  },
+  NamedImports: (node: Node<ts.NamedImports>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "NamedImports", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsList(
+        ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
+          const focusMarker = newFocusMarker();
+          return groupDoc(
+            filterTruthyChildren([
+              !childDocs.length && focusMarker,
+              leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
+              groupDoc([
+                nestDoc(
+                  1,
+                  childDocs.map((c, i) => [
+                    i === 0 ? [lineDoc(LineKind.Soft), focusMarker] : lineDoc(),
+                    c,
+                    leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
+                  ]),
+                ),
+                lineDoc(LineKind.Soft),
+              ]),
+              leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
+            ]),
+          );
+        },
+      ),
+    };
+  },
+  ImportSpecifier: (node: Node<ts.ImportSpecifier>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "ImportSpecifier", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["propertyName", "name"],
+        ({
+          childDocs,
+          shouldHideChild,
+          showChildNavigationHints,
+          newTextNode,
+          newFocusMarker,
+        }) => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          var propertyNameWithColon = [
+            childDocs.propertyName,
+            leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
+          ];
+          return groupDoc(
+            filterTruthyChildren([
+              newFocusMarker(),
+              !shouldHideChild("propertyName") && propertyNameWithColon,
+              childDocs.name,
+            ]),
+          );
+        },
+      ),
+    };
+  },
 };
 [
-  ["ImportDeclaration", "import"],
   ["TypeQueryNode", "typeof"],
   ["AsExpression", "as"],
 ].forEach(([tsType, displayType]) => {
