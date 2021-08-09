@@ -681,6 +681,40 @@ export const enhancers: {
       ),
     };
   },
+  ElementAccessExpression: (node: Node<ts.ElementAccessExpression>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "element access", style: LabelStyle.TYPE_SUMMARY }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["expression", "questionDotToken", "argumentExpression"],
+        ({
+          shouldHideChild,
+          childDocs,
+          childIsEmpty,
+          showChildNavigationHints,
+          newTextNode,
+          newFocusMarker,
+        }): Doc | undefined => {
+          if (showChildNavigationHints) {
+            return undefined;
+          }
+          return groupDoc(
+            filterTruthyChildren([
+              newFocusMarker(),
+              childDocs.expression,
+              !shouldHideChild("questionDotToken") &&
+                childDocs.questionDotToken,
+              leafDoc(newTextNode("[", LabelStyle.SYNTAX_SYMBOL)),
+              childDocs.argumentExpression,
+              leafDoc(newTextNode("]", LabelStyle.SYNTAX_SYMBOL)),
+            ]),
+          );
+        },
+      ),
+    };
+  },
   CallExpression: (node: Node<ts.CallExpression>) => {
     return {
       displayInfo: {
