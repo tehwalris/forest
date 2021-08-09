@@ -712,11 +712,8 @@ export const enhancers: {
               !shouldHideChild("heritageClauses") && heritageClausesWithSpace,
               leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
               leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
-              nestDoc(1, [
-                lineDoc(LineKind.Hard),
-                childDocs.members,
-                lineDoc(LineKind.Hard),
-              ]),
+              nestDoc(1, [lineDoc(LineKind.Hard), childDocs.members]),
+              lineDoc(LineKind.Hard),
               leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
             ]),
           );
