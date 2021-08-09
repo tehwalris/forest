@@ -1149,7 +1149,7 @@ export const enhancers: {
               size: arrayFromTextSize(measureLabel(label)),
             }),
             leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
-            childDocs.expression,
+            nestDoc(1, childDocs.expression),
           ]);
         },
       ),
