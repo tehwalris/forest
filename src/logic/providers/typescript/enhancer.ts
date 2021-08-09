@@ -200,31 +200,51 @@ export function withExtendedArgsList<R>(
     })(originalArgs);
   };
 }
-const singleLineCommaListEnhancer: Enhancer<Node<ts.NodeArray<ts.Node>>> = (
-  node,
-) => ({
-  displayInfo: { priority: DisplayInfoPriority.LOW, label: [] },
-  buildDoc: withExtendedArgsList(
-    ({ nodeForDisplay, childDocs, newTextNode, newFocusMarker }) => {
-      return groupDoc([
-        newFocusMarker(),
-        nestDoc(1, [
-          lineDoc(LineKind.Soft),
-          childDocs.map((c, i) =>
-            i === 0
-              ? c
-              : [
-                  leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
-                  lineDoc(),
-                  c,
-                ],
-          ),
-        ]),
-        lineDoc(LineKind.Soft),
-      ]);
+function makeWrappedListEnhancer(
+  typeName: string | undefined,
+  left: string | undefined,
+  separator: string,
+  right: string | undefined,
+): Enhancer<Node<ts.NodeArray<ts.Node>>> {
+  return () => ({
+    displayInfo: {
+      priority: DisplayInfoPriority.MEDIUM,
+      label:
+        typeName === undefined
+          ? []
+          : [{ text: typeName, style: LabelStyle.UNKNOWN }],
     },
-  ),
-});
+    buildDoc: withExtendedArgsList(
+      ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
+        const focusMarker = newFocusMarker();
+        return groupDoc(
+          filterTruthyChildren([
+            !childDocs.length && focusMarker,
+            !!left && leafDoc(newTextNode(left, LabelStyle.SYNTAX_SYMBOL)),
+            groupDoc([
+              nestDoc(
+                1,
+                childDocs.map((c, i) => [
+                  i === 0 ? [lineDoc(LineKind.Soft), focusMarker] : lineDoc(),
+                  c,
+                  leafDoc(newTextNode(separator, LabelStyle.SYNTAX_SYMBOL)),
+                ]),
+              ),
+              lineDoc(LineKind.Soft),
+            ]),
+            !!right && leafDoc(newTextNode(right, LabelStyle.SYNTAX_SYMBOL)),
+          ]),
+        );
+      },
+    ),
+  });
+}
+const commaListEnhancer = makeWrappedListEnhancer(
+  undefined,
+  undefined,
+  ",",
+  undefined,
+);
 export const enhancers: {
   [key: string]: Enhancer<any> | undefined;
 } = {
@@ -515,28 +535,8 @@ export const enhancers: {
       ),
     };
   },
-  "FunctionDeclaration.parameters": (
-    node: Node<ts.NodeArray<ts.ParameterDeclaration>>,
-  ) => {
-    return {
-      displayInfo: { priority: DisplayInfoPriority.LOW, label: [] },
-      buildDoc: withExtendedArgsList(
-        ({ childDocs, newTextNode, newFocusMarker }) => {
-          return groupDoc([
-            newFocusMarker(),
-            ...childDocs.map((c) =>
-              groupDoc([
-                c,
-                leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
-                lineDoc(),
-              ]),
-            ),
-          ]);
-        },
-      ),
-    };
-  },
-  "FunctionDeclaration.typeParameters": singleLineCommaListEnhancer,
+  "FunctionDeclaration.parameters": commaListEnhancer,
+  "FunctionDeclaration.typeParameters": commaListEnhancer,
   ArrowFunction: (node: Node<ts.ArrowFunction>) => {
     return {
       displayInfo: {
@@ -583,8 +583,8 @@ export const enhancers: {
       ),
     };
   },
-  "ArrowFunction.parameters": singleLineCommaListEnhancer,
-  "ArrowFunction.typeParameters": singleLineCommaListEnhancer,
+  "ArrowFunction.parameters": commaListEnhancer,
+  "ArrowFunction.typeParameters": commaListEnhancer,
   FunctionTypeNode: (node: Node<ts.FunctionTypeNode>) => {
     return {
       displayInfo: {
@@ -625,8 +625,8 @@ export const enhancers: {
       ),
     };
   },
-  "FunctionTypeNode.parameters": singleLineCommaListEnhancer,
-  "FunctionTypeNode.typeParameters": singleLineCommaListEnhancer,
+  "FunctionTypeNode.parameters": commaListEnhancer,
+  "FunctionTypeNode.typeParameters": commaListEnhancer,
   FunctionExpression: (node: Node<ts.FunctionExpression>) => {
     const label: LabelPart[] = [
       { text: "function", style: LabelStyle.TYPE_SUMMARY },
@@ -658,7 +658,6 @@ export const enhancers: {
         ({
           shouldHideChild,
           childDocs,
-          childIsEmpty,
           showChildNavigationHints,
           newTextNode,
           newFocusMarker,
@@ -692,7 +691,6 @@ export const enhancers: {
         ({
           shouldHideChild,
           childDocs,
-          childIsEmpty,
           showChildNavigationHints,
           newTextNode,
           newFocusMarker,
@@ -756,8 +754,8 @@ export const enhancers: {
       ),
     };
   },
-  "CallExpression.typeArguments": singleLineCommaListEnhancer,
-  "CallExpression.arguments": singleLineCommaListEnhancer,
+  "CallExpression.typeArguments": commaListEnhancer,
+  "CallExpression.arguments": commaListEnhancer,
   NewExpression: (node: Node<ts.NewExpression>) => {
     return {
       displayInfo: {
@@ -802,8 +800,8 @@ export const enhancers: {
       ),
     };
   },
-  "NewExpression.arguments": singleLineCommaListEnhancer,
-  "NewExpression.typeArguments": singleLineCommaListEnhancer,
+  "NewExpression.arguments": commaListEnhancer,
+  "NewExpression.typeArguments": commaListEnhancer,
   TypeParameterDeclaration: (node: Node<ts.TypeParameterDeclaration>) => {
     return {
       displayInfo: {
@@ -935,70 +933,18 @@ export const enhancers: {
       ),
     };
   },
-  ArrayLiteralExpression: (node: Node<ts.ArrayLiteralExpression>) => {
-    return {
-      displayInfo: {
-        priority: DisplayInfoPriority.MEDIUM,
-        label: [{ text: "array", style: LabelStyle.TYPE_SUMMARY }],
-      },
-      buildDoc: withExtendedArgsList(
-        ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
-          var openingSquareBracket = leafDoc(
-            newTextNode("[", LabelStyle.SYNTAX_SYMBOL),
-          );
-          var closingSquareBracket = leafDoc(
-            newTextNode("]", LabelStyle.SYNTAX_SYMBOL),
-          );
-          return groupDoc([
-            newFocusMarker(),
-            openingSquareBracket,
-            nestDoc(
-              1,
-              childDocs.map((c, i) => [
-                lineDoc(i === 0 ? LineKind.Soft : LineKind.Normal),
-                c,
-                leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
-              ]),
-            ),
-            lineDoc(LineKind.Soft),
-            closingSquareBracket,
-          ]);
-        },
-      ),
-    };
-  },
-  ArrayBindingPattern: (node: Node<ts.ArrayBindingPattern>) => {
-    return {
-      displayInfo: {
-        priority: DisplayInfoPriority.MEDIUM,
-        label: [{ text: "ArrayBindingPattern", style: LabelStyle.UNKNOWN }],
-      },
-      buildDoc: withExtendedArgsList(
-        ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
-          var openingSquareBracket = leafDoc(
-            newTextNode("[", LabelStyle.SYNTAX_SYMBOL),
-          );
-          var closingSquareBracket = leafDoc(
-            newTextNode("]", LabelStyle.SYNTAX_SYMBOL),
-          );
-          return groupDoc([
-            newFocusMarker(),
-            openingSquareBracket,
-            nestDoc(
-              1,
-              childDocs.map((c, i) => [
-                lineDoc(i === 0 ? LineKind.Soft : LineKind.Normal),
-                c,
-                leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
-              ]),
-            ),
-            lineDoc(LineKind.Soft),
-            closingSquareBracket,
-          ]);
-        },
-      ),
-    };
-  },
+  ArrayLiteralExpression: makeWrappedListEnhancer(
+    "ArrayLiteralExpression",
+    "[",
+    ",",
+    "]",
+  ),
+  ArrayBindingPattern: makeWrappedListEnhancer(
+    "ArrayBindingPattern",
+    "[",
+    ",",
+    "]",
+  ),
   BindingElement: (node: Node<ts.BindingElement>) => {
     return {
       displayInfo: {
@@ -1038,37 +984,12 @@ export const enhancers: {
       ),
     };
   },
-  ObjectLiteralExpression: (node: Node<ts.ObjectLiteralExpression>) => {
-    return {
-      displayInfo: {
-        priority: DisplayInfoPriority.MEDIUM,
-        label: [{ text: "object", style: LabelStyle.TYPE_SUMMARY }],
-      },
-      buildDoc: withExtendedArgsList(
-        ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
-          const focusMarker = newFocusMarker();
-          return groupDoc(
-            filterTruthyChildren([
-              !childDocs.length && focusMarker,
-              leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
-              groupDoc([
-                nestDoc(
-                  1,
-                  childDocs.map((c, i) => [
-                    i === 0 ? [lineDoc(LineKind.Soft), focusMarker] : lineDoc(),
-                    c,
-                    leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
-                  ]),
-                ),
-                lineDoc(LineKind.Soft),
-              ]),
-              leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
-            ]),
-          );
-        },
-      ),
-    };
-  },
+  ObjectLiteralExpression: makeWrappedListEnhancer(
+    "ObjectLiteralExpression",
+    "{",
+    ",",
+    "}",
+  ),
   PropertyAssignment: (node: Node<ts.PropertyAssignment>) => {
     return {
       displayInfo: {
@@ -1166,37 +1087,12 @@ export const enhancers: {
       ),
     };
   },
-  ObjectBindingPattern: (node: Node<ts.ObjectBindingPattern>) => {
-    return {
-      displayInfo: {
-        priority: DisplayInfoPriority.MEDIUM,
-        label: [{ text: "ObjectBindingPattern", style: LabelStyle.UNKNOWN }],
-      },
-      buildDoc: withExtendedArgsList(
-        ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
-          const focusMarker = newFocusMarker();
-          return groupDoc(
-            filterTruthyChildren([
-              !childDocs.length && focusMarker,
-              leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
-              groupDoc([
-                nestDoc(
-                  1,
-                  childDocs.map((c, i) => [
-                    i === 0 ? [lineDoc(LineKind.Soft), focusMarker] : lineDoc(),
-                    c,
-                    leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
-                  ]),
-                ),
-                lineDoc(LineKind.Soft),
-              ]),
-              leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
-            ]),
-          );
-        },
-      ),
-    };
-  },
+  ObjectBindingPattern: makeWrappedListEnhancer(
+    "ObjectBindingPattern",
+    "{",
+    ",",
+    "}",
+  ),
   ReturnStatement: (node: Node<ts.ReturnStatement>) => {
     const label = [{ text: "return", style: LabelStyle.SYNTAX_SYMBOL }];
     return {
@@ -1301,7 +1197,7 @@ export const enhancers: {
       ),
     };
   },
-  "TypeReferenceNode.typeArguments": singleLineCommaListEnhancer,
+  "TypeReferenceNode.typeArguments": commaListEnhancer,
   ArrayTypeNode: (node: Node<ts.ArrayTypeNode>) => {
     return {
       displayInfo: {
@@ -1585,37 +1481,7 @@ export const enhancers: {
       ),
     };
   },
-  NamedImports: (node: Node<ts.NamedImports>) => {
-    return {
-      displayInfo: {
-        priority: DisplayInfoPriority.MEDIUM,
-        label: [{ text: "NamedImports", style: LabelStyle.UNKNOWN }],
-      },
-      buildDoc: withExtendedArgsList(
-        ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
-          const focusMarker = newFocusMarker();
-          return groupDoc(
-            filterTruthyChildren([
-              !childDocs.length && focusMarker,
-              leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
-              groupDoc([
-                nestDoc(
-                  1,
-                  childDocs.map((c, i) => [
-                    i === 0 ? [lineDoc(LineKind.Soft), focusMarker] : lineDoc(),
-                    c,
-                    leafDoc(newTextNode(",", LabelStyle.SYNTAX_SYMBOL)),
-                  ]),
-                ),
-                lineDoc(LineKind.Soft),
-              ]),
-              leafDoc(newTextNode("}", LabelStyle.SYNTAX_SYMBOL)),
-            ]),
-          );
-        },
-      ),
-    };
-  },
+  NamedImports: makeWrappedListEnhancer("ObjectBindingPattern", "{", ",", "}"),
   ImportSpecifier: (node: Node<ts.ImportSpecifier>) => {
     return {
       displayInfo: {
