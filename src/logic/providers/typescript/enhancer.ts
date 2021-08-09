@@ -1405,6 +1405,29 @@ export const enhancers: {
       ),
     };
   },
+  ConditionalExpression: (node: Node<ts.ConditionalExpression>) => {
+    return {
+      displayInfo: {
+        priority: DisplayInfoPriority.MEDIUM,
+        label: [{ text: "ConditionalExpression", style: LabelStyle.UNKNOWN }],
+      },
+      buildDoc: withExtendedArgsStruct(
+        ["condition", "whenTrue", "whenFalse"],
+        ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
+          return groupDoc([
+            newFocusMarker(),
+            childDocs.condition,
+            lineDoc(),
+            leafDoc(newTextNode("? ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.whenTrue,
+            lineDoc(),
+            leafDoc(newTextNode(": ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.whenFalse,
+          ]);
+        },
+      ),
+    };
+  },
 };
 [
   ["ImportDeclaration", "import"],
