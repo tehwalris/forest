@@ -1,0 +1,80 @@
+# Catching up with the meeting
+
+## Predictable navigation
+
+- vim has predictable commands
+  - for example you know that "dib" will always delete the contents of the current brackets
+    - does not matter where in the brackets the cursor is exactly
+    - in a normal editor the same operation requires
+      - looking where the cursor is first
+      - adjusting the click position
+  - predictable commands are essential (?) for fast editing
+- navigation with arrows problematic with display-as-text
+  - either always use (e.g.) up-down to navigate siblings
+    - confusing because the movement might visually go left-right
+  - or match arrows to visual direction
+    - so pressing right goes to the sibling that is visually on the right
+    - problematic because text layout can vary, so you need to look before you move
+- assign a letter to every child for navigation
+  - instead of using arrows to move to and between children, use letter keys
+  - for example when focused on a function pressing "n" would focus on the "name" child of the function
+  - such shortcuts have no "direction"
+    - they work the same no matter how the text is laid out
+    - there's no need for feedback and no confusion, unlike with arrows
+
+## Tree and transforms
+
+- the tree design and transform concept are the core of the editor
+  - both of these are closely linked
+- they are also the most academic part
+  - there is a lot of slightly-related research, but not match that is exactly the same
+- there are multiple problems with the current design
+  - tree nodes have no runtime types
+    - transforms use hacks like looking at the names of children to guess the type of a node
+  - there is no native support for important concepts
+    - this makes code more complicated and less stable
+    - the most important missing concept is holes
+    - another important concept is explicit struct-like and list-like nodes
+  - copy-paste is unstable
+    - paste is handled by each node separately
+    - in the TypeScript tree, "union" nodes handle pastes
+    - nodes that are not unions can not handle pastes
+      - very confusing for the user
+      - transforms typically create such nodes, so pasting doesn't work with transforms
+  - no lazy loading
+    - the whole tree (all files in a project) must be loaded and transformed at once
+    - long startup time
+- transforms
+  - the initial tree almost exactly wraps the TypeScript AST
+  - some things in the AST are not practical for editing
+    - most important examples
+      - variables assignment statements have three levels of nesting
+      - if-elseif-... statements are nested like if {} else { if {} else { if {} else {} } }
+        - flat is much easier to browse and edit if {} elseif {} elseif {} else {}
+      - expressions in statement position must be wrapped in ExpressionStatement
+        - useless extra tree level when browsing
+        - very confusing for new users (e.g. no visible option to put a function call inside a function body)
+      - "implements" and "extends" on classes are grouped into three-level-deep arbitrary list structures
+      - template strings require a pretty arbitrary structure that is hard to create by hand
+  - to make editing practical, the annoying structures in the tree can be replaced by nicer ones
+  - such a transform concept has lots of complicated details and tradeoffs
+    - transforms must be two way
+    - the transformed state sometimes does not correspond to a valid original state
+      - e.g. flat if statement with 0 branches does not correspond to a TypeScript statement
+      - the transformed state has to be stored extra to the original tree in this case
+      - what is the source of truth in such a situation?
+    - when and how should transforms be disabled?
+      - should the user be able to locally disable a transform?
+        - e.g. temporarily disable flat-if on a specific if statement
+    - how is identity of nodes in a transform preserved?
+      - e.g. for the flat if transform, where do the ids of the flat-if-branch nodes come from?
+        - they could come from the original if statement AST parts, but this doesn't always work (e.g. for new branches)
+        - they could be newly generated, but the they are not preserved if the transform is unapplied and reapplied
+      - when IDs change, this causes issues in the UI
+        - nodes are animated as exiting and entering even though they aren't
+        - if the node in question is focused, it will lose focus
+        - if the node in question is bookmarked, the bookmark will become invalid
+  - relevant academic stuff
+    - view update problem in databases
+    - bidirectional lenses
+    - code transform languages like txl
