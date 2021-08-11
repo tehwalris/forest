@@ -1757,6 +1757,7 @@ export const enhancers: {
   ["VoidKeyword", "void"],
   ["UndefinedKeyword", "undefined"],
   ["NeverKeyword", "never"],
+  ["ThisExpression", "this"],
   ["ThisTypeNode", "this"],
   ["EqualsToken", "="],
   ["LessThanToken", "<"],
