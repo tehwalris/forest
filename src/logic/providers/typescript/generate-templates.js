@@ -149,12 +149,16 @@ import {
 function isTypeOfWorkaround(node: ts.Node): node is ts.TypeOfExpression {
   return node.kind === ts.SyntaxKind.TypeOfExpression
 }
+
+function withUndefinedToFalse<A, B extends A>(f: (a: A) => a is B): ((a: A | undefined) => a is B) {
+  return (a: A | undefined): a is B => a !== undefined && f(a)
+}
 `,
     "export const plainTypes = {",
     ...plainTypes.map((e) =>
       `
 ${e.name}: {
-  match: ${e.match},
+  match: withUndefinedToFalse(${e.match}),
   default: ${e.create},
 },
 `.trim(),
@@ -162,7 +166,7 @@ ${e.name}: {
     ...tokenTypes.map((e) =>
       `
 ${e.name}: {
-  match: (e: ts.Node): e is ts.${e.name} => [
+  match: (e: ts.Node | undefined): e is ts.${e.name} => e !== undefined && [
     ${e.kinds.map((c) => `ts.SyntaxKind.${c}`).join(",")}
   ].some(k => e.kind === k),
   default: {kind: ts.SyntaxKind.${e.kinds[0]} } as ts.${e.name}
@@ -174,8 +178,8 @@ ${e.name}: {
       .map((e) =>
         `
 ${e.name}: {
-  match: (e: ts.Node): e is ts.Token<ts.SyntaxKind.${e.name}> =>
-    e.kind === ts.SyntaxKind.${e.name},
+  match: (e: ts.Node | undefined): e is ts.Token<ts.SyntaxKind.${e.name}> =>
+    e !== undefined && e.kind === ts.SyntaxKind.${e.name},
   default: {kind: ts.SyntaxKind.${e.name} } as ts.Token<ts.SyntaxKind.${e.name}>
 },
 `.trim(),
@@ -185,8 +189,8 @@ ${e.name}: {
       .map((e) =>
         `
 ${e.name}: {
-  match: (e: ts.Node): e is ts.KeywordTypeNode<ts.SyntaxKind.${e.name}> =>
-    e.kind === ts.SyntaxKind.${e.name},
+  match: (e: ts.Node | undefined): e is ts.KeywordTypeNode<ts.SyntaxKind.${e.name}> =>
+    e !== undefined && e.kind === ts.SyntaxKind.${e.name},
   default: {kind: ts.SyntaxKind.${e.name} } as ts.KeywordTypeNode<ts.SyntaxKind.${e.name}>
 },
 `.trim(),

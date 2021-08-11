@@ -30,62 +30,69 @@ import { Enhancer } from "./enhancer";
 import { leafDoc } from "../../tree/display-line";
 import { arrayFromTextSize } from "../../text-measurement";
 import { NodeKind } from "divetree-core";
-export function fromTsNode<T extends ts.Node>(
+export function fromTsNode<T extends ts.Node | undefined>(
   original: T,
   _union?: Union<T>,
   listEnhancer?: undefined,
 ): Node<T>;
-export function fromTsNode<T extends ts.Node>(
-  original: ts.NodeArray<T>,
+export function fromTsNode<T extends ts.Node | undefined>(
+  original: ts.NodeArray<NonNullable<T>>,
   _union: Union<T>,
-  listEnhancer?: Enhancer<Node<ts.NodeArray<T>>>,
-): Node<ts.NodeArray<T>>;
-export function fromTsNode<T extends ts.Node>(
-  original: T | ts.NodeArray<T>,
+  listEnhancer?: Enhancer<Node<ts.NodeArray<NonNullable<T>>>>,
+): Node<ts.NodeArray<NonNullable<T>>>;
+export function fromTsNode<T extends ts.Node | undefined>(
+  _original: T | ts.NodeArray<NonNullable<T>>,
   _union: Union<T> | undefined,
-  listEnhancer: Enhancer<Node<ts.NodeArray<T>>> | undefined,
+  listEnhancer: Enhancer<Node<ts.NodeArray<NonNullable<T>>>> | undefined,
 ): Node<T> {
-  if (isNodeArray(original)) {
+  if (_original !== undefined && isNodeArray(_original)) {
     return ListTemplateNode.fromTemplate(
       {
         match: (() => false) as any,
-        load: (built: any) => built as ts.NodeArray<T>,
-        build: (children: T[]) => ts.createNodeArray(children) as any,
+        load: (built: any) => built as ts.NodeArray<NonNullable<T>>,
+        build: (children: NonNullable<T>[]) =>
+          ts.createNodeArray(children) as any,
         flags: [],
-        childUnion: _union!,
+        childUnion: _union! as Union<NonNullable<T>>,
         enhancer: listEnhancer,
       },
-      original,
+      _original,
       fromTsNode,
     ) as any;
   }
   if (_union) {
     const union = _union();
     if (Object.keys(union).length > 1) {
-      return TemplateUnionNode.fromUnion(_union, original, fromTsNode);
+      return TemplateUnionNode.fromUnion(_union, _original, fromTsNode);
     }
   }
+  if (_original === undefined) {
+    throw new Error(
+      "original === undefined is only supported in a non-empty union",
+    );
+  }
+  const original: NonNullable<T> = _original as any;
   for (const template of stringTemplates) {
-    if (template.match(original)) {
+    if (template.match(_original)) {
       return StringTemplateNode.fromTemplate(
-        template as any as StringTemplate<T>,
+        template as any as StringTemplate<NonNullable<T>>,
         original,
       ) as any;
     }
   }
   for (const template of listTemplates) {
-    if (template.match(original)) {
+    if (template.match(_original)) {
       return ListTemplateNode.fromTemplate(
-        template as any as ListTemplate<T, ts.Node>,
+        template as any as ListTemplate<NonNullable<T>, ts.Node>,
         original,
         fromTsNode,
       ) as any;
     }
   }
   for (const template of structTemplates) {
-    if (template.match(original)) {
+    if (template.match(_original)) {
       return StructTemplateNode.fromTemplate(
-        template as any as StructTemplate<{}, T>,
+        template as any as StructTemplate<{}, NonNullable<T>>,
         original,
         fromTsNode,
       ) as any;

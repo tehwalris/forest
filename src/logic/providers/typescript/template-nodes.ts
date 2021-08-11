@@ -1,5 +1,10 @@
 import { Enhancer } from "./enhancer";
-import { ListNode, OptionNode, UnionNode } from "../../tree/base-nodes";
+import {
+  EmptyLeafNode,
+  ListNode,
+  OptionNode,
+  UnionNode,
+} from "../../tree/base-nodes";
 import * as ts from "typescript";
 import {
   Node,
@@ -23,9 +28,9 @@ import { shortcutsByType } from "./generated/templates";
 import { fromTsNode } from "./convert";
 import { ParentPathElement } from "../../parent-index";
 import type { Doc } from "../../tree/display-line";
-export type Union<T extends ts.Node> = () => {
+export type Union<T extends ts.Node | undefined> = () => {
   [key: string]: {
-    match: (node: ts.Node) => node is T;
+    match: (node: ts.Node | undefined) => node is T;
     default: T;
   };
 };
@@ -52,12 +57,14 @@ export interface RequiredStructSingleChild<T extends ts.Node>
   extends BaseStructChild<T> {
   value: T;
   optional?: never;
+  isList?: never;
   enhancer?: never;
 }
 export interface OptionalStructSingleChild<T extends ts.Node>
   extends BaseStructChild<T> {
   value: T | undefined;
   optional: true;
+  isList?: never;
   enhancer?: never;
 }
 export interface RequiredStructListChild<T extends ts.Node>
@@ -291,10 +298,10 @@ export class StructTemplateNode<
   >(
     template: StructTemplate<C, B>,
     node: B,
-    fromTsNode: <CT extends ts.Node>(
+    fromTsNode: <CT extends ts.Node | undefined>(
       tsNode: CT,
       union: Union<CT>,
-      listEnhancer?: Enhancer<Node<ts.NodeArray<CT>>>,
+      listEnhancer?: Enhancer<Node<ts.NodeArray<NonNullable<CT>>>>,
     ) => Node<CT>,
   ): StructTemplateNode<C, B> {
     const loaded = template.load(node);
@@ -302,18 +309,37 @@ export class StructTemplateNode<
       const loadedChild: StructChild<any> = loaded[key];
       const childValue = loadedChild.value;
       if (loadedChild.optional) {
-        const defaultValue = (loadedChild as any).isList
-          ? []
-          : someDefaultFromUnion(loadedChild.union, node);
-        return {
-          key,
-          node: new OptionNode(
-            () =>
-              fromTsNode(defaultValue, loadedChild.union, loadedChild.enhancer),
-            childValue &&
-              fromTsNode(childValue, loadedChild.union, loadedChild.enhancer),
-          ),
-        };
+        if (loadedChild.isList) {
+          const defaultValue = [] as any;
+          return {
+            key,
+            node: new OptionNode(
+              () =>
+                fromTsNode(
+                  defaultValue,
+                  loadedChild.union,
+                  loadedChild.enhancer,
+                ),
+              childValue &&
+                fromTsNode(childValue, loadedChild.union, loadedChild.enhancer),
+            ),
+          };
+        } else {
+          return {
+            key,
+            node: fromTsNode(
+              undefined,
+              () => ({
+                ...loadedChild.union(),
+                "Option<None>": {
+                  match: (v): v is undefined => v === undefined,
+                  default: undefined,
+                },
+              }),
+              loadedChild.enhancer,
+            ),
+          };
+        }
       }
       return {
         key,
@@ -380,7 +406,10 @@ export class StructTemplateNode<
     return this.template.enhancer?.(this, args.parentPath).buildDoc?.(args);
   }
 }
-export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
+export class TemplateUnionNode<T extends ts.Node | undefined> extends UnionNode<
+  string,
+  T
+> {
   flags = {};
   constructor(
     private _union: Union<T>,
@@ -396,7 +425,7 @@ export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
         if (!buildResult.ok) {
           return this;
         }
-        const tsNode = buildResult.value as ts.Node;
+        const tsNode = buildResult.value as ts.Node | undefined;
         if (!Object.values(this._union()).some((e) => e.match(tsNode))) {
           return this;
         }
@@ -414,11 +443,16 @@ export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
     node.id = this.id;
     return node;
   }
-  static fromUnion<T extends ts.Node>(
+  static fromUnion<T extends ts.Node | undefined>(
     _union: Union<T>,
     node: T,
-    fromTsNode: <CT extends ts.Node>(tsNode: CT) => Node<CT>,
+    _fromTsNode: <CT extends ts.Node>(tsNode: CT) => Node<CT>,
   ): TemplateUnionNode<T> {
+    const fromTsNode = <CT extends ts.Node>(node: CT | undefined) =>
+      node === undefined
+        ? new EmptyLeafNode("Option<None>")
+        : _fromTsNode(node);
+
     const union = _union();
     const variants = Object.keys(union).map((key) => ({
       key,
@@ -426,14 +460,18 @@ export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
     }));
     let currentKey = Object.keys(union).find((k) => union[k].match(node));
     if (!currentKey) {
-      const label = ts.SyntaxKind[node.kind];
+      const label =
+        node === undefined ? "Option<None>" : ts.SyntaxKind[node.kind];
       console.warn(`Missing key for ${label}.`);
       currentKey = `<missing: ${label}>`;
     }
     return new TemplateUnionNode(
       _union,
       variants,
-      { key: currentKey, children: [{ key: "value", node: fromTsNode(node) }] },
+      {
+        key: currentKey,
+        children: [{ key: "value", node: fromTsNode(node) }],
+      },
       node,
     );
   }
@@ -454,6 +492,9 @@ export class TemplateUnionNode<T extends ts.Node> extends UnionNode<string, T> {
     return key;
   }
   getShortcut(key: string): string | undefined {
+    if (key === "Option<None>") {
+      return "";
+    }
     return shortcutsByType.get(key);
   }
   getDebugLabel(): string {

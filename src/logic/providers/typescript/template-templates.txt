@@ -144,7 +144,7 @@ JsxAttributes - ts.createJsxAttributes([])
 JsxSpreadAttribute - ts.createJsxSpreadAttribute(ts.createIdentifier(""))
 JsxExpression - ts.createJsxExpression(undefined, undefined)
 JsxText - ts.createJsxText("")
-JsxTagNamePropertyAccess ts.isPropertyAccessExpression__as__any ts.createPropertyAccess(ts.createObjectLiteral(), "") as ts.JsxTagNamePropertyAccess
+JsxTagNamePropertyAccess ts.isPropertyAccessExpression__as__any__as__((node:ts.Node)=>node__is__ts.JsxTagNamePropertyAccess) ts.createPropertyAccess(ts.createObjectLiteral(), "") as ts.JsxTagNamePropertyAccess
 ClassExpression - ts.createClassExpression(undefined, undefined, undefined, [], [])
 PropertyAccessExpression - ts.createPropertyAccess(ts.createObjectLiteral(), "")
 ElementAccessExpression - ts.createElementAccess(ts.createArrayLiteral(), 0)
@@ -214,7 +214,7 @@ ExportDeclaration - ts.createExportDeclaration(undefined, undefined, undefined, 
 ExportAssignment - ts.createExportAssignment(undefined, undefined, false, ts.createIdentifier(""))
 EnumMember - ts.createEnumMember("", undefined)
 ModuleBlock - ts.createModuleBlock([])
-NamespaceDeclaration ts.isModuleDeclaration__as__any ts.createModuleDeclaration(undefined, undefined, ts.createIdentifier(""), ts.createModuleBlock([]), undefined) as ts.NamespaceDeclaration
+NamespaceDeclaration ts.isModuleDeclaration__as__any__as__((node:ts.Node)=>node__is__ts.NamespaceDeclaration) ts.createModuleDeclaration(undefined, undefined, ts.createIdentifier(""), ts.createModuleBlock([]), undefined) as ts.NamespaceDeclaration
 ExternalModuleReference - ts.createExternalModuleReference(ts.createLiteral(""))
 TypeOfExpression isTypeOfWorkaround ts.createTypeOf(ts.createLiteral(""))
 AwaitExpression - ts.createAwait(ts.createLiteral(""))

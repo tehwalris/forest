@@ -39,7 +39,7 @@ export const simpleVariableDeclarationTransform: Transform = <B>(
   }
   const onlyChildEntry = declarationListNode.children[0];
   const initializerNode = onlyChildEntry.node.getByPath(["initializer"]);
-  if (!initializerNode?.actions.toggle) {
+  if (!initializerNode) {
     return node;
   }
 

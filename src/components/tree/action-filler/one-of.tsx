@@ -20,8 +20,8 @@ export const OneOfFiller = <N extends Node<unknown>, T>({
     const options = action.oneOf.map((e, i) => {
       let label = action.getLabel(e);
       const shortcut = action.getShortcut(e);
-      if (shortcut) {
-        label = `${label} (${shortcut})`;
+      if (shortcut !== undefined) {
+        label = `${label} (${shortcut || "enter"})`;
       }
       return {
         value: i,
