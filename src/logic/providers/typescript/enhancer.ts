@@ -63,6 +63,11 @@ interface ExtendedDisplayTreeArgsBase extends BuildDivetreeDisplayTreeArgs {
   ) => TightLeafNode;
   newFocusMarker: () => Doc;
 }
+enum ChildIsEmptyValue {
+  NotEmpty = 0,
+  OptionNone = 1,
+  EmptyList = 2,
+}
 interface ExtendedDisplayTreeArgsStruct<CK extends string>
   extends ExtendedDisplayTreeArgsBase {
   childDocs: {
@@ -72,15 +77,15 @@ interface ExtendedDisplayTreeArgsStruct<CK extends string>
     [K in CK]: DivetreeDisplayRootNode;
   };
   childIsEmpty: {
-    [K in CK]: boolean;
+    [K in CK]: ChildIsEmptyValue;
   };
-  shouldHideChild: (childKey: CK) => boolean;
+  shouldHideChild: (childKey: CK, hideEmptyList?: boolean) => boolean;
 }
 interface ExtendedDisplayTreeArgsList extends ExtendedDisplayTreeArgsBase {
   childDocs: Doc[];
   childDisplayNodes: DivetreeDisplayRootNode[];
-  childIsEmpty: boolean[];
-  shouldHideChild: (childKey: number) => boolean;
+  childIsEmpty: ChildIsEmptyValue[];
+  shouldHideChild: (childKey: number, hideEmptyList?: boolean) => boolean;
 }
 export function withExtendedArgsStruct<CK extends string, R>(
   expectedChildKeys: CK[],
@@ -109,17 +114,29 @@ export function withExtendedArgsStruct<CK extends string, R>(
       [K in CK]: DivetreeDisplayRootNode;
     } = {} as any;
     const childIsEmpty: {
-      [K in CK]: boolean;
+      [K in CK]: ChildIsEmptyValue;
     } = {} as any;
     for (const key of expectedChildKeys) {
       const child = nodeForDisplay.getByPath([key])!;
       childDocs[key] = buildChildDoc(child);
-      childIsEmpty[key] = child.getDebugLabel() === "Option<None>";
+      const debugLabel = child.getDebugLabel();
+      if (debugLabel === "Option<None>") {
+        childIsEmpty[key] = ChildIsEmptyValue.OptionNone;
+      } else if (debugLabel === "Empty list") {
+        childIsEmpty[key] = ChildIsEmptyValue.EmptyList;
+      } else {
+        childIsEmpty[key] = ChildIsEmptyValue.NotEmpty;
+      }
     }
-    const shouldHideChild = (childKey: CK): boolean =>
+    const shouldHideChild = (
+      childKey: CK,
+      hideEmptyList: boolean = false,
+    ): boolean =>
       !showChildNavigationHints &&
       expectedChildKeys.includes(childKey) &&
-      childIsEmpty[childKey] &&
+      (childIsEmpty[childKey] === ChildIsEmptyValue.OptionNone ||
+        (hideEmptyList &&
+          childIsEmpty[childKey] === ChildIsEmptyValue.EmptyList)) &&
       (focusPath.length < 2 ||
         !(
           focusPath[0] === nodeForDisplay.id &&
@@ -196,7 +213,8 @@ export function withExtendedArgsList<R>(
           (k) => structArgs.childDisplayNodes[k],
         ),
         childIsEmpty: childKeys.map((k) => structArgs.childIsEmpty[k]),
-        shouldHideChild: (i) => structArgs.shouldHideChild(childKeys[i]),
+        shouldHideChild: (i, hideEmptyList) =>
+          structArgs.shouldHideChild(childKeys[i], hideEmptyList),
       });
     })(originalArgs);
   };
@@ -308,7 +326,8 @@ const makeFunctionOrMethodEnhancer = (
               !shouldHideChild("asteriskToken") && childDocs.asteriskToken,
               childDocs.name,
               !shouldHideChild("questionToken") && childDocs.questionToken,
-              !shouldHideChild("typeParameters") && typeParametersWithArrows,
+              !shouldHideChild("typeParameters", true) &&
+                typeParametersWithArrows,
               leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
               groupDoc([
                 nestDoc(
@@ -438,8 +457,10 @@ const makeClassDeclarationLikeEnhancer =
             newFocusMarker(),
             leafDoc(newTextNode(keyword, LabelStyle.SYNTAX_SYMBOL)),
             !shouldHideChild("name") && nameWithSpace,
-            !shouldHideChild("typeParameters") && typeParametersWithArrows,
-            !shouldHideChild("heritageClauses") && heritageClausesWithSpace,
+            !shouldHideChild("typeParameters", true) &&
+              typeParametersWithArrows,
+            !shouldHideChild("heritageClauses", true) &&
+              heritageClausesWithSpace,
             leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
             leafDoc(newTextNode("{", LabelStyle.SYNTAX_SYMBOL)),
             nestDoc(1, [lineDoc(LineKind.Hard), childDocs.members]),
@@ -495,7 +516,8 @@ const makeMethodSignatureLikeEnhancer =
               leafDoc(newTextNode(keyword + " ", LabelStyle.SYNTAX_SYMBOL)),
             !shouldHideChild("name") && childDocs.name,
             !shouldHideChild("questionToken") && childDocs.questionToken,
-            !shouldHideChild("typeParameters") && typeParametersWithArrows,
+            !shouldHideChild("typeParameters", true) &&
+              typeParametersWithArrows,
             leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
             groupDoc([
               nestDoc(1, [lineDoc(LineKind.Soft), childDocs.parameters]),
@@ -739,7 +761,8 @@ export const enhancers: {
           return groupDoc(
             filterTruthyChildren([
               newFocusMarker(),
-              !shouldHideChild("typeParameters") && typeParametersWithArrows,
+              !shouldHideChild("typeParameters", true) &&
+                typeParametersWithArrows,
               leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
               groupDoc([
                 nestDoc(1, [lineDoc(LineKind.Soft), childDocs.parameters]),
@@ -783,7 +806,8 @@ export const enhancers: {
           return groupDoc(
             filterTruthyChildren([
               newFocusMarker(),
-              !shouldHideChild("typeParameters") && typeParametersWithArrows,
+              !shouldHideChild("typeParameters", true) &&
+                typeParametersWithArrows,
               leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
               groupDoc([
                 nestDoc(1, [lineDoc(LineKind.Soft), childDocs.parameters]),
@@ -931,7 +955,7 @@ export const enhancers: {
               childDocs.expression,
               !shouldHideChild("questionDotToken") &&
                 childDocs.questionDotToken,
-              !shouldHideChild("typeArguments") &&
+              !shouldHideChild("typeArguments", true) &&
                 groupDoc([
                   leafDoc(openingArrow),
                   childDocs.typeArguments,
@@ -975,7 +999,7 @@ export const enhancers: {
               newFocusMarker(),
               leafDoc(newTextNode("new ", LabelStyle.SYNTAX_SYMBOL)),
               childDocs.expression,
-              !shouldHideChild("typeArguments") &&
+              !shouldHideChild("typeArguments", true) &&
                 groupDoc([
                   leafDoc(openingArrow),
                   childDocs.typeArguments,
@@ -1345,7 +1369,7 @@ export const enhancers: {
             filterTruthyChildren([
               newFocusMarker(),
               childDocs.typeName,
-              !shouldHideChild("typeArguments") &&
+              !shouldHideChild("typeArguments", true) &&
                 groupDoc([
                   leafDoc(openingArrow),
                   childDocs.typeArguments,
@@ -1612,9 +1636,10 @@ export const enhancers: {
               newFocusMarker(),
               !shouldHideChild("name") && childDocs.name,
               !shouldHideChild("name") &&
-                !shouldHideChild("namedBindings") &&
+                !shouldHideChild("namedBindings", true) &&
                 comma,
-              !shouldHideChild("namedBindings") && childDocs.namedBindings,
+              !shouldHideChild("namedBindings", true) &&
+                childDocs.namedBindings,
             ]),
           );
         },

@@ -45,7 +45,11 @@ function unwrapUpToIfStatement(
     return undefined;
   }
   const buildResult = node.build();
-  if (!buildResult.ok || !ts.isIfStatement(buildResult.value as ts.Node)) {
+  if (
+    !buildResult.ok ||
+    !buildResult.value ||
+    !ts.isIfStatement(buildResult.value as ts.Node)
+  ) {
     return undefined;
   }
   return unwrapUpToIfStatement(node.children[0].node, [

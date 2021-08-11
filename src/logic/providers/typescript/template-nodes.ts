@@ -253,6 +253,9 @@ export class ListTemplateNode<
       return node;
     });
   }
+  getDebugLabel(): string | undefined {
+    return this.children.length ? undefined : "Empty list";
+  }
   getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
     const { enhancer } = this.template;
     return enhancer ? enhancer(this, parentPath).displayInfo : undefined;
@@ -310,25 +313,19 @@ export class StructTemplateNode<
       const childValue = loadedChild.value;
       if (loadedChild.optional) {
         if (loadedChild.isList) {
-          const defaultValue = [] as any;
           return {
             key,
-            node: new OptionNode(
-              () =>
-                fromTsNode(
-                  defaultValue,
-                  loadedChild.union,
-                  loadedChild.enhancer,
-                ),
-              childValue &&
-                fromTsNode(childValue, loadedChild.union, loadedChild.enhancer),
+            node: fromTsNode(
+              childValue ?? [],
+              loadedChild.union,
+              loadedChild.enhancer,
             ),
           };
         } else {
           return {
             key,
             node: fromTsNode(
-              undefined,
+              childValue || undefined,
               () => ({
                 ...loadedChild.union(),
                 "Option<None>": {
