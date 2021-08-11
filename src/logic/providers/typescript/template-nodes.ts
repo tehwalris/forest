@@ -1,10 +1,5 @@
 import { Enhancer } from "./enhancer";
-import {
-  EmptyLeafNode,
-  ListNode,
-  OptionNode,
-  UnionNode,
-} from "../../tree/base-nodes";
+import { EmptyLeafNode, ListNode, UnionNode } from "../../tree/base-nodes";
 import * as ts from "typescript";
 import {
   Node,
