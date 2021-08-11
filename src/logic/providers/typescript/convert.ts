@@ -1,35 +1,22 @@
 import * as ts from "typescript";
+import { ActionSet } from "../../tree/action";
+import { BuildResult, Node } from "../../tree/node";
+import { Enhancer } from "./enhancer";
 import {
-  Node,
-  BuildResult,
-  DisplayInfoPriority,
-  LabelStyle,
-  SemanticColor,
-  BuildDivetreeDisplayTreeArgs,
-  LabelPart,
-} from "../../tree/node";
-import { UnionVariant } from "../../tree/base-nodes";
-import { ActionSet, InputKind } from "../../tree/action";
-import {
-  StringTemplateNode,
-  ListTemplateNode,
-  StructTemplateNode,
-  Union,
-  StringTemplate,
-  ListTemplate,
-  StructTemplate,
-  TemplateUnionNode,
-} from "./template-nodes";
-import {
-  plainTypes,
-  stringTemplates,
   listTemplates,
+  stringTemplates,
   structTemplates,
 } from "./generated/templates";
-import { Enhancer } from "./enhancer";
-import { leafDoc } from "../../tree/display-line";
-import { arrayFromTextSize } from "../../text-measurement";
-import { NodeKind } from "divetree-core";
+import {
+  ListTemplate,
+  ListTemplateNode,
+  StringTemplate,
+  StringTemplateNode,
+  StructTemplate,
+  StructTemplateNode,
+  TemplateUnionNode,
+  Union,
+} from "./template-nodes";
 export function fromTsNode<T extends ts.Node | undefined>(
   original: T,
   _union?: Union<T>,
@@ -98,9 +85,6 @@ export function fromTsNode<T extends ts.Node | undefined>(
       ) as any;
     }
   }
-  if (plainTypes.BooleanLiteral.match(original)) {
-    return BooleanNode.fromTsNode(original) as any;
-  }
   return new UnsupportedSyntaxNode(original);
 }
 function isNodeArray<T extends ts.Node>(
@@ -137,77 +121,5 @@ class UnsupportedSyntaxNode<T extends ts.Node> extends Node<T> {
   }
   build(): BuildResult<T> {
     return { ok: true, value: this.original };
-  }
-}
-export class BooleanNode extends Node<ts.BooleanLiteral> {
-  children = [];
-  flags = {};
-  original: ts.BooleanLiteral;
-  actions: ActionSet<BooleanNode> = {
-    toggle: {
-      inputKind: InputKind.None,
-      apply: () => {
-        const node = new BooleanNode(!this.value, this.original);
-        node.id = this.id;
-        return node;
-      },
-    },
-  };
-  private value: boolean;
-  constructor(value: boolean, original: ts.BooleanLiteral) {
-    super();
-    this.value = value;
-    this.original = original;
-  }
-  clone(): BooleanNode {
-    const node = new BooleanNode(this.value, this.original);
-    node.id = this.id;
-    return node;
-  }
-  setChild(child: never): never {
-    throw new Error("BooleanNode can't have children");
-  }
-  setFlags(flags: never): never {
-    throw new Error("BooleanNode can't have flags");
-  }
-  static fromTsNode(node: ts.BooleanLiteral): BooleanNode {
-    return new BooleanNode(node.kind === ts.SyntaxKind.TrueKeyword, node);
-  }
-  setValue(value: UnionVariant<boolean>): BooleanNode {
-    const node = new BooleanNode(value.key, this.original);
-    node.id = this.id;
-    return node;
-  }
-  getDebugLabel() {
-    return this.value.toString();
-  }
-  build(): BuildResult<ts.BooleanLiteral> {
-    return this.buildHelper(() => ts.createLiteral(this.value));
-  }
-  getDisplayInfo() {
-    return {
-      priority: DisplayInfoPriority.MEDIUM,
-      label: this.getLabel(),
-      color: SemanticColor.LITERAL,
-    };
-  }
-  getLabel(): LabelPart[] {
-    return [{ text: this.value.toString(), style: LabelStyle.VALUE }];
-  }
-  buildDoc({
-    measureLabel,
-    updatePostLayoutHints,
-    nodeForDisplay,
-  }: BuildDivetreeDisplayTreeArgs) {
-    const label = this.getLabel();
-    updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-      ...oldHints,
-      styleAsText: true,
-    }));
-    return leafDoc({
-      kind: NodeKind.TightLeaf,
-      id: nodeForDisplay.id,
-      size: arrayFromTextSize(measureLabel(label)),
-    });
   }
 }

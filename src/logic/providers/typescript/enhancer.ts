@@ -1771,6 +1771,8 @@ export const enhancers: {
   };
 });
 [
+  ["TrueLiteral", "true"],
+  ["FalseLiteral", "false"],
   ["AnyKeyword", "any"],
   ["UnknownKeyword", "unknown"],
   ["NumberKeyword", "number"],
