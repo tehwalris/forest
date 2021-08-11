@@ -78,3 +78,116 @@
     - view update problem in databases
     - bidirectional lenses
     - code transform languages like txl
+
+# Meeting 2021-08-11
+
+## Overview
+
+- visualization as text is done in ~90% of cases
+- navigation using letter-per-child is done
+- confirmed that visualization as text and navigation with letters are much better than the old solutions
+  - interesting to compare the old approaches to the new ones in the evaluation
+    - possibly by using the whole old version of forest as a baseline
+- not clear what to focus on next
+  - lots of different problems, but no clear priority
+
+## Performance issues
+
+- text visualization is slow on large files
+  - still kind of usable
+- optimizations within the existing design will not fundamentally solve the problem
+  - they might make it fast enough for almost all files though
+- real solution: the amount of work must depend on the amount of visible content
+  - every stage must be lazy
+    - parsing, transforms, pretty printing, final layout, animation
+  - stop working exactly when the screen is full of content
+- an end-to-end lazy system could be an interesting contribution
+  - this alone is a whole thesis worth of work
+- optimizations within the existing design are not an interesting contribution
+  - some optimizations will still be necessary to keep using the editor self-hosted as more features are added
+
+## Navigation issues
+
+- deep structures require lots of steps "in"
+  - example:
+    - moving to a statement nested within objects and functions
+    - required 7 steps in the structure editor
+    - in a text editor you could just move 4 lines down
+  - deep structures are very common in javascript
+- navigating "out" in the tree is impractical
+  - to get out of a deep tree structure, you have to guess how many levels deep you are
+  - often you press backspace some number of times and then watch to see if that was too few or too many
+  - could possibly be solved by marking siblings, siblings-of-parents, etc. with colors or numbers
+    - for example, you see some node on the level you want to go marked "-7", so you know you need to go that many levels up
+  - could allow searching for the nearest containing statement, block, etc.
+- chains of single-child nodes are hard to navigate
+  - example
+    - consider a function with type parameters `<T>`
+    - this is currently three nodes: (type parameter list) -> (type parameter) -> (name)
+    - each node only has a single child
+  - the text range of these nodes is very similar or even identical
+  - it's hard to
+    - remember how many levels of nodes there are
+    - see which node you are focused on
+    - remember which node has which functionality (e.g. only the type parameter list can be toggled to delete it)
+  - possible solution: shortcut to navigate to the deepest node in a single child chain
+
+## Naming issues
+
+- TypeScript has many more types of AST nodes than old languages had
+- many AST nodes seem similar to the user but are distinct in the AST
+  - e.g. ObjectLiteralExpression, TypeLiteralNode, ObjectBindingPattern
+- should similar AST nodes all "look the same" in the editor?
+  - in the above example, all just be called "object"
+  - partially this is already done by giving them similar shortcuts
+    - "id" for Identifier and TypeReferenceNode
+- realistic users would work with multiple languages at once
+  - names and shortcuts for similar concepts should be the same across languages
+  - shortcuts should be short and intuitive
+  - there will probably be some conflicts
+- optimizing naming and shortcuts is a whole thesis worth of work
+  - possibly could analyze existing code to understand how to group and prioritize shortcuts
+
+## Compiler integration
+
+- a major usability problem in practice is that there are no warnings, autocomplete or auto-imports
+- for modern languages these features are nearly necessary
+- a plain text editor would also be much slower to use without them
+- adding these features to a structural editor is not an interesting contribution
+  - since the problems and solutions are the same as with plain text
+- without these features full self-hosted use is not practical
+
+## Search
+
+- two kinds of search in a normal editor
+  - language aware symbol search
+  - general text search
+- adding language aware symbol search is more part of compiler integration
+- general text search would have to be replaced by general structural search in this editor
+- structural search itself is not a new contribution
+  - has already been researched and implemented in practice
+- special aspect of structural search in this editor:
+  - the query would be written using the same editor as normal code, but with extra placeholders
+  - other systems have a separate UI or query language for structural search
+
+## Focus on differences to old editors
+
+- this was the general focus suggested by Manuel
+- old editors had much simpler languages (PASCAL, PL/1, LISP)
+- TypeScript is a much more complicated language
+  - many different AST nodes (~3-4x more than PASCAL)
+    - naming nodes and defining shortcuts is much harder
+  - many more optional fields in AST (type parameters, async annotations, etc.)
+    - hard to make these easy to edit, but not be in the way
+  - many arbitrarily nested structures (most things are expressions)
+    - pretty-printing requires algorithms instead of heuristics (e.g. newline after each statement)
+    - navigation is harder (e.g. jump out to function is less meaningful when functions can be nested)
+  - deep nesting is common (function containing object containing function etc.)
+    - navigation requires many more steps (both in and out)
+    - single-child-node chains almost didn't exist in old languages
+- note that arbitrary and deep nesting would also have been a problem for LISP editors
+
+## Conclusion
+
+- read more related work
+- try to more clearly identify what problems/solutions are novel compared to editors for old languages
