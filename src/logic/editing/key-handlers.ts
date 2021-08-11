@@ -195,7 +195,6 @@ export function handleKey(
     "ctrl-ArrowDown": () => insertSibling(1),
     s: tryAction("setFromString"),
     v: tryAction("setVariant", (n) => n.id),
-    t: tryAction("toggle"),
     x: tryDeleteChild,
     c: () => copyNode(node),
     p: tryAction("replace", (n) => n.id),

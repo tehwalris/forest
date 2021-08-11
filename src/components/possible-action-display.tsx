@@ -10,7 +10,6 @@ const SHORTCUTS_BY_ACTION_KEY: {
   append: "ctrl-right",
   setFromString: "s",
   setVariant: "v",
-  toggle: "t",
 };
 const PARENT_SHORTCUTS = ["replace", "deleteChild", "insertChildAtIndex"];
 export const PossibleActionDisplay: React.FC<Props> = ({ actions }) => (
