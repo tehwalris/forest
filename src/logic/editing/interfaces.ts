@@ -11,4 +11,5 @@ interface ActionArguments {
   childIndex?: number;
   child?: string;
   node?: Node<unknown>;
+  triggerAutoAction?: boolean;
 }

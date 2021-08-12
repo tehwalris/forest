@@ -164,12 +164,18 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
     target: Path;
     action: Action<Node<unknown>>;
     focus?: (newNode: Node<unknown>) => string;
+    triggerAutoAction: boolean;
   }>();
   const onActionApply = (updatedNode: Node<unknown>) => {
     if (!inProgressAction) {
       throw new Error("Expected an action to be in-progress.");
     }
-    updateNode(inProgressAction.target, updatedNode, inProgressAction.focus);
+    updateNode(
+      inProgressAction.target,
+      updatedNode,
+      inProgressAction.focus,
+      inProgressAction.triggerAutoAction,
+    );
     setInProgressAction(undefined);
   };
   const incrementalParentIndex = useMemo(
@@ -186,6 +192,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
       path: Path,
       value: Node<unknown>,
       focus?: (newNode: Node<unknown>) => string,
+      triggerAutoAction = false,
     ) => {
       setTree(
         (oldTree) => oldTree.setDeepChild(path, value),
@@ -193,7 +200,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
           const newNode = newTree.getDeepestPossibleByPath(path);
           if (newNode.path.length === path.length && focus) {
             const id = focus(newNode.node);
-            nextAutoActionIdRef.current = id;
+            nextAutoActionIdRef.current = triggerAutoAction ? id : undefined;
             setFocusedId(id);
           }
         },
@@ -204,7 +211,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
   const handleAction: HandleAction = useCallback(
     (action, target, focus, args) => {
       const updateTarget = (newNode: Node<unknown>) => {
-        updateNode(target, newNode, focus);
+        updateNode(target, newNode, focus, args.triggerAutoAction);
       };
       if (action.inputKind === InputKind.None) {
         updateTarget(action.apply());
@@ -225,7 +232,12 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         const newNode = action.apply(args.node);
         updateTarget(newNode);
       } else {
-        setInProgressAction({ target, action, focus });
+        setInProgressAction({
+          target,
+          action,
+          focus,
+          triggerAutoAction: args.triggerAutoAction || false,
+        });
         setImmediate(() =>
           (
             document.querySelector(
@@ -255,7 +267,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         focusedParentIndexEntry.node.actions.setVariant,
         focusedParentIndexEntry.path.map((e) => e.childKey),
         (n) => n.id,
-        {},
+        { triggerAutoAction: true },
       );
     } else if (focusedParentIndexEntry.node.actions.setFromString) {
       handleAction(

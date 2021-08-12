@@ -131,7 +131,7 @@ export function handleKey(
         action,
         R.dropLast(1, parentIndexEntry.path).map((e) => e.childKey),
         (n) => (n.children[childIndex]?.node || n).id,
-        { childIndex },
+        { childIndex, triggerAutoAction: true },
       );
     }
   };
@@ -139,11 +139,15 @@ export function handleKey(
     (
       actionKey: keyof ActionSet<any>,
       focus?: (newNode: Node<unknown>) => string,
+      triggerAutoAction = false,
     ) =>
     () => {
       const action = node.actions[actionKey];
       if (action) {
-        handleAction(action, keyPath, focus, { node: copiedNode });
+        handleAction(action, keyPath, focus, {
+          node: copiedNode,
+          triggerAutoAction,
+        });
       }
     };
   const findClosestFileNode = (): FileNode | undefined => {
@@ -190,11 +194,12 @@ export function handleKey(
     "ctrl-ArrowRight": tryAction(
       "append",
       (n) => (R.last(n.children)?.node || n).id,
+      true,
     ),
     "ctrl-ArrowUp": () => insertSibling(0),
     "ctrl-ArrowDown": () => insertSibling(1),
     Enter: node.actions.setVariant
-      ? tryAction("setVariant", (n) => n.id)
+      ? tryAction("setVariant", (n) => n.id, true)
       : tryAction("setFromString"),
     x: tryDeleteChild,
     c: () => copyNode(node),
