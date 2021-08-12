@@ -10,6 +10,7 @@ import {
   DisplayInfoPriority,
   LabelStyle,
   BuildDivetreeDisplayTreeArgs,
+  LabelPart,
 } from "../../tree/node";
 import { ActionSet, InputKind } from "../../tree/action";
 import { UnionVariant, LazyUnionVariant } from "../../tree/base-nodes/union";
@@ -22,7 +23,9 @@ import {
 import { shortcutsByType } from "./generated/templates";
 import { fromTsNode } from "./convert";
 import { ParentPathElement } from "../../parent-index";
-import type { Doc } from "../../tree/display-line";
+import { Doc, leafDoc } from "../../tree/display-line";
+import { NodeKind } from "divetree-core";
+import { arrayFromTextSize } from "../../text-measurement";
 export type Union<T extends ts.Node | undefined> = {
   name: string;
   getMembers: () => {
@@ -502,6 +505,9 @@ export class TemplateUnionNode<T extends ts.Node | undefined> extends UnionNode<
   getDebugLabel(): string {
     return this.getLabel(this.value.key);
   }
+  getUnionName(): string {
+    return this._union.name;
+  }
   build(): BuildResult<T> {
     return this.buildHelper(({ value }) => value);
   }
@@ -534,11 +540,33 @@ export class RequiredHoleNode<B> extends Node<B> {
     throw new Error("Flags not supported");
   }
   getDebugLabel(): string | undefined {
+    if (this.inner instanceof TemplateUnionNode) {
+      return this.inner.getUnionName();
+    }
     return "Required hole";
   }
   build(): BuildResult<B> {
     return this.buildHelper(() => {
       throw new Error("RequiredHoleNode must be filled using setVariant");
+    });
+  }
+  buildDoc({
+    nodeForDisplay,
+    updatePostLayoutHints,
+    measureLabel,
+  }: BuildDivetreeDisplayTreeArgs): Doc | undefined {
+    const label: LabelPart[] = [
+      { text: this.getDebugLabel() || "", style: LabelStyle.VALUE },
+    ];
+    updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
+      ...oldHints,
+      styleAsText: true,
+      label,
+    }));
+    return leafDoc({
+      kind: NodeKind.TightLeaf,
+      id: nodeForDisplay.id,
+      size: arrayFromTextSize(measureLabel(label)),
     });
   }
 }
