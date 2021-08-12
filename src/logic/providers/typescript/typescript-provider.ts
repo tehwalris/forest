@@ -17,6 +17,7 @@ import * as path from "path";
 import * as R from "ramda";
 import { promisify } from "util";
 import { ParentPathElement } from "../../parent-index";
+import { RequiredHoleNode } from "./template-nodes";
 type DirectoryTree =
   | string
   | {
@@ -158,9 +159,11 @@ export class FileNode extends ListNode<
     return node;
   }
   protected createChild(): Node<ts.Statement> {
-    return fromTsNode(
-      unions.Statement().EmptyStatement.default as ts.Statement,
-      unions.Statement,
+    return RequiredHoleNode.tryWrap(
+      fromTsNode(
+        unions.Statement().EmptyStatement.default as ts.Statement,
+        unions.Statement,
+      ),
     );
   }
   getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo {

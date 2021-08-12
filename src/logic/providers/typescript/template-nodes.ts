@@ -201,9 +201,11 @@ export class ListTemplateNode<
     return new ListTemplateNode(
       template,
       () =>
-        fromTsNode(
-          someDefaultFromUnion(template.childUnion, node),
-          template.childUnion,
+        RequiredHoleNode.tryWrap(
+          fromTsNode(
+            someDefaultFromUnion(template.childUnion, node),
+            template.childUnion,
+          ),
         ),
       template.load(node).map((e) => fromTsNode(e, template.childUnion)),
       loadFlags(node, template.flags),
@@ -494,5 +496,41 @@ export class TemplateUnionNode<T extends ts.Node | undefined> extends UnionNode<
   }
   build(): BuildResult<T> {
     return this.buildHelper(({ value }) => value);
+  }
+}
+export class RequiredHoleNode<B> extends Node<B> {
+  children: ChildNodeEntry<any>[] = [];
+  actions: ActionSet<Node<B>> = {};
+  flags = {};
+  constructor(private inner: Node<B>) {
+    super();
+    if (!RequiredHoleNode.isValidInnerNode(inner)) {
+      throw new Error("invalid inner node");
+    }
+    this.actions.setVariant = inner.actions.setVariant;
+    this.actions.replace = inner.actions.replace;
+  }
+  static tryWrap<B>(inner: Node<B>): Node<B> {
+    return this.isValidInnerNode(inner) ? new RequiredHoleNode(inner) : inner;
+  }
+  private static isValidInnerNode<B>(inner: Node<B>): boolean {
+    return !!inner.actions.setVariant;
+  }
+  clone(): RequiredHoleNode<B> {
+    return new RequiredHoleNode(this.inner);
+  }
+  setChild(newChild: ChildNodeEntry<any>): RequiredHoleNode<B> {
+    throw new Error("RequiredHoleNode can't have children");
+  }
+  setFlags(flags: never): never {
+    throw new Error("Flags not supported");
+  }
+  getDebugLabel(): string | undefined {
+    return "Required hole";
+  }
+  build(): BuildResult<B> {
+    return this.buildHelper(() => {
+      throw new Error("RequiredHoleNode must be filled using setVariant");
+    });
   }
 }

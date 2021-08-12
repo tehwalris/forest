@@ -39,6 +39,8 @@ import { PostLayoutHints } from "../logic/layout-hints";
 import { LabelMeasurementCache } from "../logic/text-measurement";
 import { useDelayedInput, DelayedInputKind } from "../logic/delayed-input";
 import { unreachable } from "../logic/util";
+import { RequiredHoleNode } from "../logic/providers/typescript/template-nodes";
+import { useCallback } from "react";
 interface Props {
   fs: typeof _fsType;
   projectRootDir: string;
@@ -158,59 +160,11 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
       return output;
     });
   };
-  const updateNode = (
-    path: Path,
-    value: Node<unknown>,
-    focus?: (newNode: Node<unknown>) => string,
-  ) => {
-    setTree(
-      (oldTree) => oldTree.setDeepChild(path, value),
-      (newTree) => {
-        const newNode = newTree.getDeepestPossibleByPath(path);
-        if (newNode.path.length === path.length && focus) {
-          setFocusedId(focus(newNode.node));
-        }
-      },
-    );
-  };
   const [inProgressAction, setInProgressAction] = useState<{
     target: Path;
     action: Action<Node<unknown>>;
     focus?: (newNode: Node<unknown>) => string;
   }>();
-  const handleAction: HandleAction = (action, target, focus, args) => {
-    const updateTarget = (newNode: Node<unknown>) => {
-      updateNode(target, newNode, focus);
-    };
-    if (action.inputKind === InputKind.None) {
-      updateTarget(action.apply());
-    } else if (action.inputKind === InputKind.Child) {
-      if (!args.child) {
-        throw new Error("Expected args.child");
-      }
-      updateTarget(action.apply(args.child));
-    } else if (action.inputKind === InputKind.ChildIndex) {
-      if (args.childIndex === undefined) {
-        throw new Error("Expected args.childIndex");
-      }
-      updateTarget(action.apply(args.childIndex));
-    } else if (action.inputKind === InputKind.Node) {
-      if (!args.node) {
-        throw new Error("Expected args.node");
-      }
-      const newNode = action.apply(args.node);
-      updateTarget(newNode);
-    } else {
-      setInProgressAction({ target, action, focus });
-      setImmediate(() =>
-        (
-          document.querySelector(
-            ".actionFiller input",
-          ) as HTMLInputElement | null
-        )?.focus(),
-      );
-    }
-  };
   const onActionApply = (updatedNode: Node<unknown>) => {
     if (!inProgressAction) {
       throw new Error("Expected an action to be in-progress.");
@@ -226,6 +180,73 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
     tree,
     incrementalParentIndex,
   );
+  const updateNode = useCallback(
+    (
+      path: Path,
+      value: Node<unknown>,
+      focus?: (newNode: Node<unknown>) => string,
+    ) => {
+      setTree(
+        (oldTree) => oldTree.setDeepChild(path, value),
+        (newTree) => {
+          const newNode = newTree.getDeepestPossibleByPath(path);
+          if (newNode.path.length === path.length && focus) {
+            setFocusedId(focus(newNode.node));
+          }
+        },
+      );
+    },
+    [setFocusedId],
+  );
+  const handleAction: HandleAction = useCallback(
+    (action, target, focus, args) => {
+      const updateTarget = (newNode: Node<unknown>) => {
+        updateNode(target, newNode, focus);
+      };
+      if (action.inputKind === InputKind.None) {
+        updateTarget(action.apply());
+      } else if (action.inputKind === InputKind.Child) {
+        if (!args.child) {
+          throw new Error("Expected args.child");
+        }
+        updateTarget(action.apply(args.child));
+      } else if (action.inputKind === InputKind.ChildIndex) {
+        if (args.childIndex === undefined) {
+          throw new Error("Expected args.childIndex");
+        }
+        updateTarget(action.apply(args.childIndex));
+      } else if (action.inputKind === InputKind.Node) {
+        if (!args.node) {
+          throw new Error("Expected args.node");
+        }
+        const newNode = action.apply(args.node);
+        updateTarget(newNode);
+      } else {
+        setInProgressAction({ target, action, focus });
+        setImmediate(() =>
+          (
+            document.querySelector(
+              ".actionFiller input",
+            ) as HTMLInputElement | null
+          )?.focus(),
+        );
+      }
+    },
+    [updateNode],
+  );
+  useEffect(() => {
+    if (
+      focusedParentIndexEntry.node instanceof RequiredHoleNode &&
+      focusedParentIndexEntry.node.actions.setVariant
+    ) {
+      handleAction(
+        focusedParentIndexEntry.node.actions.setVariant,
+        focusedParentIndexEntry.path.map((e) => e.childKey),
+        (n) => n.id,
+        {},
+      );
+    }
+  }, [handleAction, focusedParentIndexEntry]);
   const navTree = useMemo(() => buildDivetreeNavTree(tree), [tree]);
   const focusedNode = focusedParentIndexEntry.node;
   incrementalParentIndex.addObservation(focusedNode);
@@ -318,7 +339,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
           if (!inProgressAction || event.key === "Escape") {
             queueInput({ kind: DelayedInputKind.KeyDown, event });
           }
-          return undefined;
+          return event.key.startsWith("Arrow") && !event.ctrlKey;
         }}
         onKeyUp={(event) => {
           if (event.key === "Shift") {

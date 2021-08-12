@@ -4,7 +4,7 @@ import {
   idPathFromParentIndexEntry,
 } from "./parent-index";
 import { Node } from "./tree/node";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import * as R from "ramda";
 function getValidPath(
   idPath: string[],
@@ -64,14 +64,17 @@ export function useFocus(
   if (changed) {
     _setFocusedIdPath(focusedIdPath);
   }
-  const setFocusedId = (targetId: string) => {
-    const entry = parentIndex.get(targetId);
-    if (entry && nextFocusedId === undefined) {
-      _setFocusedIdPath(idPathFromParentIndexEntry(entry));
-    } else {
-      setNextFocusedId(targetId);
-    }
-  };
+  const setFocusedId = useCallback(
+    (targetId: string) => {
+      const entry = parentIndex.get(targetId);
+      if (entry && nextFocusedId === undefined) {
+        _setFocusedIdPath(idPathFromParentIndexEntry(entry));
+      } else {
+        setNextFocusedId(targetId);
+      }
+    },
+    [parentIndex, nextFocusedId],
+  );
   const focusedIndexEntry = parentIndex.get(R.last(focusedIdPath)!)!;
   return [focusedIndexEntry, setFocusedId, _setFocusedIdPath];
 }
