@@ -325,6 +325,13 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
             queueInput({ kind: DelayedInputKind.KeyUp, event });
           }
         }}
+        onRectClick={(ev, id) => {
+          if (window.getSelection()?.toString()) {
+            return;
+          }
+          ev.preventDefault();
+          setFocusedId(id as string);
+        }}
       />
       {inProgressAction && (
         <ActionFiller
