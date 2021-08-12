@@ -203,7 +203,12 @@ export class ListTemplateNode<
   static fromTemplate<B extends ts.Node, C extends ts.Node>(
     template: ListTemplate<B, C>,
     node: B,
-    fromTsNode: (tsNode: C, union: Union<C>) => Node<C>,
+    fromTsNode: (
+      tsNode: C,
+      union: Union<C>,
+      listEnhancer?: undefined,
+      useHolesForChildren?: boolean,
+    ) => Node<C>,
   ): ListTemplateNode<B, C> {
     return new ListTemplateNode(
       template,
@@ -212,6 +217,8 @@ export class ListTemplateNode<
           fromTsNode(
             someDefaultFromUnion(template.childUnion, node),
             template.childUnion,
+            undefined,
+            true,
           ),
         ),
       template.load(node).map((e) => fromTsNode(e, template.childUnion)),
@@ -310,6 +317,7 @@ export class StructTemplateNode<
       union: Union<CT>,
       listEnhancer?: Enhancer<Node<ts.NodeArray<NonNullable<CT>>>>,
     ) => Node<CT>,
+    useHolesForChildren: boolean,
   ): StructTemplateNode<C, B> {
     const loaded = template.load(node);
     const children = template.children.map((key) => {
@@ -345,9 +353,17 @@ export class StructTemplateNode<
           };
         }
       }
+
+      const baseChildNode = fromTsNode(
+        childValue,
+        loadedChild.union,
+        loadedChild.enhancer,
+      );
       return {
         key,
-        node: fromTsNode(childValue, loadedChild.union, loadedChild.enhancer),
+        node: useHolesForChildren
+          ? RequiredHoleNode.tryWrap(baseChildNode)
+          : baseChildNode,
       };
     });
     return new StructTemplateNode(
@@ -452,17 +468,29 @@ export class TemplateUnionNode<T extends ts.Node | undefined> extends UnionNode<
   static fromUnion<T extends ts.Node | undefined>(
     _union: Union<T>,
     node: T,
-    _fromTsNode: <CT extends ts.Node>(tsNode: CT) => Node<CT>,
+    _fromTsNode: <CT extends ts.Node | undefined>(
+      tsNode: CT,
+      union?: undefined,
+      listEnhancer?: undefined,
+      useHolesForChildren?: boolean,
+    ) => Node<CT>,
   ): TemplateUnionNode<T> {
-    const fromTsNode = <CT extends ts.Node>(node: CT | undefined) =>
-      node === undefined
+    const fromTsNode = (...args: Parameters<typeof _fromTsNode>) => {
+      const node = args[0];
+      return node === undefined
         ? new EmptyLeafNode("Option<None>")
-        : _fromTsNode(node);
+        : _fromTsNode(...args);
+    };
 
     const union = _union.getMembers();
     const variants = Object.keys(union).map((key) => ({
       key,
-      children: () => [{ key: "value", node: fromTsNode(union[key].default) }],
+      children: () => [
+        {
+          key: "value",
+          node: fromTsNode(union[key].default, undefined, undefined, true),
+        },
+      ],
     }));
     let currentKey = Object.keys(union).find((k) => union[k].match(node));
     if (!currentKey) {

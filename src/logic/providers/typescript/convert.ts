@@ -21,6 +21,7 @@ export function fromTsNode<T extends ts.Node | undefined>(
   original: T,
   _union?: Union<T>,
   listEnhancer?: undefined,
+  useHolesForChildren?: boolean,
 ): Node<T>;
 export function fromTsNode<T extends ts.Node | undefined>(
   original: ts.NodeArray<NonNullable<T>>,
@@ -31,6 +32,7 @@ export function fromTsNode<T extends ts.Node | undefined>(
   _original: T | ts.NodeArray<NonNullable<T>>,
   _union: Union<T> | undefined,
   listEnhancer: Enhancer<Node<ts.NodeArray<NonNullable<T>>>> | undefined,
+  useHolesForChildren: boolean = false,
 ): Node<T> {
   if (_original !== undefined && isNodeArray(_original)) {
     return ListTemplateNode.fromTemplate(
@@ -82,6 +84,7 @@ export function fromTsNode<T extends ts.Node | undefined>(
         template as any as StructTemplate<{}, NonNullable<T>>,
         original,
         fromTsNode,
+        useHolesForChildren,
       ) as any;
     }
   }
