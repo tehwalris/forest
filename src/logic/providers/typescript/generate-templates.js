@@ -199,23 +199,29 @@ ${e.name}: {
     "export const unions = {",
     ...unions.map((e) =>
       `
-${e.name}: () => ({
-${e.variants.map((v) => `${v}: plainTypes.${v},`).join("\n")}
-}),
+${e.name}: {
+  name: "${e.name}",
+  getMembers: () => ({
+    ${e.variants.map((v) => `${v}: plainTypes.${v},`).join("\n")}
+  }),
+},
     `.trim(),
     ),
     "// Unit unions from plain types and token types",
     ...plainTypes.concat(tokenTypes).map((e) =>
       `
-${e.name}: () => ({
-${e.name}: plainTypes.${e.name}
-}),
+${e.name}: {
+  name: "${e.name}",
+  getMembers: () => ({
+    ${e.name}: plainTypes.${e.name}
+  }),
+},
     `.trim(),
     ),
     "}",
     "",
     `
-for (const k of Object.keys(unions.DeclarationStatement())) {
+for (const k of Object.keys(unions.DeclarationStatement.getMembers())) {
   if (enhancers[k]) {
     continue;
   }

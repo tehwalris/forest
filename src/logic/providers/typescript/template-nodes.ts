@@ -23,10 +23,13 @@ import { shortcutsByType } from "./generated/templates";
 import { fromTsNode } from "./convert";
 import { ParentPathElement } from "../../parent-index";
 import type { Doc } from "../../tree/display-line";
-export type Union<T extends ts.Node | undefined> = () => {
-  [key: string]: {
-    match: (node: ts.Node | undefined) => node is T;
-    default: T;
+export type Union<T extends ts.Node | undefined> = {
+  name: string;
+  getMembers: () => {
+    [key: string]: {
+      match: (node: ts.Node | undefined) => node is T;
+      default: T;
+    };
   };
 };
 export interface Template<B extends ts.Node> {
@@ -100,7 +103,7 @@ function someDefaultFromUnion<T extends ts.Node>(
   _union: Union<T>,
   self: ts.Node,
 ): T {
-  const union = _union();
+  const union = _union.getMembers();
   return union[Object.keys(union)[0]].default;
 }
 export class StringTemplateNode<B extends ts.Node> extends Node<B> {
@@ -323,13 +326,16 @@ export class StructTemplateNode<
             key,
             node: fromTsNode(
               childValue || undefined,
-              () => ({
-                ...loadedChild.union(),
-                "Option<None>": {
-                  match: (v): v is undefined => v === undefined,
-                  default: undefined,
-                },
-              }),
+              {
+                name: loadedChild.union.name,
+                getMembers: () => ({
+                  ...loadedChild.union.getMembers(),
+                  "Option<None>": {
+                    match: (v): v is undefined => v === undefined,
+                    default: undefined,
+                  },
+                }),
+              },
               loadedChild.enhancer,
             ),
           };
@@ -420,7 +426,9 @@ export class TemplateUnionNode<T extends ts.Node | undefined> extends UnionNode<
           return this;
         }
         const tsNode = buildResult.value as ts.Node | undefined;
-        if (!Object.values(this._union()).some((e) => e.match(tsNode))) {
+        if (
+          !Object.values(this._union.getMembers()).some((e) => e.match(tsNode))
+        ) {
           return this;
         }
         return fromTsNode(tsNode, this._union);
@@ -447,7 +455,7 @@ export class TemplateUnionNode<T extends ts.Node | undefined> extends UnionNode<
         ? new EmptyLeafNode("Option<None>")
         : _fromTsNode(node);
 
-    const union = _union();
+    const union = _union.getMembers();
     const variants = Object.keys(union).map((key) => ({
       key,
       children: () => [{ key: "value", node: fromTsNode(union[key].default) }],

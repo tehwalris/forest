@@ -161,7 +161,7 @@ export class FileNode extends ListNode<
   protected createChild(): Node<ts.Statement> {
     return RequiredHoleNode.tryWrap(
       fromTsNode(
-        unions.Statement().EmptyStatement.default as ts.Statement,
+        unions.Statement.getMembers().EmptyStatement.default as ts.Statement,
         unions.Statement,
       ),
     );

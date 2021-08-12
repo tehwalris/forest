@@ -48,7 +48,7 @@ export function fromTsNode<T extends ts.Node | undefined>(
     ) as any;
   }
   if (_union) {
-    const union = _union();
+    const union = _union.getMembers();
     if (Object.keys(union).length > 1) {
       return TemplateUnionNode.fromUnion(_union, _original, fromTsNode);
     }
