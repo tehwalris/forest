@@ -180,6 +180,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
     tree,
     incrementalParentIndex,
   );
+  const nextAutoActionIdRef = useRef<string>();
   const updateNode = useCallback(
     (
       path: Path,
@@ -191,7 +192,9 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         (newTree) => {
           const newNode = newTree.getDeepestPossibleByPath(path);
           if (newNode.path.length === path.length && focus) {
-            setFocusedId(focus(newNode.node));
+            const id = focus(newNode.node);
+            nextAutoActionIdRef.current = id;
+            setFocusedId(id);
           }
         },
       );
@@ -246,6 +249,26 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         {},
       );
     }
+  }, [handleAction, focusedParentIndexEntry]);
+  useEffect(() => {
+    if (
+      nextAutoActionIdRef.current === undefined ||
+      focusedParentIndexEntry.node.id !== nextAutoActionIdRef.current
+    ) {
+      nextAutoActionIdRef.current = undefined;
+      return;
+    }
+    nextAutoActionIdRef.current = undefined;
+    const setFromString = focusedParentIndexEntry.node.actions.setFromString;
+    if (!setFromString) {
+      return;
+    }
+    handleAction(
+      setFromString,
+      focusedParentIndexEntry.path.map((e) => e.childKey),
+      undefined,
+      {},
+    );
   }, [handleAction, focusedParentIndexEntry]);
   const navTree = useMemo(() => buildDivetreeNavTree(tree), [tree]);
   const focusedNode = focusedParentIndexEntry.node;
