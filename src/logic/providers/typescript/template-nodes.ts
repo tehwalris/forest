@@ -477,9 +477,16 @@ export class TemplateUnionNode<T extends ts.Node | undefined> extends UnionNode<
   ): TemplateUnionNode<T> {
     const fromTsNode = (...args: Parameters<typeof _fromTsNode>) => {
       const node = args[0];
-      return node === undefined
-        ? new EmptyLeafNode("Option<None>")
-        : _fromTsNode(...args);
+      if (node === undefined) {
+        const text = `${_union.name}?`;
+        return new EmptyLeafNode(text, {
+          label: [{ text, style: LabelStyle.UNION_NAME }],
+          priority: DisplayInfoPriority.MEDIUM,
+          color: SemanticColor.HOLE,
+        });
+      } else {
+        return _fromTsNode(...args);
+      }
     };
 
     const union = _union.getMembers();
@@ -575,7 +582,12 @@ export class RequiredHoleNode<B> extends Node<B> {
     return "Required hole";
   }
   private getLabel(): LabelPart[] {
-    return [{ text: this.getDebugLabel() || "", style: LabelStyle.VALUE }];
+    if (this.inner instanceof TemplateUnionNode) {
+      return [
+        { text: this.inner.getUnionName(), style: LabelStyle.UNION_NAME },
+      ];
+    }
+    return [{ text: "Required hole", style: LabelStyle.UNKNOWN }];
   }
   getDisplayInfo(): DisplayInfo {
     return {

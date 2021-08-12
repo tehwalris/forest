@@ -21,6 +21,7 @@ const defaultFont = "16px Roboto, sans-serif";
 const fontFallbackHeightPx = 19.2;
 const fontsByLabelStyle: { [K in LabelStyle]?: string } = {
   [LabelStyle.TYPE_SUMMARY]: `500 ${defaultFont}`,
+  [LabelStyle.UNION_NAME]: `italic ${defaultFont}`,
 };
 export function makeTextMeasurementFunctionsByStyle(): {
   [K in LabelStyle]: TextMeasurementFunction;
@@ -57,7 +58,8 @@ function renderLabelPart(p: LabelPart) {
     p.style === LabelStyle.VALUE ||
     p.style === LabelStyle.SYNTAX_SYMBOL ||
     p.style === LabelStyle.KEYWORD ||
-    p.style === LabelStyle.WHITESPACE
+    p.style === LabelStyle.WHITESPACE ||
+    p.style === LabelStyle.UNION_NAME
   ) {
     return <span style={style}>{p.text}</span>;
   } else if (p.style === LabelStyle.CHILD_KEY) {

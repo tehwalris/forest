@@ -1,10 +1,10 @@
 import { ActionSet } from "../action";
-import { Node, BuildResult } from "../node";
+import { Node, BuildResult, DisplayInfo } from "../node";
 export class EmptyLeafNode extends Node<undefined> {
   children: never[] = [];
   flags = {};
   actions: ActionSet<never> = {};
-  constructor(private debugLabel?: string) {
+  constructor(private debugLabel?: string, private displayInfo?: DisplayInfo) {
     super();
   }
   clone(): EmptyLeafNode {
@@ -21,5 +21,8 @@ export class EmptyLeafNode extends Node<undefined> {
   }
   getDebugLabel() {
     return this.debugLabel;
+  }
+  getDisplayInfo() {
+    return this.displayInfo;
   }
 }

@@ -120,7 +120,7 @@ export function withExtendedArgsStruct<CK extends string, R>(
       const child = nodeForDisplay.getByPath([key])!;
       childDocs[key] = buildChildDoc(child);
       const debugLabel = child.getDebugLabel();
-      if (debugLabel === "Option<None>") {
+      if (debugLabel === "Option<None>" || debugLabel?.endsWith("?")) {
         childIsEmpty[key] = ChildIsEmptyValue.OptionNone;
       } else if (debugLabel === "Empty list") {
         childIsEmpty[key] = ChildIsEmptyValue.EmptyList;
