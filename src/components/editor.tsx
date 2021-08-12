@@ -239,6 +239,15 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
   );
   useEffect(() => {
     if (
+      nextAutoActionIdRef.current === undefined ||
+      focusedParentIndexEntry.node.id !== nextAutoActionIdRef.current
+    ) {
+      nextAutoActionIdRef.current = undefined;
+      return;
+    }
+    nextAutoActionIdRef.current = undefined;
+
+    if (
       focusedParentIndexEntry.node instanceof RequiredHoleNode &&
       focusedParentIndexEntry.node.actions.setVariant
     ) {
@@ -248,27 +257,14 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         (n) => n.id,
         {},
       );
+    } else if (focusedParentIndexEntry.node.actions.setFromString) {
+      handleAction(
+        focusedParentIndexEntry.node.actions.setFromString,
+        focusedParentIndexEntry.path.map((e) => e.childKey),
+        undefined,
+        {},
+      );
     }
-  }, [handleAction, focusedParentIndexEntry]);
-  useEffect(() => {
-    if (
-      nextAutoActionIdRef.current === undefined ||
-      focusedParentIndexEntry.node.id !== nextAutoActionIdRef.current
-    ) {
-      nextAutoActionIdRef.current = undefined;
-      return;
-    }
-    nextAutoActionIdRef.current = undefined;
-    const setFromString = focusedParentIndexEntry.node.actions.setFromString;
-    if (!setFromString) {
-      return;
-    }
-    handleAction(
-      setFromString,
-      focusedParentIndexEntry.path.map((e) => e.childKey),
-      undefined,
-      {},
-    );
   }, [handleAction, focusedParentIndexEntry]);
   const navTree = useMemo(() => buildDivetreeNavTree(tree), [tree]);
   const focusedNode = focusedParentIndexEntry.node;
