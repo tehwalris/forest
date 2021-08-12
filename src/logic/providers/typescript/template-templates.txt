@@ -835,6 +835,7 @@ SECTION shortcuts
 &= AmpersandEqualsToken
 |= BarEqualsToken
 ^= CaretEqualsToken
+?. QuestionDotToken
 cd ClassDeclaration
 if IfStatement
 re ReturnStatement

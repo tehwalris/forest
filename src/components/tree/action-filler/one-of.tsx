@@ -37,7 +37,9 @@ export const OneOfFiller = <N extends Node<unknown>, T>({
   }, [action]);
 
   const [pressedKeys, setPressedKeys] = useState("");
-  const [searching, setSearching] = useState(!options.some((o) => o.shortcut));
+  const [searching, setSearching] = useState(
+    options.every((o) => o.shortcut === undefined),
+  );
   useEffect(() => {
     if (searching) {
       return;
@@ -72,6 +74,7 @@ export const OneOfFiller = <N extends Node<unknown>, T>({
   useEffect(() => {
     const option = optionsByShortcut.get(pressedKeys);
     if (
+      pressedKeys &&
       option &&
       ![...optionsByShortcut.keys()].some(
         (k) => k?.startsWith(pressedKeys) && k !== pressedKeys,
