@@ -82,6 +82,10 @@ const COLORS: {
     [197, 219, 238],
     [113, 169, 215],
   ],
+  [SemanticColor.HOLE]: [
+    [255, 216, 252],
+    [255, 120, 240],
+  ],
 };
 function getNodeStyle(
   entry: ParentIndexEntry | undefined,

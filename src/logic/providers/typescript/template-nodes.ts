@@ -11,6 +11,7 @@ import {
   LabelStyle,
   BuildDivetreeDisplayTreeArgs,
   LabelPart,
+  SemanticColor,
 } from "../../tree/node";
 import { ActionSet, InputKind } from "../../tree/action";
 import { UnionVariant, LazyUnionVariant } from "../../tree/base-nodes/union";
@@ -545,6 +546,16 @@ export class RequiredHoleNode<B> extends Node<B> {
     }
     return "Required hole";
   }
+  private getLabel(): LabelPart[] {
+    return [{ text: this.getDebugLabel() || "", style: LabelStyle.VALUE }];
+  }
+  getDisplayInfo(): DisplayInfo {
+    return {
+      label: this.getLabel(),
+      priority: DisplayInfoPriority.MEDIUM,
+      color: SemanticColor.HOLE,
+    };
+  }
   build(): BuildResult<B> {
     return this.buildHelper(() => {
       throw new Error("RequiredHoleNode must be filled using setVariant");
@@ -552,21 +563,12 @@ export class RequiredHoleNode<B> extends Node<B> {
   }
   buildDoc({
     nodeForDisplay,
-    updatePostLayoutHints,
     measureLabel,
   }: BuildDivetreeDisplayTreeArgs): Doc | undefined {
-    const label: LabelPart[] = [
-      { text: this.getDebugLabel() || "", style: LabelStyle.VALUE },
-    ];
-    updatePostLayoutHints(nodeForDisplay.id, (oldHints) => ({
-      ...oldHints,
-      styleAsText: true,
-      label,
-    }));
     return leafDoc({
       kind: NodeKind.TightLeaf,
       id: nodeForDisplay.id,
-      size: arrayFromTextSize(measureLabel(label)),
+      size: arrayFromTextSize(measureLabel(this.getLabel())),
     });
   }
 }
