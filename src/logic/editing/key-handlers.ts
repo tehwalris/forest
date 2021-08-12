@@ -171,7 +171,7 @@ export function handleKey(
   const handlers: {
     [key: string]: (() => void) | undefined;
   } = {
-    Enter: () => {
+    d: () => {
       console.log("handlers", handlers);
       console.log("parentIndexEntry", parentIndexEntry);
       console.log("postLayoutHints", postLayoutHintsById.get(focusedId));
@@ -193,8 +193,9 @@ export function handleKey(
     ),
     "ctrl-ArrowUp": () => insertSibling(0),
     "ctrl-ArrowDown": () => insertSibling(1),
-    s: tryAction("setFromString"),
-    v: tryAction("setVariant", (n) => n.id),
+    Enter: node.actions.setVariant
+      ? tryAction("setVariant", (n) => n.id)
+      : tryAction("setFromString"),
     x: tryDeleteChild,
     c: () => copyNode(node),
     p: tryAction("replace", (n) => n.id),
