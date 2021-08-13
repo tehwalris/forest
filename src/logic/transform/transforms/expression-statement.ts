@@ -11,30 +11,6 @@ import { UnionVariant } from "../../tree/base-nodes";
 import { LazyUnionVariant } from "../../tree/base-nodes/union";
 import { ChildNodeEntry, Node } from "../../tree/node";
 
-const expressionOrStatementMembers: ReturnType<
-  Union<ts.Statement>["getMembers"]
-> = {};
-for (const [name, member] of Object.entries(unions.Statement.getMembers())) {
-  if (name === "ExpressionStatement") {
-    continue;
-  }
-  expressionOrStatementMembers[`Statement.${name}`] = member;
-}
-for (const [name, member] of Object.entries(unions.Expression.getMembers())) {
-  expressionOrStatementMembers[`Expression.${name}`] = {
-    match: (node: ts.Node | undefined): node is ts.ExpressionStatement =>
-      node !== undefined &&
-      ts.isExpressionStatement(node) &&
-      member.match(node.expression),
-    default: ts.createExpressionStatement(member.default),
-  };
-}
-
-const ExpressionOrStatement: Union<ts.Statement> = {
-  name: "ExpressionOrStatement",
-  getMembers: () => expressionOrStatementMembers,
-};
-
 const expressionVariants: LazyUnionVariant<string>[] = (
   TemplateUnionNode.fromUnion(
     unions.Expression,
@@ -42,6 +18,76 @@ const expressionVariants: LazyUnionVariant<string>[] = (
     fromTsNode,
   ) as any
 ).variants;
+
+interface ExpressionOrStatementCacheEntry {
+  union: Union<ts.Statement>;
+  variants: LazyUnionVariant<string>[];
+}
+
+const makeExpressionOrStatementCache = new WeakMap<
+  Union<ts.Statement>,
+  ExpressionOrStatementCacheEntry
+>();
+function makeExpressionOrStatement(
+  statementUnion: Union<ts.Statement>,
+): ExpressionOrStatementCacheEntry {
+  const oldCacheEntry = makeExpressionOrStatementCache.get(statementUnion);
+  if (oldCacheEntry) {
+    return oldCacheEntry;
+  }
+  const newCacheEntry = _makeExpressionOrStatement(statementUnion);
+  makeExpressionOrStatementCache.set(statementUnion, newCacheEntry);
+  return newCacheEntry;
+}
+
+function _makeExpressionOrStatement(
+  statementUnion: Union<ts.Statement>,
+): ExpressionOrStatementCacheEntry {
+  const expressionOrStatementMembers: ReturnType<
+    Union<ts.Statement>["getMembers"]
+  > = {};
+  for (const [name, member] of Object.entries(statementUnion.getMembers())) {
+    if (name === "ExpressionStatement") {
+      continue;
+    }
+    expressionOrStatementMembers[`Statement.${name}`] = member;
+  }
+  for (const [name, member] of Object.entries(unions.Expression.getMembers())) {
+    expressionOrStatementMembers[`Expression.${name}`] = {
+      match: (node: ts.Node | undefined): node is ts.ExpressionStatement =>
+        node !== undefined &&
+        ts.isExpressionStatement(node) &&
+        member.match(node.expression),
+      default: ts.createExpressionStatement(member.default),
+    };
+  }
+
+  const statementVariants: LazyUnionVariant<string>[] = (
+    TemplateUnionNode.fromUnion(
+      statementUnion,
+      someDefaultFromUnion(statementUnion),
+      fromTsNode,
+    ) as any
+  ).variants;
+  const variants: LazyUnionVariant<string>[] = [
+    ...statementVariants.map(({ key, children }) => ({
+      key: `Statement.${key}`,
+      children,
+    })),
+    ...expressionVariants.map(({ key, children }) => ({
+      key: `Expression.${key}`,
+      children,
+    })),
+  ];
+
+  return {
+    union: {
+      name: "ExpressionOrStatement",
+      getMembers: () => expressionOrStatementMembers,
+    },
+    variants,
+  };
+}
 
 function getUnionValue(
   node: TemplateUnionNode<ts.Node | undefined>,
@@ -57,7 +103,6 @@ function setUnionValue(
   node.children = value.children;
 }
 
-// TODO this probably breaks optional statements
 export const expressionStatementTransform: Transform = (node) => {
   if (
     !(node instanceof TemplateUnionNode) ||
@@ -65,21 +110,13 @@ export const expressionStatementTransform: Transform = (node) => {
   ) {
     return node;
   }
+  const { union: transformedUnion, variants: transformedVariants } =
+    makeExpressionOrStatement((node as any)._union);
+
   const transformedUnionValue = { ...getUnionValue(node) };
   const transformedNode = new TemplateUnionNode(
-    ExpressionOrStatement,
-    [
-      ...((node as any).variants as LazyUnionVariant<string>[]).map(
-        ({ key, children }) => ({
-          key: `Statement.${key}`,
-          children,
-        }),
-      ),
-      ...expressionVariants.map(({ key, children }) => ({
-        key: `Expression.${key}`,
-        children,
-      })),
-    ],
+    transformedUnion,
+    transformedVariants,
     transformedUnionValue,
     node.original,
   );
@@ -152,6 +189,5 @@ export const expressionStatementTransform: Transform = (node) => {
     }
   };
 
-  console.log("DEBUG expressionStatementTransform", transformedNode);
   return transformedNode;
 };

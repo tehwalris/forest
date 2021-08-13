@@ -107,6 +107,27 @@ export function someDefaultFromUnion<T extends ts.Node>(_union: Union<T>): T {
   const union = _union.getMembers();
   return union[Object.keys(union)[0]].default;
 }
+const unionWithOptionNoneCache = new WeakMap<Union<any>, Union<any>>();
+function unionWithOptionNone<T extends ts.Node | undefined>(
+  union: Union<T>,
+): Union<T | undefined> {
+  const cachedUnionWithNone = unionWithOptionNoneCache.get(union);
+  if (cachedUnionWithNone) {
+    return cachedUnionWithNone;
+  }
+  const unionWithNone = {
+    name: union.name,
+    getMembers: () => ({
+      ...union.getMembers(),
+      "Option<None>": {
+        match: (v: unknown): v is undefined => v === undefined,
+        default: undefined,
+      },
+    }),
+  };
+  unionWithOptionNoneCache.set(union, unionWithNone);
+  return unionWithNone;
+}
 export class StringTemplateNode<B extends ts.Node> extends Node<B> {
   children: never[] = [];
   flags = {};
@@ -335,16 +356,7 @@ export class StructTemplateNode<
             key,
             node: fromTsNode(
               childValue || undefined,
-              {
-                name: loadedChild.union.name,
-                getMembers: () => ({
-                  ...loadedChild.union.getMembers(),
-                  "Option<None>": {
-                    match: (v): v is undefined => v === undefined,
-                    default: undefined,
-                  },
-                }),
-              },
+              unionWithOptionNone(loadedChild.union),
               loadedChild.enhancer,
             ),
           };
