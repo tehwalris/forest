@@ -103,10 +103,7 @@ export interface StructTemplate<
   children: string[];
   enhancer?: Enhancer<Node<B>>;
 }
-function someDefaultFromUnion<T extends ts.Node>(
-  _union: Union<T>,
-  self: ts.Node,
-): T {
+export function someDefaultFromUnion<T extends ts.Node>(_union: Union<T>): T {
   const union = _union.getMembers();
   return union[Object.keys(union)[0]].default;
 }
@@ -215,7 +212,7 @@ export class ListTemplateNode<
       () =>
         RequiredHoleNode.tryWrap(
           fromTsNode(
-            someDefaultFromUnion(template.childUnion, node),
+            someDefaultFromUnion(template.childUnion),
             template.childUnion,
             undefined,
             true,

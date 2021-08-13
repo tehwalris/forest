@@ -22,6 +22,7 @@ export function fromTsNode<T extends ts.Node | undefined>(
   _union?: Union<T>,
   listEnhancer?: undefined,
   useHolesForChildren?: boolean,
+  nextFromTsNode?: unknown,
 ): Node<T>;
 export function fromTsNode<T extends ts.Node | undefined>(
   original: ts.NodeArray<NonNullable<T>>,
@@ -33,6 +34,7 @@ export function fromTsNode<T extends ts.Node | undefined>(
   _union: Union<T> | undefined,
   listEnhancer: Enhancer<Node<ts.NodeArray<NonNullable<T>>>> | undefined,
   useHolesForChildren: boolean = false,
+  nextFromTsNode: any = fromTsNode,
 ): Node<T> {
   if (_original !== undefined && isNodeArray(_original)) {
     return ListTemplateNode.fromTemplate(
@@ -46,13 +48,13 @@ export function fromTsNode<T extends ts.Node | undefined>(
         enhancer: listEnhancer,
       },
       _original,
-      fromTsNode,
+      nextFromTsNode,
     ) as any;
   }
   if (_union) {
     const union = _union.getMembers();
     if (Object.keys(union).length > 1) {
-      return TemplateUnionNode.fromUnion(_union, _original, fromTsNode);
+      return TemplateUnionNode.fromUnion(_union, _original, nextFromTsNode);
     }
   }
   if (_original === undefined) {
@@ -74,7 +76,7 @@ export function fromTsNode<T extends ts.Node | undefined>(
       return ListTemplateNode.fromTemplate(
         template as any as ListTemplate<NonNullable<T>, ts.Node>,
         original,
-        fromTsNode,
+        nextFromTsNode,
       ) as any;
     }
   }
@@ -83,7 +85,7 @@ export function fromTsNode<T extends ts.Node | undefined>(
       return StructTemplateNode.fromTemplate(
         template as any as StructTemplate<{}, NonNullable<T>>,
         original,
-        fromTsNode,
+        nextFromTsNode,
         useHolesForChildren,
       ) as any;
     }

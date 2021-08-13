@@ -19,6 +19,7 @@ import {
 import { compressUselessValuesTransform } from "../logic/transform/transforms/compress-useless-values";
 import { flattenIfTransform } from "../logic/transform/transforms/flatten-if";
 import { simpleVariableDeclarationTransform } from "../logic/transform/transforms/simple-variable-declaration";
+import { expressionStatementTransform } from "../logic/transform/transforms/expression-statement";
 import { Action, InputKind } from "../logic/tree/action";
 import { Path } from "../logic/tree/base";
 import { EmptyLeafNode } from "../logic/tree/base-nodes";
@@ -50,6 +51,7 @@ interface CombinedTrees {
   transformed?: Node<unknown>;
 }
 const TRANSFORMS: Transform[][] = [
+  [expressionStatementTransform],
   [simpleVariableDeclarationTransform],
   // [chainTransform], // TODO crashes sometimes after TS
   [flattenIfTransform, compressUselessValuesTransform],
