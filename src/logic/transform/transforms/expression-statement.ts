@@ -3,6 +3,7 @@ import { Transform } from "..";
 import { fromTsNode } from "../../providers/typescript/convert";
 import { unions } from "../../providers/typescript/generated/templates";
 import {
+  RequiredHoleNode,
   someDefaultFromUnion,
   TemplateUnionNode,
   Union,
@@ -104,6 +105,17 @@ function setUnionValue(
 }
 
 export const expressionStatementTransform: Transform = (node) => {
+  if (node instanceof RequiredHoleNode) {
+    const inner: typeof node = (node as any).inner;
+    const transformedInner = expressionStatementTransform(inner);
+    if (transformedInner === inner) {
+      return node;
+    }
+    const transformedOuter = new RequiredHoleNode(transformedInner);
+    transformedOuter.id = node.id;
+    return transformedOuter;
+  }
+
   if (
     !(node instanceof TemplateUnionNode) ||
     node.getUnionName() !== "Statement"
