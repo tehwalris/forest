@@ -1,7 +1,10 @@
 import ts from "typescript";
 import { Transform } from "..";
 import { fromTsNode } from "../../providers/typescript/convert";
-import { unions } from "../../providers/typescript/generated/templates";
+import {
+  shortcutsByType,
+  unions,
+} from "../../providers/typescript/generated/templates";
 import {
   RequiredHoleNode,
   someDefaultFromUnion,
@@ -10,7 +13,8 @@ import {
 } from "../../providers/typescript/template-nodes";
 import { UnionVariant } from "../../tree/base-nodes";
 import { LazyUnionVariant } from "../../tree/base-nodes/union";
-import { ChildNodeEntry, Node } from "../../tree/node";
+import { BuildResult, Node } from "../../tree/node";
+import { unreachable } from "../../util";
 
 const expressionVariants: LazyUnionVariant<string>[] = (
   TemplateUnionNode.fromUnion(
@@ -122,11 +126,107 @@ export const expressionStatementTransform: Transform = (node) => {
   ) {
     return node;
   }
+
+  const statementUnion: Union<ts.Statement> = (node as any)._union;
   const { union: transformedUnion, variants: transformedVariants } =
-    makeExpressionOrStatement((node as any)._union);
+    makeExpressionOrStatement(statementUnion);
+
+  function routeToInnerUnion(outerKey: string): {
+    route: "Statement" | "Expression";
+    key: string;
+    union: Union<ts.Node | undefined>;
+  } {
+    if (outerKey.startsWith("Statement.")) {
+      return {
+        route: "Statement",
+        key: outerKey.slice("Statement.".length),
+        union: statementUnion,
+      };
+    } else if (outerKey.startsWith("Expression.")) {
+      return {
+        route: "Expression",
+        key: outerKey.slice("Expression.".length),
+        union: unions.Expression,
+      };
+    } else {
+      throw new Error(`unexpected outerKey: ${outerKey}`);
+    }
+  }
+
+  class TransformedTemplateUnionNode extends TemplateUnionNode<
+    ts.Node | undefined
+  > {
+    clone(): TransformedTemplateUnionNode {
+      const node = new TransformedTemplateUnionNode(
+        (this as any)._union,
+        (this as any).variants,
+        this.value,
+        this.original,
+      );
+      node.id = this.id;
+      return node;
+    }
+
+    setValue(value: UnionVariant<string>): TransformedTemplateUnionNode {
+      const node = new TransformedTemplateUnionNode(
+        (this as any)._union,
+        (this as any).variants,
+        value,
+        this.original,
+      );
+      node.id = this.id;
+      return node;
+    }
+
+    getShortcut(key: string) {
+      return shortcutsByType.get(routeToInnerUnion(key).key);
+    }
+
+    getLabel(key: string) {
+      return routeToInnerUnion(key).key;
+    }
+
+    unapplyTransform(): BuildResult<Node<ts.Node | undefined>> {
+      try {
+        const untransformedNode = TemplateUnionNode.fromUnion<ts.Statement>(
+          unions.Statement,
+          someDefaultFromUnion<ts.Statement>(unions.Statement),
+          fromTsNode,
+        );
+        untransformedNode.id = node.id;
+
+        const untransformedUnionValue = { ...getUnionValue(this) };
+        const { route, key: innerKey } = routeToInnerUnion(
+          untransformedUnionValue.key,
+        );
+        switch (route) {
+          case "Statement":
+            untransformedUnionValue.key = innerKey;
+            break;
+          case "Expression":
+            untransformedUnionValue.key = "ExpressionStatement";
+            untransformedUnionValue.children =
+              untransformedUnionValue.children.map((c) => ({
+                key: c.key,
+                node: fromTsNode(
+                  ts.createExpressionStatement(ts.createIdentifier("")),
+                ).setDeepChild(["expression", "value"], c.node),
+              }));
+            break;
+          default:
+            return unreachable(route);
+        }
+        setUnionValue(untransformedNode, untransformedUnionValue);
+
+        return { ok: true, value: untransformedNode };
+      } catch (err) {
+        return { ok: false, error: { message: err.message, path: [] } };
+      }
+    }
+  }
 
   const transformedUnionValue = { ...getUnionValue(node) };
-  const transformedNode = new TemplateUnionNode(
+  const transformedNode = new TransformedTemplateUnionNode(
     transformedUnion,
     transformedVariants,
     transformedUnionValue,
@@ -171,35 +271,6 @@ export const expressionStatementTransform: Transform = (node) => {
     transformedUnionValue.key = `Statement.${transformedUnionValue.key}`;
   }
   setUnionValue(transformedNode, transformedUnionValue);
-
-  transformedNode.unapplyTransform = () => {
-    try {
-      const untransformedNode = TemplateUnionNode.fromUnion<ts.Statement>(
-        unions.Statement,
-        someDefaultFromUnion<ts.Statement>(unions.Statement),
-        fromTsNode,
-      );
-      untransformedNode.id = node.id;
-
-      const untransformedUnionValue = { ...getUnionValue(transformedNode) };
-      if (untransformedUnionValue.key.startsWith("Statement.")) {
-        untransformedUnionValue.key = untransformedUnionValue.key.slice(
-          "Statement.".length,
-        );
-      } else if (untransformedUnionValue.key.startsWith("Expression.")) {
-        untransformedUnionValue.key = "ExpressionStatement";
-      } else {
-        throw new Error(
-          `unexpected modifiedUnionValue.key: ${untransformedUnionValue.key}`,
-        );
-      }
-      setUnionValue(untransformedNode, untransformedUnionValue);
-
-      return { ok: true, value: untransformedNode };
-    } catch (err) {
-      return { ok: false, error: { message: err.message, path: [] } };
-    }
-  };
 
   return transformedNode;
 };
