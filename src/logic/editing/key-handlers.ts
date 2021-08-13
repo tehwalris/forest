@@ -142,9 +142,6 @@ export function handleKey(
       triggerAutoAction = false,
     ) =>
     () => {
-      if (actionKey === "replace") {
-        console.log("DEBUG replace", { copiedNode });
-      }
       const action = node.actions[actionKey];
       if (action) {
         handleAction(action, keyPath, focus, {
