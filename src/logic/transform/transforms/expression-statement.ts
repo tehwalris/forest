@@ -22,35 +22,34 @@ const exampleExpressionNode = TemplateUnionNode.fromUnion(
   someDefaultFromUnion(unions.Expression),
   fromTsNode,
 );
-
 const expressionVariants: LazyUnionVariant<string>[] = (
   exampleExpressionNode as any
 ).variants;
 
-interface ExpressionOrStatementCacheEntry {
+interface MergedUnionCacheEntry {
   union: Union<ts.Statement>;
   variants: LazyUnionVariant<string>[];
 }
 
-const makeExpressionOrStatementCache = new WeakMap<
+const mergedUnionCache = new WeakMap<
   Union<ts.Statement>,
-  ExpressionOrStatementCacheEntry
+  MergedUnionCacheEntry
 >();
-function makeExpressionOrStatement(
+function makeMergedUnion(
   statementUnion: Union<ts.Statement>,
-): ExpressionOrStatementCacheEntry {
-  const oldCacheEntry = makeExpressionOrStatementCache.get(statementUnion);
+): MergedUnionCacheEntry {
+  const oldCacheEntry = mergedUnionCache.get(statementUnion);
   if (oldCacheEntry) {
     return oldCacheEntry;
   }
-  const newCacheEntry = _makeExpressionOrStatement(statementUnion);
-  makeExpressionOrStatementCache.set(statementUnion, newCacheEntry);
+  const newCacheEntry = _makeMergedUnion(statementUnion);
+  mergedUnionCache.set(statementUnion, newCacheEntry);
   return newCacheEntry;
 }
 
-function _makeExpressionOrStatement(
+function _makeMergedUnion(
   statementUnion: Union<ts.Statement>,
-): ExpressionOrStatementCacheEntry {
+): MergedUnionCacheEntry {
   const expressionOrStatementMembers: ReturnType<
     Union<ts.Statement>["getMembers"]
   > = {};
@@ -78,10 +77,12 @@ function _makeExpressionOrStatement(
     ) as any
   ).variants;
   const variants: LazyUnionVariant<string>[] = [
-    ...statementVariants.map(({ key, children }) => ({
-      key: `Statement.${key}`,
-      children,
-    })),
+    ...statementVariants
+      .filter(({ key }) => key !== "ExpressionStatement")
+      .map(({ key, children }) => ({
+        key: `Statement.${key}`,
+        children,
+      })),
     ...expressionVariants.map(({ key, children }) => ({
       key: `Expression.${key}`,
       children,
@@ -90,7 +91,7 @@ function _makeExpressionOrStatement(
 
   return {
     union: {
-      name: "ExpressionOrStatement",
+      name: "Statement",
       getMembers: () => expressionOrStatementMembers,
     },
     variants,
@@ -131,8 +132,11 @@ export const expressionStatementTransform: Transform = (node) => {
   }
 
   const statementUnion: Union<ts.Statement> = (node as any)._union;
+  if (!statementUnion.getMembers().ExpressionStatement) {
+    return node;
+  }
   const { union: transformedUnion, variants: transformedVariants } =
-    makeExpressionOrStatement(statementUnion);
+    makeMergedUnion(statementUnion);
 
   function routeToInnerUnion(outerKey: string): {
     route: "Statement" | "Expression";
