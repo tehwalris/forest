@@ -89,6 +89,9 @@ export abstract class Node<B> {
     }
     return shortcuts;
   }
+  getNodeForCopy(): Node<B> {
+    return this;
+  }
   buildDoc(args: BuildDivetreeDisplayTreeArgs): Doc | undefined {
     return undefined;
   }

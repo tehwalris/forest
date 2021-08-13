@@ -11,17 +11,20 @@ import {
   TemplateUnionNode,
   Union,
 } from "../../providers/typescript/template-nodes";
+import { InputKind } from "../../tree/action";
 import { UnionVariant } from "../../tree/base-nodes";
 import { LazyUnionVariant } from "../../tree/base-nodes/union";
 import { BuildResult, Node } from "../../tree/node";
 import { unreachable } from "../../util";
 
+const exampleExpressionNode = TemplateUnionNode.fromUnion(
+  unions.Expression,
+  someDefaultFromUnion(unions.Expression),
+  fromTsNode,
+);
+
 const expressionVariants: LazyUnionVariant<string>[] = (
-  TemplateUnionNode.fromUnion(
-    unions.Expression,
-    someDefaultFromUnion(unions.Expression),
-    fromTsNode,
-  ) as any
+  exampleExpressionNode as any
 ).variants;
 
 interface ExpressionOrStatementCacheEntry {
@@ -156,6 +159,45 @@ export const expressionStatementTransform: Transform = (node) => {
   class TransformedTemplateUnionNode extends TemplateUnionNode<
     ts.Node | undefined
   > {
+    constructor(
+      union: Union<ts.Node | undefined>,
+      variants: LazyUnionVariant<string>[],
+      value: UnionVariant<string>,
+      original: ts.Node | undefined,
+    ) {
+      super(union, variants, value, original);
+      this.actions.replace = {
+        inputKind: InputKind.Node,
+        apply: (...args) => {
+          let nodeForReplace = args[0];
+          const expressionReplaceResult =
+            exampleExpressionNode.actions.replace?.apply(...args);
+          if (
+            expressionReplaceResult &&
+            expressionReplaceResult !== exampleExpressionNode
+          ) {
+            const buildResult = expressionReplaceResult.build();
+            if (!buildResult.ok) {
+              console.warn(
+                "expected expressionReplaceResult to build successfully",
+              );
+              return this;
+            }
+            nodeForReplace = fromTsNode(
+              ts.createExpressionStatement(buildResult.value as ts.Expression),
+              unions.Expression,
+            );
+          }
+
+          const nodeAfterReplace = node.actions.replace?.apply(nodeForReplace);
+          if (!nodeAfterReplace || nodeAfterReplace === node) {
+            return this;
+          }
+          return expressionStatementTransform(nodeAfterReplace);
+        },
+      };
+    }
+
     clone(): TransformedTemplateUnionNode {
       const node = new TransformedTemplateUnionNode(
         (this as any)._union,
@@ -222,6 +264,27 @@ export const expressionStatementTransform: Transform = (node) => {
       } catch (err) {
         return { ok: false, error: { message: err.message, path: [] } };
       }
+    }
+
+    getNodeForCopy() {
+      const buildResult = this.build();
+      if (buildResult.ok) {
+        return fromTsNode(
+          buildResult.value && ts.isExpressionStatement(buildResult.value)
+            ? buildResult.value.expression
+            : buildResult.value,
+          routeToInnerUnion(this.value.key).union,
+        );
+      }
+      return this;
+    }
+
+    build(): BuildResult<ts.Node | undefined> {
+      return this.buildHelper(({ value }) =>
+        routeToInnerUnion(this.value.key).route === "Expression"
+          ? ts.createExpressionStatement(value)
+          : value,
+      );
     }
   }
 

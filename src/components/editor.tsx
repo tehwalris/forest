@@ -308,7 +308,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
           handleAction,
           cancelAction: () => setInProgressAction(undefined),
           actionInProgress: !!inProgressAction,
-          copyNode: setCopiedNode,
+          copyNode: (node) => setCopiedNode(node.getNodeForCopy()),
           copiedNode,
           saveFile,
           marks,

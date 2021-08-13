@@ -186,6 +186,10 @@ export class CompressedNode<B> extends Node<B> {
     return this.childNode.getChildShortcuts();
   }
 
+  getNodeForCopy() {
+    return this.parentNode.getNodeForCopy();
+  }
+
   buildDoc(args: BuildDivetreeDisplayTreeArgs) {
     return this.buildDocOverride?.(args) ?? this.childNode.buildDoc(args);
   }

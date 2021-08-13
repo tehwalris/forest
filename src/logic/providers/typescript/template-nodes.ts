@@ -567,7 +567,13 @@ export class RequiredHoleNode<B> extends Node<B> {
       throw new Error("invalid inner node");
     }
     this.actions.setVariant = inner.actions.setVariant;
-    this.actions.replace = inner.actions.replace;
+    this.actions.replace = {
+      inputKind: InputKind.Node,
+      apply: (...args) => {
+        const newNode = inner.actions.replace?.apply(...args);
+        return newNode === undefined || newNode === inner ? this : newNode;
+      },
+    };
   }
   static tryWrap<B>(inner: Node<B>): Node<B> {
     return this.isValidInnerNode(inner) ? new RequiredHoleNode(inner) : inner;
