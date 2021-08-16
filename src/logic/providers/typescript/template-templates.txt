@@ -848,6 +848,7 @@ bl Block
 pr PropertyAccessExpression
 bo BooleanLiteral
 va VariableStatement
+va VariableDeclarationList
 mod ModuleDeclaration
 int InterfaceDeclaration
 tya TypeAliasDeclaration

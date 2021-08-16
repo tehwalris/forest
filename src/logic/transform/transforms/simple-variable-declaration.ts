@@ -18,6 +18,12 @@ import { ParentPathElement } from "../../parent-index";
 import { groupDoc, leafDoc } from "../../tree/display-line";
 import { arrayFromTextSize } from "../../text-measurement";
 import { NodeKind } from "divetree-core";
+import {
+  ListTemplate,
+  ListTemplateNode,
+  TemplateUnionNode,
+} from "../../providers/typescript/template-nodes";
+import ts from "typescript";
 
 // HACK There should be a better way to get the type of a node
 function isVariableStatement(node: Node<unknown>): boolean {
@@ -27,34 +33,46 @@ function isVariableStatement(node: Node<unknown>): boolean {
   );
 }
 
+function isVariableDeclarationList(node: Node<unknown>): boolean {
+  return (
+    node instanceof ListTemplateNode &&
+    ((node as any).template as ListTemplate<ts.Node, ts.Node>).childUnion
+      .name === "VariableDeclaration"
+  );
+}
+
+function isForInitializerWithVariableDeclarationList(
+  node: Node<unknown>,
+): boolean {
+  return (
+    node instanceof TemplateUnionNode &&
+    node.getUnionName() === "ForInitializer" &&
+    node.children.length === 1 &&
+    node.children[0].key === "value" &&
+    isVariableDeclarationList(node.children[0].node)
+  );
+}
+
 export const simpleVariableDeclarationTransform: Transform = <B>(
   node: Node<B>,
 ): Node<B> => {
+  if (isForInitializerWithVariableDeclarationList(node)) {
+    return compressForInitializerWithVariableDeclarationList(node);
+  }
+
   if (!isVariableStatement(node)) {
     return node;
   }
-  const declarationListNode = node.getByPath(["declarationList"]);
-  if (declarationListNode?.children.length !== 1) {
+  const oldDeclarationListNode = node.getByPath(["declarationList"]);
+  if (!oldDeclarationListNode) {
     return node;
   }
-  const onlyChildEntry = declarationListNode.children[0];
-  const initializerNode = onlyChildEntry.node.getByPath(["initializer"]);
-  if (!initializerNode) {
+  const newDeclarationListNode = compressDeclarationListTransform(
+    oldDeclarationListNode,
+  );
+  if (newDeclarationListNode === oldDeclarationListNode) {
     return node;
   }
-
-  let newDeclarationListNode: Node<unknown> = new ActionMaskedNode(
-    declarationListNode,
-    Object.keys(declarationListNode.actions),
-  );
-  newDeclarationListNode = newDeclarationListNode.setDeepChild(
-    [onlyChildEntry.key, "initializer"],
-    initializerNode,
-  );
-  newDeclarationListNode = compressDeclarationListTransform(
-    newDeclarationListNode,
-  );
-  newDeclarationListNode.id = declarationListNode.id;
 
   let newNode: Node<B> = node.setChild({
     key: "declarationList",
@@ -65,12 +83,45 @@ export const simpleVariableDeclarationTransform: Transform = <B>(
   return newNode;
 };
 
-const compressDeclarationListTransform: Transform = (node) => {
-  const onlyChildEntry = node.children[0];
-  if (!onlyChildEntry) {
+const compressForInitializerWithVariableDeclarationList: Transform = (node) => {
+  const oldDeclarationListNode = node.getByPath(["value"]);
+  if (!oldDeclarationListNode) {
     return node;
   }
-  return new CompressedNode(
+  const newDeclarationListNode = compressDeclarationListTransform(
+    oldDeclarationListNode,
+  );
+  if (newDeclarationListNode === oldDeclarationListNode) {
+    return node;
+  }
+
+  return node.setChild({
+    key: "value",
+    node: newDeclarationListNode,
+  });
+};
+
+const compressDeclarationListTransform: Transform = (node) => {
+  if (node.children.length !== 1) {
+    return node;
+  }
+  const onlyChildEntry = node.children[0];
+  const initializerNode = onlyChildEntry.node.getByPath(["initializer"]);
+  if (!initializerNode) {
+    return node;
+  }
+
+  let maskedNode: Node<unknown> = new ActionMaskedNode(
+    node,
+    Object.keys(node.actions),
+  );
+  maskedNode = maskedNode.setDeepChild(
+    [onlyChildEntry.key, "initializer"],
+    initializerNode,
+  );
+  maskedNode.id = node.id;
+
+  const compressedNode = new CompressedNode(
     node,
     node.getByPath([onlyChildEntry.key])!,
     compressDeclarationListTransform,
@@ -101,6 +152,8 @@ const compressDeclarationListTransform: Transform = (node) => {
       ]);
     },
   );
+  compressedNode.id = node.id;
+  return compressedNode;
 };
 
 class ActionMaskedNode<B> extends Node<B> {

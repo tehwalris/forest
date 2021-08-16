@@ -628,14 +628,6 @@ export const enhancers: {
     };
   },
   PropertySignature: makePropertyDeclarationLikeEnhancer("PropertySignature"),
-  VariableDeclarationList: (node: Node<unknown>) => {
-    const flavor = (node.flags as any).variableFlavor?.value;
-    const label =
-      typeof flavor !== "string"
-        ? [{ text: "VariableDeclarationList", style: LabelStyle.UNKNOWN }]
-        : [{ text: flavor, style: LabelStyle.TYPE_SUMMARY }];
-    return { displayInfo: { priority: DisplayInfoPriority.MEDIUM, label } };
-  },
   VariableDeclaration: (node: Node<ts.VariableDeclaration>) => {
     const name = tryExtractName(node);
     const label =
@@ -1772,11 +1764,20 @@ export const enhancers: {
         return groupDoc([
           newFocusMarker(),
           leafDoc(newTextNode("for (", LabelStyle.SYNTAX_SYMBOL)),
-          childDocs.initializer,
-          leafDoc(newTextNode("; ", LabelStyle.SYNTAX_SYMBOL)),
-          childDocs.condition,
-          leafDoc(newTextNode("; ", LabelStyle.SYNTAX_SYMBOL)),
-          childDocs.incrementor,
+          nestDoc(
+            1,
+            groupDoc([
+              lineDoc(LineKind.Soft),
+              childDocs.initializer,
+              leafDoc(newTextNode(";", LabelStyle.SYNTAX_SYMBOL)),
+              lineDoc(),
+              childDocs.condition,
+              leafDoc(newTextNode(";", LabelStyle.SYNTAX_SYMBOL)),
+              lineDoc(),
+              childDocs.incrementor,
+              lineDoc(LineKind.Soft),
+            ]),
+          ),
           leafDoc(newTextNode(") ", LabelStyle.SYNTAX_SYMBOL)),
           childDocs.statement,
         ]);
