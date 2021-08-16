@@ -77,12 +77,22 @@ export abstract class Node<B> {
   }
   getChildShortcuts(): Map<string, string[]> {
     const shortcuts = new Map<string, string[]>();
-    for (const { key: childKey } of this.children) {
-      const shortcut = childKey[0];
-      if (!childKey.length || shortcuts.has(shortcut)) {
-        continue;
+    let remainingChildKeys = this.children.map((c) => c.key);
+    for (let i = 0; remainingChildKeys.length; i++) {
+      const nextRemainingChildKeys: string[] = [];
+      for (const childKey of remainingChildKeys) {
+        if (childKey.length <= i) {
+          console.warn("no shortcuts remaining for child");
+          continue;
+        }
+        const shortcut = childKey[i];
+        if (!shortcuts.has(shortcut)) {
+          shortcuts.set(shortcut, [childKey]);
+        } else {
+          nextRemainingChildKeys.push(childKey);
+        }
       }
-      shortcuts.set(shortcut, [childKey]);
+      remainingChildKeys = nextRemainingChildKeys;
     }
     return shortcuts;
   }
