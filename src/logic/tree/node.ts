@@ -4,8 +4,7 @@ import { v4 as genUuid } from "uuid";
 import { ParentPathElement } from "../parent-index";
 import { PostLayoutHints } from "../layout-hints";
 import { LabelMeasurementFunction } from "../text-measurement";
-import type { Doc } from "./display-line";
-
+import { Doc } from "./display-line";
 export interface BuildDivetreeDisplayTreeArgs {
   nodeForDisplay: Node<unknown>;
   focusPath: string[];
@@ -19,11 +18,9 @@ export interface BuildDivetreeDisplayTreeArgs {
   ) => void;
   measureLabel: LabelMeasurementFunction;
 }
-
 export interface Node<B> {
   unapplyTransform?(): BuildResult<Node<B>>;
 }
-
 export abstract class Node<B> {
   id: string = genUuid();
   abstract children: ChildNodeEntry<any>[];
@@ -144,23 +141,11 @@ export interface TargetedError {
   path: Path;
   message: string;
 }
-/*
-export interface TargetedDisplayInfo {
-  path: Path;
-  info: DisplayInfo;
-}
-*/
 export interface DisplayInfo {
   priority: DisplayInfoPriority;
   label: LabelPart[];
   color?: SemanticColor;
 }
-/*
-export interface PrioritizedLabel {
-  priority: LabelPriority;
-  parts: LabelPart[];
-}
-*/
 export interface LabelPart {
   text: string;
   style: LabelStyle;
