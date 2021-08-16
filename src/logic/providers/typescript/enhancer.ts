@@ -1784,6 +1784,51 @@ export const enhancers: {
       },
     ),
   }),
+  ForOfStatement: (node: Node<ts.ForOfStatement>) => ({
+    displayInfo: {
+      priority: DisplayInfoPriority.MEDIUM,
+      label: [{ text: "ForOfStatement", style: LabelStyle.UNKNOWN }],
+    },
+    buildDoc: withExtendedArgsStruct(
+      ["awaitModifier", "initializer", "expression", "statement"],
+      ({
+        childDocs,
+        shouldHideChild,
+        showChildNavigationHints,
+        newTextNode,
+        newFocusMarker,
+      }) => {
+        if (showChildNavigationHints) {
+          return undefined;
+        }
+        const awaitModifierWithSpace: Doc = [
+          childDocs.awaitModifier,
+          leafDoc(newTextNode(" ", LabelStyle.WHITESPACE)),
+        ];
+        return groupDoc(
+          filterTruthyChildren([
+            newFocusMarker(),
+            leafDoc(newTextNode("for ", LabelStyle.SYNTAX_SYMBOL)),
+            !shouldHideChild("awaitModifier") && awaitModifierWithSpace,
+            leafDoc(newTextNode("(", LabelStyle.SYNTAX_SYMBOL)),
+            nestDoc(
+              1,
+              groupDoc([
+                lineDoc(LineKind.Soft),
+                childDocs.initializer,
+                leafDoc(newTextNode(" of", LabelStyle.SYNTAX_SYMBOL)),
+                lineDoc(),
+                childDocs.expression,
+                lineDoc(LineKind.Soft),
+              ]),
+            ),
+            leafDoc(newTextNode(") ", LabelStyle.SYNTAX_SYMBOL)),
+            childDocs.statement,
+          ]),
+        );
+      },
+    ),
+  }),
 };
 [
   ["TypeQueryNode", "typeof"],
