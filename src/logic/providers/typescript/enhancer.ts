@@ -265,10 +265,7 @@ const commaListEnhancer = makeWrappedListEnhancer(
   undefined,
 );
 const onePerLineEnhancer: Enhancer<Node<ts.NodeArray<ts.Node>>> = () => ({
-  displayInfo: {
-    priority: DisplayInfoPriority.LOW,
-    label: [],
-  },
+  displayInfo: { priority: DisplayInfoPriority.LOW, label: [] },
   buildDoc: withExtendedArgsList(
     ({ childDocs, newFocusMarker }): Doc | undefined => {
       return groupDoc([
@@ -1756,6 +1753,36 @@ export const enhancers: {
   ),
   "ConstructSignatureDeclaration.parameters": commaListEnhancer,
   "ConstructSignatureDeclaration.typeParameters": commaListEnhancer,
+  ForStatement: (node: Node<ts.ForStatement>) => ({
+    displayInfo: {
+      priority: DisplayInfoPriority.MEDIUM,
+      label: [{ text: "ForStatement", style: LabelStyle.UNKNOWN }],
+    },
+    buildDoc: withExtendedArgsStruct(
+      ["initializer", "condition", "incrementor", "statement"],
+      ({
+        childDocs,
+        showChildNavigationHints,
+        newTextNode,
+        newFocusMarker,
+      }) => {
+        if (showChildNavigationHints) {
+          return undefined;
+        }
+        return groupDoc([
+          newFocusMarker(),
+          leafDoc(newTextNode("for (", LabelStyle.SYNTAX_SYMBOL)),
+          childDocs.initializer,
+          leafDoc(newTextNode("; ", LabelStyle.SYNTAX_SYMBOL)),
+          childDocs.condition,
+          leafDoc(newTextNode("; ", LabelStyle.SYNTAX_SYMBOL)),
+          childDocs.incrementor,
+          leafDoc(newTextNode(") ", LabelStyle.SYNTAX_SYMBOL)),
+          childDocs.statement,
+        ]);
+      },
+    ),
+  }),
 };
 [
   ["TypeQueryNode", "typeof"],
