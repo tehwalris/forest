@@ -14,7 +14,7 @@ export const StringFiller = <N extends Node<unknown>>({
       type="text"
       placeholder="New value"
       onKeyDown={(ev) => {
-        if (ev.ctrlKey || ev.metaKey) {
+        if (ev.key !== "Escape") {
           ev.stopPropagation();
         }
       }}

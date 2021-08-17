@@ -45,7 +45,7 @@ export const OneOfFiller = <N extends Node<unknown>, T>({
       return;
     }
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Control") {
+      if (e.key === "ArrowDown") {
         setSearching(true);
         (
           document.querySelector(
@@ -87,7 +87,7 @@ export const OneOfFiller = <N extends Node<unknown>, T>({
   if (!searching) {
     return (
       <div>
-        Press shortcut keys to quickly select an option, or space to search
+        Press shortcut keys to quickly select an option, or down arrow to search
       </div>
     );
   }
