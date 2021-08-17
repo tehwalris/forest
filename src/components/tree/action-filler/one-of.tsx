@@ -64,6 +64,7 @@ export const OneOfFiller = <N extends Node<unknown>, T>({
       if (e.key.length !== 1 || e.key === " ") {
         return;
       }
+      e.stopPropagation();
       setPressedKeys((k) => k + e.key);
     };
     document.addEventListener("keydown", handler);
@@ -84,20 +85,26 @@ export const OneOfFiller = <N extends Node<unknown>, T>({
     }
   }, [pressedKeys, action, onApply, optionsByShortcut]);
 
-  if (!searching) {
-    return (
-      <div>
-        Press shortcut keys to quickly select an option, or down arrow to search
-      </div>
-    );
-  }
-
   return (
-    <Select
-      onChange={(e: ValueType<Option<T>, false>) =>
-        e && onApply(action.apply((e as Option<T>).original))
-      }
-      options={options}
-    />
+    <div>
+      {searching ? (
+        <Select
+          onChange={(e: ValueType<Option<T>, false>) =>
+            e && onApply(action.apply((e as Option<T>).original))
+          }
+          options={options}
+        />
+      ) : (
+        <div>
+          Press shortcut keys to quickly select an option, or down arrow to
+          search
+        </div>
+      )}
+      <ul>
+        {options.map(({ value, label }) => (
+          <li key={value}>{label}</li>
+        ))}
+      </ul>
+    </div>
   );
 };

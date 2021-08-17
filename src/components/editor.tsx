@@ -42,10 +42,25 @@ import { useDelayedInput, DelayedInputKind } from "../logic/delayed-input";
 import { unreachable } from "../logic/util";
 import { RequiredHoleNode } from "../logic/providers/typescript/template-nodes";
 import { useCallback } from "react";
+import { css } from "@emotion/css";
 interface Props {
   fs: typeof _fsType;
   projectRootDir: string;
 }
+const styles = {
+  wrapper: css`
+    position: relative;
+    display: inline-block;
+  `,
+  overlay: css`
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow-y: scroll;
+  `,
+};
 interface CombinedTrees {
   raw: Node<unknown>;
   transformed?: Node<unknown>;
@@ -329,7 +344,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
     }
   });
   return (
-    <div>
+    <div className={styles.wrapper}>
       <NavTree
         navTree={navTree}
         getDisplayTree={(focusPath) => {
@@ -374,7 +389,9 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         onFocusedIdChange={setFocusedId}
         disableNav={!!inProgressAction}
         onKeyDown={(event) => {
-          queueInput({ kind: DelayedInputKind.KeyDown, event });
+          if (!inProgressAction || event.key !== "Enter") {
+            queueInput({ kind: DelayedInputKind.KeyDown, event });
+          }
           return event.key.startsWith("Arrow");
         }}
         onKeyUp={(event) => {
@@ -391,11 +408,13 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         }}
       />
       {inProgressAction && (
-        <ActionFiller
-          action={inProgressAction.action}
-          onCancel={() => setInProgressAction(undefined)}
-          onApply={onActionApply}
-        />
+        <div className={styles.overlay}>
+          <ActionFiller
+            action={inProgressAction.action}
+            onCancel={() => setInProgressAction(undefined)}
+            onApply={onActionApply}
+          />
+        </div>
       )}
       {!inProgressAction && (
         <PossibleActionDisplay actions={focusedNode?.actions || {}} />
