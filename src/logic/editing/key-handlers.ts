@@ -187,6 +187,11 @@ export function handleKey(
     },
     Backspace: focusApparentParent,
     Shift: () => setExpandView(true),
+    "ctrl-ArrowRight": tryAction(
+      "append",
+      (n) => (R.last(n.children)?.node || n).id,
+      true,
+    ),
     "ctrl-ArrowUp": () => insertSibling(0),
     "ctrl-ArrowDown": () => insertSibling(1),
     Enter: node.actions.setVariant

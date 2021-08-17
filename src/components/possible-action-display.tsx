@@ -7,6 +7,7 @@ interface Props {
 const SHORTCUTS_BY_ACTION_KEY: {
   [key: string]: string | undefined;
 } = {
+  append: "ctrl-right",
   setVariant: "Enter",
   setFromString: "Enter",
 };
