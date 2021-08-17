@@ -51,8 +51,12 @@ export function handleKey(
   if (
     actionInProgress &&
     event.key !== "Escape" &&
-    !(event.ctrlKey || event.metaKey)
+    event.key !== " " &&
+    !chord.length
   ) {
+    return;
+  }
+  if (event.key === "Shift") {
     return;
   }
   const parentIndexEntry = parentIndex.get(focusedId);
@@ -179,13 +183,13 @@ export function handleKey(
   const handlers: {
     [key: string]: (() => void) | undefined;
   } = {
-    "ctrl-l": () => {
+    l: () => {
       console.log("handlers", handlers);
       console.log("parentIndexEntry", parentIndexEntry);
       console.log("postLayoutHints", postLayoutHintsById.get(focusedId));
     },
-    "ctrl-9": save,
-    "ctrl-0": () => console.log(prettyPrint()),
+    "9": save,
+    "0": () => console.log(prettyPrint()),
     Escape: () => {
       if (actionInProgress) {
         cancelAction();
@@ -194,28 +198,24 @@ export function handleKey(
       }
     },
     Backspace: focusApparentParent,
-    Shift: () => setExpandView(true),
-    "ctrl-I": tryAction("prepend", (n) => (n.children[0]?.node || n).id, true),
-    "ctrl-A": tryAction(
-      "append",
-      (n) => (R.last(n.children)?.node || n).id,
-      true,
-    ),
-    "ctrl-i": () => insertSibling(0),
-    "ctrl-a": () => insertSibling(1),
+    Control: () => setExpandView(true),
+    I: tryAction("prepend", (n) => (n.children[0]?.node || n).id, true),
+    A: tryAction("append", (n) => (R.last(n.children)?.node || n).id, true),
+    i: () => insertSibling(0),
+    a: () => insertSibling(1),
     Enter: node.actions.setVariant
       ? tryAction("setVariant", (n) => n.id, true)
       : tryAction("setFromString"),
-    "ctrl-d": tryDeleteChild,
-    "ctrl-c": () => copyNode(node),
-    "ctrl-p": copiedNode && tryAction("replace", (n) => n.id),
-    "ctrl-f": editFlags,
-    "ctrl-4": () =>
+    d: tryDeleteChild,
+    c: () => copyNode(node),
+    p: copiedNode && tryAction("replace", (n) => n.id),
+    f: editFlags,
+    "4": () =>
       setMarks({
         ...marks,
         TODO: idPathFromParentIndexEntry(parentIndexEntry),
       }),
-    "ctrl-5": () => {
+    5: () => {
       const path = marks.TODO;
       if (path) {
         setFocusedIdPath(path);
@@ -223,7 +223,7 @@ export function handleKey(
     },
   };
   Object.keys(handlers).forEach((oldCombo) => {
-    if (oldCombo.match(/^[a-z0-9](?: |$)/)) {
+    if (oldCombo.match(/^[a-zA-Z0-9]$/)) {
       const newCombo = `space ${oldCombo}`;
       if (newCombo in handlers) {
         throw new Error(
@@ -256,11 +256,9 @@ export function handleKey(
   if (keyCombo === " ") {
     keyCombo = "space";
   }
-  if (event.ctrlKey || event.metaKey) {
-    keyCombo = "ctrl-" + keyCombo;
-  }
   keyCombo = [...chord, keyCombo].join(" ");
-  if (["'", "space"].includes(keyCombo)) {
+  if (keyCombo === "space") {
+    cancelAction();
     setChord([keyCombo]);
     return;
   }

@@ -45,7 +45,7 @@ export const OneOfFiller = <N extends Node<unknown>, T>({
       return;
     }
     const handler = (e: KeyboardEvent) => {
-      if (e.key === " ") {
+      if (e.key === "Control") {
         setSearching(true);
         (
           document.querySelector(
@@ -61,7 +61,7 @@ export const OneOfFiller = <N extends Node<unknown>, T>({
         }
         return;
       }
-      if (e.key.length !== 1) {
+      if (e.key.length !== 1 || e.key === " ") {
         return;
       }
       setPressedKeys((k) => k + e.key);

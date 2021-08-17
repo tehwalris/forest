@@ -7,8 +7,8 @@ interface Props {
 const SHORTCUTS_BY_ACTION_KEY: {
   [key: string]: string | undefined;
 } = {
-  prepend: "ctrl-shift-i",
-  append: "ctrl-shift-a",
+  prepend: "space shift-i",
+  append: "space shift-a",
   setVariant: "Enter",
   setFromString: "Enter",
 };
@@ -31,8 +31,8 @@ export const PossibleActionDisplay: React.FC<Props> = ({ actions }) => (
       "The selected node may not support any actions"
     )}
     <br />
-    Other maybe possible actions: delete (ctrl-d), prepend sibling (ctrl-i),
-    append sibling (ctrl-a), copy (ctrl-c), paste (ctrl-p), printToConsole
-    (ctrl-0), save (ctrl-9)
+    Other maybe possible actions: delete (space d), prepend sibling (space i),
+    append sibling (space a), copy (space c), paste (space p), printToConsole
+    (space 0), save (space 9)
   </div>
 );

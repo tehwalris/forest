@@ -320,7 +320,7 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         });
         break;
       case DelayedInputKind.KeyUp:
-        if (input.event.key === "Shift") {
+        if (input.event.key === "Control") {
           setExpandView(false);
         }
         break;
@@ -374,18 +374,11 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         onFocusedIdChange={setFocusedId}
         disableNav={!!inProgressAction}
         onKeyDown={(event) => {
-          const ctrlLike = event.ctrlKey || event.metaKey;
-          if (!inProgressAction || event.key === "Escape" || ctrlLike) {
-            if (ctrlLike) {
-              event.preventDefault();
-              event.stopPropagation();
-            }
-            queueInput({ kind: DelayedInputKind.KeyDown, event });
-          }
+          queueInput({ kind: DelayedInputKind.KeyDown, event });
           return event.key.startsWith("Arrow");
         }}
         onKeyUp={(event) => {
-          if (event.key === "Shift") {
+          if (event.key === "Control") {
             queueInput({ kind: DelayedInputKind.KeyUp, event });
           }
         }}
