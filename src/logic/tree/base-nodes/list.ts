@@ -17,6 +17,14 @@ export abstract class ListNode<T, B> extends Node<B> {
           return this.setValue(newChildren);
         },
       },
+      prepend: {
+        inputKind: InputKind.None,
+        apply: () =>
+          this.setValue([
+            this.createChild(),
+            ...this.children.map((e) => e.node),
+          ]),
+      },
       append: {
         inputKind: InputKind.None,
         apply: () =>

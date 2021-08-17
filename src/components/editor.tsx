@@ -374,9 +374,13 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         disableNav={!!inProgressAction}
         onKeyDown={(event) => {
           if (!inProgressAction || event.key === "Escape") {
+            if (event.ctrlKey || event.metaKey) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
             queueInput({ kind: DelayedInputKind.KeyDown, event });
           }
-          return event.key.startsWith("Arrow") && !event.ctrlKey;
+          return event.key.startsWith("Arrow");
         }}
         onKeyUp={(event) => {
           if (event.key === "Shift") {

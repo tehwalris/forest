@@ -175,13 +175,13 @@ export function handleKey(
   const handlers: {
     [key: string]: (() => void) | undefined;
   } = {
-    d: () => {
+    "ctrl-l": () => {
       console.log("handlers", handlers);
       console.log("parentIndexEntry", parentIndexEntry);
       console.log("postLayoutHints", postLayoutHintsById.get(focusedId));
     },
-    "9": save,
-    "0": () => console.log(prettyPrint()),
+    "ctrl-9": save,
+    "ctrl-0": () => console.log(prettyPrint()),
     Escape: () => {
       if (actionInProgress) {
         cancelAction();
@@ -191,44 +191,33 @@ export function handleKey(
     },
     Backspace: focusApparentParent,
     Shift: () => setExpandView(true),
-    "ctrl-ArrowRight": tryAction(
+    "ctrl-I": tryAction("prepend", (n) => (n.children[0]?.node || n).id, true),
+    "ctrl-A": tryAction(
       "append",
       (n) => (R.last(n.children)?.node || n).id,
       true,
     ),
-    "ctrl-ArrowUp": () => insertSibling(0),
-    "ctrl-ArrowDown": () => insertSibling(1),
+    "ctrl-i": () => insertSibling(0),
+    "ctrl-a": () => insertSibling(1),
     Enter: node.actions.setVariant
       ? tryAction("setVariant", (n) => n.id, true)
       : tryAction("setFromString"),
-    x: tryDeleteChild,
-    c: () => copyNode(node),
-    p: tryAction("replace", (n) => n.id),
-    f: editFlags,
-    4: () =>
+    "ctrl-d": tryDeleteChild,
+    "ctrl-c": () => copyNode(node),
+    "ctrl-p": tryAction("replace", (n) => n.id),
+    "ctrl-f": editFlags,
+    "ctrl-4": () =>
       setMarks({
         ...marks,
         TODO: idPathFromParentIndexEntry(parentIndexEntry),
       }),
-    5: () => {
+    "ctrl-5": () => {
       const path = marks.TODO;
       if (path) {
         setFocusedIdPath(path);
       }
     },
   };
-  ["a", "b", "c"].forEach((k) => {
-    handlers[`a ${k}`] = () =>
-      setMarks({
-        ...marks,
-        [k]: idPathFromParentIndexEntry(parentIndexEntry),
-      });
-    handlers[`' ${k}`] = () => {
-      if (marks[k]) {
-        setFocusedIdPath(marks[k]);
-      }
-    };
-  });
   Object.keys(handlers).forEach((oldCombo) => {
     if (oldCombo.match(/^[a-z0-9](?: |$)/)) {
       const newCombo = `space ${oldCombo}`;
@@ -263,16 +252,12 @@ export function handleKey(
   if (keyCombo === " ") {
     keyCombo = "space";
   }
-  if (event.ctrlKey) {
+  if (event.ctrlKey || event.metaKey) {
     keyCombo = "ctrl-" + keyCombo;
   }
   keyCombo = [...chord, keyCombo].join(" ");
   if (["'", "space"].includes(keyCombo)) {
     setChord([keyCombo]);
-    return;
-  }
-  if (keyCombo === "space a") {
-    setChord(["space", "a"]);
     return;
   }
   const wasChord = !!chord.length;
