@@ -8,7 +8,7 @@ import {
   LabelStyle,
 } from "../../tree/node";
 import { CompilerHost } from "./compiler-host";
-import { StructNode, ListNode } from "../../tree/base-nodes";
+import { StructNode, ListNode, EmptyLeafNode } from "../../tree/base-nodes";
 import { unions } from "./generated/templates";
 import { fromTsNode } from "./convert";
 import * as _fsType from "fs";
@@ -93,11 +93,17 @@ export class FileNode extends ListNode<
     value: Node<ts.Statement>[],
     private file: ts.SourceFile,
     public readonly filePath: string,
+    placeholderNode: EmptyLeafNode,
   ) {
-    super(value);
+    super(value, placeholderNode);
   }
   clone(): FileNode {
-    const node = new FileNode(this.value, this.file, this.filePath);
+    const node = new FileNode(
+      this.value,
+      this.file,
+      this.filePath,
+      this.placeholderNode,
+    );
     node.id = this.id;
     return node;
   }
@@ -108,6 +114,7 @@ export class FileNode extends ListNode<
       ),
       file,
       filePath,
+      ListNode.makePlaceholder(),
     );
   }
   setFlags(flags: never): never {
@@ -154,7 +161,12 @@ export class FileNode extends ListNode<
     return { node: FileNode.fromFile(newFile, this.filePath), text };
   }
   protected setValue(value: Node<ts.Statement>[]): FileNode {
-    const node = new FileNode(value, this.file, this.filePath);
+    const node = new FileNode(
+      value,
+      this.file,
+      this.filePath,
+      this.placeholderNode,
+    );
     node.id = this.id;
     return node;
   }

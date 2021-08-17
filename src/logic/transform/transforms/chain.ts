@@ -5,7 +5,7 @@ import { ParentPathElement } from "../../parent-index";
 import { fromTsNode } from "../../providers/typescript/convert";
 import { unions } from "../../providers/typescript/generated/templates";
 import { ActionSet, InputKind, OneOfInputAction } from "../../tree/action";
-import { ListNode } from "../../tree/base-nodes";
+import { EmptyLeafNode, ListNode } from "../../tree/base-nodes";
 import {
   BuildResult,
   BuildResultFailure,
@@ -379,6 +379,7 @@ export const chainTransform: Transform = (node) => {
   const chainNode = new ChainNode(
     node,
     parts.map((p) => new ChainPartUnionNode(nodeFromChainPart(p))),
+    ListNode.makePlaceholder(),
   );
   if (parts[0].kind === ChainPartKind.Expression) {
     chainNode.id = parts[0].expression.id + "-chain";
@@ -387,8 +388,12 @@ export const chainTransform: Transform = (node) => {
 };
 class ChainNode extends ListNode<ChainPart, ts.Expression> {
   flags: FlagSet = {};
-  constructor(private baseNode: Node<unknown>, children: Node<ChainPart>[]) {
-    super(children);
+  constructor(
+    private baseNode: Node<unknown>,
+    children: Node<ChainPart>[],
+    placeholderNode: EmptyLeafNode,
+  ) {
+    super(children, placeholderNode);
     const baseSetVariant = baseNode.actions.setVariant;
     if (baseSetVariant) {
       this.actions.setVariant = {
@@ -399,7 +404,7 @@ class ChainNode extends ListNode<ChainPart, ts.Expression> {
     }
   }
   clone(): ChainNode {
-    const node = new ChainNode(this.baseNode, []);
+    const node = new ChainNode(this.baseNode, [], this.placeholderNode);
     node.children = this.children;
     node.id = this.id;
     return node;
@@ -437,7 +442,7 @@ class ChainNode extends ListNode<ChainPart, ts.Expression> {
     );
   }
   protected setValue(value: Node<ChainPart>[]): ChainNode {
-    const node = new ChainNode(this.baseNode, value);
+    const node = new ChainNode(this.baseNode, value, this.placeholderNode);
     node.id = this.id;
     return node;
   }

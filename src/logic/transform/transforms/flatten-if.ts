@@ -17,7 +17,7 @@ import { Path } from "../../tree/base";
 import { Doc, leafDoc, lineDoc, LineKind } from "../../tree/display-line";
 import { fromTsNode } from "../../providers/typescript/convert";
 import { unions } from "../../providers/typescript/generated/templates";
-import { ListNode } from "../../tree/base-nodes";
+import { EmptyLeafNode, ListNode } from "../../tree/base-nodes";
 import { ParentPathElement } from "../../parent-index";
 import {
   withExtendedArgsList,
@@ -64,6 +64,7 @@ export const flattenIfTransform: Transform = (node) => {
   const flat = new FlatIfNode(
     node,
     flattenIf(node).map((b) => new FlatIfBranchNode(b)),
+    ListNode.makePlaceholder(),
   ) as any;
   flat.id = node.id;
   return flat;
@@ -140,11 +141,12 @@ class FlatIfNode extends ListNode<FlatIfBranch, unknown> {
   constructor(
     private originalNode: Node<unknown>,
     branches: Node<FlatIfBranch>[],
+    placeholderNode: EmptyLeafNode,
   ) {
-    super(branches);
+    super(branches, placeholderNode);
   }
   clone(): FlatIfNode {
-    const node = new FlatIfNode(this.originalNode, []);
+    const node = new FlatIfNode(this.originalNode, [], this.placeholderNode);
     node.children = this.children;
     node.id = this.id;
     return node;
@@ -188,7 +190,7 @@ class FlatIfNode extends ListNode<FlatIfBranch, unknown> {
     return { ok: true, value: ifNode };
   }
   protected setValue(value: Node<FlatIfBranch>[]): FlatIfNode {
-    const node = new FlatIfNode(this.originalNode, value);
+    const node = new FlatIfNode(this.originalNode, value, this.placeholderNode);
     node.id = this.id;
     return node;
   }
