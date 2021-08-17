@@ -67,7 +67,6 @@ enum ChildIsEmptyValue {
   NotEmpty = 0,
   OptionNone = 1,
   EmptyList = 2,
-  EmptyListPlaceholder = 3,
 }
 interface ExtendedDisplayTreeArgsStruct<CK extends string>
   extends ExtendedDisplayTreeArgsBase {
@@ -96,7 +95,6 @@ export function withExtendedArgsStruct<CK extends string, R>(
     const {
       nodeForDisplay,
       buildChildDoc,
-      expand,
       showChildNavigationHints,
       focusPath,
       updatePostLayoutHints,
@@ -126,8 +124,6 @@ export function withExtendedArgsStruct<CK extends string, R>(
         childIsEmpty[key] = ChildIsEmptyValue.OptionNone;
       } else if (debugLabel === "Empty list") {
         childIsEmpty[key] = ChildIsEmptyValue.EmptyList;
-      } else if (debugLabel === "no items") {
-        childIsEmpty[key] = ChildIsEmptyValue.EmptyListPlaceholder;
       } else {
         childIsEmpty[key] = ChildIsEmptyValue.NotEmpty;
       }
@@ -136,14 +132,9 @@ export function withExtendedArgsStruct<CK extends string, R>(
       childKey: CK,
       hideEmptyList: boolean = false,
     ): boolean =>
-      !(
-        expand &&
-        childIsEmpty[childKey] === ChildIsEmptyValue.EmptyListPlaceholder
-      ) &&
       !showChildNavigationHints &&
       expectedChildKeys.includes(childKey) &&
       (childIsEmpty[childKey] === ChildIsEmptyValue.OptionNone ||
-        childIsEmpty[childKey] === ChildIsEmptyValue.EmptyListPlaceholder ||
         (hideEmptyList &&
           childIsEmpty[childKey] === ChildIsEmptyValue.EmptyList)) &&
       (focusPath.length < 2 ||
@@ -243,24 +234,16 @@ function makeWrappedListEnhancer(
           : [{ text: typeName, style: LabelStyle.UNKNOWN }],
     },
     buildDoc: withExtendedArgsList(
-      ({
-        childDocs,
-        shouldHideChild,
-        newTextNode,
-        newFocusMarker,
-      }): Doc | undefined => {
+      ({ childDocs, newTextNode, newFocusMarker }): Doc | undefined => {
         const focusMarker = newFocusMarker();
-        const visibleChildDocs = childDocs.filter(
-          (c, i) => !shouldHideChild(i),
-        );
         return groupDoc(
           filterTruthyChildren([
-            !visibleChildDocs.length && focusMarker,
+            !childDocs.length && focusMarker,
             !!left && leafDoc(newTextNode(left, LabelStyle.SYNTAX_SYMBOL)),
             groupDoc([
               nestDoc(
                 1,
-                visibleChildDocs.map((c, i) => [
+                childDocs.map((c, i) => [
                   i === 0 ? [lineDoc(LineKind.Soft), focusMarker] : lineDoc(),
                   c,
                   leafDoc(newTextNode(separator, LabelStyle.SYNTAX_SYMBOL)),

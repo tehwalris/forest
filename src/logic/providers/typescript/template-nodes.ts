@@ -210,9 +210,8 @@ export class ListTemplateNode<
     private rawChildren: Node<C>[],
     public flags: FlagSet,
     public original: B,
-    placeholderNode: EmptyLeafNode,
   ) {
-    super(rawChildren, placeholderNode);
+    super(rawChildren);
     this.template = template;
     this.newChild = newChild;
     this.rawChildren = rawChildren;
@@ -243,7 +242,6 @@ export class ListTemplateNode<
       template.load(node).map((e) => fromTsNode(e, template.childUnion)),
       loadFlags(node, template.flags),
       node,
-      ListNode.makePlaceholder(),
     );
   }
   clone(): ListTemplateNode<B, C> {
@@ -256,7 +254,6 @@ export class ListTemplateNode<
       children,
       this.flags,
       this.original,
-      this.placeholderNode,
     );
     node.id = this.id;
     return node;
@@ -268,7 +265,6 @@ export class ListTemplateNode<
       this.rawChildren,
       flags,
       this.original,
-      this.placeholderNode,
     );
     node.id = this.id;
     return node;
@@ -287,7 +283,7 @@ export class ListTemplateNode<
     });
   }
   getDebugLabel(): string | undefined {
-    return this.value.length ? undefined : "Empty list";
+    return this.children.length ? undefined : "Empty list";
   }
   getDisplayInfo(parentPath: ParentPathElement[]): DisplayInfo | undefined {
     const { enhancer } = this.template;

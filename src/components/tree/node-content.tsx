@@ -22,7 +22,6 @@ const fontFallbackHeightPx = 19.2;
 const fontsByLabelStyle: { [K in LabelStyle]?: string } = {
   [LabelStyle.TYPE_SUMMARY]: `500 ${defaultFont}`,
   [LabelStyle.UNION_NAME]: `italic ${defaultFont}`,
-  [LabelStyle.LIST_PLACEHOLDER]: `italic ${defaultFont}`,
 };
 export function makeTextMeasurementFunctionsByStyle(): {
   [K in LabelStyle]: TextMeasurementFunction;
@@ -46,9 +45,6 @@ const styles = {
   childKey: css`
     opacity: 0.5;
   `,
-  listPlaceholder: css`
-    color: grey;
-  `,
   wrapper: css`
     white-space: pre;
   `,
@@ -66,12 +62,6 @@ function renderLabelPart(p: LabelPart) {
     p.style === LabelStyle.UNION_NAME
   ) {
     return <span style={style}>{p.text}</span>;
-  } else if (p.style === LabelStyle.LIST_PLACEHOLDER) {
-    return (
-      <span style={style} className={styles.listPlaceholder}>
-        {p.text}
-      </span>
-    );
   } else if (p.style === LabelStyle.CHILD_KEY) {
     return (
       <span style={style} className={styles.childKey}>

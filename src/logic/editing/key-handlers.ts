@@ -62,15 +62,19 @@ export function handleKey(
     const action = parent?.actions.deleteChild;
     if (parent && action) {
       const targetKey = R.last(parentIndexEntry.path)!.childKey;
-      const targetIndex = parent.children.findIndex((e) => e.key === targetKey);
-      const siblingId =
-        parent.children[targetIndex + 1]?.node.id ||
-        parent.children[targetIndex - 1]?.node.id;
       handleAction(
         action,
         R.dropLast(1, parentIndexEntry.path).map((e) => e.childKey),
-        (node) => siblingId || node.children[0]?.node.id || node.id,
+        undefined,
         { child: targetKey },
+      );
+      const targetIndex = parent.children.findIndex((e) => e.key === targetKey);
+      setFocusedId(
+        (
+          parent.children[targetIndex + 1]?.node ||
+          parent.children[targetIndex - 1]?.node ||
+          parent
+        ).id,
       );
     }
   };
@@ -126,7 +130,7 @@ export function handleKey(
       handleAction(
         action,
         R.dropLast(1, parentIndexEntry.path).map((e) => e.childKey),
-        (n) => (n.children[childIndex]?.node || n.children[0]?.node || n).id,
+        (n) => (n.children[childIndex]?.node || n).id,
         { childIndex, triggerAutoAction: true },
       );
     }
