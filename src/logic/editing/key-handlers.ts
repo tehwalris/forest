@@ -23,8 +23,6 @@ interface HandleKeyOptions {
   saveFile: (tree: FileNode) => void;
   marks: Marks;
   setMarks: (marks: Marks) => void;
-  chord: string[];
-  setChord: (chord: string[]) => void;
   setExpandView: (expandView: boolean) => void;
 }
 export function handleKey(
@@ -43,8 +41,6 @@ export function handleKey(
     saveFile,
     marks,
     setMarks,
-    chord,
-    setChord,
     setExpandView,
   }: HandleKeyOptions,
 ) {
@@ -218,18 +214,6 @@ export function handleKey(
       }
     },
   };
-  Object.keys(handlers).forEach((oldCombo) => {
-    if (oldCombo.match(/^[a-z0-9](?: |$)/)) {
-      const newCombo = `space ${oldCombo}`;
-      if (newCombo in handlers) {
-        throw new Error(
-          "adding space to oldCombo would overwrite an existing handler",
-        );
-      }
-      handlers[newCombo] = handlers[oldCombo];
-      delete handlers[oldCombo];
-    }
-  });
   for (const [shortcut, childPath] of node.getChildShortcuts()) {
     if (!shortcut.match(/^[a-z0-9]$/)) {
       throw new Error("shortcut has invalid format");
@@ -249,20 +233,8 @@ export function handleKey(
     };
   }
   let keyCombo = event.key;
-  if (keyCombo === " ") {
-    keyCombo = "space";
-  }
   if (event.ctrlKey || event.metaKey) {
     keyCombo = "ctrl-" + keyCombo;
-  }
-  keyCombo = [...chord, keyCombo].join(" ");
-  if (["'", "space"].includes(keyCombo)) {
-    setChord([keyCombo]);
-    return;
-  }
-  const wasChord = !!chord.length;
-  if (wasChord) {
-    setChord([]);
   }
   const handler = handlers[keyCombo];
   if (handler) {
