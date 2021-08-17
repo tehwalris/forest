@@ -216,27 +216,28 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
   );
   const handleAction: HandleAction = useCallback(
     (action, target, focus, args) => {
-      const updateTarget = (newNode: Node<unknown>) => {
+      const finishAction = (newNode: Node<unknown>) => {
+        setInProgressAction(undefined);
         updateNode(target, newNode, focus, args.triggerAutoAction);
       };
       if (action.inputKind === InputKind.None) {
-        updateTarget(action.apply());
+        finishAction(action.apply());
       } else if (action.inputKind === InputKind.Child) {
         if (!args.child) {
           throw new Error("Expected args.child");
         }
-        updateTarget(action.apply(args.child));
+        finishAction(action.apply(args.child));
       } else if (action.inputKind === InputKind.ChildIndex) {
         if (args.childIndex === undefined) {
           throw new Error("Expected args.childIndex");
         }
-        updateTarget(action.apply(args.childIndex));
+        finishAction(action.apply(args.childIndex));
       } else if (action.inputKind === InputKind.Node) {
         if (!args.node) {
           throw new Error("Expected args.node");
         }
         const newNode = action.apply(args.node);
-        updateTarget(newNode);
+        finishAction(newNode);
       } else {
         setInProgressAction({
           target,
@@ -370,8 +371,9 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
         onFocusedIdChange={setFocusedId}
         disableNav={!!inProgressAction}
         onKeyDown={(event) => {
-          if (!inProgressAction || event.key === "Escape") {
-            if (event.ctrlKey || event.metaKey) {
+          const ctrlLike = event.ctrlKey || event.metaKey;
+          if (!inProgressAction || event.key === "Escape" || ctrlLike) {
+            if (ctrlLike) {
               event.preventDefault();
               event.stopPropagation();
             }

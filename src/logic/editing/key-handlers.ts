@@ -44,7 +44,11 @@ export function handleKey(
     setExpandView,
   }: HandleKeyOptions,
 ) {
-  if (actionInProgress && event.key !== "Escape") {
+  if (
+    actionInProgress &&
+    event.key !== "Escape" &&
+    !(event.ctrlKey || event.metaKey)
+  ) {
     return;
   }
   const parentIndexEntry = parentIndex.get(focusedId);
@@ -200,7 +204,7 @@ export function handleKey(
       : tryAction("setFromString"),
     "ctrl-d": tryDeleteChild,
     "ctrl-c": () => copyNode(node),
-    "ctrl-p": tryAction("replace", (n) => n.id),
+    "ctrl-p": copiedNode && tryAction("replace", (n) => n.id),
     "ctrl-f": editFlags,
     "ctrl-4": () =>
       setMarks({

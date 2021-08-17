@@ -13,8 +13,13 @@ export const StringFiller = <N extends Node<unknown>>({
     <input
       type="text"
       placeholder="New value"
-      onKeyPress={(e) =>
-        e.key === "Enter" && onApply(action.apply(e.currentTarget.value))
+      onKeyDown={(ev) => {
+        if (ev.ctrlKey || ev.metaKey) {
+          ev.stopPropagation();
+        }
+      }}
+      onKeyPress={(ev) =>
+        ev.key === "Enter" && onApply(action.apply(ev.currentTarget.value))
       }
     />
   );
