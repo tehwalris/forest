@@ -191,3 +191,97 @@
 
 - read more related work
 - try to more clearly identify what problems/solutions are novel compared to editors for old languages
+
+# Meeting 2021-08-21
+
+## Overview
+
+- mainly read papers
+- also made some improvements to Forest on the side
+
+## Summary of papers
+
+- looked mostly at papers from 1970-2005
+- many Pascal editors
+  - at least different ones 10 were created
+- many of the of the problems that structure editors were designed to solve are solved in text editors now
+  - interface to IDE-like features (autocomplete, refactors, etc.)
+  - fault tolerant parsing makes this work
+- pretty printing was almost always simple
+  - just print keywords and call a function to print children
+  - no wrapping logic based on line length
+    - some languages are even have a 1-to-1 statement-line correspondence (FORTRAN?)
+    - LISP pretty printers probably did this though
+- different approaches to structure/text boundary
+  - fully structure
+  - structure up to expression level, text below (cutoff varies)
+    - typical argument: editing expressions as structure is impractical
+    - alternative argument:
+      - developers don't think about expressions as trees
+      - although they do think of higher levels (classes, functions, etc.) as trees
+  - structure, but selected node can be added/edited as text
+    - uses parser configured for that context
+  - structure, but anything can be edited as text
+    - either select smallest containing node of text region and convert it to text, then parse back
+    - or split the parse tree around the region being edited, with some unparsed text in the middle
+- varying navigation strategies
+  - in some editors arrows move in text direction
+  - in some editors arrows move in tree direction (eg. up moves to parent node)
+  - ABC editor has an interesting widen/first/narrow/... mechanism
+  - have not seen letter per child navigation like Forest has
+- list handling
+  - almost never discussed
+  - ABC editor had the most interesting discussion
+    - allows selecting a contiguous list of siblings
+      - Forest currently does not have this, and it's really limiting when moving multiple statements around
+- most interesting was thesis comparing editing times in a couple of structural editors
+  - "The Design of the User Interface for Software Development Tools", MA Toleman, 1996
+  - multiple small program creation and editing tasks (roughly 3-10 lines each)
+  - used KLM (keyboard level model) to estimate editing times
+  - experimentally measured editing times with multiple participants and compared to KLM
+  - inspired by this, I did my own small KLM experiment with VIM and Forest
+    - https://gist.github.com/tehwalris/b78020c56b6990923b2a34fb7e482b20
+
+# Forest expression issues
+
+- many of the same operator
+  - example: a + b + c + d + e + f
+  - this is treated as left-associative binary tree
+  - browsing is impractical
+    - elements on the right are shallow (e.g. f)
+    - elements on the left are very deep (e.g. a)
+  - deleting elements is impractical (especially from the middle)
+    - navigate to the target element
+    - select and copy it's left child
+    - select the target element and replace it with the copied node
+  - might be good to treat expressions as a list of tokens
+    - maybe as a separate editing mode
+- chains of property accesses
+  - similar issues to many usages of an operator
+  - special things like calls or TypeScript NonNullExpression ("!") mixed in between
+- mixing operators (e.g. + and \*)
+  - sometimes editing as a tree is nicer than a flat list
+  - e.g. writing "(a _ b) + (c _ d)" vs "(a + b) \* (c + d)"
+    - brackets are inserted naturally to give intended precedence when this is written as a tree
+
+# Updates to Forest
+
+- removed `ExpressionStatement`
+  - expressions can be written in statement position
+  - copy-paste works between expressions and statements containing expressions
+- removed "Option" nodes
+  - instead `Option<None>` is a choice in optional unions now
+- optional lists are replaced by empty lists instead
+  - e.g. function type parameters
+  - less confusing because one less action required
+- removed directional shortcuts
+  - they were confusing with display-as-text
+  - e.g. append child was "ctrl-right" and is now "space shift-a"
+- setVariant and setFromString are triggered together
+  - previously you would select a node, use setVariant and then use setFromString (if it was supported)
+  - now when you press enter you first get the setVariant menu and then immediately after the setFromString input field
+  - this means extra typing in some cases, but it is faster because you need to think less
+    - e.g. if you want to change an existing string literal, you have to still select "st" from setVariant now
+- setVariant is automatically triggered after adding a list element
+  - appending a list node that you immediately replace is still as fast as before
+    - using the paste shortcut in the setVariant menu will cancel setVariant and perform paste
