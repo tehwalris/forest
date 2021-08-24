@@ -1,6 +1,10 @@
 // src/logic/tree/display-line.ts
 
-var cache: any, key: any, mode: any, currentPos: any, indentStack: any;
+var cache: any;
+var key: any;
+var mode: any;
+var currentPos: any;
+var indentStack: any;
 
 export function tryGetCacheEntry() {
   const entry = cache.get(key);

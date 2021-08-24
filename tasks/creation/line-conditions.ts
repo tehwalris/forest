@@ -1,15 +1,15 @@
 // src/logic/tree/display-line.ts
 
-var mode,
-  PrintBreakMode,
-  doc,
-  LineKind,
-  indentStack,
-  output,
-  currentLine,
-  currentPos,
-  NodeKind,
-  spaceWidth: any;
+var mode: any;
+var PrintBreakMode: any;
+var doc: any;
+var LineKind: any;
+var indentStack: any;
+var output: any;
+var currentLine: any;
+var currentPos: any;
+var NodeKind: any;
+var spaceWidth: any;
 
 type Line = any;
 

@@ -1,6 +1,13 @@
 // https://github.com/microsoft/TypeScript-Website/blob/v2/packages/typescript-vfs/src/index.ts
 
-var files, version, storelike, fetchlike, prefix, zip, unzip, fsMap: any;
+var files: any;
+var version: any;
+var storelike: any;
+var fetchlike: any;
+var prefix: any;
+var zip: any;
+var unzip: any;
+var fsMap: any;
 
 function cached() {
   return Promise.all(

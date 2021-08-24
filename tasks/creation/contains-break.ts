@@ -1,7 +1,9 @@
 // src/logic/tree/display-line.ts
 
 type Doc = any;
-var DocKind, LineKind, unreachable: any;
+var DocKind: any;
+var LineKind: any;
+var unreachable: any;
 
 export function containsBreak(doc: Doc): boolean {
   if (Array.isArray(doc)) {

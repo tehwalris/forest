@@ -1,6 +1,10 @@
 // src/logic/transform/transforms/expression-statement.ts
 
-var exampleExpressionNode, fromTsNode, unions, node, transform: any;
+var exampleExpressionNode: any;
+var fromTsNode: any;
+var unions: any;
+var node: any;
+var transform: any;
 declare namespace ts {
   type Expression = any;
   var createExpressionStatement: any;

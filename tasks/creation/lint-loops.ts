@@ -1,17 +1,17 @@
 // https://github.com/microsoft/TypeScript-Website/blob/v2/packages/glossary/scripts/lint.js
 
-var languages,
-  readdirSync,
-  join,
-  locale,
-  chalk,
-  errorReports,
-  filterString,
-  remarkTwoSlash,
-  markdownAST,
-  hasError,
-  cross,
-  tick: any;
+var languages: any;
+var readdirSync: any;
+var join: any;
+var locale: any;
+var chalk: any;
+var errorReports: any;
+var filterString: any;
+var remarkTwoSlash: any;
+var markdownAST: any;
+var hasError: any;
+var cross: any;
+var tick: any;
 
 const go = async () => {
   for (const lang of languages) {

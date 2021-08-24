@@ -1,6 +1,9 @@
 // https://github.com/microsoft/TypeScript-Website/blob/v2/packages/handbook-epub/script/createEpub.ts`
 
-var markdowns, getHTML, replaceAllInString, Streampub: any;
+var markdowns: any;
+var getHTML: any;
+var replaceAllInString: any;
+var Streampub: any;
 
 const addHandbookPage = async (epub: any, id: string, index: number) => {
   const md = markdowns.get(id);

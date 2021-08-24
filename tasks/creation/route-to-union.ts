@@ -4,7 +4,8 @@ type Union<T> = any;
 declare namespace ts {
   type Node = any;
 }
-var statementUnion: any, unions: any;
+var statementUnion: any;
+var unions: any;
 
 export function routeToUnion(outerKey: string): {
   route: "Statement" | "Expression";

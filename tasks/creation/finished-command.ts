@@ -1,12 +1,12 @@
 // src/logic/tree/display-line.ts
 
-var InternalCommandKind,
-  doc,
-  mode,
-  currentPos,
-  indentStack,
-  output,
-  currentLine: any;
+var InternalCommandKind: any;
+var doc: any;
+var mode: any;
+var currentPos: any;
+var indentStack: any;
+var output: any;
+var currentLine: any;
 
 export const finishedCommand = {
   kind: InternalCommandKind.DocFinished,

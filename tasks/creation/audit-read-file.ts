@@ -1,6 +1,9 @@
 // https://github.com/microsoft/TypeScript-Website/blob/v2/packages/typescript-vfs/src/index.ts
 
-var audit, files, tsLib, nodeSys: any;
+var audit: any;
+var files: any;
+var tsLib: any;
+var nodeSys: any;
 
 audit("readFile", (fileName) => {
   if (files.has(fileName)) return files.get(fileName);

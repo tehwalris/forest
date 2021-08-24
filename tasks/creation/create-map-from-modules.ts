@@ -1,5 +1,7 @@
 type CompilerOptions = any;
-var requirePath, requireFS, knownLibFilesForCompilerOptions: any;
+var requirePath: any;
+var requireFS: any;
+var knownLibFilesForCompilerOptions: any;
 
 export const createDefaultMapFromNodeModules = (
   compilerOptions: CompilerOptions,

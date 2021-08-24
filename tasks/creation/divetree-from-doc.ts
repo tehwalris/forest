@@ -4,7 +4,10 @@ type Doc = any;
 type LineCache = any;
 type TightNode = any;
 type TightSplitNode = any;
-var NodeKind, Split, linesFromDoc, makeIndentNodes: any;
+var NodeKind: any;
+var Split: any;
+var linesFromDoc: any;
+var makeIndentNodes: any;
 
 export function divetreeFromDoc(doc: Doc, cache: LineCache): TightNode {
   return {

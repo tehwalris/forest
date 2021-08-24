@@ -1,6 +1,7 @@
 // src/logic/tree/display-new.ts
 
-var parentEntry, childKey: any;
+var parentEntry: any;
+var childKey: any;
 
 export const childShortcut = [
   ...parentEntry.parent.getChildShortcuts().entries(),

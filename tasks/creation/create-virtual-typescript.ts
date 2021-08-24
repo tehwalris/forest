@@ -4,9 +4,9 @@ type CompilerOptions = any;
 type CustomTransformers = any;
 type VirtualTypeScriptEnvironment = any;
 
-var defaultCompilerOptions,
-  createVirtualLanguageServiceHost,
-  createVirtualCompilerHost: any;
+var defaultCompilerOptions: any;
+var createVirtualLanguageServiceHost: any;
+var createVirtualCompilerHost: any;
 
 export function createVirtualTypeScriptEnvironment(
   sys: System,

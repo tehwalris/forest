@@ -1,7 +1,9 @@
 // src/logic/delayed-input.ts
 
 type DelayedInput = string;
-var useRef, useCallback, useEffect: any;
+var useRef: any;
+var useCallback: any;
+var useEffect: any;
 var useState: <T>(...args: any) => any;
 
 export function useDelayedInput(

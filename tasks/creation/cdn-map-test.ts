@@ -1,6 +1,9 @@
 // https://github.com/microsoft/TypeScript-Website/blob/v2/packages/typescript-vfs/test/index.test.ts
 
-var it: any, knownLibFilesForCompilerOptions, createDefaultMapFromCDN, ts;
+var it: any;
+var knownLibFilesForCompilerOptions: any;
+var createDefaultMapFromCDN: any;
+var ts: any;
 
 it("creates a map from the CDN without cache", async () => {
   const fetcher = jest.fn();
