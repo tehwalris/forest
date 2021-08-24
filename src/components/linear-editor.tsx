@@ -1,4 +1,4 @@
-import { css } from "@emotion/css";
+import { css, keyframes } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { unreachable } from "../logic/util";
@@ -286,7 +286,22 @@ class DocManager {
   }
 }
 
+const pulse = keyframes`
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+`;
+
 const styles = {
+  doc: css`
+    margin: 5px;
+  `,
   token: css`
     display: inline-block;
     &:not(:last-child) {
@@ -303,14 +318,18 @@ const styles = {
     display: inline-block;
     position: relative;
   `,
+  listDelimiter: css`
+    display: inline-block;
+  `,
   cursor: css`
     position: absolute;
     display: block;
-    background: #888;
+    background: black;
     width: ${2 / window.devicePixelRatio}px;
-    top: 1px;
-    bottom: 1px;
-    right: 0;
+    top: -2px;
+    bottom: -2px;
+    right: -1.5px;
+    animation: ${pulse} 1s ease infinite;
     ::before {
       content: ".";
       visibility: hidden;
@@ -333,19 +352,29 @@ function renderNode(
       );
     case NodeKind.List:
       return (
-        <div
-          key={key}
-          className={styles.list}
-          style={{ background: focused ? "#0b53ff26" : undefined }}
-        >
-          {node.delimiters[0]}
-          <div className={styles.listInner}>
+        <div key={key} className={styles.list}>
+          <div
+            className={styles.listDelimiter}
+            style={{ background: focused ? "wheat" : undefined }}
+          >
+            {node.delimiters[0]}
+          </div>
+          <div
+            className={styles.listInner}
+            style={{ background: focused ? "#0b53ff26" : undefined }}
+          >
+            {!node.content.length && "\u200b"}
             {focused && <div className={styles.cursor} />}
             {node.content.map((c, i) =>
               renderNode(c, i, focus?.[0] === i ? focus.slice(1) : undefined),
             )}
           </div>
-          {node.delimiters[1]}
+          <div
+            className={styles.listDelimiter}
+            style={{ background: focused ? "wheat" : undefined }}
+          >
+            {node.delimiters[1]}
+          </div>
         </div>
       );
   }
@@ -376,5 +405,7 @@ export const LinearEditor = () => {
     };
   }, [docManager]);
 
-  return <div>{renderNode(doc.root, "root", focus)}</div>;
+  return (
+    <div className={styles.doc}>{renderNode(doc.root, "root", focus)}</div>
+  );
 };
