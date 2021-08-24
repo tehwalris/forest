@@ -95,21 +95,52 @@ function nodeSetLastToken(node: Node, newToken: TokenNode): Node {
 
 class DocManager {
   private doc: Doc = emptyDoc;
+  private lastDoc: Doc = emptyDoc;
+  private history: Doc[] = [emptyDoc];
 
-  constructor(private onDocUpdate: (doc: Doc) => void) {}
+  constructor(private _onDocUpdate: (doc: Doc) => void) {}
 
   onKeyPress = (ev: KeyboardEvent) => {
-    console.log("onKeyPress", ev.key);
-
     if (!docGetLastToken(this.doc)) {
       this.doc = docAppendEmptyToken(this.doc);
     }
-    this.doc = docSetLastToken(this.doc, {
-      kind: NodeKind.Token,
-      content: "walrus",
-    });
-    this.onDocUpdate(this.doc);
+    let lastToken = docGetLastToken(this.doc)!;
+
+    if (ev.key.match(/^[a-zA-Z]$/)) {
+      if (!lastToken.content.match(/^[a-zA-Z]*$/)) {
+        this.doc = docAppendEmptyToken(this.doc);
+        lastToken = docGetLastToken(this.doc)!;
+      }
+      this.doc = docSetLastToken(this.doc, {
+        ...lastToken,
+        content: lastToken.content + ev.key,
+      });
+    }
+
+    this.onDocUpdate();
   };
+
+  onKeyDown = (ev: KeyboardEvent) => {
+    if (ev.key === "Backspace") {
+      if (this.history.length < 2) {
+        return;
+      }
+      this.history.pop();
+      const oldDoc = this.history.pop()!;
+      this.doc = oldDoc;
+      this.onDocUpdate();
+    }
+  };
+
+  private onDocUpdate() {
+    if (this.doc === this.lastDoc) {
+      return;
+    }
+    this.lastDoc = this.doc;
+    this.history.push(this.doc);
+    console.log("DEBUG", this);
+    this._onDocUpdate(this.doc);
+  }
 }
 
 export const LinearEditor = () => {
@@ -119,6 +150,7 @@ export const LinearEditor = () => {
     setDocManager((oldDocManager) => {
       const newDocManager = new DocManager(setDoc);
       (newDocManager as any).doc = (oldDocManager as any).doc;
+      (newDocManager as any).history = (oldDocManager as any).history;
       return newDocManager;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -126,10 +158,16 @@ export const LinearEditor = () => {
 
   useEffect(() => {
     document.addEventListener("keypress", docManager.onKeyPress);
+    document.addEventListener("keydown", docManager.onKeyDown);
     return () => {
       document.removeEventListener("keypress", docManager.onKeyPress);
+      document.removeEventListener("keydown", docManager.onKeyDown);
     };
   }, [docManager]);
 
-  return <div>{JSON.stringify(doc, null, 2)}</div>;
+  return (
+    <div>
+      <div>{JSON.stringify(doc, null, 2)}</div>
+    </div>
+  );
 };
