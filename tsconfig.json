@@ -25,6 +25,7 @@
     "src"
   ],
   "exclude": [
-    "playground"
+    "playground",
+    "tasks"
   ]
 }
