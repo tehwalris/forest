@@ -22,7 +22,8 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": [
-    "src"
+    "src/*.d.ts",
+    "src/thirdparty"
   ],
   "exclude": [
     "playground",
