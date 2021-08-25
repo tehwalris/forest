@@ -21,12 +21,11 @@
     "types": [],
     "noFallthroughCasesInSwitch": true
   },
-  "include": [
-    "src/*.d.ts",
-    "src/thirdparty"
-  ],
   "exclude": [
     "playground",
     "tasks"
+  ],
+  "include": [
+    "src"
   ]
 }
