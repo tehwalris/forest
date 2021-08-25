@@ -2,6 +2,7 @@ import { Node } from "./node";
 export enum InputKind {
   None,
   String,
+  LiveString,
   OneOf,
   Child,
   Node,
@@ -10,6 +11,7 @@ export enum InputKind {
 export type Action<N extends Node<unknown>> =
   | NoInputAction<N>
   | StringInputAction<N>
+  | LiveStringInputAction<N>
   | OneOfInputAction<N, any>
   | ChildInputAction<N>
   | NodeInputAction<any, any>
@@ -21,6 +23,15 @@ export interface NoInputAction<N extends Node<unknown>> {
 export interface StringInputAction<N extends Node<unknown>> {
   inputKind: InputKind.String;
   apply(input: string): N;
+}
+export interface LiveStringInputAction<N extends Node<unknown>> {
+  inputKind: InputKind.LiveString;
+  preApply(input: string): LiveStringResult;
+  apply(input: string): N;
+}
+export interface LiveStringResult {
+  ok: boolean;
+  message: string;
 }
 export interface OneOfInputAction<N extends Node<unknown>, T> {
   inputKind: InputKind.OneOf;
@@ -42,6 +53,7 @@ export interface ActionSet<N extends Node<unknown>> {
   prepend?: NoInputAction<N>;
   append?: NoInputAction<N>;
   setFromString?: StringInputAction<N>;
+  setFromLiveString?: LiveStringInputAction<N>;
   setVariant?: OneOfInputAction<N, unknown>;
   deleteChild?: ChildInputAction<N>;
   replace?: NodeInputAction<unknown, Node<unknown>>;

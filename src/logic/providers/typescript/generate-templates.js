@@ -141,6 +141,7 @@ import {
   OptionalStructListChild,
 } from "../template-nodes";
 import { enhancers, makeUnionMemberEnhancer } from "../enhancer";
+import { liveStringHelpers } from "../live-string";
 import {
   FlagKind
 } from "../flags";
@@ -201,6 +202,7 @@ ${e.name}: {
       `
 ${e.name}: {
   name: "${e.name}",
+  ${e.variants.includes('Identifier') ? `liveStringHelper: liveStringHelpers["IdentifierLike"],` : ''}
   getMembers: () => ({
     ${e.variants.map((v) => `${v}: plainTypes.${v},`).join("\n")}
   }),

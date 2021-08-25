@@ -203,7 +203,9 @@ export function handleKey(
     A: tryAction("append", (n) => (R.last(n.children)?.node || n).id, true),
     i: () => insertSibling(0),
     a: () => insertSibling(1),
-    Enter: node.actions.setVariant
+    Enter: node.actions.setFromLiveString
+      ? tryAction("setFromLiveString", (n) => n.id)
+      : node.actions.setVariant
       ? tryAction("setVariant", (n) => n.id, true)
       : tryAction("setFromString"),
     d: tryDeleteChild,

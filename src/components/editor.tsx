@@ -413,6 +413,16 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
             action={inProgressAction.action}
             onCancel={() => setInProgressAction(undefined)}
             onApply={onActionApply}
+            onTriggerNextAction={() => {
+              if (focusedNode.actions.setVariant) {
+                handleAction(
+                  focusedNode.actions.setVariant,
+                  focusedParentIndexEntry.path.map((e) => e.childKey),
+                  (n) => n.id,
+                  { triggerAutoAction: true },
+                );
+              }
+            }}
           />
         </div>
       )}

@@ -11,6 +11,7 @@ const SHORTCUTS_BY_ACTION_KEY: {
   append: "space shift-a",
   setVariant: "Enter",
   setFromString: "Enter",
+  setFromLiveString: "Enter",
 };
 const PARENT_SHORTCUTS = ["replace", "deleteChild", "insertChildAtIndex"];
 export const PossibleActionDisplay: React.FC<Props> = ({ actions }) => (

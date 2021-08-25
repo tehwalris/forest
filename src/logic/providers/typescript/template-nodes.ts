@@ -27,8 +27,10 @@ import { ParentPathElement } from "../../parent-index";
 import { Doc, leafDoc } from "../../tree/display-line";
 import { NodeKind } from "divetree-core";
 import { arrayFromTextSize } from "../../text-measurement";
+import { LiveStringHelper } from "./live-string";
 export type Union<T extends ts.Node | undefined> = {
   name: string;
+  liveStringHelper?: LiveStringHelper<NonNullable<T>>;
   getMembers: () => {
     [key: string]: {
       match: (node: ts.Node | undefined) => node is T;
@@ -463,6 +465,21 @@ export class TemplateUnionNode<T extends ts.Node | undefined> extends UnionNode<
         return fromTsNode(tsNode, this._union);
       },
     };
+    if (_union.liveStringHelper) {
+      const liveStringHelper = _union.liveStringHelper;
+      this.actions.setFromLiveString = {
+        inputKind: InputKind.LiveString,
+        preApply: liveStringHelper,
+        apply: (input: string) => {
+          const result = liveStringHelper(input);
+          if (!result.ok) {
+            console.warn("liveStringHelper failed", result);
+            return this;
+          }
+          return fromTsNode(result.node, this._union);
+        },
+      };
+    }
   }
   clone(): TemplateUnionNode<T> {
     const node = new TemplateUnionNode(
@@ -567,6 +584,7 @@ export class RequiredHoleNode<B> extends Node<B> {
       throw new Error("invalid inner node");
     }
     this.actions.setVariant = inner.actions.setVariant;
+    this.actions.setFromLiveString = inner.actions.setFromLiveString;
     this.actions.replace = {
       inputKind: InputKind.Node,
       apply: (...args) => {
