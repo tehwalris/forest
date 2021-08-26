@@ -48,7 +48,7 @@ export const LiveStringFiller = <N extends Node<unknown>>({
         <div
           className={styles.message}
           style={{
-            color: !hasValue ? "grey" : !result.ok ? "red" : undefined,
+            color: !hasValue || result.ok ? "grey" : undefined,
           }}
         >
           {result.message}

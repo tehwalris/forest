@@ -120,6 +120,15 @@ const {
         (union) => ({
           ...union,
           variants: resolveVariants(union),
+          liveStringVariants: resolveVariants(union).filter((v) =>
+            [
+              "Identifier",
+              "StringLiteral",
+              "NumericLiteral",
+              "TrueLiteral",
+              "FalseLiteral",
+            ].includes(v),
+          ),
         }),
         unions,
       );
@@ -141,7 +150,7 @@ import {
   OptionalStructListChild,
 } from "../template-nodes";
 import { enhancers, makeUnionMemberEnhancer } from "../enhancer";
-import { liveStringHelpers } from "../live-string";
+import { makeLiveStringHelper } from "../live-string";
 import {
   FlagKind
 } from "../flags";
@@ -202,7 +211,13 @@ ${e.name}: {
       `
 ${e.name}: {
   name: "${e.name}",
-  ${e.variants.includes('Identifier') ? `liveStringHelper: liveStringHelpers["IdentifierLike"],` : ''}
+  ${
+    e.liveStringVariants.length
+      ? `liveStringHelper: makeLiveStringHelper(${JSON.stringify(
+          e.liveStringVariants,
+        )}),`
+      : ""
+  }
   getMembers: () => ({
     ${e.variants.map((v) => `${v}: plainTypes.${v},`).join("\n")}
   }),
@@ -296,12 +311,12 @@ ${c.optional ? "Optional" : "Required"}Struct${
         value: ${c.load || `e.${c.key}`},
         union: unions.${c.union},
         ${[
-            c.optional ? "optional: true" : "",
-            c.list ? "isList: true" : "",
-            c.list ? `enhancer: enhancers["${e.name}.${c.key}"]` : "",
-          ]
-            .filter((v) => v)
-            .join(",")}
+          c.optional ? "optional: true" : "",
+          c.list ? "isList: true" : "",
+          c.list ? `enhancer: enhancers["${e.name}.${c.key}"]` : "",
+        ]
+          .filter((v) => v)
+          .join(",")}
       },
     `.trim(),
       )
