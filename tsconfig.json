@@ -21,11 +21,11 @@
     "types": [],
     "noFallthroughCasesInSwitch": true
   },
-  "include": [
-    "src"
-  ],
   "exclude": [
     "playground",
     "tasks"
+  ],
+  "include": [
+    "src"
   ]
 }

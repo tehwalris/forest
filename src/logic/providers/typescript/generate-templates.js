@@ -7,6 +7,14 @@ const input = fs.readFileSync(
   "utf8",
 );
 
+const liveStringSupportedTypes = [
+  "Identifier",
+  "StringLiteral",
+  "NumericLiteral",
+  "TrueLiteral",
+  "FalseLiteral",
+];
+
 const {
   unions,
   plainTypes,
@@ -120,6 +128,9 @@ const {
         (union) => ({
           ...union,
           variants: resolveVariants(union),
+          liveStringVariants: resolveVariants(union).filter((v) =>
+            liveStringSupportedTypes.includes(v),
+          ),
         }),
         unions,
       );
@@ -141,6 +152,7 @@ import {
   OptionalStructListChild,
 } from "../template-nodes";
 import { enhancers, makeUnionMemberEnhancer } from "../enhancer";
+import { makeLiveStringHelper } from "../live-string";
 import {
   FlagKind
 } from "../flags";
@@ -201,6 +213,13 @@ ${e.name}: {
       `
 ${e.name}: {
   name: "${e.name}",
+  ${
+    e.liveStringVariants.length
+      ? `liveStringHelper: makeLiveStringHelper(${JSON.stringify(
+          e.liveStringVariants,
+        )}),`
+      : ""
+  }
   getMembers: () => ({
     ${e.variants.map((v) => `${v}: plainTypes.${v},`).join("\n")}
   }),
@@ -212,6 +231,11 @@ ${e.name}: {
       `
 ${e.name}: {
   name: "${e.name}",
+  ${
+    liveStringSupportedTypes.includes(e.name)
+      ? `liveStringHelper: makeLiveStringHelper(["${e.name}"]),`
+      : ""
+  }
   getMembers: () => ({
     ${e.name}: plainTypes.${e.name}
   }),
@@ -294,12 +318,12 @@ ${c.optional ? "Optional" : "Required"}Struct${
         value: ${c.load || `e.${c.key}`},
         union: unions.${c.union},
         ${[
-            c.optional ? "optional: true" : "",
-            c.list ? "isList: true" : "",
-            c.list ? `enhancer: enhancers["${e.name}.${c.key}"]` : "",
-          ]
-            .filter((v) => v)
-            .join(",")}
+          c.optional ? "optional: true" : "",
+          c.list ? "isList: true" : "",
+          c.list ? `enhancer: enhancers["${e.name}.${c.key}"]` : "",
+        ]
+          .filter((v) => v)
+          .join(",")}
       },
     `.trim(),
       )

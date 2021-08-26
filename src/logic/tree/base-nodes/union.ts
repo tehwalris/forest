@@ -2,7 +2,7 @@ import { ActionSet, InputKind } from "../action";
 import { Node, ChildNodeEntry, BuildResult } from "../node";
 export abstract class UnionNode<K, B> extends Node<B> {
   children: ChildNodeEntry<any>[];
-  actions: ActionSet<UnionNode<K, B>>;
+  actions: ActionSet<Node<B>>;
   protected oneOf: LazyUnionVariant<K>[];
   protected value: UnionVariant<K>;
   constructor(oneOf: LazyUnionVariant<K>[], value: UnionVariant<K>) {

@@ -2,12 +2,14 @@ import * as React from "react";
 import { Action, InputKind } from "../../../logic/tree/action";
 import { Node } from "../../../logic/tree/node";
 import { StringFiller } from "./string";
+import { LiveStringFiller } from "./live-string";
 import { OneOfFiller } from "./one-of";
 import { css } from "@emotion/css";
 interface Props<N extends Node<unknown>> {
   action: Action<N>;
   onCancel: () => void;
   onApply: (node: N) => void;
+  onTriggerNextAction: () => void;
 }
 const styles = {
   wrapper: css`
@@ -35,6 +37,7 @@ export const ActionFiller = <N extends Node<unknown>>({
   action,
   onApply,
   onCancel,
+  onTriggerNextAction,
 }: Props<N>) => {
   const wrap = (e: React.ReactElement<{}>) => (
     <div className={`actionFiller ${styles.wrapper}`}>
@@ -47,6 +50,14 @@ export const ActionFiller = <N extends Node<unknown>>({
   switch (action.inputKind) {
     case InputKind.String:
       return wrap(<StringFiller action={action} onApply={onApply} />);
+    case InputKind.LiveString:
+      return wrap(
+        <LiveStringFiller
+          action={action}
+          onApply={onApply}
+          onTriggerNextAction={onTriggerNextAction}
+        />,
+      );
     case InputKind.OneOf:
       return wrap(<OneOfFiller action={action} onApply={onApply} />);
     default:
