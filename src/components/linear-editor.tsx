@@ -49,77 +49,6 @@ function docMapRoot(doc: Doc, cb: (node: ListNode) => Node): Doc {
   return { ...doc, root: newRoot };
 }
 
-function docGetLastToken(doc: Doc, focus: Path): TokenNode | undefined {
-  const focusedNode = nodeGetByPath(doc.root, focus);
-  if (!focusedNode) {
-    throw new Error("expected focusedNode");
-  }
-  return nodeGetLastToken(focusedNode);
-}
-
-function docSetLastToken(doc: Doc, newToken: TokenNode, focus: Path): Doc {
-  return docMapRoot(
-    doc,
-    nodeMapAtPath(focus, (node) => nodeSetLastToken(node, newToken)),
-  );
-}
-
-function docAppendNode(doc: Doc, node: Node, focus: Path): Doc {
-  return docMapRoot(
-    doc,
-    nodeMapAtPath(focus, (oldFocusedNode) => {
-      if (oldFocusedNode.kind !== NodeKind.List) {
-        throw new Error("focused node does not exist or is not a list");
-      }
-      return {
-        ...oldFocusedNode,
-        content: [...oldFocusedNode.content, node],
-      };
-    }),
-  );
-}
-
-function nodeGetLastToken(node: Node): TokenNode | undefined {
-  switch (node.kind) {
-    case NodeKind.Token:
-      return node;
-    case NodeKind.List:
-      return node.content.reduceRight(
-        (a: TokenNode | undefined, c) => a || nodeGetLastToken(c),
-        undefined,
-      );
-    default:
-      return unreachable(node);
-  }
-}
-
-function nodeSetLastToken(node: Node, newToken: TokenNode): Node {
-  switch (node.kind) {
-    case NodeKind.Token:
-      return newToken;
-    case NodeKind.List:
-      const targetIndex = node.content.reduceRight(
-        (a: number | undefined, c, i) =>
-          a === undefined && nodeGetLastToken(c) ? i : a,
-        undefined,
-      );
-      if (targetIndex === undefined) {
-        return node;
-      }
-      const newContent = [...node.content];
-      newContent[targetIndex] = nodeSetLastToken(
-        newContent[targetIndex],
-        newToken,
-      );
-      if (newContent[targetIndex] === node.content[targetIndex]) {
-        return node;
-      }
-      return { ...node, content: newContent };
-    default:
-      return unreachable(node);
-  }
-}
-
 function nodeTryGetDeepestByPath(
   node: Node,
   path: Path,
@@ -218,10 +147,16 @@ class DocManager {
         if (focusedNode?.kind !== NodeKind.List || focusedNode.content.length) {
           return;
         }
-        this.doc = docAppendNode(this.doc, emptyToken, this.focus.anchor);
+        this.doc = docMapRoot(this.doc, (root) =>
+          nodeSetByPath(root, this.focus.anchor, {
+            ...focusedNode,
+            content: [emptyToken],
+          }),
+        );
         this.focus = { anchor: [...this.focus.anchor, 0], offset: 0 };
         this.mode = Mode.Insert;
       } else if (ev.key === "a") {
+        // TODO flip so that anchor is on right
         if (!this.focus.anchor.length) {
           return;
         }
@@ -232,97 +167,100 @@ class DocManager {
         }
         this.mode = Mode.Insert;
       } else if (ev.key === "l") {
-        this.tryMoveToSibling(1);
+        this.tryMoveToSibling(1, false);
+      } else if (ev.key === "L") {
+        this.tryMoveToSibling(1, true);
       } else if (ev.key === "h") {
-        this.tryMoveToSibling(-1);
+        this.tryMoveToSibling(-1, false);
+      } else if (ev.key === "H") {
+        this.tryMoveToSibling(-1, true);
       } else if (ev.key === "k") {
         this.tryMoveToParent();
       } else if (ev.key === "j") {
         this.tryMoveIntoList();
       }
     } else if (this.mode === Mode.Insert) {
+      if (!this.focus.anchor.length) {
+        throw new Error("root focused in insert mode");
+      }
       const listPath = this.focus.anchor.slice(0, -1);
-      let lastToken = docGetLastToken(this.doc, listPath);
-      if (!lastToken) {
-        throw new Error("expected last token to exist");
-      }
-
-      const tokenPatterns = [
-        { key: /^[a-zA-Z]$/, token: /^[a-zA-Z]*$/ },
-        { key: /^\d$/, token: /^\d*$/ },
-        { key: /^[+\-*/]$/, token: /^[+\-*/]*$/, singleChar: true },
-      ];
-      for (const {
-        key: keyPattern,
-        token: tokenPattern,
-        singleChar = false,
-      } of tokenPatterns) {
-        if (ev.key.match(keyPattern)) {
-          if (
-            !lastToken.content.match(tokenPattern) ||
-            (lastToken.content.length === 1 && singleChar)
-          ) {
-            this.doc = docAppendNode(this.doc, emptyToken, listPath);
-            lastToken = docGetLastToken(this.doc, listPath)!;
-            this.focus = {
-              anchor: this.focus.anchor,
-              offset: this.focus.offset + 1,
-            };
+      this.doc = docMapRoot(
+        this.doc,
+        nodeMapAtPath(listPath, (oldListNode) => {
+          if (oldListNode.kind !== NodeKind.List) {
+            throw new Error("parent of focused node is not a list");
           }
-          this.doc = docSetLastToken(
-            this.doc,
-            {
-              ...lastToken,
-              content: lastToken.content + ev.key,
-            },
-            listPath,
-          );
-          break;
-        }
-      }
-
-      const listDelimiters: [string, string][] = [["(", ")"]];
-      for (const delimiters of listDelimiters) {
-        if (ev.key === delimiters[0]) {
-          this.doc = docAppendNode(
-            this.doc,
-            {
-              kind: NodeKind.List,
-              delimiters,
-              content: [],
-            },
-            listPath,
-          );
-          const focusedNode = nodeGetByPath(this.doc.root, listPath);
-          if (focusedNode?.kind !== NodeKind.List) {
-            throw new Error("focusedNode does not exist or is not a list");
-          }
-          const newListPath = [...listPath, focusedNode.content.length - 1];
-          this.doc = docAppendNode(this.doc, emptyToken, newListPath);
-          this.focus = {
-            anchor: [...newListPath, 0],
-            offset: 0,
+          const newListNode = {
+            ...oldListNode,
+            content: [...oldListNode.content],
           };
-          break;
-        } else if (ev.key === delimiters[1]) {
-          const focusedNode = nodeGetByPath(this.doc.root, listPath);
-          if (
-            focusedNode?.kind === NodeKind.List &&
-            focusedNode.delimiters[1] === delimiters[1]
-          ) {
-            this.doc = docAppendNode(
-              this.doc,
-              emptyToken,
-              listPath.slice(0, -1),
-            );
-            this.focus = {
-              anchor: listPath,
-              offset: 1,
-            };
-            break;
+
+          let lastNodeIndex =
+            this.focus.anchor[this.focus.anchor.length - 1] + this.focus.offset;
+          let lastNode = newListNode.content[lastNodeIndex];
+          if (!lastNode) {
+            throw new Error("lastNode does not exist");
           }
-        }
-      }
+
+          const tokenPatterns = [
+            { key: /^[a-zA-Z]$/, token: /^[a-zA-Z]*$/ },
+            { key: /^\d$/, token: /^\d*$/ },
+            { key: /^[+\-*/]$/, token: /^[+\-*/]*$/, singleChar: true },
+          ];
+          for (const {
+            key: keyPattern,
+            token: tokenPattern,
+            singleChar = false,
+          } of tokenPatterns) {
+            if (ev.key.match(keyPattern)) {
+              if (
+                lastNode.kind !== NodeKind.Token ||
+                !lastNode.content.match(tokenPattern) ||
+                (lastNode.content.length === 1 && singleChar)
+              ) {
+                lastNodeIndex += 1;
+                lastNode = emptyToken;
+                newListNode.content.splice(lastNodeIndex, 0, lastNode);
+                this.focus = { ...this.focus, offset: this.focus.offset + 1 };
+              }
+              lastNode = {
+                ...lastNode,
+                content: lastNode.content + ev.key,
+              };
+              newListNode.content[lastNodeIndex] = lastNode;
+              return newListNode;
+            }
+          }
+
+          const listDelimiters: [string, string][] = [["(", ")"]];
+          for (const delimiters of listDelimiters) {
+            if (ev.key === delimiters[0]) {
+              lastNodeIndex += 1;
+              lastNode = {
+                kind: NodeKind.List,
+                delimiters,
+                content: [emptyToken],
+              };
+              newListNode.content.splice(lastNodeIndex, 0, lastNode);
+              this.focus = {
+                anchor: [...listPath, lastNodeIndex, 0],
+                offset: 0,
+              };
+              return newListNode;
+            } else if (ev.key === delimiters[1]) {
+              if (oldListNode.delimiters[1] === delimiters[1]) {
+                this.focus = {
+                  anchor: listPath,
+                  offset: 0,
+                };
+                return oldListNode;
+              }
+            }
+          }
+
+          return oldListNode;
+        }),
+      );
     }
 
     this.onUpdate();
@@ -361,12 +299,15 @@ class DocManager {
     }
   };
 
-  private tryMoveToSibling(offset: number) {
+  private tryMoveToSibling(offset: number, extend: boolean) {
     const newAnchor = [...this.focus.anchor];
     newAnchor[newAnchor.length - 1] += this.focus.offset + offset;
-    if (nodeGetByPath(this.doc.root, newAnchor)) {
-      this.focus = { anchor: newAnchor, offset: 0 };
+    if (!nodeGetByPath(this.doc.root, newAnchor)) {
+      return;
     }
+    this.focus = extend
+      ? { anchor: this.focus.anchor, offset: this.focus.offset + offset }
+      : { anchor: newAnchor, offset: 0 };
   }
 
   private tryMoveToParent() {
@@ -421,7 +362,7 @@ class DocManager {
       if (!nodeGetByPath(this.doc.root, offsetPath)) {
         break;
       }
-      newOffset = i;
+      newOffset = i * Math.sign(this.focus.offset);
     }
     this.focus = { ...this.focus, offset: newOffset };
   }
@@ -448,6 +389,7 @@ const styles = {
     margin-top: 15px;
   `,
   token: css`
+    position: relative;
     display: inline-block;
     &:not(:last-child) {
       padding-right: 5px;
@@ -461,7 +403,6 @@ const styles = {
   `,
   listInner: css`
     display: inline-block;
-    position: relative;
   `,
   listDelimiter: css`
     display: inline-block;
@@ -482,22 +423,36 @@ const styles = {
   `,
 };
 
-function renderNode(
-  node: Node,
-  key: React.Key,
-  focus: PathRange | undefined,
-  showCursor: boolean,
-): React.ReactChild {
-  const tokenFocused = focus !== undefined && focus.anchor.length === 0;
-  const listFocused = focus !== undefined && focus.anchor.length === 1;
+function renderNode({
+  node,
+  key,
+  focus,
+  isTipOfFocus,
+  showCursor,
+}: {
+  node: Node;
+  key: React.Key;
+  focus: PathRange | undefined;
+  isTipOfFocus: boolean;
+  showCursor: boolean;
+}): React.ReactChild {
+  const focused = focus !== undefined && focus.anchor.length === 0;
   let focusedChildRange: [number, number] | undefined;
+  let tipOfFocusIndex: number | undefined;
   if (focus?.anchor.length) {
     const offset = focus.anchor.length === 1 ? focus.offset : 0;
     focusedChildRange = [focus.anchor[0], focus.anchor[0] + offset];
+    tipOfFocusIndex = focusedChildRange[1];
     if (focusedChildRange[0] > focusedChildRange[1]) {
       focusedChildRange = [focusedChildRange[1], focusedChildRange[0]];
     }
   }
+
+  const tokenBackground = focused
+    ? isTipOfFocus
+      ? "rgba(11, 83, 255, 0.37)"
+      : "rgba(11, 83, 255, 0.15)"
+    : undefined;
 
   switch (node.kind) {
     case NodeKind.Token:
@@ -505,9 +460,10 @@ function renderNode(
         <div
           key={key}
           className={styles.token}
-          style={{ background: tokenFocused ? "#0b53ff26" : undefined }}
+          style={{ background: tokenBackground }}
         >
-          {node.content}
+          {node.content || "\u200b"}
+          {isTipOfFocus && showCursor && <div className={styles.cursor} />}
         </div>
       );
     case NodeKind.List:
@@ -515,23 +471,23 @@ function renderNode(
         <div
           key={key}
           className={styles.list}
-          style={{ background: tokenFocused ? "#0b53ff26" : undefined }}
+          style={{ background: tokenBackground }}
         >
           <div className={styles.listDelimiter}>{node.delimiters[0]}</div>
           <div className={styles.listInner}>
-            {!node.content.length && "\u200b"}
-            {listFocused && showCursor && <div className={styles.cursor} />}
             {node.content.map((c, i) =>
-              renderNode(
-                c,
-                i,
-                focusedChildRange &&
+              renderNode({
+                node: c,
+                key: i,
+                focus:
+                  focusedChildRange &&
                   i >= focusedChildRange[0] &&
                   i <= focusedChildRange[1]
-                  ? { anchor: focus!.anchor.slice(1), offset: focus!.offset }
-                  : undefined,
+                    ? { anchor: focus!.anchor.slice(1), offset: focus!.offset }
+                    : undefined,
+                isTipOfFocus: i === tipOfFocusIndex,
                 showCursor,
-              ),
+              }),
             )}
           </div>
           <div className={styles.listDelimiter}>{node.delimiters[1]}</div>
@@ -573,10 +529,16 @@ export const LinearEditor = () => {
   return (
     <div>
       <div className={styles.doc}>
-        {renderNode(doc.root, "root", focus, mode === Mode.Insert)}
+        {renderNode({
+          node: doc.root,
+          key: "root",
+          focus,
+          isTipOfFocus: false,
+          showCursor: mode === Mode.Insert,
+        })}
       </div>
-      <div>{JSON.stringify({ doc, focus }, null, 2)}</div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
+      <pre>{JSON.stringify({ doc, focus }, null, 2)}</pre>
     </div>
   );
 };
