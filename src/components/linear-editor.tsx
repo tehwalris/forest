@@ -186,6 +186,11 @@ function nodeMapAtPath(
   };
 }
 
+enum Mode {
+  Normal,
+  Insert,
+}
+
 class DocManager {
   private doc: Doc = emptyDoc;
   private lastDoc: Doc = this.doc;
@@ -193,19 +198,54 @@ class DocManager {
   private history: { doc: Doc; focus: PathRange }[] = [
     { focus: this.focus, doc: this.doc },
   ];
+  private mode = Mode.Normal;
 
   constructor(
-    private _onUpdate: (stuff: { doc: Doc; focus: PathRange }) => void,
+    private _onUpdate: (stuff: {
+      doc: Doc;
+      focus: PathRange;
+      mode: Mode;
+    }) => void,
   ) {}
 
   onKeyPress = (ev: KeyboardEvent) => {
-    if (this.focus.offset === 0) {
-      const onlyAnchor = this.focus.anchor;
-
-      if (!docGetLastToken(this.doc, onlyAnchor)) {
-        this.doc = docAppendNode(this.doc, emptyToken, onlyAnchor);
+    if (this.mode === Mode.Normal) {
+      if (ev.key === "Enter") {
+        if (this.focus.offset !== 0) {
+          return;
+        }
+        const focusedNode = nodeGetByPath(this.doc.root, this.focus.anchor);
+        if (focusedNode?.kind !== NodeKind.List || focusedNode.content.length) {
+          return;
+        }
+        this.doc = docAppendNode(this.doc, emptyToken, this.focus.anchor);
+        this.focus = { anchor: [...this.focus.anchor, 0], offset: 0 };
+        this.mode = Mode.Insert;
+      } else if (ev.key === "a") {
+        if (!this.focus.anchor.length) {
+          return;
+        }
+        const listPath = this.focus.anchor.slice(0, -1);
+        const listNode = nodeGetByPath(this.doc.root, listPath);
+        if (listNode?.kind !== NodeKind.List || !listNode.content.length) {
+          return;
+        }
+        this.mode = Mode.Insert;
+      } else if (ev.key === "l") {
+        this.tryMoveToSibling(1);
+      } else if (ev.key === "h") {
+        this.tryMoveToSibling(-1);
+      } else if (ev.key === "k") {
+        this.tryMoveToParent();
+      } else if (ev.key === "j") {
+        this.tryMoveIntoList();
       }
-      let lastToken = docGetLastToken(this.doc, onlyAnchor)!;
+    } else if (this.mode === Mode.Insert) {
+      const listPath = this.focus.anchor.slice(0, -1);
+      let lastToken = docGetLastToken(this.doc, listPath);
+      if (!lastToken) {
+        throw new Error("expected last token to exist");
+      }
 
       const tokenPatterns = [
         { key: /^[a-zA-Z]$/, token: /^[a-zA-Z]*$/ },
@@ -222,8 +262,12 @@ class DocManager {
             !lastToken.content.match(tokenPattern) ||
             (lastToken.content.length === 1 && singleChar)
           ) {
-            this.doc = docAppendNode(this.doc, emptyToken, onlyAnchor);
-            lastToken = docGetLastToken(this.doc, onlyAnchor)!;
+            this.doc = docAppendNode(this.doc, emptyToken, listPath);
+            lastToken = docGetLastToken(this.doc, listPath)!;
+            this.focus = {
+              anchor: this.focus.anchor,
+              offset: this.focus.offset + 1,
+            };
           }
           this.doc = docSetLastToken(
             this.doc,
@@ -231,15 +275,11 @@ class DocManager {
               ...lastToken,
               content: lastToken.content + ev.key,
             },
-            onlyAnchor,
+            listPath,
           );
           break;
         }
       }
-    }
-
-    if (this.focus.offset === 0) {
-      const onlyAnchor = this.focus.anchor;
 
       const listDelimiters: [string, string][] = [["(", ")"]];
       for (const delimiters of listDelimiters) {
@@ -251,24 +291,34 @@ class DocManager {
               delimiters,
               content: [],
             },
-            onlyAnchor,
+            listPath,
           );
-          const focusedNode = nodeGetByPath(this.doc.root, onlyAnchor);
+          const focusedNode = nodeGetByPath(this.doc.root, listPath);
           if (focusedNode?.kind !== NodeKind.List) {
             throw new Error("focusedNode does not exist or is not a list");
           }
+          const newListPath = [...listPath, focusedNode.content.length - 1];
+          this.doc = docAppendNode(this.doc, emptyToken, newListPath);
           this.focus = {
-            anchor: [...onlyAnchor, focusedNode.content.length - 1],
+            anchor: [...newListPath, 0],
             offset: 0,
           };
           break;
         } else if (ev.key === delimiters[1]) {
-          const focusedNode = nodeGetByPath(this.doc.root, onlyAnchor);
+          const focusedNode = nodeGetByPath(this.doc.root, listPath);
           if (
             focusedNode?.kind === NodeKind.List &&
             focusedNode.delimiters[1] === delimiters[1]
           ) {
-            this.focus = { anchor: onlyAnchor.slice(0, -1), offset: 0 };
+            this.doc = docAppendNode(
+              this.doc,
+              emptyToken,
+              listPath.slice(0, -1),
+            );
+            this.focus = {
+              anchor: listPath,
+              offset: 1,
+            };
             break;
           }
         }
@@ -279,7 +329,27 @@ class DocManager {
   };
 
   onKeyDown = (ev: KeyboardEvent) => {
-    if (ev.key === "Backspace") {
+    if (this.mode === Mode.Insert && ev.key === "Escape") {
+      this.mode = Mode.Normal;
+      this.history = [];
+      const listPath = this.focus.anchor.slice(0, -1);
+      const oldListNode = nodeGetByPath(this.doc.root, listPath);
+      if (oldListNode?.kind !== NodeKind.List) {
+        throw new Error("expected list to be parent of focused node");
+      }
+      if (
+        oldListNode.content.every(
+          (c) => c.kind === NodeKind.Token && !c.content.trim(),
+        )
+      ) {
+        const newListNode = { ...oldListNode, content: [] };
+        this.doc = docMapRoot(this.doc, (root) =>
+          nodeSetByPath(root, listPath, newListNode),
+        );
+        this.focus = { anchor: listPath, offset: 0 };
+      }
+      this.onUpdate();
+    } else if (this.mode === Mode.Insert && ev.key === "Backspace") {
       if (this.history.length < 2) {
         return;
       }
@@ -291,13 +361,43 @@ class DocManager {
     }
   };
 
+  private tryMoveToSibling(offset: number) {
+    const newAnchor = [...this.focus.anchor];
+    newAnchor[newAnchor.length - 1] += this.focus.offset + offset;
+    if (nodeGetByPath(this.doc.root, newAnchor)) {
+      this.focus = { anchor: newAnchor, offset: 0 };
+    }
+  }
+
+  private tryMoveToParent() {
+    if (this.focus.anchor.length < 2) {
+      return;
+    }
+    this.focus = { anchor: this.focus.anchor.slice(0, -1), offset: 0 };
+  }
+
+  private tryMoveIntoList() {
+    if (this.focus.offset !== 0) {
+      return;
+    }
+    const listPath = this.focus.anchor;
+    const listNode = nodeGetByPath(this.doc.root, listPath);
+    if (listNode?.kind !== NodeKind.List || !listNode.content.length) {
+      return;
+    }
+    this.focus = {
+      anchor: [...listPath, 0],
+      offset: listNode.content.length - 1,
+    };
+  }
+
   private onUpdate() {
     if (this.doc !== this.lastDoc) {
       this.lastDoc = this.doc;
     }
     this.fixFocus();
     this.history.push({ doc: this.doc, focus: this.focus });
-    this._onUpdate({ doc: this.doc, focus: this.focus });
+    this._onUpdate({ doc: this.doc, focus: this.focus, mode: this.mode });
   }
 
   private fixFocus() {
@@ -343,16 +443,20 @@ const styles = {
   doc: css`
     margin: 5px;
   `,
+  modeLine: css`
+    margin: 5px;
+    margin-top: 15px;
+  `,
   token: css`
     display: inline-block;
     &:not(:last-child) {
-      margin-right: 5px;
+      padding-right: 5px;
     }
   `,
   list: css`
     display: inline-block;
     &:not(:last-child) {
-      margin-right: 5px;
+      padding-right: 5px;
     }
   `,
   listInner: css`
@@ -382,8 +486,10 @@ function renderNode(
   node: Node,
   key: React.Key,
   focus: PathRange | undefined,
+  showCursor: boolean,
 ): React.ReactChild {
-  const focused = focus !== undefined && focus.anchor.length === 0;
+  const tokenFocused = focus !== undefined && focus.anchor.length === 0;
+  const listFocused = focus !== undefined && focus.anchor.length === 1;
   let focusedChildRange: [number, number] | undefined;
   if (focus?.anchor.length) {
     const offset = focus.anchor.length === 1 ? focus.offset : 0;
@@ -396,25 +502,25 @@ function renderNode(
   switch (node.kind) {
     case NodeKind.Token:
       return (
-        <div key={key} className={styles.token}>
+        <div
+          key={key}
+          className={styles.token}
+          style={{ background: tokenFocused ? "#0b53ff26" : undefined }}
+        >
           {node.content}
         </div>
       );
     case NodeKind.List:
       return (
-        <div key={key} className={styles.list}>
-          <div
-            className={styles.listDelimiter}
-            style={{ background: focused ? "wheat" : undefined }}
-          >
-            {node.delimiters[0]}
-          </div>
-          <div
-            className={styles.listInner}
-            style={{ background: focused ? "#0b53ff26" : undefined }}
-          >
+        <div
+          key={key}
+          className={styles.list}
+          style={{ background: tokenFocused ? "#0b53ff26" : undefined }}
+        >
+          <div className={styles.listDelimiter}>{node.delimiters[0]}</div>
+          <div className={styles.listInner}>
             {!node.content.length && "\u200b"}
-            {focused && <div className={styles.cursor} />}
+            {listFocused && showCursor && <div className={styles.cursor} />}
             {node.content.map((c, i) =>
               renderNode(
                 c,
@@ -424,24 +530,25 @@ function renderNode(
                   i <= focusedChildRange[1]
                   ? { anchor: focus!.anchor.slice(1), offset: focus!.offset }
                   : undefined,
+                showCursor,
               ),
             )}
           </div>
-          <div
-            className={styles.listDelimiter}
-            style={{ background: focused ? "wheat" : undefined }}
-          >
-            {node.delimiters[1]}
-          </div>
+          <div className={styles.listDelimiter}>{node.delimiters[1]}</div>
         </div>
       );
   }
 }
 
 export const LinearEditor = () => {
-  const [{ doc, focus }, setStuff] = useState<{ doc: Doc; focus: PathRange }>({
+  const [{ doc, focus, mode }, setStuff] = useState<{
+    doc: Doc;
+    focus: PathRange;
+    mode: Mode;
+  }>({
     doc: emptyDoc,
     focus: { anchor: [], offset: 0 },
+    mode: Mode.Normal,
   });
   const [docManager, setDocManager] = useState(new DocManager(setStuff));
   useEffect(() => {
@@ -464,6 +571,12 @@ export const LinearEditor = () => {
   }, [docManager]);
 
   return (
-    <div className={styles.doc}>{renderNode(doc.root, "root", focus)}</div>
+    <div>
+      <div className={styles.doc}>
+        {renderNode(doc.root, "root", focus, mode === Mode.Insert)}
+      </div>
+      <div>{JSON.stringify({ doc, focus }, null, 2)}</div>
+      <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
+    </div>
   );
 };
