@@ -1,7 +1,6 @@
 import { css, keyframes } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { offsetRectsMayIntersect } from "../../../divetree/divetree-core/lib";
 import { unreachable } from "../logic/util";
 
 type Path = number[];
@@ -115,6 +114,18 @@ function nodeMapAtPath(
   };
 }
 
+function flipPathRange(oldPathRange: PathRange): PathRange {
+  if (!oldPathRange.anchor.length || !oldPathRange.offset) {
+    return oldPathRange;
+  }
+  const newPathRange = {
+    anchor: [...oldPathRange.anchor],
+    offset: -oldPathRange.offset,
+  };
+  newPathRange.anchor[newPathRange.anchor.length - 1] += oldPathRange.offset;
+  return newPathRange;
+}
+
 enum Mode {
   Normal,
   Insert,
@@ -156,7 +167,6 @@ class DocManager {
         this.focus = { anchor: [...this.focus.anchor, 0], offset: 0 };
         this.mode = Mode.Insert;
       } else if (ev.key === "a") {
-        // TODO flip so that anchor is on right
         if (!this.focus.anchor.length) {
           return;
         }
@@ -164,6 +174,9 @@ class DocManager {
         const listNode = nodeGetByPath(this.doc.root, listPath);
         if (listNode?.kind !== NodeKind.List || !listNode.content.length) {
           return;
+        }
+        if (this.focus.offset < 0) {
+          this.focus = flipPathRange(this.focus);
         }
         this.mode = Mode.Insert;
       } else if (ev.key === "l") {
