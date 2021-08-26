@@ -126,6 +126,15 @@ function flipPathRange(oldPathRange: PathRange): PathRange {
   return newPathRange;
 }
 
+function getPathToTip(pathRange: PathRange): Path {
+  const path = [...pathRange.anchor];
+  if (!path.length) {
+    return [];
+  }
+  path[path.length - 1] += pathRange.offset;
+  return path;
+}
+
 enum Mode {
   Normal,
   Insert,
@@ -191,6 +200,8 @@ class DocManager {
         this.tryMoveToParent();
       } else if (ev.key === "j") {
         this.tryMoveIntoList();
+      } else if (ev.key === ";") {
+        this.focus = { anchor: getPathToTip(this.focus), offset: 0 };
       }
     } else if (this.mode === Mode.Insert) {
       if (!this.focus.anchor.length) {
@@ -280,7 +291,10 @@ class DocManager {
   };
 
   onKeyDown = (ev: KeyboardEvent) => {
-    if (this.mode === Mode.Insert && ev.key === "Escape") {
+    if (this.mode === Mode.Normal && ev.key === ";" && ev.altKey) {
+      this.focus = flipPathRange(this.focus);
+      this.onUpdate();
+    } else if (this.mode === Mode.Insert && ev.key === "Escape") {
       this.mode = Mode.Normal;
       this.history = [];
       const listPath = this.focus.anchor.slice(0, -1);
