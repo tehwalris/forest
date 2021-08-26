@@ -118,7 +118,7 @@ function unionWithOptionNone<T extends ts.Node | undefined>(
     return cachedUnionWithNone;
   }
   const unionWithNone = {
-    name: union.name,
+    ...union,
     getMembers: () => ({
       ...union.getMembers(),
       "Option<None>": {

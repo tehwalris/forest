@@ -7,6 +7,14 @@ const input = fs.readFileSync(
   "utf8",
 );
 
+const liveStringSupportedTypes = [
+  "Identifier",
+  "StringLiteral",
+  "NumericLiteral",
+  "TrueLiteral",
+  "FalseLiteral",
+];
+
 const {
   unions,
   plainTypes,
@@ -121,13 +129,7 @@ const {
           ...union,
           variants: resolveVariants(union),
           liveStringVariants: resolveVariants(union).filter((v) =>
-            [
-              "Identifier",
-              "StringLiteral",
-              "NumericLiteral",
-              "TrueLiteral",
-              "FalseLiteral",
-            ].includes(v),
+            liveStringSupportedTypes.includes(v),
           ),
         }),
         unions,
@@ -229,6 +231,11 @@ ${e.name}: {
       `
 ${e.name}: {
   name: "${e.name}",
+  ${
+    liveStringSupportedTypes.includes(e.name)
+      ? `liveStringHelper: makeLiveStringHelper(["${e.name}"]),`
+      : ""
+  }
   getMembers: () => ({
     ${e.name}: plainTypes.${e.name}
   }),

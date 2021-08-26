@@ -272,29 +272,30 @@ export const Editor: React.FC<Props> = ({ fs, projectRootDir }) => {
     [updateNode],
   );
   useEffect(() => {
+    const { node, path } = focusedParentIndexEntry;
+    const actions = node.actions;
+
     if (
       nextAutoActionIdRef.current === undefined ||
-      focusedParentIndexEntry.node.id !== nextAutoActionIdRef.current
+      node.id !== nextAutoActionIdRef.current
     ) {
       nextAutoActionIdRef.current = undefined;
       return;
     }
     nextAutoActionIdRef.current = undefined;
 
-    if (
-      focusedParentIndexEntry.node instanceof RequiredHoleNode &&
-      focusedParentIndexEntry.node.actions.setVariant
-    ) {
+    const setVariantLike = actions.setFromLiveString || actions.setVariant;
+    if (node instanceof RequiredHoleNode && setVariantLike) {
       handleAction(
-        focusedParentIndexEntry.node.actions.setVariant,
-        focusedParentIndexEntry.path.map((e) => e.childKey),
+        setVariantLike,
+        path.map((e) => e.childKey),
         (n) => n.id,
-        { triggerAutoAction: true },
+        { triggerAutoAction: !actions.setFromLiveString },
       );
-    } else if (focusedParentIndexEntry.node.actions.setFromString) {
+    } else if (actions.setFromString) {
       handleAction(
-        focusedParentIndexEntry.node.actions.setFromString,
-        focusedParentIndexEntry.path.map((e) => e.childKey),
+        actions.setFromString,
+        path.map((e) => e.childKey),
         undefined,
         {},
       );
