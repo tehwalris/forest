@@ -39,7 +39,7 @@ const orderedTypesWithRegex: TypeWithRegex[] = [
   },
   {
     name: "StringLiteral",
-    regex: /^(?<quote>["'])(?<inner>.*)\k<quote>$/,
+    regex: /^(?<quote>["'])(?<inner>.*?)\k<quote>?$/,
     makeTsNode: (m) => ts.createStringLiteral(m.groups!.inner),
   },
   {
