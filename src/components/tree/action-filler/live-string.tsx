@@ -30,7 +30,7 @@ export const LiveStringFiller = <N extends Node<unknown>>({
         value={value}
         onChange={(ev) => setValue(ev.target.value)}
         onKeyDown={(ev) => {
-          if (ev.key !== "Escape") {
+          if (!(ev.key === "Escape" || (ev.key === " " && !value))) {
             ev.stopPropagation();
           }
         }}
