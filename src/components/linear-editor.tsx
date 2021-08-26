@@ -1,9 +1,11 @@
 import { css, keyframes } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
+import { offsetRectsMayIntersect } from "../../../divetree/divetree-core/lib";
 import { unreachable } from "../logic/util";
 
 type Path = number[];
+type PathRange = { anchor: Path; offset: number };
 
 enum NodeKind {
   Token,
@@ -187,75 +189,88 @@ function nodeMapAtPath(
 class DocManager {
   private doc: Doc = emptyDoc;
   private lastDoc: Doc = this.doc;
-  private focus: Path = [];
-  private history: { doc: Doc; focus: Path }[] = [
+  private focus: PathRange = { anchor: [], offset: 0 };
+  private history: { doc: Doc; focus: PathRange }[] = [
     { focus: this.focus, doc: this.doc },
   ];
 
-  constructor(private _onUpdate: (stuff: { doc: Doc; focus: Path }) => void) {}
+  constructor(
+    private _onUpdate: (stuff: { doc: Doc; focus: PathRange }) => void,
+  ) {}
 
   onKeyPress = (ev: KeyboardEvent) => {
-    if (!docGetLastToken(this.doc, this.focus)) {
-      this.doc = docAppendNode(this.doc, emptyToken, this.focus);
-    }
-    let lastToken = docGetLastToken(this.doc, this.focus)!;
+    if (this.focus.offset === 0) {
+      const onlyAnchor = this.focus.anchor;
 
-    const tokenPatterns = [
-      { key: /^[a-zA-Z]$/, token: /^[a-zA-Z]*$/ },
-      { key: /^\d$/, token: /^\d*$/ },
-      { key: /^[+\-*/]$/, token: /^[+\-*/]*$/, singleChar: true },
-    ];
-    for (const {
-      key: keyPattern,
-      token: tokenPattern,
-      singleChar = false,
-    } of tokenPatterns) {
-      if (ev.key.match(keyPattern)) {
-        if (
-          !lastToken.content.match(tokenPattern) ||
-          (lastToken.content.length === 1 && singleChar)
-        ) {
-          this.doc = docAppendNode(this.doc, emptyToken, this.focus);
-          lastToken = docGetLastToken(this.doc, this.focus)!;
+      if (!docGetLastToken(this.doc, onlyAnchor)) {
+        this.doc = docAppendNode(this.doc, emptyToken, onlyAnchor);
+      }
+      let lastToken = docGetLastToken(this.doc, onlyAnchor)!;
+
+      const tokenPatterns = [
+        { key: /^[a-zA-Z]$/, token: /^[a-zA-Z]*$/ },
+        { key: /^\d$/, token: /^\d*$/ },
+        { key: /^[+\-*/]$/, token: /^[+\-*/]*$/, singleChar: true },
+      ];
+      for (const {
+        key: keyPattern,
+        token: tokenPattern,
+        singleChar = false,
+      } of tokenPatterns) {
+        if (ev.key.match(keyPattern)) {
+          if (
+            !lastToken.content.match(tokenPattern) ||
+            (lastToken.content.length === 1 && singleChar)
+          ) {
+            this.doc = docAppendNode(this.doc, emptyToken, onlyAnchor);
+            lastToken = docGetLastToken(this.doc, onlyAnchor)!;
+          }
+          this.doc = docSetLastToken(
+            this.doc,
+            {
+              ...lastToken,
+              content: lastToken.content + ev.key,
+            },
+            onlyAnchor,
+          );
+          break;
         }
-        this.doc = docSetLastToken(
-          this.doc,
-          {
-            ...lastToken,
-            content: lastToken.content + ev.key,
-          },
-          this.focus,
-        );
-        break;
       }
     }
 
-    const listDelimiters: [string, string][] = [["(", ")"]];
-    for (const delimiters of listDelimiters) {
-      if (ev.key === delimiters[0]) {
-        this.doc = docAppendNode(
-          this.doc,
-          {
-            kind: NodeKind.List,
-            delimiters,
-            content: [],
-          },
-          this.focus,
-        );
-        const focusedNode = nodeGetByPath(this.doc.root, this.focus);
-        if (focusedNode?.kind !== NodeKind.List) {
-          throw new Error("focusedNode does not exist or is not a list");
-        }
-        this.focus = [...this.focus, focusedNode.content.length - 1];
-        break;
-      } else if (ev.key === delimiters[1]) {
-        const focusedNode = nodeGetByPath(this.doc.root, this.focus);
-        if (
-          focusedNode?.kind === NodeKind.List &&
-          focusedNode.delimiters[1] === delimiters[1]
-        ) {
-          this.focus = this.focus.slice(0, -1);
+    if (this.focus.offset === 0) {
+      const onlyAnchor = this.focus.anchor;
+
+      const listDelimiters: [string, string][] = [["(", ")"]];
+      for (const delimiters of listDelimiters) {
+        if (ev.key === delimiters[0]) {
+          this.doc = docAppendNode(
+            this.doc,
+            {
+              kind: NodeKind.List,
+              delimiters,
+              content: [],
+            },
+            onlyAnchor,
+          );
+          const focusedNode = nodeGetByPath(this.doc.root, onlyAnchor);
+          if (focusedNode?.kind !== NodeKind.List) {
+            throw new Error("focusedNode does not exist or is not a list");
+          }
+          this.focus = {
+            anchor: [...onlyAnchor, focusedNode.content.length - 1],
+            offset: 0,
+          };
           break;
+        } else if (ev.key === delimiters[1]) {
+          const focusedNode = nodeGetByPath(this.doc.root, onlyAnchor);
+          if (
+            focusedNode?.kind === NodeKind.List &&
+            focusedNode.delimiters[1] === delimiters[1]
+          ) {
+            this.focus = { anchor: onlyAnchor.slice(0, -1), offset: 0 };
+            break;
+          }
         }
       }
     }
@@ -280,9 +295,35 @@ class DocManager {
     if (this.doc !== this.lastDoc) {
       this.lastDoc = this.doc;
     }
-    this.focus = nodeTryGetDeepestByPath(this.doc.root, this.focus).path;
+    this.fixFocus();
     this.history.push({ doc: this.doc, focus: this.focus });
     this._onUpdate({ doc: this.doc, focus: this.focus });
+  }
+
+  private fixFocus() {
+    const newAnchor = nodeTryGetDeepestByPath(
+      this.doc.root,
+      this.focus.anchor,
+    ).path;
+    if (newAnchor.length !== this.focus.anchor.length) {
+      this.focus = { anchor: newAnchor, offset: 0 };
+      return;
+    }
+    if (this.focus.anchor.length === 0 && this.focus.offset) {
+      console.warn("offset must be zero for root node");
+      this.focus = { ...this.focus, offset: 0 };
+      return;
+    }
+    let newOffset = 0;
+    for (let i = 1; i <= Math.abs(this.focus.offset); i++) {
+      const offsetPath = [...this.focus.anchor];
+      offsetPath[offsetPath.length - 1] += i * Math.sign(this.focus.offset);
+      if (!nodeGetByPath(this.doc.root, offsetPath)) {
+        break;
+      }
+      newOffset = i;
+    }
+    this.focus = { ...this.focus, offset: newOffset };
   }
 }
 
@@ -340,9 +381,18 @@ const styles = {
 function renderNode(
   node: Node,
   key: React.Key,
-  focus: Path | undefined,
+  focus: PathRange | undefined,
 ): React.ReactChild {
-  const focused = focus !== undefined && focus.length === 0;
+  const focused = focus !== undefined && focus.anchor.length === 0;
+  let focusedChildRange: [number, number] | undefined;
+  if (focus?.anchor.length) {
+    const offset = focus.anchor.length === 1 ? focus.offset : 0;
+    focusedChildRange = [focus.anchor[0], focus.anchor[0] + offset];
+    if (focusedChildRange[0] > focusedChildRange[1]) {
+      focusedChildRange = [focusedChildRange[1], focusedChildRange[0]];
+    }
+  }
+
   switch (node.kind) {
     case NodeKind.Token:
       return (
@@ -366,7 +416,15 @@ function renderNode(
             {!node.content.length && "\u200b"}
             {focused && <div className={styles.cursor} />}
             {node.content.map((c, i) =>
-              renderNode(c, i, focus?.[0] === i ? focus.slice(1) : undefined),
+              renderNode(
+                c,
+                i,
+                focusedChildRange &&
+                  i >= focusedChildRange[0] &&
+                  i <= focusedChildRange[1]
+                  ? { anchor: focus!.anchor.slice(1), offset: focus!.offset }
+                  : undefined,
+              ),
             )}
           </div>
           <div
@@ -381,9 +439,9 @@ function renderNode(
 }
 
 export const LinearEditor = () => {
-  const [{ doc, focus }, setStuff] = useState<{ doc: Doc; focus: Path }>({
+  const [{ doc, focus }, setStuff] = useState<{ doc: Doc; focus: PathRange }>({
     doc: emptyDoc,
-    focus: [],
+    focus: { anchor: [], offset: 0 },
   });
   const [docManager, setDocManager] = useState(new DocManager(setStuff));
   useEffect(() => {
