@@ -556,6 +556,10 @@ const styles = {
     position: relative;
     display: inline-block;
   `,
+  separator: css`
+    display: inline-block;
+    white-space: pre;
+  `,
   token: css`
     display: inline-block;
     white-space: pre;
@@ -641,9 +645,13 @@ function renderNode({
           >
             {node.content || "\u200b"}
             {isTipOfFocus && showCursor && <div className={styles.cursor} />}
-            {!isLastOfFocus && trailingSeparator}
+            <div className={styles.separator}>
+              {!isLastOfFocus && trailingSeparator}
+            </div>
           </div>
-          {isLastOfFocus && trailingSeparator}
+          <div className={styles.separator}>
+            {isLastOfFocus && trailingSeparator}
+          </div>
         </div>
       );
     case NodeKind.List:
@@ -681,9 +689,13 @@ function renderNode({
             </div>
             <div className={styles.listDelimiter}>{node.delimiters[1]}</div>
             {isTipOfFocus && showCursor && <div className={styles.cursor} />}
-            {!isLastOfFocus && trailingSeparator}
+            <div className={styles.separator}>
+              {!isLastOfFocus && trailingSeparator}
+            </div>
           </div>
-          {isLastOfFocus && trailingSeparator}
+          <div className={styles.separator}>
+            {isLastOfFocus && trailingSeparator}
+          </div>
         </div>
       );
   }
