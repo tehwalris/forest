@@ -283,10 +283,15 @@ function _withoutEmptyTokens(
     if (focusedChildIndex !== undefined) {
       const childFocus = results[focusedChildIndex]?.focus;
       if (childFocus) {
+        const newFocusedChildIndex = results
+          .map((r, i) => [r, i])
+          .filter(([r, i]) => r)
+          .map(([r, i]) => i)
+          .indexOf(focusedChildIndex);
         return {
           node: newNode,
           focus: {
-            anchor: [focusedChildIndex, ...childFocus.anchor],
+            anchor: [newFocusedChildIndex, ...childFocus.anchor],
             offset: childFocus.offset,
           },
         };
