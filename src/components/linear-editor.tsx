@@ -234,14 +234,11 @@ class DocManager {
           focusedNodes.push(node);
         }
         const reparsedNodes = reparseNodes(focusedNodes);
-        console.log(
-          "DEBUG reparsing",
-          focusedNodes,
-          reparseNodes,
-          reparsedNodes === focusedNodes,
-        );
         if (reparsedNodes === focusedNodes) {
           return;
+        }
+        if (!reparseNodes.length) {
+          throw new Error("reparse gave 0 nodes");
         }
         this.doc = docMapRoot(
           this.doc,
@@ -288,6 +285,45 @@ class DocManager {
           this.focus = flipPathRange(this.focus);
         }
         this.mode = Mode.Insert;
+      } else if (ev.key === "d") {
+        let forwardFocus =
+          this.focus.offset < 0 ? flipPathRange(this.focus) : this.focus;
+        if (this.focus.anchor.length === 0) {
+          if (!this.doc.root.content.length) {
+            return;
+          }
+          forwardFocus = {
+            anchor: [0],
+            offset: this.doc.root.content.length - 1,
+          };
+        }
+        let newFocusIndex: number | undefined;
+        this.doc = docMapRoot(
+          this.doc,
+          nodeMapAtPath(forwardFocus.anchor.slice(0, -1), (oldListNode) => {
+            if (oldListNode?.kind !== NodeKind.List) {
+              throw new Error("oldListNode is not a list");
+            }
+            const newContent = [...oldListNode.content];
+            const deleteFrom =
+              forwardFocus.anchor[forwardFocus.anchor.length - 1];
+            const deleteCount = forwardFocus.offset + 1;
+            if (deleteFrom + deleteCount < oldListNode.content.length) {
+              newFocusIndex = deleteFrom;
+            } else if (deleteFrom > 0) {
+              newFocusIndex = deleteFrom - 1;
+            }
+            newContent.splice(deleteFrom, deleteCount);
+            return { ...oldListNode, content: newContent };
+          }),
+        );
+        this.focus = {
+          anchor:
+            newFocusIndex === undefined
+              ? forwardFocus.anchor.slice(0, -1)
+              : [...forwardFocus.anchor.slice(0, -1), newFocusIndex],
+          offset: 0,
+        };
       } else if (ev.key === "l") {
         this.tryMoveToSibling(1, false);
       } else if (ev.key === "L") {
