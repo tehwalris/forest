@@ -6,6 +6,13 @@ import { unreachable } from "../logic/util";
 type Path = number[];
 type PathRange = { anchor: Path; offset: number };
 
+enum SyntaxKind {
+  RawText,
+  Identifier,
+  NumericLiteral,
+  BinaryOperator,
+}
+
 enum NodeKind {
   Token,
   List,
@@ -15,6 +22,7 @@ type Node = TokenNode | ListNode;
 
 interface TokenNode {
   kind: NodeKind.Token;
+  syntaxKind: SyntaxKind;
   content: string;
 }
 
@@ -30,6 +38,7 @@ interface Doc {
 
 const emptyToken: TokenNode = {
   kind: NodeKind.Token,
+  syntaxKind: SyntaxKind.RawText,
   content: "",
 };
 
@@ -135,6 +144,44 @@ function getPathToTip(pathRange: PathRange): Path {
   return path;
 }
 
+function reparseNodes(oldNodes: Node[]): Node[] {
+  if (!oldNodes.length) {
+    return oldNodes;
+  }
+
+  const identifiers: Node[] = [];
+  let expectDot = false;
+  for (const node of oldNodes) {
+    if (expectDot) {
+      if (
+        node.kind !== NodeKind.Token ||
+        node.syntaxKind !== SyntaxKind.RawText ||
+        node.content !== "."
+      ) {
+        return oldNodes;
+      }
+      expectDot = false;
+    } else {
+      if (
+        node.kind === NodeKind.Token &&
+        node.syntaxKind === SyntaxKind.RawText
+      ) {
+        return oldNodes;
+      }
+      identifiers.push(node);
+      expectDot = true;
+    }
+  }
+
+  if (!expectDot || identifiers.length <= 1) {
+    return oldNodes;
+  }
+
+  return [
+    { kind: NodeKind.List, delimiters: ["|", "|"], content: identifiers },
+  ];
+}
+
 enum Mode {
   Normal,
   Insert,
@@ -159,7 +206,49 @@ class DocManager {
 
   onKeyPress = (ev: KeyboardEvent) => {
     if (this.mode === Mode.Normal) {
-      if (ev.key === "Enter") {
+      if (ev.key === "Enter" && ev.ctrlKey) {
+        if (this.focus.anchor.length === 0) {
+          return;
+        }
+        const forwardFocus =
+          this.focus.offset < 0 ? flipPathRange(this.focus) : this.focus;
+        const focusedNodes: Node[] = [];
+        for (let i = 0; i <= forwardFocus.offset; i++) {
+          const path = [...forwardFocus.anchor];
+          path[path.length - 1] += i;
+          const node = nodeGetByPath(this.doc.root, path);
+          if (!node) {
+            throw new Error("one of the focused nodes does not exist");
+          }
+          focusedNodes.push(node);
+        }
+        const reparsedNodes = reparseNodes(focusedNodes);
+        console.log(
+          "DEBUG reparsing",
+          focusedNodes,
+          reparseNodes,
+          reparsedNodes === focusedNodes,
+        );
+        if (reparsedNodes === focusedNodes) {
+          return;
+        }
+        this.doc = docMapRoot(
+          this.doc,
+          nodeMapAtPath(forwardFocus.anchor.slice(0, -1), (oldListNode) => {
+            if (oldListNode?.kind !== NodeKind.List) {
+              throw new Error("oldListNode is not a list");
+            }
+            const newContent = [...oldListNode.content];
+            newContent.splice(
+              forwardFocus.anchor[forwardFocus.anchor.length - 1],
+              forwardFocus.offset + 1,
+              ...reparsedNodes,
+            );
+            return { ...oldListNode, content: newContent };
+          }),
+        );
+        this.focus = { ...forwardFocus, offset: reparsedNodes.length - 1 };
+      } else if (ev.key === "Enter" && !ev.ctrlKey) {
         if (this.focus.offset !== 0) {
           return;
         }
@@ -227,14 +316,33 @@ class DocManager {
           }
 
           const tokenPatterns = [
-            { key: /^[a-zA-Z]$/, token: /^[a-zA-Z]*$/ },
-            { key: /^\d$/, token: /^\d*$/ },
-            { key: /^[+\-*/]$/, token: /^[+\-*/]*$/, singleChar: true },
+            {
+              key: /^[a-zA-Z]$/,
+              token: /^[a-zA-Z]*$/,
+              syntaxKind: SyntaxKind.Identifier,
+            },
+            {
+              key: /^\d$/,
+              token: /^\d*$/,
+              syntaxKind: SyntaxKind.NumericLiteral,
+            },
+            {
+              key: /^[+\-*/]$/,
+              token: /^[+\-*/]*$/,
+              singleChar: true,
+              syntaxKind: SyntaxKind.BinaryOperator,
+            },
+            {
+              key: /^[.]$/,
+              token: /^[.]*$/,
+              syntaxKind: SyntaxKind.RawText,
+            },
           ];
           for (const {
             key: keyPattern,
             token: tokenPattern,
             singleChar = false,
+            syntaxKind,
           } of tokenPatterns) {
             if (ev.key.match(keyPattern)) {
               if (
@@ -250,6 +358,7 @@ class DocManager {
               lastNode = {
                 ...lastNode,
                 content: lastNode.content + ev.key,
+                syntaxKind,
               };
               newListNode.content[lastNodeIndex] = lastNode;
               return newListNode;
