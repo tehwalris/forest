@@ -423,6 +423,7 @@ const styles = {
     }
   `,
   list: css`
+    position: relative;
     display: inline-block;
     &:not(:last-child) {
       padding-right: 5px;
@@ -469,7 +470,9 @@ function renderNode({
   if (focus?.anchor.length) {
     const offset = focus.anchor.length === 1 ? focus.offset : 0;
     focusedChildRange = [focus.anchor[0], focus.anchor[0] + offset];
-    tipOfFocusIndex = focusedChildRange[1];
+    if (focus.anchor.length === 1) {
+      tipOfFocusIndex = focusedChildRange[1];
+    }
     if (focusedChildRange[0] > focusedChildRange[1]) {
       focusedChildRange = [focusedChildRange[1], focusedChildRange[0]];
     }
@@ -518,6 +521,7 @@ function renderNode({
             )}
           </div>
           <div className={styles.listDelimiter}>{node.delimiters[1]}</div>
+          {isTipOfFocus && showCursor && <div className={styles.cursor} />}
         </div>
       );
   }
