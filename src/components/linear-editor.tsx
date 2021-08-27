@@ -193,6 +193,114 @@ function reparseNodes(oldNodes: Node[]): Node[] {
   ];
 }
 
+function withoutEmptyTokens(
+  doc: Doc,
+  focus: PathRange,
+): { doc: Doc; focus: PathRange } {
+  if (focus.offset < 0) {
+    const result = withoutEmptyTokens(doc, flipPathRange(focus));
+    return { doc: result.doc, focus: flipPathRange(result.focus) };
+  }
+  const result = _withoutEmptyTokens(doc.root, focus)!;
+  return {
+    doc: docMapRoot(doc, () => result.node),
+    focus: result.focus || { anchor: [], offset: 0 },
+  };
+}
+
+function _withoutEmptyTokens(
+  node: Node,
+  focus: PathRange | undefined,
+): { node: Node; focus: PathRange | undefined } | undefined {
+  if (node.kind === NodeKind.Token && node.content) {
+    return { node, focus };
+  }
+  if (node.kind === NodeKind.Token && !node.content) {
+    return undefined;
+  } else if (node.kind === NodeKind.List) {
+    if (!node.content.length) {
+      return { node, focus };
+    }
+
+    let focusedChildIndex: number | undefined;
+    let directlyFocusedChildRange: [number, number] | undefined;
+    if (focus?.anchor.length === 1) {
+      directlyFocusedChildRange = [
+        focus.anchor[0],
+        focus.anchor[0] + focus.offset,
+      ];
+      if (directlyFocusedChildRange[0] > directlyFocusedChildRange[1]) {
+        directlyFocusedChildRange = [
+          directlyFocusedChildRange[1],
+          directlyFocusedChildRange[0],
+        ];
+      }
+    } else if (focus && focus.anchor.length > 1) {
+      focusedChildIndex = focus.anchor[0];
+    }
+
+    const results = node.content.map((c, i) =>
+      _withoutEmptyTokens(
+        c,
+        focusedChildIndex === i
+          ? { anchor: focus!.anchor.slice(1), offset: focus!.offset }
+          : directlyFocusedChildRange &&
+            i >= directlyFocusedChildRange[0] &&
+            i <= directlyFocusedChildRange[1]
+          ? { anchor: [], offset: 0 }
+          : undefined,
+      ),
+    );
+
+    const newNode = {
+      ...node,
+      content: results
+        .map((r) => r?.node)
+        .filter((v) => v)
+        .map((v) => v!),
+    };
+
+    if (!focus) {
+      return { node: newNode, focus: undefined };
+    }
+    if (!newNode.content.length) {
+      return { node: newNode, focus: { anchor: [], offset: 0 } };
+    }
+    if (directlyFocusedChildRange && results.some((r) => r?.focus)) {
+      const remainingResults = results.filter((r) => r);
+      const firstIndex = remainingResults.findIndex((r) => r?.focus);
+      let lastIndex = firstIndex;
+      for (let i = firstIndex; i < remainingResults.length; i++) {
+        if (remainingResults[i]?.focus) {
+          lastIndex = i;
+        }
+      }
+      return {
+        node: newNode,
+        focus: { anchor: [firstIndex], offset: lastIndex - firstIndex },
+      };
+    }
+    if (focusedChildIndex !== undefined) {
+      const childFocus = results[focusedChildIndex]?.focus;
+      if (childFocus) {
+        return {
+          node: newNode,
+          focus: {
+            anchor: [focusedChildIndex, ...childFocus.anchor],
+            offset: childFocus.offset,
+          },
+        };
+      } else {
+        return { node: newNode, focus: { anchor: [], offset: 0 } };
+      }
+    }
+    if (!directlyFocusedChildRange) {
+      return { node: newNode, focus: focus };
+    }
+    return { node: newNode, focus: undefined };
+  }
+}
+
 enum Mode {
   Normal,
   InsertBefore,
@@ -541,22 +649,8 @@ class DocManager {
     ) {
       this.mode = Mode.Normal;
       this.history = [];
-      const listPath = this.focus.anchor.slice(0, -1);
-      const oldListNode = nodeGetByPath(this.doc.root, listPath);
-      if (oldListNode?.kind !== NodeKind.List) {
-        throw new Error("expected list to be parent of focused node");
-      }
-      if (
-        oldListNode.content.every(
-          (c) => c.kind === NodeKind.Token && !c.content.trim(),
-        )
-      ) {
-        const newListNode = { ...oldListNode, content: [] };
-        this.doc = docMapRoot(this.doc, (root) =>
-          nodeSetByPath(root, listPath, newListNode),
-        );
-        this.focus = { anchor: listPath, offset: 0 };
-      }
+      this.fixFocus();
+      this.removeEmptyTokens();
       this.onUpdate();
     } else if (
       (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
@@ -612,7 +706,11 @@ class DocManager {
     }
     this.fixFocus();
     this.history.push({ doc: this.doc, focus: this.focus });
-    this._onUpdate({ doc: this.doc, focus: this.focus, mode: this.mode });
+    this._onUpdate({
+      doc: this.doc,
+      focus: this.focus,
+      mode: this.mode,
+    });
   }
 
   private fixFocus() {
@@ -639,6 +737,12 @@ class DocManager {
       newOffset = i * Math.sign(this.focus.offset);
     }
     this.focus = { ...this.focus, offset: newOffset };
+  }
+
+  private removeEmptyTokens() {
+    const result = withoutEmptyTokens(this.doc, this.focus);
+    this.doc = result.doc;
+    this.focus = result.focus;
   }
 }
 
