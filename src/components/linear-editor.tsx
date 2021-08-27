@@ -326,6 +326,18 @@ class DocManager {
             throw new Error("lastNode does not exist");
           }
 
+          if (ev.key === oldListNode.separator) {
+            if (lastNode.kind !== NodeKind.Token || lastNode.content) {
+              lastNodeIndex += 1;
+              lastNode = emptyToken;
+              newListNode.content.splice(lastNodeIndex, 0, lastNode);
+              this.focus = { ...this.focus, offset: this.focus.offset + 1 };
+              return newListNode;
+            }
+
+            return oldListNode;
+          }
+
           const tokenPatterns = [
             {
               key: /^[a-zA-Z]$/,
