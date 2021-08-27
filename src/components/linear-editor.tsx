@@ -195,7 +195,8 @@ function reparseNodes(oldNodes: Node[]): Node[] {
 
 enum Mode {
   Normal,
-  Insert,
+  InsertBefore,
+  InsertAfter,
 }
 
 class DocManager {
@@ -271,8 +272,8 @@ class DocManager {
           }),
         );
         this.focus = { anchor: [...this.focus.anchor, 0], offset: 0 };
-        this.mode = Mode.Insert;
-      } else if (ev.key === "a") {
+        this.mode = Mode.InsertAfter;
+      } else if (ev.key === "i") {
         if (!this.focus.anchor.length) {
           return;
         }
@@ -284,7 +285,61 @@ class DocManager {
         if (this.focus.offset < 0) {
           this.focus = flipPathRange(this.focus);
         }
-        this.mode = Mode.Insert;
+        const newTokenIndex = this.focus.anchor[this.focus.anchor.length - 1];
+        this.doc = docMapRoot(
+          this.doc,
+          nodeMapAtPath(listPath, (oldListNode) => {
+            if (oldListNode?.kind !== NodeKind.List) {
+              throw new Error("oldListNode is not a list");
+            }
+            const newContent = [...oldListNode.content];
+            newContent.splice(newTokenIndex, 0, emptyToken);
+            return {
+              ...oldListNode,
+              content: newContent,
+            };
+          }),
+        );
+        this.focus = {
+          anchor: [...this.focus.anchor.slice(0, -1), newTokenIndex + 1],
+          offset: this.focus.offset,
+        };
+        this.focus = flipPathRange(this.focus);
+        this.mode = Mode.InsertBefore;
+      } else if (ev.key === "a") {
+        if (!this.focus.anchor.length) {
+          return;
+        }
+        const listPath = this.focus.anchor.slice(0, -1);
+        const listNode = nodeGetByPath(this.doc.root, listPath);
+        if (listNode?.kind !== NodeKind.List || !listNode.content.length) {
+          return;
+        }
+        if (this.focus.offset > 0) {
+          this.focus = flipPathRange(this.focus);
+        }
+        const newTokenIndex =
+          this.focus.anchor[this.focus.anchor.length - 1] + 1;
+        this.doc = docMapRoot(
+          this.doc,
+          nodeMapAtPath(listPath, (oldListNode) => {
+            if (oldListNode?.kind !== NodeKind.List) {
+              throw new Error("oldListNode is not a list");
+            }
+            const newContent = [...oldListNode.content];
+            newContent.splice(newTokenIndex, 0, emptyToken);
+            return {
+              ...oldListNode,
+              content: newContent,
+            };
+          }),
+        );
+        this.focus = {
+          anchor: [...this.focus.anchor.slice(0, -1), newTokenIndex],
+          offset: this.focus.offset - 1,
+        };
+        this.focus = flipPathRange(this.focus);
+        this.mode = Mode.InsertAfter;
       } else if (ev.key === "d") {
         let forwardFocus =
           this.focus.offset < 0 ? flipPathRange(this.focus) : this.focus;
@@ -339,7 +394,10 @@ class DocManager {
       } else if (ev.key === ";") {
         this.focus = { anchor: getPathToTip(this.focus), offset: 0 };
       }
-    } else if (this.mode === Mode.Insert) {
+    } else if (
+      this.mode === Mode.InsertBefore ||
+      this.mode === Mode.InsertAfter
+    ) {
       if (!this.focus.anchor.length) {
         throw new Error("root focused in insert mode");
       }
@@ -355,19 +413,32 @@ class DocManager {
             content: [...oldListNode.content],
           };
 
-          let lastNodeIndex =
+          let targetNodeIndex =
             this.focus.anchor[this.focus.anchor.length - 1] + this.focus.offset;
-          let lastNode = newListNode.content[lastNodeIndex];
-          if (!lastNode) {
-            throw new Error("lastNode does not exist");
+          if (this.mode === Mode.InsertBefore) {
+            targetNodeIndex--;
+          }
+          let targetNode = newListNode.content[targetNodeIndex];
+          if (!targetNode) {
+            throw new Error("targetNode does not exist");
           }
 
+          const pushNode = (node: Node) => {
+            targetNodeIndex += 1;
+            targetNode = node;
+            newListNode.content.splice(targetNodeIndex, 0, targetNode);
+            const newFocus = { ...this.focus, anchor: [...this.focus.anchor] };
+            if (this.mode === Mode.InsertBefore) {
+              newFocus.anchor[newFocus.anchor.length - 1] += 1;
+            } else {
+              newFocus.offset += 1;
+            }
+            this.focus = newFocus;
+          };
+
           if (ev.key === oldListNode.separator) {
-            if (lastNode.kind !== NodeKind.Token || lastNode.content) {
-              lastNodeIndex += 1;
-              lastNode = emptyToken;
-              newListNode.content.splice(lastNodeIndex, 0, lastNode);
-              this.focus = { ...this.focus, offset: this.focus.offset + 1 };
+            if (targetNode.kind !== NodeKind.Token || targetNode.content) {
+              pushNode(emptyToken);
               return newListNode;
             }
 
@@ -405,21 +476,18 @@ class DocManager {
           } of tokenPatterns) {
             if (ev.key.match(keyPattern)) {
               if (
-                lastNode.kind !== NodeKind.Token ||
-                !lastNode.content.match(tokenPattern) ||
-                (lastNode.content.length === 1 && singleChar)
+                targetNode.kind !== NodeKind.Token ||
+                !targetNode.content.match(tokenPattern) ||
+                (targetNode.content.length === 1 && singleChar)
               ) {
-                lastNodeIndex += 1;
-                lastNode = emptyToken;
-                newListNode.content.splice(lastNodeIndex, 0, lastNode);
-                this.focus = { ...this.focus, offset: this.focus.offset + 1 };
+                pushNode(emptyToken);
               }
-              lastNode = {
-                ...lastNode,
-                content: lastNode.content + ev.key,
+              targetNode = {
+                ...(targetNode as typeof emptyToken),
+                content: targetNode.content + ev.key,
                 syntaxKind,
               };
-              newListNode.content[lastNodeIndex] = lastNode;
+              newListNode.content[targetNodeIndex] = targetNode;
               return newListNode;
             }
           }
@@ -427,20 +495,20 @@ class DocManager {
           const listDelimiters: [string, string][] = [["(", ")"]];
           for (const delimiters of listDelimiters) {
             if (ev.key === delimiters[0]) {
-              if (lastNode.kind === NodeKind.Token && !lastNode.content) {
-                newListNode.content.splice(lastNodeIndex, 1);
+              if (targetNode.kind === NodeKind.Token && !targetNode.content) {
+                newListNode.content.splice(targetNodeIndex, 1);
               } else {
-                lastNodeIndex += 1;
+                targetNodeIndex += 1;
               }
-              lastNode = {
+              targetNode = {
                 kind: NodeKind.List,
                 delimiters,
                 separator: " ",
                 content: [emptyToken],
               };
-              newListNode.content.splice(lastNodeIndex, 0, lastNode);
+              newListNode.content.splice(targetNodeIndex, 0, targetNode);
               this.focus = {
-                anchor: [...listPath, lastNodeIndex, 0],
+                anchor: [...listPath, targetNodeIndex, 0],
                 offset: 0,
               };
               return newListNode;
@@ -467,7 +535,10 @@ class DocManager {
     if (this.mode === Mode.Normal && ev.key === ";" && ev.altKey) {
       this.focus = flipPathRange(this.focus);
       this.onUpdate();
-    } else if (this.mode === Mode.Insert && ev.key === "Escape") {
+    } else if (
+      (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
+      ev.key === "Escape"
+    ) {
       this.mode = Mode.Normal;
       this.history = [];
       const listPath = this.focus.anchor.slice(0, -1);
@@ -487,7 +558,10 @@ class DocManager {
         this.focus = { anchor: listPath, offset: 0 };
       }
       this.onUpdate();
-    } else if (this.mode === Mode.Insert && ev.key === "Backspace") {
+    } else if (
+      (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
+      ev.key === "Backspace"
+    ) {
       if (this.history.length < 2) {
         return;
       }
@@ -633,6 +707,8 @@ function renderNode({
   isTipOfFocus,
   isLastOfFocus,
   showCursor,
+  showCursorAfterThis,
+  cursorOffset,
   trailingSeparator,
 }: {
   node: Node;
@@ -641,6 +717,8 @@ function renderNode({
   isTipOfFocus: boolean;
   isLastOfFocus: boolean;
   showCursor: boolean;
+  showCursorAfterThis: boolean;
+  cursorOffset: -1 | 0;
   trailingSeparator: string;
 }): React.ReactChild {
   const focused = focus !== undefined && focus.anchor.length === 0;
@@ -680,7 +758,7 @@ function renderNode({
             }}
           >
             {node.content || "\u200b"}
-            {isTipOfFocus && showCursor && <div className={styles.cursor} />}
+            {showCursorAfterThis && <div className={styles.cursor} />}
             <div className={styles.separator}>
               {!isLastOfFocus && trailingSeparator}
             </div>
@@ -718,13 +796,18 @@ function renderNode({
                   isLastOfFocus:
                     !!focusedChildRange && i === focusedChildRange[1],
                   showCursor,
+                  showCursorAfterThis:
+                    showCursor &&
+                    tipOfFocusIndex !== undefined &&
+                    i === tipOfFocusIndex + cursorOffset,
+                  cursorOffset,
                   trailingSeparator:
                     i + 1 === node.content.length ? "" : node.separator,
                 }),
               )}
             </div>
             <div className={styles.listDelimiter}>{node.delimiters[1]}</div>
-            {isTipOfFocus && showCursor && <div className={styles.cursor} />}
+            {showCursorAfterThis && <div className={styles.cursor} />}
             <div className={styles.separator}>
               {!isLastOfFocus && trailingSeparator}
             </div>
@@ -776,7 +859,9 @@ export const LinearEditor = () => {
           focus,
           isTipOfFocus: false,
           isLastOfFocus: focus.anchor.length === 0,
-          showCursor: mode === Mode.Insert,
+          showCursor: mode === Mode.InsertBefore || mode === Mode.InsertAfter,
+          showCursorAfterThis: false,
+          cursorOffset: mode === Mode.InsertBefore ? -1 : 0,
           trailingSeparator: "",
         })}
       </div>
