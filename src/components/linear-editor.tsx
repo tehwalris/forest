@@ -29,6 +29,7 @@ interface TokenNode {
 interface ListNode {
   kind: NodeKind.List;
   delimiters: [string, string];
+  separator: string;
   content: Node[];
 }
 
@@ -43,7 +44,12 @@ const emptyToken: TokenNode = {
 };
 
 const emptyDoc: Doc = {
-  root: { kind: NodeKind.List, delimiters: ["", ""], content: [] },
+  root: {
+    kind: NodeKind.List,
+    delimiters: ["", ""],
+    separator: " ",
+    content: [],
+  },
 };
 
 function docMapRoot(doc: Doc, cb: (node: ListNode) => Node): Doc {
@@ -178,7 +184,12 @@ function reparseNodes(oldNodes: Node[]): Node[] {
   }
 
   return [
-    { kind: NodeKind.List, delimiters: ["|", "|"], content: identifiers },
+    {
+      kind: NodeKind.List,
+      delimiters: ["", ""],
+      separator: ".",
+      content: identifiers,
+    },
   ];
 }
 
@@ -368,10 +379,15 @@ class DocManager {
           const listDelimiters: [string, string][] = [["(", ")"]];
           for (const delimiters of listDelimiters) {
             if (ev.key === delimiters[0]) {
-              lastNodeIndex += 1;
+              if (lastNode.kind === NodeKind.Token && !lastNode.content) {
+                newListNode.content.splice(lastNodeIndex, 1);
+              } else {
+                lastNodeIndex += 1;
+              }
               lastNode = {
                 kind: NodeKind.List,
                 delimiters,
+                separator: " ",
                 content: [emptyToken],
               };
               newListNode.content.splice(lastNodeIndex, 0, lastNode);
@@ -524,19 +540,17 @@ const styles = {
     margin: 5px;
     margin-top: 15px;
   `,
-  token: css`
+  selectionWrapper: css`
     position: relative;
     display: inline-block;
-    &:not(:last-child) {
-      padding-right: 5px;
-    }
+  `,
+  token: css`
+    display: inline-block;
+    white-space: pre;
   `,
   list: css`
-    position: relative;
     display: inline-block;
-    &:not(:last-child) {
-      padding-right: 5px;
-    }
+    white-space: pre;
   `,
   listInner: css`
     display: inline-block;
@@ -565,13 +579,17 @@ function renderNode({
   key,
   focus,
   isTipOfFocus,
+  isLastOfFocus,
   showCursor,
+  trailingSeparator,
 }: {
   node: Node;
   key: React.Key;
   focus: PathRange | undefined;
   isTipOfFocus: boolean;
+  isLastOfFocus: boolean;
   showCursor: boolean;
+  trailingSeparator: string;
 }): React.ReactChild {
   const focused = focus !== undefined && focus.anchor.length === 0;
   let focusedChildRange: [number, number] | undefined;
@@ -599,38 +617,61 @@ function renderNode({
         <div
           key={key}
           className={styles.token}
-          style={{ background: tokenBackground }}
+          style={{
+            color: node.syntaxKind === SyntaxKind.RawText ? "red" : undefined,
+          }}
         >
-          {node.content || "\u200b"}
-          {isTipOfFocus && showCursor && <div className={styles.cursor} />}
+          <div
+            className={styles.selectionWrapper}
+            style={{
+              background: tokenBackground,
+            }}
+          >
+            {node.content || "\u200b"}
+            {isTipOfFocus && showCursor && <div className={styles.cursor} />}
+            {!isLastOfFocus && trailingSeparator}
+          </div>
+          {isLastOfFocus && trailingSeparator}
         </div>
       );
     case NodeKind.List:
       return (
-        <div
-          key={key}
-          className={styles.list}
-          style={{ background: tokenBackground }}
-        >
-          <div className={styles.listDelimiter}>{node.delimiters[0]}</div>
-          <div className={styles.listInner}>
-            {node.content.map((c, i) =>
-              renderNode({
-                node: c,
-                key: i,
-                focus:
-                  focusedChildRange &&
-                  i >= focusedChildRange[0] &&
-                  i <= focusedChildRange[1]
-                    ? { anchor: focus!.anchor.slice(1), offset: focus!.offset }
-                    : undefined,
-                isTipOfFocus: i === tipOfFocusIndex,
-                showCursor,
-              }),
-            )}
+        <div key={key} className={styles.list}>
+          <div
+            className={styles.selectionWrapper}
+            style={{
+              background: tokenBackground,
+            }}
+          >
+            <div className={styles.listDelimiter}>{node.delimiters[0]}</div>
+            <div className={styles.listInner}>
+              {node.content.map((c, i) =>
+                renderNode({
+                  node: c,
+                  key: i,
+                  focus:
+                    focusedChildRange &&
+                    i >= focusedChildRange[0] &&
+                    i <= focusedChildRange[1]
+                      ? {
+                          anchor: focus!.anchor.slice(1),
+                          offset: focus!.offset,
+                        }
+                      : undefined,
+                  isTipOfFocus: i === tipOfFocusIndex,
+                  isLastOfFocus:
+                    !!focusedChildRange && i === focusedChildRange[1],
+                  showCursor,
+                  trailingSeparator:
+                    i + 1 === node.content.length ? "" : node.separator,
+                }),
+              )}
+            </div>
+            <div className={styles.listDelimiter}>{node.delimiters[1]}</div>
+            {isTipOfFocus && showCursor && <div className={styles.cursor} />}
+            {!isLastOfFocus && trailingSeparator}
           </div>
-          <div className={styles.listDelimiter}>{node.delimiters[1]}</div>
-          {isTipOfFocus && showCursor && <div className={styles.cursor} />}
+          {isLastOfFocus && trailingSeparator}
         </div>
       );
   }
@@ -674,7 +715,9 @@ export const LinearEditor = () => {
           key: "root",
           focus,
           isTipOfFocus: false,
+          isLastOfFocus: focus.anchor.length === 0,
           showCursor: mode === Mode.Insert,
+          trailingSeparator: "",
         })}
       </div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
