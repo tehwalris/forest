@@ -316,8 +316,13 @@ class DocManager {
   private doc: Doc = emptyDoc;
   private lastDoc: Doc = this.doc;
   private focus: PathRange = { anchor: [], offset: 0 };
-  private history: { doc: Doc; focus: PathRange }[] = [
-    { focus: this.focus, doc: this.doc },
+  private parentFocuses: PathRange[] = [];
+  private history: {
+    doc: Doc;
+    focus: PathRange;
+    parentFocuses: PathRange[];
+  }[] = [
+    { focus: this.focus, doc: this.doc, parentFocuses: this.parentFocuses },
   ];
   private mode = Mode.Normal;
 
@@ -608,29 +613,33 @@ class DocManager {
           const listDelimiters: [string, string][] = [["(", ")"]];
           for (const delimiters of listDelimiters) {
             if (ev.key === delimiters[0]) {
-              if (targetNode.kind === NodeKind.Token && !targetNode.content) {
-                newListNode.content.splice(targetNodeIndex, 1);
-              } else {
-                targetNodeIndex += 1;
-              }
-              targetNode = {
+              pushNode({
                 kind: NodeKind.List,
                 delimiters,
                 separator: " ",
-                content: [emptyToken],
-              };
-              newListNode.content.splice(targetNodeIndex, 0, targetNode);
+                content: [emptyToken, emptyToken],
+              });
+              this.parentFocuses.push(this.focus);
               this.focus = {
-                anchor: [...listPath, targetNodeIndex, 0],
+                anchor: [
+                  ...this.focus.anchor.slice(0, -1),
+                  targetNodeIndex,
+                  this.mode === Mode.InsertBefore ? 1 : 0,
+                ],
                 offset: 0,
               };
               return newListNode;
             } else if (ev.key === delimiters[1]) {
               if (oldListNode.delimiters[1] === delimiters[1]) {
-                this.focus = {
-                  anchor: listPath,
-                  offset: 0,
-                };
+                const parentFocus = this.parentFocuses.pop();
+                if (parentFocus) {
+                  this.focus = parentFocus;
+                } else {
+                  this.focus = {
+                    anchor: listPath,
+                    offset: 0,
+                  };
+                }
                 return oldListNode;
               }
             }
@@ -654,6 +663,7 @@ class DocManager {
     ) {
       this.mode = Mode.Normal;
       this.history = [];
+      this.parentFocuses = [];
       this.fixFocus();
       this.removeEmptyTokens();
       this.onUpdate();
@@ -668,6 +678,7 @@ class DocManager {
       const old = this.history.pop()!;
       this.doc = old.doc;
       this.focus = old.focus;
+      this.parentFocuses = old.parentFocuses;
       this.onUpdate();
     }
   };
@@ -710,7 +721,11 @@ class DocManager {
       this.lastDoc = this.doc;
     }
     this.fixFocus();
-    this.history.push({ doc: this.doc, focus: this.focus });
+    this.history.push({
+      doc: this.doc,
+      focus: this.focus,
+      parentFocuses: [...this.parentFocuses],
+    });
     this._onUpdate({
       doc: this.doc,
       focus: this.focus,
