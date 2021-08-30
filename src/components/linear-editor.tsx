@@ -302,7 +302,7 @@ function _withoutEmptyTokens(
     if (!directlyFocusedChildRange) {
       return { node: newNode, focus: focus };
     }
-    return { node: newNode, focus: undefined };
+    return { node: newNode, focus: { anchor: [], offset: 0 } };
   }
 }
 
