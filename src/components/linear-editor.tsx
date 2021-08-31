@@ -639,65 +639,7 @@ class DocManager {
 
   onKeyPress = (ev: KeyboardEvent) => {
     if (this.mode === Mode.Normal) {
-      if (ev.key === "Enter" && ev.ctrlKey) {
-        const evenFocus = asEvenPathRange(this.focus);
-        if (evenFocus.anchor.length === 0) {
-          return;
-        }
-        const forwardFocus =
-          evenFocus.offset < 0 ? flipEvenPathRange(evenFocus) : evenFocus;
-        const focusedNodes: Node[] = [];
-        for (let i = 0; i <= forwardFocus.offset; i++) {
-          const path = [...forwardFocus.anchor];
-          path[path.length - 1] += i;
-          const node = nodeGetByPath(this.doc.root, path);
-          if (!node) {
-            throw new Error("one of the focused nodes does not exist");
-          }
-          focusedNodes.push(node);
-        }
-        const oldListNode = nodeGetByPath(
-          this.doc.root,
-          forwardFocus.anchor.slice(0, -1),
-        );
-        if (oldListNode?.kind !== NodeKind.List) {
-          throw new Error("oldListNode is not a list");
-        }
-        const reparsedResult = reparseNodes(
-          focusedNodes,
-          oldListNode.parserKind,
-          false,
-        );
-        const reparsedNodes = [
-          ...reparsedResult.parsed,
-          ...reparsedResult.remaining,
-        ];
-        if (reparsedNodes === focusedNodes) {
-          return;
-        }
-        if (!reparseNodes.length) {
-          throw new Error("reparse gave 0 nodes");
-        }
-        this.doc = docMapRoot(
-          this.doc,
-          nodeMapAtPath(forwardFocus.anchor.slice(0, -1), (oldListNode) => {
-            if (oldListNode?.kind !== NodeKind.List) {
-              throw new Error("oldListNode is not a list");
-            }
-            const newContent = [...oldListNode.content];
-            newContent.splice(
-              forwardFocus.anchor[forwardFocus.anchor.length - 1],
-              forwardFocus.offset + 1,
-              ...reparsedNodes,
-            );
-            return { ...oldListNode, content: newContent };
-          }),
-        );
-        this.focus = asUnevenPathRange({
-          ...forwardFocus,
-          offset: reparsedNodes.length - 1,
-        });
-      } else if (ev.key === "Enter" && !ev.ctrlKey) {
+      if (ev.key === "Enter") {
         const evenFocus = asEvenPathRange(this.focus);
         if (evenFocus.offset !== 0) {
           return;
