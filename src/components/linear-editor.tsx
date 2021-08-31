@@ -425,19 +425,22 @@ function tryConvertNodesToParserInput(
   return result;
 }
 
-function reparseNodes(oldNodes: Node[], parserKind: ParserKind): Node[] {
+function reparseNodes(
+  oldNodes: Node[],
+  parserKind: ParserKind,
+): { parsed: Node[]; remaining: Node[] } {
   const parserInput = tryConvertNodesToParserInput(oldNodes);
   console.log("DEBUG reparseNodes", { oldNodes, parserInput });
   if (!parserInput?.length) {
-    return oldNodes;
+    return { parsed: oldNodes, remaining: [] };
   }
 
   const parserResult = parserFunctionsByKind[parserKind](parserInput);
   if (!parserResult.remaining.length) {
-    return parserResult.parsed;
+    return { parsed: parserResult.parsed, remaining: [] };
   }
 
-  const output = [...parserResult.parsed];
+  const remainingNodes: Node[] = [];
   const firstRemainingInput = parserResult.remaining[0];
   if (firstRemainingInput.kind === ParserInputKind.Token) {
     const oldRawTextNode = oldNodes[firstRemainingInput.nodeOffset];
@@ -454,13 +457,13 @@ function reparseNodes(oldNodes: Node[], parserKind: ParserKind): Node[] {
         .trim(),
     };
     if (newRawTextNode.content) {
-      output.push(newRawTextNode);
+      remainingNodes.push(newRawTextNode);
     }
   } else {
-    output.push(oldNodes[firstRemainingInput.nodeOffset]);
+    remainingNodes.push(oldNodes[firstRemainingInput.nodeOffset]);
   }
-  output.push(...oldNodes.slice(firstRemainingInput.nodeOffset + 1));
-  return output;
+  remainingNodes.push(...oldNodes.slice(firstRemainingInput.nodeOffset + 1));
+  return { parsed: parserResult.parsed, remaining: remainingNodes };
 }
 
 function withoutInvisibleNodes(
@@ -631,10 +634,14 @@ class DocManager {
         if (oldListNode?.kind !== NodeKind.List) {
           throw new Error("oldListNode is not a list");
         }
-        const reparsedNodes = reparseNodes(
+        const reparsedResult = reparseNodes(
           focusedNodes,
           oldListNode.parserKind,
         );
+        const reparsedNodes = [
+          ...reparsedResult.parsed,
+          ...reparsedResult.remaining,
+        ];
         if (reparsedNodes === focusedNodes) {
           return;
         }
