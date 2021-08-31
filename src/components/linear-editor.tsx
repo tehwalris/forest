@@ -463,22 +463,22 @@ function reparseNodes(oldNodes: Node[], parserKind: ParserKind): Node[] {
   return output;
 }
 
-function withoutEmptyTokens(
+function withoutInvisibleNodes(
   doc: Doc,
   focus: EvenPathRange,
 ): { doc: Doc; focus: EvenPathRange } {
   if (focus.offset < 0) {
-    const result = withoutEmptyTokens(doc, flipEvenPathRange(focus));
+    const result = withoutInvisibleNodes(doc, flipEvenPathRange(focus));
     return { doc: result.doc, focus: flipEvenPathRange(result.focus) };
   }
-  const result = _withoutEmptyTokens(doc.root, focus)!;
+  const result = _withoutInvisibleNodes(doc.root, focus);
   return {
-    doc: docMapRoot(doc, () => result.node),
-    focus: result.focus || { anchor: [], offset: 0 },
+    doc: result ? docMapRoot(doc, () => result.node) : emptyDoc,
+    focus: result?.focus || { anchor: [], offset: 0 },
   };
 }
 
-function _withoutEmptyTokens(
+function _withoutInvisibleNodes(
   node: Node,
   focus: EvenPathRange | undefined,
 ): { node: Node; focus: EvenPathRange | undefined } | undefined {
@@ -489,6 +489,9 @@ function _withoutEmptyTokens(
     return undefined;
   } else if (node.kind === NodeKind.List) {
     if (!node.content.length) {
+      if (node.equivalentToContent) {
+        return undefined;
+      }
       return { node, focus };
     }
 
@@ -510,7 +513,7 @@ function _withoutEmptyTokens(
     }
 
     const results = node.content.map((c, i) =>
-      _withoutEmptyTokens(
+      _withoutInvisibleNodes(
         c,
         focusedChildIndex === i
           ? { anchor: focus!.anchor.slice(1), offset: focus!.offset }
@@ -917,7 +920,7 @@ class DocManager {
       this.mode = Mode.Normal;
       this.history = [];
       this.parentFocuses = [];
-      this.removeEmptyTokens();
+      this.removeInvisibleNodes();
       this.onUpdate();
     } else if (
       (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
@@ -1039,6 +1042,9 @@ class DocManager {
     if (this.doc !== this.lastDoc) {
       this.lastDoc = this.doc;
     }
+    if (this.mode === Mode.Normal) {
+      this.removeInvisibleNodes();
+    }
     this.whileUnevenFocusChanges(() => this.normalizeFocus());
     this.history.push({
       doc: this.doc,
@@ -1074,12 +1080,12 @@ class DocManager {
     };
   }
 
-  private removeEmptyTokens() {
-    const anchorResult = withoutEmptyTokens(this.doc, {
+  private removeInvisibleNodes() {
+    const anchorResult = withoutInvisibleNodes(this.doc, {
       anchor: this.focus.anchor,
       offset: 0,
     });
-    const tipResult = withoutEmptyTokens(this.doc, {
+    const tipResult = withoutInvisibleNodes(this.doc, {
       anchor: this.focus.tip,
       offset: 0,
     });
