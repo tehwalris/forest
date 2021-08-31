@@ -347,8 +347,8 @@ function _withoutEmptyTokens(
       if (childFocus) {
         const newFocusedChildIndex = results
           .map((r, i) => [r, i])
-          .filter(([r, i]) => r)
-          .map(([r, i]) => i)
+          .filter(([r, _i]) => r)
+          .map(([_r, i]) => i)
           .indexOf(focusedChildIndex);
         return {
           node: newNode,
@@ -759,20 +759,6 @@ class DocManager {
       this.onUpdate();
     }
   };
-
-  private tryMoveToSibling(offset: -1 | 1, extend: boolean) {
-    const evenFocus = asEvenPathRange(this.focus);
-    const newAnchor = [...evenFocus.anchor];
-    newAnchor[newAnchor.length - 1] += evenFocus.offset + offset;
-    if (!nodeGetByPath(this.doc.root, newAnchor)) {
-      return;
-    }
-    this.focus = asUnevenPathRange(
-      extend
-        ? { anchor: evenFocus.anchor, offset: evenFocus.offset + offset }
-        : { anchor: newAnchor, offset: 0 },
-    );
-  }
 
   private tryMoveToParent() {
     let evenFocus = asEvenPathRange(this.focus);
