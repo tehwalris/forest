@@ -104,7 +104,6 @@ function parseLooseExpression(input: ParserInput[]): ParserResult {
     if (tightExpressionResult.remaining.length >= remaining.length) {
       throw new Error("parseTightExpression gave result without taking input");
     }
-    console.log("DEBUG tightExpressionResult", tightExpressionResult);
     parsed.push({
       kind: NodeKind.List,
       parserKind: ParserKind.TightExpression,
@@ -426,11 +425,25 @@ function tryConvertNodesToParserInput(
 }
 
 function reparseNodes(
-  oldNodes: Node[],
+  oldNodesBeforeParse: Node[],
   parserKind: ParserKind,
 ): { parsed: Node[]; remaining: Node[] } {
+  const oldNodes = oldNodesBeforeParse.flatMap((oldNode) => {
+    if (oldNode.kind === NodeKind.Token) {
+      return [oldNode];
+    }
+    const { parsed, remaining } = reparseNodes(
+      oldNode.content,
+      oldNode.parserKind,
+    );
+    if (oldNode.equivalentToContent) {
+      return [{ ...oldNode, content: parsed }, ...remaining];
+    } else {
+      return [{ ...oldNode, content: [...parsed, ...remaining] }];
+    }
+  });
+
   const parserInput = tryConvertNodesToParserInput(oldNodes);
-  console.log("DEBUG reparseNodes", { oldNodes, parserInput });
   if (!parserInput?.length) {
     return { parsed: oldNodes, remaining: [] };
   }
