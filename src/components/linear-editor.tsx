@@ -903,6 +903,10 @@ class DocManager {
             }
           }
 
+          if (ev.key.length !== 1) {
+            return oldListNode;
+          }
+
           if (
             targetNode.kind !== NodeKind.Token ||
             targetNode.syntaxKind !== SyntaxKind.RawText
