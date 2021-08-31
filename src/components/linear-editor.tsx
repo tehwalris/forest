@@ -603,7 +603,6 @@ enum Mode {
 
 class DocManager {
   private doc: Doc = emptyDoc;
-  private lastDoc: Doc = this.doc;
   private focus: UnevenPathRange = { anchor: [], tip: [] };
   private parentFocuses: EvenPathRange[] = [];
   private history: {
@@ -612,6 +611,7 @@ class DocManager {
     parentFocuses: EvenPathRange[];
   }[] = [];
   private mode = Mode.Normal;
+  private lastMode = this.mode;
 
   constructor(
     private _onUpdate: (stuff: {
@@ -1059,18 +1059,21 @@ class DocManager {
   }
 
   private onUpdate() {
-    if (this.doc !== this.lastDoc) {
-      this.lastDoc = this.doc;
-    }
     if (this.mode === Mode.Normal) {
       this.removeInvisibleNodes();
     }
     this.whileUnevenFocusChanges(() => this.normalizeFocus());
-    this.history.push({
-      doc: this.doc,
-      focus: this.focus,
-      parentFocuses: [...this.parentFocuses],
-    });
+    if (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) {
+      if (this.lastMode !== this.mode) {
+        this.history = [];
+      }
+      this.history.push({
+        doc: this.doc,
+        focus: this.focus,
+        parentFocuses: [...this.parentFocuses],
+      });
+    }
+    this.lastMode = this.mode;
     this._onUpdate({
       doc: this.doc,
       focus: asEvenPathRange(this.focus),
