@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { unreachable } from "../logic/util";
 
 type Path = number[];
-type PathRange = { anchor: Path; offset: number };
+type EvenPathRange = { anchor: Path; offset: number };
+type UnevenPathRange = { anchor: Path; tip: Path };
 
 enum SyntaxKind {
   RawText,
@@ -61,6 +62,37 @@ function docMapRoot(doc: Doc, cb: (node: ListNode) => Node): Doc {
     throw new Error("newRoot must be a list");
   }
   return { ...doc, root: newRoot };
+}
+
+function asUnevenPathRange(even: EvenPathRange): UnevenPathRange {
+  if (!even.offset) {
+    return { anchor: even.anchor, tip: even.anchor };
+  }
+  if (!even.anchor.length) {
+    throw new Error("offset at root is invalid");
+  }
+  const tip = [...even.anchor];
+  tip[tip.length - 1] += even.offset;
+  return { anchor: even.anchor, tip };
+}
+
+function asEvenPathRange(uneven: UnevenPathRange): EvenPathRange {
+  const commonPrefix = [];
+  let firstUnequal: { anchor: number; tip: number } | undefined;
+  for (let i = 0; i < Math.min(uneven.anchor.length, uneven.tip.length); i++) {
+    if (uneven.anchor[i] === uneven.tip[i]) {
+      commonPrefix.push(uneven.anchor[i]);
+    } else {
+      firstUnequal = { anchor: uneven.anchor[i], tip: uneven.tip[i] };
+      break;
+    }
+  }
+  return firstUnequal
+    ? {
+        anchor: [...commonPrefix, firstUnequal.anchor],
+        offset: firstUnequal.tip - firstUnequal.anchor,
+      }
+    : { anchor: commonPrefix, offset: 0 };
 }
 
 function nodeTryGetDeepestByPath(
@@ -129,7 +161,7 @@ function nodeMapAtPath(
   };
 }
 
-function flipPathRange(oldPathRange: PathRange): PathRange {
+function flipEvenPathRange(oldPathRange: EvenPathRange): EvenPathRange {
   if (!oldPathRange.anchor.length || !oldPathRange.offset) {
     return oldPathRange;
   }
@@ -141,7 +173,14 @@ function flipPathRange(oldPathRange: PathRange): PathRange {
   return newPathRange;
 }
 
-function getPathToTip(pathRange: PathRange): Path {
+function flipUnevenPathRange({
+  anchor,
+  tip,
+}: UnevenPathRange): UnevenPathRange {
+  return { anchor: tip, tip: anchor };
+}
+
+function getPathToTip(pathRange: EvenPathRange): Path {
   const path = [...pathRange.anchor];
   if (!path.length) {
     return [];
@@ -195,11 +234,11 @@ function reparseNodes(oldNodes: Node[]): Node[] {
 
 function withoutEmptyTokens(
   doc: Doc,
-  focus: PathRange,
-): { doc: Doc; focus: PathRange } {
+  focus: EvenPathRange,
+): { doc: Doc; focus: EvenPathRange } {
   if (focus.offset < 0) {
-    const result = withoutEmptyTokens(doc, flipPathRange(focus));
-    return { doc: result.doc, focus: flipPathRange(result.focus) };
+    const result = withoutEmptyTokens(doc, flipEvenPathRange(focus));
+    return { doc: result.doc, focus: flipEvenPathRange(result.focus) };
   }
   const result = _withoutEmptyTokens(doc.root, focus)!;
   return {
@@ -210,8 +249,8 @@ function withoutEmptyTokens(
 
 function _withoutEmptyTokens(
   node: Node,
-  focus: PathRange | undefined,
-): { node: Node; focus: PathRange | undefined } | undefined {
+  focus: EvenPathRange | undefined,
+): { node: Node; focus: EvenPathRange | undefined } | undefined {
   if (node.kind === NodeKind.Token && node.content) {
     return { node, focus };
   }
@@ -315,12 +354,12 @@ enum Mode {
 class DocManager {
   private doc: Doc = emptyDoc;
   private lastDoc: Doc = this.doc;
-  private focus: PathRange = { anchor: [], offset: 0 };
-  private parentFocuses: PathRange[] = [];
+  private focus: UnevenPathRange = { anchor: [], tip: [] };
+  private parentFocuses: EvenPathRange[] = [];
   private history: {
     doc: Doc;
-    focus: PathRange;
-    parentFocuses: PathRange[];
+    focus: UnevenPathRange;
+    parentFocuses: EvenPathRange[];
   }[] = [
     { focus: this.focus, doc: this.doc, parentFocuses: this.parentFocuses },
   ];
@@ -329,7 +368,7 @@ class DocManager {
   constructor(
     private _onUpdate: (stuff: {
       doc: Doc;
-      focus: PathRange;
+      focus: EvenPathRange;
       mode: Mode;
     }) => void,
   ) {}
@@ -337,11 +376,12 @@ class DocManager {
   onKeyPress = (ev: KeyboardEvent) => {
     if (this.mode === Mode.Normal) {
       if (ev.key === "Enter" && ev.ctrlKey) {
-        if (this.focus.anchor.length === 0) {
+        const evenFocus = asEvenPathRange(this.focus);
+        if (evenFocus.anchor.length === 0) {
           return;
         }
         const forwardFocus =
-          this.focus.offset < 0 ? flipPathRange(this.focus) : this.focus;
+          evenFocus.offset < 0 ? flipEvenPathRange(evenFocus) : evenFocus;
         const focusedNodes: Node[] = [];
         for (let i = 0; i <= forwardFocus.offset; i++) {
           const path = [...forwardFocus.anchor];
@@ -374,9 +414,13 @@ class DocManager {
             return { ...oldListNode, content: newContent };
           }),
         );
-        this.focus = { ...forwardFocus, offset: reparsedNodes.length - 1 };
+        this.focus = asUnevenPathRange({
+          ...forwardFocus,
+          offset: reparsedNodes.length - 1,
+        });
       } else if (ev.key === "Enter" && !ev.ctrlKey) {
-        if (this.focus.offset !== 0) {
+        const evenFocus = asEvenPathRange(this.focus);
+        if (evenFocus.offset !== 0) {
           return;
         }
         const focusedNode = nodeGetByPath(this.doc.root, this.focus.anchor);
@@ -389,21 +433,25 @@ class DocManager {
             content: [emptyToken],
           }),
         );
-        this.focus = { anchor: [...this.focus.anchor, 0], offset: 0 };
+        this.focus = asUnevenPathRange({
+          anchor: [...this.focus.anchor, 0],
+          offset: 0,
+        });
         this.mode = Mode.InsertAfter;
       } else if (ev.key === "i") {
-        if (!this.focus.anchor.length) {
+        let evenFocus = asEvenPathRange(this.focus);
+        if (!evenFocus.anchor.length) {
           return;
         }
-        const listPath = this.focus.anchor.slice(0, -1);
+        const listPath = evenFocus.anchor.slice(0, -1);
         const listNode = nodeGetByPath(this.doc.root, listPath);
         if (listNode?.kind !== NodeKind.List || !listNode.content.length) {
           return;
         }
-        if (this.focus.offset < 0) {
-          this.focus = flipPathRange(this.focus);
+        if (evenFocus.offset < 0) {
+          evenFocus = flipEvenPathRange(evenFocus);
         }
-        const newTokenIndex = this.focus.anchor[this.focus.anchor.length - 1];
+        const newTokenIndex = evenFocus.anchor[evenFocus.anchor.length - 1];
         this.doc = docMapRoot(
           this.doc,
           nodeMapAtPath(listPath, (oldListNode) => {
@@ -418,26 +466,27 @@ class DocManager {
             };
           }),
         );
-        this.focus = {
-          anchor: [...this.focus.anchor.slice(0, -1), newTokenIndex + 1],
-          offset: this.focus.offset,
+        evenFocus = {
+          anchor: [...evenFocus.anchor.slice(0, -1), newTokenIndex + 1],
+          offset: evenFocus.offset,
         };
-        this.focus = flipPathRange(this.focus);
+        evenFocus = flipEvenPathRange(evenFocus);
+        this.focus = asUnevenPathRange(evenFocus);
         this.mode = Mode.InsertBefore;
       } else if (ev.key === "a") {
-        if (!this.focus.anchor.length) {
+        let evenFocus = asEvenPathRange(this.focus);
+        if (!evenFocus.anchor.length) {
           return;
         }
-        const listPath = this.focus.anchor.slice(0, -1);
+        const listPath = evenFocus.anchor.slice(0, -1);
         const listNode = nodeGetByPath(this.doc.root, listPath);
         if (listNode?.kind !== NodeKind.List || !listNode.content.length) {
           return;
         }
-        if (this.focus.offset > 0) {
-          this.focus = flipPathRange(this.focus);
+        if (evenFocus.offset > 0) {
+          evenFocus = flipEvenPathRange(evenFocus);
         }
-        const newTokenIndex =
-          this.focus.anchor[this.focus.anchor.length - 1] + 1;
+        const newTokenIndex = evenFocus.anchor[evenFocus.anchor.length - 1] + 1;
         this.doc = docMapRoot(
           this.doc,
           nodeMapAtPath(listPath, (oldListNode) => {
@@ -452,16 +501,18 @@ class DocManager {
             };
           }),
         );
-        this.focus = {
-          anchor: [...this.focus.anchor.slice(0, -1), newTokenIndex],
-          offset: this.focus.offset - 1,
+        evenFocus = {
+          anchor: [...evenFocus.anchor.slice(0, -1), newTokenIndex],
+          offset: evenFocus.offset - 1,
         };
-        this.focus = flipPathRange(this.focus);
+        evenFocus = flipEvenPathRange(evenFocus);
+        this.focus = asUnevenPathRange(evenFocus);
         this.mode = Mode.InsertAfter;
       } else if (ev.key === "d") {
+        const evenFocus = asEvenPathRange(this.focus);
         let forwardFocus =
-          this.focus.offset < 0 ? flipPathRange(this.focus) : this.focus;
-        if (this.focus.anchor.length === 0) {
+          evenFocus.offset < 0 ? flipEvenPathRange(evenFocus) : evenFocus;
+        if (evenFocus.anchor.length === 0) {
           if (!this.doc.root.content.length) {
             return;
           }
@@ -490,13 +541,13 @@ class DocManager {
             return { ...oldListNode, content: newContent };
           }),
         );
-        this.focus = {
+        this.focus = asUnevenPathRange({
           anchor:
             newFocusIndex === undefined
               ? forwardFocus.anchor.slice(0, -1)
               : [...forwardFocus.anchor.slice(0, -1), newFocusIndex],
           offset: 0,
-        };
+        });
       } else if (ev.key === "l") {
         this.tryMoveToSibling(1, false);
       } else if (ev.key === "L") {
@@ -510,20 +561,28 @@ class DocManager {
       } else if (ev.key === "j") {
         this.tryMoveIntoList();
       } else if (ev.key === "b") {
-        this.tryMoveThroughLeaves(-1);
+        this.tryMoveThroughLeaves(-1, false);
+      } else if (ev.key === "B") {
+        this.tryMoveThroughLeaves(-1, true);
       } else if (ev.key === "w") {
-        this.tryMoveThroughLeaves(1);
+        this.tryMoveThroughLeaves(1, false);
+      } else if (ev.key === "W") {
+        this.tryMoveThroughLeaves(1, true);
       } else if (ev.key === ";") {
-        this.focus = { anchor: getPathToTip(this.focus), offset: 0 };
+        this.focus = asUnevenPathRange({
+          anchor: getPathToTip(asEvenPathRange(this.focus)),
+          offset: 0,
+        });
       }
     } else if (
       this.mode === Mode.InsertBefore ||
       this.mode === Mode.InsertAfter
     ) {
-      if (!this.focus.anchor.length) {
+      let evenFocus = asEvenPathRange(this.focus);
+      if (!evenFocus.anchor.length) {
         throw new Error("root focused in insert mode");
       }
-      const listPath = this.focus.anchor.slice(0, -1);
+      const listPath = evenFocus.anchor.slice(0, -1);
       this.doc = docMapRoot(
         this.doc,
         nodeMapAtPath(listPath, (oldListNode) => {
@@ -536,7 +595,7 @@ class DocManager {
           };
 
           let targetNodeIndex =
-            this.focus.anchor[this.focus.anchor.length - 1] + this.focus.offset;
+            evenFocus.anchor[evenFocus.anchor.length - 1] + evenFocus.offset;
           if (this.mode === Mode.InsertBefore) {
             targetNodeIndex--;
           }
@@ -549,13 +608,13 @@ class DocManager {
             targetNodeIndex += 1;
             targetNode = node;
             newListNode.content.splice(targetNodeIndex, 0, targetNode);
-            const newFocus = { ...this.focus, anchor: [...this.focus.anchor] };
+            const newFocus = { ...evenFocus, anchor: [...evenFocus.anchor] };
             if (this.mode === Mode.InsertBefore) {
               newFocus.anchor[newFocus.anchor.length - 1] += 1;
             } else {
               newFocus.offset += 1;
             }
-            this.focus = newFocus;
+            evenFocus = newFocus;
           };
 
           if (ev.key === oldListNode.separator) {
@@ -623,26 +682,26 @@ class DocManager {
                 separator: " ",
                 content: [emptyToken, emptyToken],
               });
-              this.parentFocuses.push(this.focus);
-              this.focus = {
+              this.parentFocuses.push(evenFocus);
+              this.focus = asUnevenPathRange({
                 anchor: [
                   ...this.focus.anchor.slice(0, -1),
                   targetNodeIndex,
                   this.mode === Mode.InsertBefore ? 1 : 0,
                 ],
                 offset: 0,
-              };
+              });
               return newListNode;
             } else if (ev.key === delimiters[1]) {
               if (oldListNode.delimiters[1] === delimiters[1]) {
                 const parentFocus = this.parentFocuses.pop();
                 if (parentFocus) {
-                  this.focus = parentFocus;
+                  this.focus = asUnevenPathRange(parentFocus);
                 } else {
-                  this.focus = {
+                  this.focus = asUnevenPathRange({
                     anchor: listPath,
                     offset: 0,
-                  };
+                  });
                 }
                 return oldListNode;
               }
@@ -659,7 +718,7 @@ class DocManager {
 
   onKeyDown = (ev: KeyboardEvent) => {
     if (this.mode === Mode.Normal && ev.key === ";" && ev.altKey) {
-      this.focus = flipPathRange(this.focus);
+      this.focus = flipUnevenPathRange(this.focus);
       this.onUpdate();
     } else if (
       (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
@@ -688,40 +747,48 @@ class DocManager {
   };
 
   private tryMoveToSibling(offset: -1 | 1, extend: boolean) {
-    const newAnchor = [...this.focus.anchor];
-    newAnchor[newAnchor.length - 1] += this.focus.offset + offset;
+    const evenFocus = asEvenPathRange(this.focus);
+    const newAnchor = [...evenFocus.anchor];
+    newAnchor[newAnchor.length - 1] += evenFocus.offset + offset;
     if (!nodeGetByPath(this.doc.root, newAnchor)) {
       return;
     }
-    this.focus = extend
-      ? { anchor: this.focus.anchor, offset: this.focus.offset + offset }
-      : { anchor: newAnchor, offset: 0 };
+    this.focus = asUnevenPathRange(
+      extend
+        ? { anchor: evenFocus.anchor, offset: evenFocus.offset + offset }
+        : { anchor: newAnchor, offset: 0 },
+    );
   }
 
   private tryMoveToParent() {
-    if (this.focus.anchor.length < 2) {
+    const evenFocus = asEvenPathRange(this.focus);
+    if (evenFocus.anchor.length < 2) {
       return;
     }
-    this.focus = { anchor: this.focus.anchor.slice(0, -1), offset: 0 };
+    this.focus = asUnevenPathRange({
+      anchor: evenFocus.anchor.slice(0, -1),
+      offset: 0,
+    });
   }
 
   private tryMoveIntoList() {
-    if (this.focus.offset !== 0) {
+    const evenFocus = asEvenPathRange(this.focus);
+    if (evenFocus.offset !== 0) {
       return;
     }
-    const listPath = this.focus.anchor;
+    const listPath = evenFocus.anchor;
     const listNode = nodeGetByPath(this.doc.root, listPath);
     if (listNode?.kind !== NodeKind.List || !listNode.content.length) {
       return;
     }
-    this.focus = {
+    this.focus = asUnevenPathRange({
       anchor: [...listPath, 0],
       offset: listNode.content.length - 1,
-    };
+    });
   }
 
-  private tryMoveThroughLeaves(offset: -1 | 1) {
-    let currentPath = [...flipPathRange(this.focus).anchor];
+  private tryMoveThroughLeaves(offset: -1 | 1, extend: boolean) {
+    let currentPath = [...this.focus.tip];
     while (true) {
       if (!currentPath.length) {
         return;
@@ -750,7 +817,9 @@ class DocManager {
       currentPath = childPath;
     }
 
-    this.focus = { anchor: currentPath, offset: 0 };
+    this.focus = extend
+      ? { anchor: this.focus.anchor, tip: currentPath }
+      : { anchor: currentPath, tip: currentPath };
   }
 
   private onUpdate() {
@@ -765,41 +834,45 @@ class DocManager {
     });
     this._onUpdate({
       doc: this.doc,
-      focus: this.focus,
+      focus: asEvenPathRange(this.focus),
       mode: this.mode,
     });
   }
 
   private fixFocus() {
-    const newAnchor = nodeTryGetDeepestByPath(
-      this.doc.root,
-      this.focus.anchor,
-    ).path;
-    if (newAnchor.length !== this.focus.anchor.length) {
-      this.focus = { anchor: newAnchor, offset: 0 };
-      return;
-    }
-    if (this.focus.anchor.length === 0 && this.focus.offset) {
-      console.warn("offset must be zero for root node");
-      this.focus = { ...this.focus, offset: 0 };
-      return;
-    }
-    let newOffset = 0;
-    for (let i = 1; i <= Math.abs(this.focus.offset); i++) {
-      const offsetPath = [...this.focus.anchor];
-      offsetPath[offsetPath.length - 1] += i * Math.sign(this.focus.offset);
-      if (!nodeGetByPath(this.doc.root, offsetPath)) {
-        break;
-      }
-      newOffset = i * Math.sign(this.focus.offset);
-    }
-    this.focus = { ...this.focus, offset: newOffset };
+    console.warn("TODO fixFocus");
+
+    // const newAnchor = nodeTryGetDeepestByPath(
+    //   this.doc.root,
+    //   this.focus.anchor,
+    // ).path;
+    // if (newAnchor.length !== this.focus.anchor.length) {
+    //   this.focus = { anchor: newAnchor, offset: 0 };
+    //   return;
+    // }
+    // if (this.focus.anchor.length === 0 && this.focus.offset) {
+    //   console.warn("offset must be zero for root node");
+    //   this.focus = { ...this.focus, offset: 0 };
+    //   return;
+    // }
+    // let newOffset = 0;
+    // for (let i = 1; i <= Math.abs(this.focus.offset); i++) {
+    //   const offsetPath = [...this.focus.anchor];
+    //   offsetPath[offsetPath.length - 1] += i * Math.sign(this.focus.offset);
+    //   if (!nodeGetByPath(this.doc.root, offsetPath)) {
+    //     break;
+    //   }
+    //   newOffset = i * Math.sign(this.focus.offset);
+    // }
+    // this.focus = { ...this.focus, offset: newOffset };
   }
 
   private removeEmptyTokens() {
-    const result = withoutEmptyTokens(this.doc, this.focus);
-    this.doc = result.doc;
-    this.focus = result.focus;
+    console.warn("TODO removeEmptyTokens");
+
+    // const result = withoutEmptyTokens(this.doc, this.focus);
+    // this.doc = result.doc;
+    // this.focus = result.focus;
   }
 }
 
@@ -874,7 +947,7 @@ function renderNode({
 }: {
   node: Node;
   key: React.Key;
-  focus: PathRange | undefined;
+  focus: EvenPathRange | undefined;
   isTipOfFocus: boolean;
   isLastOfFocus: boolean;
   showCursor: boolean;
@@ -984,7 +1057,7 @@ function renderNode({
 export const LinearEditor = () => {
   const [{ doc, focus, mode }, setStuff] = useState<{
     doc: Doc;
-    focus: PathRange;
+    focus: EvenPathRange;
     mode: Mode;
   }>({
     doc: emptyDoc,
