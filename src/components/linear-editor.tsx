@@ -14,6 +14,11 @@ enum SyntaxKind {
   BinaryOperator,
 }
 
+enum ParseKind {
+  LooseExpression,
+  TightExpression,
+}
+
 enum NodeKind {
   Token,
   List,
@@ -29,6 +34,7 @@ interface TokenNode {
 
 interface ListNode {
   kind: NodeKind.List;
+  parseKind: ParseKind;
   delimiters: [string, string];
   separator: string;
   content: Node[];
@@ -48,6 +54,7 @@ const emptyToken: TokenNode = {
 const emptyDoc: Doc = {
   root: {
     kind: NodeKind.List,
+    parseKind: ParseKind.LooseExpression,
     delimiters: ["", ""],
     separator: " ",
     content: [],
@@ -247,6 +254,7 @@ function reparseNodes(oldNodes: Node[]): Node[] {
   return [
     {
       kind: NodeKind.List,
+      parseKind: ParseKind.TightExpression,
       delimiters: ["", ""],
       separator: ".",
       content: identifiers,
@@ -591,6 +599,7 @@ class DocManager {
       this.mode === Mode.InsertBefore ||
       this.mode === Mode.InsertAfter
     ) {
+      ev.preventDefault();
       let evenFocus = asEvenPathRange(this.focus);
       if (!evenFocus.anchor.length) {
         throw new Error("root focused in insert mode");
@@ -640,58 +649,12 @@ class DocManager {
             return oldListNode;
           }
 
-          const tokenPatterns = [
-            {
-              key: /^[a-zA-Z]$/,
-              token: /^[a-zA-Z]*$/,
-              syntaxKind: SyntaxKind.Identifier,
-            },
-            {
-              key: /^\d$/,
-              token: /^\d*$/,
-              syntaxKind: SyntaxKind.NumericLiteral,
-            },
-            {
-              key: /^[+\-*/]$/,
-              token: /^[+\-*/]*$/,
-              singleChar: true,
-              syntaxKind: SyntaxKind.BinaryOperator,
-            },
-            {
-              key: /^[.]$/,
-              token: /^[.]*$/,
-              syntaxKind: SyntaxKind.RawText,
-            },
-          ];
-          for (const {
-            key: keyPattern,
-            token: tokenPattern,
-            singleChar = false,
-            syntaxKind,
-          } of tokenPatterns) {
-            if (ev.key.match(keyPattern)) {
-              if (
-                targetNode.kind !== NodeKind.Token ||
-                !targetNode.content.match(tokenPattern) ||
-                (targetNode.content.length === 1 && singleChar)
-              ) {
-                pushNode(emptyToken);
-              }
-              targetNode = {
-                ...(targetNode as typeof emptyToken),
-                content: targetNode.content + ev.key,
-                syntaxKind,
-              };
-              newListNode.content[targetNodeIndex] = targetNode;
-              return newListNode;
-            }
-          }
-
           const listDelimiters: [string, string][] = [["(", ")"]];
           for (const delimiters of listDelimiters) {
             if (ev.key === delimiters[0]) {
               pushNode({
                 kind: NodeKind.List,
+                parseKind: ParseKind.LooseExpression,
                 delimiters,
                 separator: " ",
                 content: [emptyToken, emptyToken],
@@ -723,7 +686,18 @@ class DocManager {
             }
           }
 
-          return oldListNode;
+          if (
+            targetNode.kind !== NodeKind.Token ||
+            targetNode.syntaxKind !== SyntaxKind.RawText
+          ) {
+            pushNode(emptyToken);
+          }
+          targetNode = {
+            ...(targetNode as typeof emptyToken),
+            content: targetNode.content + ev.key,
+          };
+          newListNode.content[targetNodeIndex] = targetNode;
+          return newListNode;
         }),
       );
     }
@@ -841,7 +815,7 @@ class DocManager {
   }
 
   private untilEvenFocusChanges(cb: () => void) {
-    const oldFocus = this.focus;
+    let oldFocus = this.focus;
     while (true) {
       cb();
       if (unevenPathRangesAreEqual(this.focus, oldFocus)) {
@@ -856,6 +830,7 @@ class DocManager {
       ) {
         return;
       }
+      oldFocus = this.focus;
     }
   }
 
