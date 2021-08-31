@@ -697,30 +697,6 @@ class DocManager {
           ...forwardFocus,
           offset: reparsedNodes.length - 1,
         });
-      } else if (ev.key === "Enter" && !ev.ctrlKey) {
-        const evenFocus = asEvenPathRange(this.focus);
-        if (evenFocus.offset !== 0) {
-          return;
-        }
-        const focusedNode = nodeGetByPath(this.doc.root, evenFocus.anchor);
-        if (focusedNode?.kind !== NodeKind.List || focusedNode.content.length) {
-          return;
-        }
-        this.doc = docMapRoot(this.doc, (root) =>
-          nodeSetByPath(root, evenFocus.anchor, {
-            ...focusedNode,
-            content: [emptyToken],
-          }),
-        );
-        this.focus = asUnevenPathRange({
-          anchor: [...evenFocus.anchor, 0],
-          offset: 0,
-        });
-        this.insertedRange = {
-          anchor: [...evenFocus.anchor, 0],
-          offset: 0,
-        };
-        this.mode = Mode.InsertAfter;
       } else if (ev.key === "i") {
         let evenFocus = asEvenPathRange(this.focus);
         if (!evenFocus.anchor.length) {
