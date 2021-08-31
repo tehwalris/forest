@@ -554,7 +554,10 @@ function _withoutInvisibleNodes(
           : undefined,
       ),
     );
-
+    const filteredOldIndices = results
+      .map((r, i) => [r, i] as const)
+      .filter(([r, _i]) => r)
+      .map(([_r, i]) => i);
     const newNode = {
       ...node,
       content: results
@@ -586,11 +589,8 @@ function _withoutInvisibleNodes(
     if (focusedChildIndex !== undefined) {
       const childFocus = results[focusedChildIndex]?.focus;
       if (childFocus) {
-        const newFocusedChildIndex = results
-          .map((r, i) => [r, i])
-          .filter(([r, _i]) => r)
-          .map(([_r, i]) => i)
-          .indexOf(focusedChildIndex);
+        const newFocusedChildIndex =
+          filteredOldIndices.indexOf(focusedChildIndex);
         return {
           node: newNode,
           focus: {
@@ -599,13 +599,31 @@ function _withoutInvisibleNodes(
           },
         };
       } else {
-        return { node: newNode, focus: { anchor: [], offset: 0 } };
+        const newFocusedChildIndex =
+          filteredOldIndices.find((i) => i > focusedChildIndex!) ||
+          filteredOldIndices[0];
+        return {
+          node: newNode,
+          focus: { anchor: [newFocusedChildIndex], offset: 0 },
+        };
       }
     }
     if (!directlyFocusedChildRange) {
       return { node: newNode, focus: focus };
     }
-    return { node: newNode, focus: { anchor: [], offset: 0 } };
+    const minIndexAfterFocused = filteredOldIndices.findIndex(
+      (i) => i > directlyFocusedChildRange![1],
+    );
+    const maxIndexBeforeFocused = Math.max(
+      ...filteredOldIndices.filter((i) => i < directlyFocusedChildRange![1]),
+      -1,
+    );
+    const newFocusedChildIndex =
+      minIndexAfterFocused >= 0 ? minIndexAfterFocused : maxIndexBeforeFocused;
+    return {
+      node: newNode,
+      focus: { anchor: [newFocusedChildIndex], offset: 0 },
+    };
   }
 }
 
