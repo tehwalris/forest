@@ -119,22 +119,39 @@ function parseLooseExpression(input: ParserInput[]): ParserResult {
 }
 
 function parseTightExpression(input: ParserInput[]): ParserResult {
+  function isIdentifier(
+    item: ParserInput,
+  ): item is ParserInputToken & { syntaxKind: SyntaxKind.Identifier } {
+    return (
+      item.kind === ParserInputKind.Token &&
+      item.syntaxKind === SyntaxKind.Identifier
+    );
+  }
+
   const parsed: Node[] = [];
   const remaining = [...input];
   while (remaining.length) {
     const item = remaining[0];
-    if (item.kind !== ParserInputKind.Token) {
-      break;
+    if (isIdentifier(item)) {
+      parsed.push({
+        kind: NodeKind.Token,
+        syntaxKind: item.syntaxKind,
+        content: item.content,
+      });
+      remaining.shift();
+      continue;
     }
-    if (item.syntaxKind !== SyntaxKind.Identifier) {
-      break;
+    if (
+      item.kind === ParserInputKind.Token &&
+      item.syntaxKind === SyntaxKind.RawText &&
+      item.content === "." &&
+      remaining.length > 1 &&
+      isIdentifier(remaining[1])
+    ) {
+      remaining.shift();
+      continue;
     }
-    parsed.push({
-      kind: NodeKind.Token,
-      syntaxKind: item.syntaxKind,
-      content: item.content,
-    });
-    remaining.shift();
+    break;
   }
   return { parsed, remaining };
 }
@@ -832,15 +849,6 @@ class DocManager {
             evenFocus = newFocus;
             this.focus = asUnevenPathRange(evenFocus);
           };
-
-          if (ev.key === oldListNode.separator) {
-            if (targetNode.kind !== NodeKind.Token || targetNode.content) {
-              pushNode(emptyToken);
-              return newListNode;
-            }
-
-            return oldListNode;
-          }
 
           const listDelimiters: [string, string][] = [["(", ")"]];
           for (const delimiters of listDelimiters) {
