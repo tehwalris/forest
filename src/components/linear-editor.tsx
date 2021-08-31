@@ -424,9 +424,17 @@ function tryConvertNodesToParserInput(
   return result;
 }
 
+class PartialParseError extends Error {
+  constructor() {
+    super("not all input could be parsed");
+    Object.setPrototypeOf(this, PartialParseError.prototype);
+  }
+}
+
 function reparseNodes(
   oldNodesBeforeParse: Node[],
   parserKind: ParserKind,
+  throwOnPartialParse: boolean,
 ): { parsed: Node[]; remaining: Node[] } {
   const oldNodes = oldNodesBeforeParse.flatMap((oldNode) => {
     if (oldNode.kind === NodeKind.Token) {
@@ -435,6 +443,7 @@ function reparseNodes(
     const { parsed, remaining } = reparseNodes(
       oldNode.content,
       oldNode.parserKind,
+      throwOnPartialParse,
     );
     if (oldNode.equivalentToContent) {
       return [{ ...oldNode, content: parsed }, ...remaining];
@@ -476,6 +485,11 @@ function reparseNodes(
     remainingNodes.push(oldNodes[firstRemainingInput.nodeOffset]);
   }
   remainingNodes.push(...oldNodes.slice(firstRemainingInput.nodeOffset + 1));
+
+  if (remainingNodes.length && throwOnPartialParse) {
+    throw new PartialParseError();
+  }
+
   return { parsed: parserResult.parsed, remaining: remainingNodes };
 }
 
@@ -652,6 +666,7 @@ class DocManager {
         const reparsedResult = reparseNodes(
           focusedNodes,
           oldListNode.parserKind,
+          false,
         );
         const reparsedNodes = [
           ...reparsedResult.parsed,
@@ -885,6 +900,10 @@ class DocManager {
             }
             evenFocus = newFocus;
             this.focus = asUnevenPathRange(evenFocus);
+            this.insertedRange = {
+              ...this.insertedRange!,
+              offset: this.insertedRange!.offset + 1,
+            };
           };
 
           const listDelimiters: [string, string][] = [["(", ")"]];
@@ -960,41 +979,53 @@ class DocManager {
         this.insertedRange.anchor[this.insertedRange.anchor.length - 1];
       const oldLastIndex = oldFirstIndex + this.insertedRange.offset;
 
-      this.doc = docMapRoot(
-        this.doc,
-        nodeMapAtPath(this.insertedRange.anchor.slice(0, -1), (oldListNode) => {
-          if (oldListNode?.kind !== NodeKind.List) {
-            throw new Error("oldListNode is not a list");
-          }
-          const reparsedResult = reparseNodes(
-            oldListNode.content.slice(oldFirstIndex, oldLastIndex + 1),
-            oldListNode.parserKind,
-          );
-          const reparsedNodes = [
-            ...reparsedResult.parsed,
-            ...reparsedResult.remaining,
-          ];
+      try {
+        this.doc = docMapRoot(
+          this.doc,
+          nodeMapAtPath(
+            this.insertedRange.anchor.slice(0, -1),
+            (oldListNode) => {
+              if (oldListNode?.kind !== NodeKind.List) {
+                throw new Error("oldListNode is not a list");
+              }
+              const reparsedResult = reparseNodes(
+                oldListNode.content.slice(oldFirstIndex, oldLastIndex + 1),
+                oldListNode.parserKind,
+                true,
+              );
+              const reparsedNodes = [
+                ...reparsedResult.parsed,
+                ...reparsedResult.remaining,
+              ];
 
-          const newListContent = [...oldListNode.content];
-          newListContent.splice(
-            oldFirstIndex,
-            oldLastIndex - oldFirstIndex + 1,
-            ...reparsedNodes,
-          );
+              const newListContent = [...oldListNode.content];
+              newListContent.splice(
+                oldFirstIndex,
+                oldLastIndex - oldFirstIndex + 1,
+                ...reparsedNodes,
+              );
 
-          const focusOffset =
-            newListContent.length - oldListNode.content.length;
-          let evenFocus = this.parentFocuses[0] || asEvenPathRange(this.focus);
-          if (this.mode === Mode.InsertBefore) {
-            evenFocus.anchor[evenFocus.anchor.length - 1] += focusOffset;
-          } else {
-            evenFocus.offset += focusOffset;
-          }
-          this.focus = asUnevenPathRange(evenFocus);
+              const focusOffset =
+                newListContent.length - oldListNode.content.length;
+              let evenFocus =
+                this.parentFocuses[0] || asEvenPathRange(this.focus);
+              if (this.mode === Mode.InsertBefore) {
+                evenFocus.anchor[evenFocus.anchor.length - 1] += focusOffset;
+              } else {
+                evenFocus.offset += focusOffset;
+              }
+              this.focus = asUnevenPathRange(evenFocus);
 
-          return { ...oldListNode, content: newListContent };
-        }),
-      );
+              return { ...oldListNode, content: newListContent };
+            },
+          ),
+        );
+      } catch (err) {
+        if (err instanceof PartialParseError) {
+          return;
+        }
+        throw err;
+      }
 
       this.mode = Mode.Normal;
       this.history = [];
