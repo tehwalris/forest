@@ -32,6 +32,7 @@ interface ListNode {
   delimiters: [string, string];
   separator: string;
   content: Node[];
+  equivalentToContent: boolean;
 }
 
 interface Doc {
@@ -50,6 +51,7 @@ const emptyDoc: Doc = {
     delimiters: ["", ""],
     separator: " ",
     content: [],
+    equivalentToContent: true,
   },
 };
 
@@ -248,6 +250,7 @@ function reparseNodes(oldNodes: Node[]): Node[] {
       delimiters: ["", ""],
       separator: ".",
       content: identifiers,
+      equivalentToContent: true,
     },
   ];
 }
@@ -692,6 +695,7 @@ class DocManager {
                 delimiters,
                 separator: " ",
                 content: [emptyToken, emptyToken],
+                equivalentToContent: false,
               });
               this.parentFocuses.push(evenFocus);
               this.focus = asUnevenPathRange({
@@ -771,14 +775,21 @@ class DocManager {
   }
 
   private tryMoveToParent() {
-    const evenFocus = asEvenPathRange(this.focus);
-    if (evenFocus.anchor.length < 2) {
-      return;
+    let evenFocus = asEvenPathRange(this.focus);
+    while (evenFocus.anchor.length >= 2) {
+      evenFocus = {
+        anchor: evenFocus.anchor.slice(0, -1),
+        offset: 0,
+      };
+      const focusedNode = nodeGetByPath(this.doc.root, evenFocus.anchor);
+      if (
+        focusedNode?.kind === NodeKind.List &&
+        !focusedNode.equivalentToContent
+      ) {
+        this.focus = asUnevenPathRange(evenFocus);
+        return;
+      }
     }
-    this.focus = asUnevenPathRange({
-      anchor: evenFocus.anchor.slice(0, -1),
-      offset: 0,
-    });
   }
 
   private tryMoveIntoList() {
@@ -832,6 +843,17 @@ class DocManager {
       : { anchor: currentPath, tip: currentPath };
   }
 
+  private whileUnevenFocusChanges(cb: () => void) {
+    let oldFocus = this.focus;
+    while (true) {
+      cb();
+      if (unevenPathRangesAreEqual(this.focus, oldFocus)) {
+        return;
+      }
+      oldFocus = this.focus;
+    }
+  }
+
   private untilEvenFocusChanges(cb: () => void) {
     const oldFocus = this.focus;
     while (true) {
@@ -855,6 +877,7 @@ class DocManager {
     if (this.doc !== this.lastDoc) {
       this.lastDoc = this.doc;
     }
+    this.whileUnevenFocusChanges(() => this.normalizeFocus());
     this.history.push({
       doc: this.doc,
       focus: this.focus,
@@ -865,6 +888,28 @@ class DocManager {
       focus: asEvenPathRange(this.focus),
       mode: this.mode,
     });
+  }
+
+  private normalizeFocus() {
+    const evenFocus = asEvenPathRange(this.focus);
+    if (evenFocus.offset !== 0) {
+      return;
+    }
+    const focusedNode = nodeGetByPath(this.doc.root, evenFocus.anchor);
+    if (!focusedNode) {
+      throw new Error("invalid focus");
+    }
+    if (
+      focusedNode.kind !== NodeKind.List ||
+      !focusedNode.equivalentToContent ||
+      !focusedNode.content.length
+    ) {
+      return;
+    }
+    this.focus = {
+      anchor: [...evenFocus.anchor, 0],
+      tip: [...evenFocus.anchor, focusedNode.content.length - 1],
+    };
   }
 
   private removeEmptyTokens() {
