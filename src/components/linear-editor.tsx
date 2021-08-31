@@ -509,6 +509,10 @@ class DocManager {
         this.tryMoveToParent();
       } else if (ev.key === "j") {
         this.tryMoveIntoList();
+      } else if (ev.key === "b") {
+        this.tryMoveThroughLeaves(-1);
+      } else if (ev.key === "w") {
+        this.tryMoveThroughLeaves(1);
       } else if (ev.key === ";") {
         this.focus = { anchor: getPathToTip(this.focus), offset: 0 };
       }
@@ -683,7 +687,7 @@ class DocManager {
     }
   };
 
-  private tryMoveToSibling(offset: number, extend: boolean) {
+  private tryMoveToSibling(offset: -1 | 1, extend: boolean) {
     const newAnchor = [...this.focus.anchor];
     newAnchor[newAnchor.length - 1] += this.focus.offset + offset;
     if (!nodeGetByPath(this.doc.root, newAnchor)) {
@@ -714,6 +718,39 @@ class DocManager {
       anchor: [...listPath, 0],
       offset: listNode.content.length - 1,
     };
+  }
+
+  private tryMoveThroughLeaves(offset: -1 | 1) {
+    let currentPath = [...flipPathRange(this.focus).anchor];
+    while (true) {
+      if (!currentPath.length) {
+        return;
+      }
+      const siblingPath = [...currentPath];
+      siblingPath[siblingPath.length - 1] += offset;
+      if (nodeGetByPath(this.doc.root, siblingPath)) {
+        currentPath = siblingPath;
+        break;
+      }
+      currentPath.pop();
+    }
+
+    while (true) {
+      const currentNode = nodeGetByPath(this.doc.root, currentPath)!;
+      if (currentNode.kind !== NodeKind.List || !currentNode.content.length) {
+        break;
+      }
+      const childPath = [
+        ...currentPath,
+        offset === -1 ? currentNode.content.length - 1 : 0,
+      ];
+      if (!nodeGetByPath(this.doc.root, childPath)) {
+        break;
+      }
+      currentPath = childPath;
+    }
+
+    this.focus = { anchor: currentPath, offset: 0 };
   }
 
   private onUpdate() {
