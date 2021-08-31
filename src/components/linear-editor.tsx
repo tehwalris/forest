@@ -609,9 +609,11 @@ class DocManager {
     doc: Doc;
     focus: UnevenPathRange;
     parentFocuses: EvenPathRange[];
+    insertedRange: EvenPathRange;
   }[] = [];
   private mode = Mode.Normal;
   private lastMode = this.mode;
+  private insertedRange: EvenPathRange | undefined;
 
   constructor(
     private _onUpdate: (stuff: {
@@ -699,6 +701,10 @@ class DocManager {
           anchor: [...evenFocus.anchor, 0],
           offset: 0,
         });
+        this.insertedRange = {
+          anchor: [...evenFocus.anchor, 0],
+          offset: 0,
+        };
         this.mode = Mode.InsertAfter;
       } else if (ev.key === "i") {
         let evenFocus = asEvenPathRange(this.focus);
@@ -734,6 +740,10 @@ class DocManager {
         };
         evenFocus = flipEvenPathRange(evenFocus);
         this.focus = asUnevenPathRange(evenFocus);
+        this.insertedRange = {
+          anchor: [...evenFocus.anchor.slice(0, -1), newTokenIndex],
+          offset: 0,
+        };
         this.mode = Mode.InsertBefore;
       } else if (ev.key === "a") {
         let evenFocus = asEvenPathRange(this.focus);
@@ -769,6 +779,10 @@ class DocManager {
         };
         evenFocus = flipEvenPathRange(evenFocus);
         this.focus = asUnevenPathRange(evenFocus);
+        this.insertedRange = {
+          anchor: [...evenFocus.anchor.slice(0, -1), newTokenIndex],
+          offset: 0,
+        };
         this.mode = Mode.InsertAfter;
       } else if (ev.key === "d") {
         const evenFocus = asEvenPathRange(this.focus);
@@ -937,6 +951,51 @@ class DocManager {
       (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
       ev.key === "Escape"
     ) {
+      if (!this.insertedRange) {
+        throw new Error(
+          "this.insertedRange is undefined when exiting in insert mode",
+        );
+      }
+      const oldFirstIndex =
+        this.insertedRange.anchor[this.insertedRange.anchor.length - 1];
+      const oldLastIndex = oldFirstIndex + this.insertedRange.offset;
+
+      this.doc = docMapRoot(
+        this.doc,
+        nodeMapAtPath(this.insertedRange.anchor.slice(0, -1), (oldListNode) => {
+          if (oldListNode?.kind !== NodeKind.List) {
+            throw new Error("oldListNode is not a list");
+          }
+          const reparsedResult = reparseNodes(
+            oldListNode.content.slice(oldFirstIndex, oldLastIndex + 1),
+            oldListNode.parserKind,
+          );
+          const reparsedNodes = [
+            ...reparsedResult.parsed,
+            ...reparsedResult.remaining,
+          ];
+
+          const newListContent = [...oldListNode.content];
+          newListContent.splice(
+            oldFirstIndex,
+            oldLastIndex - oldFirstIndex + 1,
+            ...reparsedNodes,
+          );
+
+          const focusOffset =
+            newListContent.length - oldListNode.content.length;
+          let evenFocus = this.parentFocuses[0] || asEvenPathRange(this.focus);
+          if (this.mode === Mode.InsertBefore) {
+            evenFocus.anchor[evenFocus.anchor.length - 1] += focusOffset;
+          } else {
+            evenFocus.offset += focusOffset;
+          }
+          this.focus = asUnevenPathRange(evenFocus);
+
+          return { ...oldListNode, content: newListContent };
+        }),
+      );
+
       this.mode = Mode.Normal;
       this.history = [];
       this.parentFocuses = [];
@@ -1067,10 +1126,14 @@ class DocManager {
       if (this.lastMode !== this.mode) {
         this.history = [];
       }
+      if (!this.insertedRange) {
+        throw new Error("this.insertedRange is undefined in insert mode");
+      }
       this.history.push({
         doc: this.doc,
         focus: this.focus,
         parentFocuses: [...this.parentFocuses],
+        insertedRange: this.insertedRange,
       });
     }
     this.lastMode = this.mode;
