@@ -95,6 +95,26 @@ function asEvenPathRange(uneven: UnevenPathRange): EvenPathRange {
     : { anchor: commonPrefix, offset: 0 };
 }
 
+function pathsAreEqual(a: Path, b: Path): boolean {
+  return a === b || (a.length === b.length && a.every((v, i) => v === b[i]));
+}
+
+function evenPathRangesAreEqual(a: EvenPathRange, b: EvenPathRange): boolean {
+  return (
+    a === b || (pathsAreEqual(a.anchor, b.anchor) && a.offset === b.offset)
+  );
+}
+
+function unevenPathRangesAreEqual(
+  a: UnevenPathRange,
+  b: UnevenPathRange,
+): boolean {
+  return (
+    a === b ||
+    (pathsAreEqual(a.anchor, b.anchor) && pathsAreEqual(a.tip, b.tip))
+  );
+}
+
 function nodeTryGetDeepestByPath(
   node: Node,
   path: Path,
@@ -547,25 +567,17 @@ class DocManager {
           offset: 0,
         });
       } else if (ev.key === "l") {
-        this.tryMoveToSibling(1, false);
+        this.untilEvenFocusChanges(() => this.tryMoveThroughLeaves(1, false));
       } else if (ev.key === "L") {
-        this.tryMoveToSibling(1, true);
+        this.untilEvenFocusChanges(() => this.tryMoveThroughLeaves(1, true));
       } else if (ev.key === "h") {
-        this.tryMoveToSibling(-1, false);
+        this.untilEvenFocusChanges(() => this.tryMoveThroughLeaves(-1, false));
       } else if (ev.key === "H") {
-        this.tryMoveToSibling(-1, true);
+        this.untilEvenFocusChanges(() => this.tryMoveThroughLeaves(-1, true));
       } else if (ev.key === "k") {
         this.tryMoveToParent();
       } else if (ev.key === "j") {
         this.tryMoveIntoList();
-      } else if (ev.key === "b") {
-        this.tryMoveThroughLeaves(-1, false);
-      } else if (ev.key === "B") {
-        this.tryMoveThroughLeaves(-1, true);
-      } else if (ev.key === "w") {
-        this.tryMoveThroughLeaves(1, false);
-      } else if (ev.key === "W") {
-        this.tryMoveThroughLeaves(1, true);
       } else if (ev.key === ";") {
         this.focus = asUnevenPathRange({
           anchor: getPathToTip(asEvenPathRange(this.focus)),
@@ -818,6 +830,25 @@ class DocManager {
     this.focus = extend
       ? { anchor: this.focus.anchor, tip: currentPath }
       : { anchor: currentPath, tip: currentPath };
+  }
+
+  private untilEvenFocusChanges(cb: () => void) {
+    const oldFocus = this.focus;
+    while (true) {
+      cb();
+      if (unevenPathRangesAreEqual(this.focus, oldFocus)) {
+        // avoid infinite loop (if the uneven focus didn't change, it probably never will, so the even focus wont either)
+        return;
+      }
+      if (
+        !evenPathRangesAreEqual(
+          asEvenPathRange(this.focus),
+          asEvenPathRange(oldFocus),
+        )
+      ) {
+        return;
+      }
+    }
   }
 
   private onUpdate() {
