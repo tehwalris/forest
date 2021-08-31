@@ -360,9 +360,7 @@ class DocManager {
     doc: Doc;
     focus: UnevenPathRange;
     parentFocuses: EvenPathRange[];
-  }[] = [
-    { focus: this.focus, doc: this.doc, parentFocuses: this.parentFocuses },
-  ];
+  }[] = [];
   private mode = Mode.Normal;
 
   constructor(
@@ -423,18 +421,18 @@ class DocManager {
         if (evenFocus.offset !== 0) {
           return;
         }
-        const focusedNode = nodeGetByPath(this.doc.root, this.focus.anchor);
+        const focusedNode = nodeGetByPath(this.doc.root, evenFocus.anchor);
         if (focusedNode?.kind !== NodeKind.List || focusedNode.content.length) {
           return;
         }
         this.doc = docMapRoot(this.doc, (root) =>
-          nodeSetByPath(root, this.focus.anchor, {
+          nodeSetByPath(root, evenFocus.anchor, {
             ...focusedNode,
             content: [emptyToken],
           }),
         );
         this.focus = asUnevenPathRange({
-          anchor: [...this.focus.anchor, 0],
+          anchor: [...evenFocus.anchor, 0],
           offset: 0,
         });
         this.mode = Mode.InsertAfter;
@@ -615,6 +613,7 @@ class DocManager {
               newFocus.offset += 1;
             }
             evenFocus = newFocus;
+            this.focus = asUnevenPathRange(evenFocus);
           };
 
           if (ev.key === oldListNode.separator) {
@@ -685,7 +684,7 @@ class DocManager {
               this.parentFocuses.push(evenFocus);
               this.focus = asUnevenPathRange({
                 anchor: [
-                  ...this.focus.anchor.slice(0, -1),
+                  ...evenFocus.anchor.slice(0, -1),
                   targetNodeIndex,
                   this.mode === Mode.InsertBefore ? 1 : 0,
                 ],
@@ -727,7 +726,6 @@ class DocManager {
       this.mode = Mode.Normal;
       this.history = [];
       this.parentFocuses = [];
-      this.fixFocus();
       this.removeEmptyTokens();
       this.onUpdate();
     } else if (
@@ -826,7 +824,6 @@ class DocManager {
     if (this.doc !== this.lastDoc) {
       this.lastDoc = this.doc;
     }
-    this.fixFocus();
     this.history.push({
       doc: this.doc,
       focus: this.focus,
@@ -839,40 +836,20 @@ class DocManager {
     });
   }
 
-  private fixFocus() {
-    console.warn("TODO fixFocus");
-
-    // const newAnchor = nodeTryGetDeepestByPath(
-    //   this.doc.root,
-    //   this.focus.anchor,
-    // ).path;
-    // if (newAnchor.length !== this.focus.anchor.length) {
-    //   this.focus = { anchor: newAnchor, offset: 0 };
-    //   return;
-    // }
-    // if (this.focus.anchor.length === 0 && this.focus.offset) {
-    //   console.warn("offset must be zero for root node");
-    //   this.focus = { ...this.focus, offset: 0 };
-    //   return;
-    // }
-    // let newOffset = 0;
-    // for (let i = 1; i <= Math.abs(this.focus.offset); i++) {
-    //   const offsetPath = [...this.focus.anchor];
-    //   offsetPath[offsetPath.length - 1] += i * Math.sign(this.focus.offset);
-    //   if (!nodeGetByPath(this.doc.root, offsetPath)) {
-    //     break;
-    //   }
-    //   newOffset = i * Math.sign(this.focus.offset);
-    // }
-    // this.focus = { ...this.focus, offset: newOffset };
-  }
-
   private removeEmptyTokens() {
-    console.warn("TODO removeEmptyTokens");
-
-    // const result = withoutEmptyTokens(this.doc, this.focus);
-    // this.doc = result.doc;
-    // this.focus = result.focus;
+    const anchorResult = withoutEmptyTokens(this.doc, {
+      anchor: this.focus.anchor,
+      offset: 0,
+    });
+    const tipResult = withoutEmptyTokens(this.doc, {
+      anchor: this.focus.tip,
+      offset: 0,
+    });
+    this.doc = anchorResult.doc;
+    this.focus = {
+      anchor: anchorResult.focus.anchor,
+      tip: tipResult.focus.anchor,
+    };
   }
 }
 
