@@ -14,7 +14,7 @@ enum SyntaxKind {
   BinaryOperator,
 }
 
-enum ParseKind {
+enum ParserKind {
   LooseExpression,
   TightExpression,
 }
@@ -34,12 +34,115 @@ interface TokenNode {
 
 interface ListNode {
   kind: NodeKind.List;
-  parseKind: ParseKind;
+  parserKind: ParserKind;
   delimiters: [string, string];
   separator: string;
   content: Node[];
   equivalentToContent: boolean;
 }
+
+enum ParserInputKind {
+  Token,
+  ListNode,
+}
+
+type ParserInput = ParserInputToken | ParserInputListNode;
+
+interface ParserInputToken {
+  kind: ParserInputKind.Token;
+  syntaxKind: SyntaxKind;
+  content: string;
+  nodeOffset: number;
+  stringOffset: number;
+}
+
+interface ParserInputListNode {
+  kind: ParserInputKind.ListNode;
+  node: ListNode;
+  nodeOffset: number;
+}
+
+interface ParserResult {
+  parsed: Node[];
+  remaining: ParserInput[];
+}
+
+type ParserFunction = (input: ParserInput[]) => ParserResult;
+
+function parseLooseExpression(input: ParserInput[]): ParserResult {
+  const parsed: Node[] = [];
+  let remaining = [...input];
+  while (remaining.length) {
+    const item = remaining[0];
+
+    if (
+      item.kind === ParserInputKind.ListNode &&
+      item.node.delimiters[0] === "("
+    ) {
+      parsed.push(item.node);
+      remaining.shift();
+      continue;
+    }
+
+    if (
+      item.kind === ParserInputKind.Token &&
+      item.syntaxKind === SyntaxKind.BinaryOperator
+    ) {
+      parsed.push({
+        kind: NodeKind.Token,
+        syntaxKind: item.syntaxKind,
+        content: item.content,
+      });
+      remaining.shift();
+      continue;
+    }
+
+    const tightExpressionResult = parseTightExpression(remaining);
+    if (!tightExpressionResult.parsed.length) {
+      break;
+    }
+    if (tightExpressionResult.remaining.length >= remaining.length) {
+      throw new Error("parseTightExpression gave result without taking input");
+    }
+    console.log("DEBUG tightExpressionResult", tightExpressionResult);
+    parsed.push({
+      kind: NodeKind.List,
+      parserKind: ParserKind.TightExpression,
+      delimiters: ["", ""],
+      separator: ".",
+      content: tightExpressionResult.parsed,
+      equivalentToContent: true,
+    });
+    remaining = [...tightExpressionResult.remaining];
+  }
+  return { parsed, remaining };
+}
+
+function parseTightExpression(input: ParserInput[]): ParserResult {
+  const parsed: Node[] = [];
+  const remaining = [...input];
+  while (remaining.length) {
+    const item = remaining[0];
+    if (item.kind !== ParserInputKind.Token) {
+      break;
+    }
+    if (item.syntaxKind !== SyntaxKind.Identifier) {
+      break;
+    }
+    parsed.push({
+      kind: NodeKind.Token,
+      syntaxKind: item.syntaxKind,
+      content: item.content,
+    });
+    remaining.shift();
+  }
+  return { parsed, remaining };
+}
+
+const parserFunctionsByKind: { [K in ParserKind]: ParserFunction } = {
+  [ParserKind.LooseExpression]: parseLooseExpression,
+  [ParserKind.TightExpression]: parseTightExpression,
+};
 
 interface Doc {
   root: ListNode;
@@ -54,7 +157,7 @@ const emptyToken: TokenNode = {
 const emptyDoc: Doc = {
   root: {
     kind: NodeKind.List,
-    parseKind: ParseKind.LooseExpression,
+    parserKind: ParserKind.LooseExpression,
     delimiters: ["", ""],
     separator: " ",
     content: [],
@@ -218,49 +321,129 @@ function getPathToTip(pathRange: EvenPathRange): Path {
   return path;
 }
 
-function reparseNodes(oldNodes: Node[]): Node[] {
-  if (!oldNodes.length) {
-    return oldNodes;
-  }
-
-  const identifiers: Node[] = [];
-  let expectDot = false;
-  for (const node of oldNodes) {
-    if (expectDot) {
-      if (
-        node.kind !== NodeKind.Token ||
-        node.syntaxKind !== SyntaxKind.RawText ||
-        node.content !== "."
-      ) {
-        return oldNodes;
-      }
-      expectDot = false;
-    } else {
-      if (
-        node.kind === NodeKind.Token &&
-        node.syntaxKind === SyntaxKind.RawText
-      ) {
-        return oldNodes;
-      }
-      identifiers.push(node);
-      expectDot = true;
-    }
-  }
-
-  if (!expectDot || identifiers.length <= 1) {
-    return oldNodes;
-  }
-
-  return [
+function parserInputTokensFromString(
+  input: string,
+  nodeOffset: number,
+): ParserInputToken[] {
+  const tokenPatterns = [
     {
-      kind: NodeKind.List,
-      parseKind: ParseKind.TightExpression,
-      delimiters: ["", ""],
-      separator: ".",
-      content: identifiers,
-      equivalentToContent: true,
+      key: /^[a-zA-Z]$/,
+      token: /^[a-zA-Z]*$/,
+      syntaxKind: SyntaxKind.Identifier,
+    },
+    {
+      key: /^\d$/,
+      token: /^\d*$/,
+      syntaxKind: SyntaxKind.NumericLiteral,
+    },
+    {
+      key: /^[+\-*/]$/,
+      token: /^[+\-*/]*$/,
+      singleChar: true,
+      syntaxKind: SyntaxKind.BinaryOperator,
+    },
+    {
+      syntaxKind: SyntaxKind.RawText,
     },
   ];
+
+  const makeEmptyToken = (): ParserInputToken => ({
+    kind: ParserInputKind.Token,
+    syntaxKind: SyntaxKind.RawText,
+    content: "",
+    nodeOffset,
+    stringOffset: 0,
+  });
+
+  let lastToken = makeEmptyToken();
+  const output = [lastToken];
+  charLoop: for (const [stringOffset, char] of [...input].entries()) {
+    for (const {
+      key: keyPattern,
+      token: tokenPattern,
+      singleChar = false,
+      syntaxKind,
+    } of tokenPatterns) {
+      if (keyPattern && !char.match(keyPattern)) {
+        continue;
+      }
+      if (
+        (!tokenPattern && lastToken.syntaxKind !== syntaxKind) ||
+        (tokenPattern && !lastToken.content.match(tokenPattern)) ||
+        (lastToken.content.length === 1 && singleChar)
+      ) {
+        lastToken = makeEmptyToken();
+        output.push(lastToken);
+      }
+      lastToken.stringOffset = stringOffset;
+      lastToken.syntaxKind = syntaxKind;
+      lastToken.content += char;
+      continue charLoop;
+    }
+    throw new Error(`unhandled char: ${char}`);
+  }
+
+  return output.filter((t) => t.content.trim());
+}
+
+function tryConvertNodesToParserInput(
+  nodes: Node[],
+): ParserInput[] | undefined {
+  const result: ParserInput[] = [];
+  for (const [nodeOffset, node] of nodes.entries()) {
+    switch (node.kind) {
+      case NodeKind.Token:
+        if (node.syntaxKind !== SyntaxKind.RawText) {
+          return undefined;
+        }
+        result.push(...parserInputTokensFromString(node.content, nodeOffset));
+        break;
+      case NodeKind.List:
+        result.push({ kind: ParserInputKind.ListNode, node, nodeOffset });
+        break;
+      default:
+        return unreachable(node);
+    }
+  }
+  return result;
+}
+
+function reparseNodes(oldNodes: Node[], parserKind: ParserKind): Node[] {
+  const parserInput = tryConvertNodesToParserInput(oldNodes);
+  console.log("DEBUG reparseNodes", { oldNodes, parserInput });
+  if (!parserInput?.length) {
+    return oldNodes;
+  }
+
+  const parserResult = parserFunctionsByKind[parserKind](parserInput);
+  if (!parserResult.remaining.length) {
+    return parserResult.parsed;
+  }
+
+  const output = [...parserResult.parsed];
+  const firstRemainingInput = parserResult.remaining[0];
+  if (firstRemainingInput.kind === ParserInputKind.Token) {
+    const oldRawTextNode = oldNodes[firstRemainingInput.nodeOffset];
+    if (
+      oldRawTextNode?.kind !== NodeKind.Token ||
+      oldRawTextNode.syntaxKind !== SyntaxKind.RawText
+    ) {
+      throw new Error("remaining node has unexpected type");
+    }
+    const newRawTextNode = {
+      ...oldRawTextNode,
+      content: oldRawTextNode.content
+        .slice(firstRemainingInput.stringOffset)
+        .trim(),
+    };
+    if (newRawTextNode.content) {
+      output.push(newRawTextNode);
+    }
+  } else {
+    output.push(oldNodes[firstRemainingInput.nodeOffset]);
+  }
+  output.push(...oldNodes.slice(firstRemainingInput.nodeOffset + 1));
+  return output;
 }
 
 function withoutEmptyTokens(
@@ -421,7 +604,17 @@ class DocManager {
           }
           focusedNodes.push(node);
         }
-        const reparsedNodes = reparseNodes(focusedNodes);
+        const oldListNode = nodeGetByPath(
+          this.doc.root,
+          forwardFocus.anchor.slice(0, -1),
+        );
+        if (oldListNode?.kind !== NodeKind.List) {
+          throw new Error("oldListNode is not a list");
+        }
+        const reparsedNodes = reparseNodes(
+          focusedNodes,
+          oldListNode.parserKind,
+        );
         if (reparsedNodes === focusedNodes) {
           return;
         }
@@ -654,7 +847,7 @@ class DocManager {
             if (ev.key === delimiters[0]) {
               pushNode({
                 kind: NodeKind.List,
-                parseKind: ParseKind.LooseExpression,
+                parserKind: ParserKind.LooseExpression,
                 delimiters,
                 separator: " ",
                 content: [emptyToken, emptyToken],
