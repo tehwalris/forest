@@ -422,18 +422,34 @@ class PartialParseError extends Error {
   }
 }
 
-function reparseNodesNew(root: ListNode, insertedRange: EvenPathRange) {
-  const { updated, remaining } = _reparseNodesNew(root, insertedRange);
+function applyPathOffset(path: Path, offset: Path) {
+  if (path.length !== offset.length) {
+    throw new Error("path and offset must have equal length");
+  }
+  return path.map((v, i) => v + offset[i]);
+}
+
+function reparseNodes(root: ListNode, insertedRange: EvenPathRange) {
+  const {
+    updated,
+    remainingAfter: remaining,
+    focusOffset,
+  } = _reparseNodes(root, insertedRange);
   if (remaining.length) {
     throw new PartialParseError("remaining parser inputs at root");
   }
-  return updated;
+  return { updated, focusOffset };
 }
 
-function _reparseNodesNew(
+function _reparseNodes(
   root: ListNode,
   insertedRange: EvenPathRange,
-): { updated: Node; remaining: ParserInput[] } {
+): {
+  updated: Node;
+  remainingBefore: ParserInput[];
+  remainingAfter: ParserInput[];
+  focusOffset: number[];
+} {
   if (!insertedRange.anchor.length || insertedRange.offset < 0) {
     throw new Error("insertedRange is not valid");
   } else if (insertedRange.anchor.length === 1) {
@@ -450,10 +466,29 @@ function _reparseNodesNew(
     }
 
     const parserResult = parserFunctionsByKind[root.parserKind](parserInput);
+    if (parserResult.remaining.length && !root.equivalentToContent) {
+      throw new PartialParseError(
+        "remaining parser inputs in list with equivalentToContent === false",
+      );
+    }
     if (
       parserResult.remaining.length &&
       oldLastIndex + 1 !== root.content.length
     ) {
+      if (oldFirstIndex === 0) {
+        // HACK The behavior when inserting at the start of a list (this case; parse is handled fully by a single list)
+        // is different from inserting at the end of a list (parse is handled partially by an inner list and the remainder is handled by outer lists)
+
+        // Try to reparse the next outer list instead.
+        const newContent = [...root.content];
+        newContent.splice(oldFirstIndex, oldLastIndex - oldFirstIndex + 1);
+        return {
+          updated: { ...root, content: newContent },
+          remainingBefore: parserInput,
+          remainingAfter: [],
+          focusOffset: [0],
+        };
+      }
       throw new PartialParseError(
         "remaining parser inputs in the middle of a list",
       );
@@ -467,7 +502,9 @@ function _reparseNodesNew(
     );
     return {
       updated: { ...root, content: newContent },
-      remaining: parserResult.remaining,
+      remainingBefore: [],
+      remainingAfter: parserResult.remaining,
+      focusOffset: [newContent.length - root.content.length],
     };
   } else {
     const oldTargetChild = root.content[insertedRange.anchor[0]];
@@ -475,16 +512,42 @@ function _reparseNodesNew(
       throw new Error("insertedRange is not valid");
     }
 
-    const childResult = _reparseNodesNew(oldTargetChild, {
+    const childResult = _reparseNodes(oldTargetChild, {
       anchor: insertedRange.anchor.slice(1),
       offset: insertedRange.offset,
     });
-    const parserResult = parserFunctionsByKind[root.parserKind](
-      childResult.remaining,
+    if (
+      childResult.remainingBefore.length &&
+      childResult.remainingAfter.length
+    ) {
+      throw new Error(
+        "remaining parse inputs on both sides of child are not supported",
+      );
+    }
+    const parserResultBefore = parserFunctionsByKind[root.parserKind](
+      childResult.remainingBefore,
+    );
+    const parserResultAfter = parserFunctionsByKind[root.parserKind](
+      childResult.remainingAfter,
     );
 
+    if (parserResultBefore.remaining.length) {
+      if (insertedRange.anchor[0] === 0) {
+        return {
+          updated: root,
+          remainingBefore: parserResultBefore.remaining,
+          remainingAfter: [],
+          focusOffset: [0, ...childResult.focusOffset],
+        };
+      } else {
+        throw new PartialParseError(
+          "remaining parser inputs in the middle of a list",
+        );
+      }
+    }
+
     if (
-      parserResult.remaining.length &&
+      parserResultAfter.remaining.length &&
       insertedRange.anchor[0] + 1 !== root.content.length
     ) {
       throw new PartialParseError(
@@ -494,10 +557,20 @@ function _reparseNodesNew(
 
     const newContent = [...root.content];
     newContent[insertedRange.anchor[0]] = childResult.updated;
-    newContent.splice(insertedRange.anchor[0] + 1, 0, ...parserResult.parsed);
+    newContent.splice(insertedRange.anchor[0], 0, ...parserResultBefore.parsed);
+    newContent.splice(
+      insertedRange.anchor[0] + 1,
+      0,
+      ...parserResultAfter.parsed,
+    );
     return {
       updated: { ...root, content: newContent },
-      remaining: parserResult.remaining,
+      remainingBefore: [],
+      remainingAfter: parserResultAfter.remaining,
+      focusOffset: [
+        newContent.length - root.content.length,
+        ...childResult.focusOffset,
+      ],
     };
   }
 }
@@ -950,9 +1023,24 @@ class DocManager {
       }
 
       try {
-        this.doc = docMapRoot(this.doc, (root) =>
-          reparseNodesNew(root, this.insertedRange!),
-        );
+        this.doc = docMapRoot(this.doc, (root) => {
+          const { updated: newRoot, focusOffset } = reparseNodes(
+            root,
+            this.insertedRange!,
+          );
+          if (this.mode === Mode.InsertBefore) {
+            this.focus = {
+              anchor: applyPathOffset(this.focus.anchor, focusOffset),
+              tip: applyPathOffset(this.focus.tip, focusOffset),
+            };
+          } else {
+            this.focus = {
+              anchor: this.focus.anchor,
+              tip: applyPathOffset(this.focus.tip, focusOffset),
+            };
+          }
+          return newRoot;
+        });
       } catch (err) {
         if (err instanceof PartialParseError) {
           console.warn(err);
