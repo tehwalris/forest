@@ -393,20 +393,28 @@ function parserInputTokensFromString(input: string): ParserInputToken[] {
   return output.filter((t) => t.content.trim());
 }
 
-function tryConvertNodesToParserInput(
-  nodes: Node[],
-): ParserInput[] | undefined {
+function convertNodesToParserInput(nodes: Node[]): ParserInput[] {
   const result: ParserInput[] = [];
   for (const node of nodes) {
     switch (node.kind) {
       case NodeKind.Token:
         if (node.syntaxKind !== SyntaxKind.RawText) {
-          return undefined;
+          throw new Error(
+            "selected range contains nodes which are not valid parser inputs",
+          );
         }
         result.push(...parserInputTokensFromString(node.content));
         break;
       case NodeKind.List:
-        result.push({ kind: ParserInputKind.ListNode, node });
+        if (node.content.length) {
+          const { updated } = reparseNodes(node, {
+            anchor: [0],
+            offset: node.content.length - 1,
+          });
+          result.push({ kind: ParserInputKind.ListNode, node: updated });
+        } else {
+          result.push({ kind: ParserInputKind.ListNode, node });
+        }
         break;
       default:
         return unreachable(node);
@@ -445,7 +453,7 @@ function _reparseNodes(
   root: ListNode,
   insertedRange: EvenPathRange,
 ): {
-  updated: Node;
+  updated: ListNode;
   remainingBefore: ParserInput[];
   remainingAfter: ParserInput[];
   focusOffset: number[];
@@ -456,14 +464,9 @@ function _reparseNodes(
     const oldFirstIndex = insertedRange.anchor[0];
     const oldLastIndex = insertedRange.anchor[0] + insertedRange.offset;
 
-    const parserInput = tryConvertNodesToParserInput(
+    const parserInput = convertNodesToParserInput(
       root.content.slice(oldFirstIndex, oldLastIndex + 1),
     );
-    if (!parserInput) {
-      throw new Error(
-        "selected range contains nodes which are not valid parser inputs",
-      );
-    }
 
     const parserResult = parserFunctionsByKind[root.parserKind](parserInput);
     if (parserResult.remaining.length && !root.equivalentToContent) {
@@ -1028,15 +1031,18 @@ class DocManager {
             root,
             this.insertedRange!,
           );
+          const oldFocus = this.parentFocuses.length
+            ? asUnevenPathRange(this.parentFocuses[0])
+            : this.focus;
           if (this.mode === Mode.InsertBefore) {
             this.focus = {
-              anchor: applyPathOffset(this.focus.anchor, focusOffset),
-              tip: applyPathOffset(this.focus.tip, focusOffset),
+              anchor: applyPathOffset(oldFocus.anchor, focusOffset),
+              tip: applyPathOffset(oldFocus.tip, focusOffset),
             };
           } else {
             this.focus = {
-              anchor: this.focus.anchor,
-              tip: applyPathOffset(this.focus.tip, focusOffset),
+              anchor: oldFocus.anchor,
+              tip: applyPathOffset(oldFocus.tip, focusOffset),
             };
           }
           return newRoot;
