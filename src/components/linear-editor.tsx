@@ -52,14 +52,11 @@ interface ParserInputToken {
   kind: ParserInputKind.Token;
   syntaxKind: SyntaxKind;
   content: string;
-  nodeOffset: number;
-  stringOffset: number;
 }
 
 interface ParserInputListNode {
   kind: ParserInputKind.ListNode;
   node: ListNode;
-  nodeOffset: number;
 }
 
 interface ParserResult {
@@ -337,10 +334,7 @@ function getPathToTip(pathRange: EvenPathRange): Path {
   return path;
 }
 
-function parserInputTokensFromString(
-  input: string,
-  nodeOffset: number,
-): ParserInputToken[] {
+function parserInputTokensFromString(input: string): ParserInputToken[] {
   const tokenPatterns = [
     {
       key: /^[a-zA-Z]$/,
@@ -367,13 +361,11 @@ function parserInputTokensFromString(
     kind: ParserInputKind.Token,
     syntaxKind: SyntaxKind.RawText,
     content: "",
-    nodeOffset,
-    stringOffset: 0,
   });
 
   let lastToken = makeEmptyToken();
   const output = [lastToken];
-  charLoop: for (const [stringOffset, char] of [...input].entries()) {
+  charLoop: for (const char of input) {
     for (const {
       key: keyPattern,
       token: tokenPattern,
@@ -391,7 +383,6 @@ function parserInputTokensFromString(
         lastToken = makeEmptyToken();
         output.push(lastToken);
       }
-      lastToken.stringOffset = stringOffset;
       lastToken.syntaxKind = syntaxKind;
       lastToken.content += char;
       continue charLoop;
@@ -406,16 +397,16 @@ function tryConvertNodesToParserInput(
   nodes: Node[],
 ): ParserInput[] | undefined {
   const result: ParserInput[] = [];
-  for (const [nodeOffset, node] of nodes.entries()) {
+  for (const node of nodes) {
     switch (node.kind) {
       case NodeKind.Token:
         if (node.syntaxKind !== SyntaxKind.RawText) {
           return undefined;
         }
-        result.push(...parserInputTokensFromString(node.content, nodeOffset));
+        result.push(...parserInputTokensFromString(node.content));
         break;
       case NodeKind.List:
-        result.push({ kind: ParserInputKind.ListNode, node, nodeOffset });
+        result.push({ kind: ParserInputKind.ListNode, node });
         break;
       default:
         return unreachable(node);
@@ -425,72 +416,90 @@ function tryConvertNodesToParserInput(
 }
 
 class PartialParseError extends Error {
-  constructor() {
-    super("not all input could be parsed");
+  constructor(message: string) {
+    super(message);
     Object.setPrototypeOf(this, PartialParseError.prototype);
   }
 }
 
-function reparseNodes(
-  oldNodesBeforeParse: Node[],
-  parserKind: ParserKind,
-  throwOnPartialParse: boolean,
-): { parsed: Node[]; remaining: Node[] } {
-  const oldNodes = oldNodesBeforeParse.flatMap((oldNode) => {
-    if (oldNode.kind === NodeKind.Token) {
-      return [oldNode];
-    }
-    const { parsed, remaining } = reparseNodes(
-      oldNode.content,
-      oldNode.parserKind,
-      throwOnPartialParse,
+function reparseNodesNew(root: ListNode, insertedRange: EvenPathRange) {
+  const { updated, remaining } = _reparseNodesNew(root, insertedRange);
+  if (remaining.length) {
+    throw new PartialParseError("remaining parser inputs at root");
+  }
+  return updated;
+}
+
+function _reparseNodesNew(
+  root: ListNode,
+  insertedRange: EvenPathRange,
+): { updated: Node; remaining: ParserInput[] } {
+  if (!insertedRange.anchor.length || insertedRange.offset < 0) {
+    throw new Error("insertedRange is not valid");
+  } else if (insertedRange.anchor.length === 1) {
+    const oldFirstIndex = insertedRange.anchor[0];
+    const oldLastIndex = insertedRange.anchor[0] + insertedRange.offset;
+
+    const parserInput = tryConvertNodesToParserInput(
+      root.content.slice(oldFirstIndex, oldLastIndex + 1),
     );
-    if (oldNode.equivalentToContent) {
-      return [{ ...oldNode, content: parsed }, ...remaining];
-    } else {
-      return [{ ...oldNode, content: [...parsed, ...remaining] }];
+    if (!parserInput) {
+      throw new Error(
+        "selected range contains nodes which are not valid parser inputs",
+      );
     }
-  });
 
-  const parserInput = tryConvertNodesToParserInput(oldNodes);
-  if (!parserInput?.length) {
-    return { parsed: oldNodes, remaining: [] };
-  }
-
-  const parserResult = parserFunctionsByKind[parserKind](parserInput);
-  if (!parserResult.remaining.length) {
-    return { parsed: parserResult.parsed, remaining: [] };
-  }
-
-  const remainingNodes: Node[] = [];
-  const firstRemainingInput = parserResult.remaining[0];
-  if (firstRemainingInput.kind === ParserInputKind.Token) {
-    const oldRawTextNode = oldNodes[firstRemainingInput.nodeOffset];
+    const parserResult = parserFunctionsByKind[root.parserKind](parserInput);
     if (
-      oldRawTextNode?.kind !== NodeKind.Token ||
-      oldRawTextNode.syntaxKind !== SyntaxKind.RawText
+      parserResult.remaining.length &&
+      oldLastIndex + 1 !== root.content.length
     ) {
-      throw new Error("remaining node has unexpected type");
+      throw new PartialParseError(
+        "remaining parser inputs in the middle of a list",
+      );
     }
-    const newRawTextNode = {
-      ...oldRawTextNode,
-      content: oldRawTextNode.content
-        .slice(firstRemainingInput.stringOffset)
-        .trim(),
+
+    const newContent = [...root.content];
+    newContent.splice(
+      oldFirstIndex,
+      oldLastIndex - oldFirstIndex + 1,
+      ...parserResult.parsed,
+    );
+    return {
+      updated: { ...root, content: newContent },
+      remaining: parserResult.remaining,
     };
-    if (newRawTextNode.content) {
-      remainingNodes.push(newRawTextNode);
-    }
   } else {
-    remainingNodes.push(oldNodes[firstRemainingInput.nodeOffset]);
-  }
-  remainingNodes.push(...oldNodes.slice(firstRemainingInput.nodeOffset + 1));
+    const oldTargetChild = root.content[insertedRange.anchor[0]];
+    if (oldTargetChild?.kind !== NodeKind.List) {
+      throw new Error("insertedRange is not valid");
+    }
 
-  if (remainingNodes.length && throwOnPartialParse) {
-    throw new PartialParseError();
-  }
+    const childResult = _reparseNodesNew(oldTargetChild, {
+      anchor: insertedRange.anchor.slice(1),
+      offset: insertedRange.offset,
+    });
+    const parserResult = parserFunctionsByKind[root.parserKind](
+      childResult.remaining,
+    );
 
-  return { parsed: parserResult.parsed, remaining: remainingNodes };
+    if (
+      parserResult.remaining.length &&
+      insertedRange.anchor[0] + 1 !== root.content.length
+    ) {
+      throw new PartialParseError(
+        "remaining parser inputs in the middle of a list",
+      );
+    }
+
+    const newContent = [...root.content];
+    newContent[insertedRange.anchor[0]] = childResult.updated;
+    newContent.splice(insertedRange.anchor[0] + 1, 0, ...parserResult.parsed);
+    return {
+      updated: { ...root, content: newContent },
+      remaining: parserResult.remaining,
+    };
+  }
 }
 
 function withoutInvisibleNodes(
@@ -939,53 +948,14 @@ class DocManager {
           "this.insertedRange is undefined when exiting in insert mode",
         );
       }
-      const oldFirstIndex =
-        this.insertedRange.anchor[this.insertedRange.anchor.length - 1];
-      const oldLastIndex = oldFirstIndex + this.insertedRange.offset;
 
       try {
-        this.doc = docMapRoot(
-          this.doc,
-          nodeMapAtPath(
-            this.insertedRange.anchor.slice(0, -1),
-            (oldListNode) => {
-              if (oldListNode?.kind !== NodeKind.List) {
-                throw new Error("oldListNode is not a list");
-              }
-              const reparsedResult = reparseNodes(
-                oldListNode.content.slice(oldFirstIndex, oldLastIndex + 1),
-                oldListNode.parserKind,
-                true,
-              );
-              const reparsedNodes = [
-                ...reparsedResult.parsed,
-                ...reparsedResult.remaining,
-              ];
-
-              const newListContent = [...oldListNode.content];
-              newListContent.splice(
-                oldFirstIndex,
-                oldLastIndex - oldFirstIndex + 1,
-                ...reparsedNodes,
-              );
-
-              const focusOffset =
-                newListContent.length - oldListNode.content.length;
-              let evenFocus =
-                this.parentFocuses[0] || asEvenPathRange(this.focus);
-              if (this.mode === Mode.InsertBefore) {
-                evenFocus.anchor[evenFocus.anchor.length - 1] += focusOffset;
-              } else {
-                evenFocus.offset += focusOffset;
-              }
-              this.focus = asUnevenPathRange(evenFocus);
-
-              return { ...oldListNode, content: newListContent };
-            },
-          ),
+        this.doc = docMapRoot(this.doc, (root) =>
+          reparseNodesNew(root, this.insertedRange!),
         );
       } catch (err) {
         if (err instanceof PartialParseError) {
+          console.warn(err);
           return;
         }
         throw err;
