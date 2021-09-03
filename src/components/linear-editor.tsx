@@ -945,10 +945,12 @@ class DocManager {
             }
             evenFocus = newFocus;
             this.focus = asUnevenPathRange(evenFocus);
-            this.insertedRange = {
-              ...this.insertedRange!,
-              offset: this.insertedRange!.offset + 1,
-            };
+            if (!this.parentFocuses.length) {
+              this.insertedRange = {
+                ...this.insertedRange!,
+                offset: this.insertedRange!.offset + 1,
+              };
+            }
           };
 
           const listDelimiters: [string, string][] = [["(", ")"]];
@@ -1072,6 +1074,7 @@ class DocManager {
       this.doc = old.doc;
       this.focus = old.focus;
       this.parentFocuses = old.parentFocuses;
+      this.insertedRange = old.insertedRange;
       this.onUpdate();
     }
   };
