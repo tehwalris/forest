@@ -83,7 +83,8 @@ function parseLooseExpression(input: ParserInput[]): ParserResult {
 
     if (
       item.kind === ParserInputKind.Token &&
-      item.syntaxKind === SyntaxKind.BinaryOperator
+      (item.syntaxKind === SyntaxKind.BinaryOperator ||
+        item.syntaxKind === SyntaxKind.NumericLiteral)
     ) {
       parsed.push({
         kind: NodeKind.Token,
