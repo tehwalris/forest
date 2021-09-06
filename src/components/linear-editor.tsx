@@ -69,8 +69,22 @@ interface ParserResult {
 
 type ParserFunction = (input: ParserInput[]) => ParserResult;
 
+type SeparatorDecider = (before: Node, after: Node) => string;
+
 function listNodeIsParsed(node: ListNode): node is ParsedListNode {
   return node.parserKind !== undefined;
+}
+
+function isRawText(
+  node: Node,
+): node is TokenNode & { syntaxKind: SyntaxKind.RawText };
+function isRawText(
+  node: ParserInput,
+): node is ParserInputToken & { syntaxKind: SyntaxKind.RawText };
+function isRawText<T extends Node | ParserInput>(
+  node: T,
+): node is T & { syntaxKind: SyntaxKind.RawText } {
+  return node.kind === NodeKind.Token && node.syntaxKind === SyntaxKind.RawText;
 }
 
 function parseLooseExpression(input: ParserInput[]): ParserResult {
@@ -148,12 +162,7 @@ function parseTightExpression(input: ParserInput[]): ParserResult {
       remaining.shift();
       continue;
     }
-    if (
-      item.kind === ParserInputKind.Token &&
-      item.syntaxKind === SyntaxKind.RawText &&
-      item.content === "." &&
-      remaining.length > 1
-    ) {
+    if (isRawText(item) && item.content === "." && remaining.length > 1) {
       remaining.shift();
       continue;
     }
@@ -181,11 +190,7 @@ function parseCallArguments(input: ParserInput[]): ParserResult {
     const remainingAfterComma: ParserInput[] = [...remaining];
     while (remainingAfterComma.length) {
       const item = remainingAfterComma.shift()!;
-      if (
-        item.kind === ParserInputKind.Token &&
-        item.syntaxKind === SyntaxKind.RawText &&
-        item.content === ","
-      ) {
+      if (isRawText(item) && item.content === ",") {
         break;
       }
       remainingBeforeComma.push(item);
@@ -225,10 +230,19 @@ const parserFunctionsByParserKind: { [K in ParserKind]: ParserFunction } = {
   [ParserKind.CallArguments]: parseCallArguments,
 };
 
-const separatorsByParserKind: { [K in ParserKind]: string } = {
-  [ParserKind.LooseExpression]: " ",
-  [ParserKind.TightExpression]: ".",
-  [ParserKind.CallArguments]: ", ",
+const withNothingNearRawText =
+  (inner: SeparatorDecider): SeparatorDecider =>
+  (before, after) => {
+    if (isRawText(before) || isRawText(after)) {
+      return "";
+    }
+    return inner(before, after);
+  };
+
+const separatorDecidersByParserKind: { [K in ParserKind]: SeparatorDecider } = {
+  [ParserKind.LooseExpression]: withNothingNearRawText(() => " "),
+  [ParserKind.TightExpression]: withNothingNearRawText(() => "."),
+  [ParserKind.CallArguments]: withNothingNearRawText(() => ", "),
 };
 
 interface Doc {
@@ -1110,10 +1124,7 @@ class DocManager {
             return oldListNode;
           }
 
-          if (
-            targetNode.kind !== NodeKind.Token ||
-            targetNode.syntaxKind !== SyntaxKind.RawText
-          ) {
+          if (!isRawText(targetNode)) {
             pushNode(emptyToken);
           }
           targetNode = {
@@ -1497,7 +1508,7 @@ function renderNode({
           key={key}
           className={styles.token}
           style={{
-            color: node.syntaxKind === SyntaxKind.RawText ? "red" : undefined,
+            color: isRawText(node) ? "red" : undefined,
           }}
         >
           <div
@@ -1553,7 +1564,10 @@ function renderNode({
                   trailingSeparator:
                     i + 1 === node.content.length || !listNodeIsParsed(node)
                       ? ""
-                      : separatorsByParserKind[node.parserKind],
+                      : separatorDecidersByParserKind[node.parserKind](
+                          c,
+                          node.content[i + 1],
+                        ),
                 }),
               )}
             </div>
