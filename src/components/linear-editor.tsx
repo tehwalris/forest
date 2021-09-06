@@ -894,6 +894,8 @@ class DocManager {
       } else if (ev.key === "H") {
         this.untilEvenFocusChanges(() => this.tryMoveThroughLeaves(-1, true));
       } else if (ev.key === "k") {
+        this.tryMoveOutOfList();
+      } else if (ev.key === "K") {
         this.tryMoveToParent();
       } else if (ev.key === "j") {
         this.tryMoveIntoList();
@@ -1080,7 +1082,7 @@ class DocManager {
     }
   };
 
-  private tryMoveToParent() {
+  private tryMoveOutOfList() {
     let evenFocus = asEvenPathRange(this.focus);
     while (evenFocus.anchor.length >= 2) {
       evenFocus = {
@@ -1112,6 +1114,36 @@ class DocManager {
       anchor: [...listPath, 0],
       offset: listNode.content.length - 1,
     });
+  }
+
+  private tryMoveToParent() {
+    let evenFocus = asEvenPathRange(this.focus);
+    while (evenFocus.anchor.length) {
+      const parentPath = evenFocus.anchor.slice(0, -1);
+      const parentNode = nodeGetByPath(this.doc.root, parentPath);
+      if (parentNode?.kind !== NodeKind.List) {
+        throw new Error("parentNode is not a list");
+      }
+
+      const wholeParentSelected =
+        Math.abs(evenFocus.offset) + 1 === parentNode.content.length;
+      if (!wholeParentSelected) {
+        evenFocus = {
+          anchor: [...parentPath, 0],
+          offset: parentNode.content.length - 1,
+        };
+        this.focus = asUnevenPathRange(evenFocus);
+        return;
+      }
+
+      evenFocus = {
+        anchor: parentPath,
+        offset: 0,
+      };
+    }
+
+    this.focus = asUnevenPathRange(evenFocus);
+    return;
   }
 
   private tryMoveThroughLeaves(offset: -1 | 1, extend: boolean) {
