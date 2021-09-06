@@ -241,7 +241,12 @@ const withNothingNearRawText =
 
 const separatorDecidersByParserKind: { [K in ParserKind]: SeparatorDecider } = {
   [ParserKind.LooseExpression]: withNothingNearRawText(() => " "),
-  [ParserKind.TightExpression]: withNothingNearRawText(() => "."),
+  [ParserKind.TightExpression]: withNothingNearRawText((left, right) => {
+    if (right.kind === NodeKind.List && right.delimiters[0] === "(") {
+      return "";
+    }
+    return ".";
+  }),
   [ParserKind.CallArguments]: withNothingNearRawText(() => ", "),
 };
 
