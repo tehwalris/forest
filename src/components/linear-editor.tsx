@@ -507,14 +507,17 @@ function convertNodesToParserInput(nodes: Node[]): ParserInput[] {
               return nodeForParse;
             }
             try {
-              const { updated } = reparseNodes(nodeForParse, {
-                anchor: [0],
-                offset: node.content.length - 1,
-              });
+              const { updated } = reparseNodes(
+                nodeForParse,
+                {
+                  anchor: [0],
+                  offset: node.content.length - 1,
+                },
+                false,
+              );
               return updated;
             } catch (err) {
               if (err instanceof PartialParseError) {
-                console.warn(err);
                 return undefined;
               }
               throw err;
@@ -525,6 +528,27 @@ function convertNodesToParserInput(nodes: Node[]): ParserInput[] {
         break;
       default:
         return unreachable(node);
+    }
+  }
+  return result;
+}
+
+function convertParserInputToNodes(parserInput: ParserInput[]): Node[] {
+  const result: Node[] = [];
+  for (const input of parserInput) {
+    switch (input.kind) {
+      case ParserInputKind.Token:
+        result.push({
+          kind: NodeKind.Token,
+          syntaxKind: SyntaxKind.RawText,
+          content: input.content,
+        });
+        break;
+      case ParserInputKind.ListNode:
+        result.push(input.unparsedNode);
+        break;
+      default:
+        return unreachable(input);
     }
   }
   return result;
@@ -547,13 +571,29 @@ function applyPathOffset(path: Path, offset: Path) {
 function reparseNodes(
   root: ParsedListNode,
   insertedRange: EvenPathRange,
+  allowPartialParse: boolean,
 ): { updated: ParsedListNode; focusOffset: number[] } {
   const {
     updated,
     remainingAfter: remaining,
     focusOffset,
-  } = _reparseNodes(root, insertedRange);
+  } = _reparseNodes(root, insertedRange, allowPartialParse);
   if (remaining.length) {
+    if (allowPartialParse) {
+      const remainingNodes = convertParserInputToNodes(remaining);
+      if (!focusOffset.length) {
+        throw new Error("focusOffset can't be adjusted because it is empty");
+      }
+      const newFocusOffset = [...focusOffset];
+      newFocusOffset[0] += remainingNodes.length;
+      return {
+        updated: {
+          ...updated,
+          content: [...updated.content, ...remainingNodes],
+        },
+        focusOffset: newFocusOffset,
+      };
+    }
     throw new PartialParseError("remaining parser inputs at root");
   }
   return { updated, focusOffset };
@@ -562,6 +602,7 @@ function reparseNodes(
 function _reparseNodes(
   root: ParsedListNode,
   insertedRange: EvenPathRange,
+  allowPartialParse: boolean,
 ): {
   updated: ParsedListNode;
   remainingBefore: ParserInput[];
@@ -581,6 +622,21 @@ function _reparseNodes(
     const parserResult =
       parserFunctionsByParserKind[root.parserKind](parserInput);
     if (parserResult.remaining.length && !root.equivalentToContent) {
+      if (allowPartialParse) {
+        const newContent = [...root.content];
+        newContent.splice(
+          oldFirstIndex,
+          oldLastIndex - oldFirstIndex + 1,
+          ...parserResult.parsed,
+          ...convertParserInputToNodes(parserResult.remaining),
+        );
+        return {
+          updated: { ...root, content: newContent },
+          remainingBefore: [],
+          remainingAfter: [],
+          focusOffset: [newContent.length - root.content.length],
+        };
+      }
       throw new PartialParseError(
         "remaining parser inputs in list with equivalentToContent === false",
       );
@@ -589,7 +645,7 @@ function _reparseNodes(
       parserResult.remaining.length &&
       oldLastIndex + 1 !== root.content.length
     ) {
-      if (oldFirstIndex === 0) {
+      if (oldFirstIndex === 0 && root.equivalentToContent) {
         // HACK The behavior when inserting at the start of a list (this case; parse is handled fully by a single list)
         // is different from inserting at the end of a list (parse is handled partially by an inner list and the remainder is handled by outer lists)
 
@@ -603,8 +659,23 @@ function _reparseNodes(
           focusOffset: [0],
         };
       }
+      if (allowPartialParse) {
+        const newContent = [...root.content];
+        newContent.splice(
+          oldFirstIndex,
+          oldLastIndex - oldFirstIndex + 1,
+          ...parserResult.parsed,
+          ...convertParserInputToNodes(parserResult.remaining),
+        );
+        return {
+          updated: { ...root, content: newContent },
+          remainingBefore: [],
+          remainingAfter: [],
+          focusOffset: [newContent.length - root.content.length],
+        };
+      }
       throw new PartialParseError(
-        "remaining parser inputs in the middle of a list",
+        "remaining parser inputs in the middle of a list, or at the start of a list without equivalentToContent",
       );
     }
 
@@ -629,10 +700,14 @@ function _reparseNodes(
       throw new Error("insertedRange is not valid");
     }
 
-    const childResult = _reparseNodes(oldTargetChild, {
-      anchor: insertedRange.anchor.slice(1),
-      offset: insertedRange.offset,
-    });
+    const childResult = _reparseNodes(
+      oldTargetChild,
+      {
+        anchor: insertedRange.anchor.slice(1),
+        offset: insertedRange.offset,
+      },
+      allowPartialParse,
+    );
     if (
       childResult.remainingBefore.length &&
       childResult.remainingAfter.length
@@ -648,6 +723,40 @@ function _reparseNodes(
       childResult.remainingAfter,
     );
 
+    let partialResult: ReturnType<typeof _reparseNodes> | undefined;
+    {
+      const newContent = [...root.content];
+      newContent.splice(
+        insertedRange.anchor[0],
+        1,
+        ...convertParserInputToNodes(childResult.remainingBefore),
+        childResult.updated,
+        ...convertParserInputToNodes(childResult.remainingAfter),
+      );
+      partialResult = {
+        updated: { ...root, content: newContent },
+        remainingBefore: [],
+        remainingAfter: [],
+        focusOffset: [
+          newContent.length - root.content.length,
+          ...childResult.focusOffset,
+        ],
+      };
+    }
+
+    if (
+      !root.equivalentToContent &&
+      (parserResultBefore.remaining.length ||
+        parserResultAfter.remaining.length)
+    ) {
+      if (allowPartialParse) {
+        return partialResult;
+      }
+      throw new PartialParseError(
+        "remaining parser inputs at the edge of a list without equivalentToContent",
+      );
+    }
+
     const newContent = [...root.content];
     newContent[insertedRange.anchor[0]] = childResult.updated;
 
@@ -659,17 +768,22 @@ function _reparseNodes(
           remainingAfter: [],
           focusOffset: [0, ...childResult.focusOffset],
         };
-      } else {
-        throw new PartialParseError(
-          "remaining parser inputs in the middle of a list",
-        );
       }
+      if (allowPartialParse) {
+        return partialResult;
+      }
+      throw new PartialParseError(
+        "remaining parser inputs in the middle of a list",
+      );
     }
 
     if (
       parserResultAfter.remaining.length &&
       insertedRange.anchor[0] + 1 !== root.content.length
     ) {
+      if (allowPartialParse) {
+        return partialResult;
+      }
       throw new PartialParseError(
         "remaining parser inputs in the middle of a list",
       );
@@ -1155,27 +1269,9 @@ class DocManager {
       }
 
       try {
-        this.doc = docMapRoot(this.doc, (root) => {
-          const { updated: newRoot, focusOffset } = reparseNodes(
-            root,
-            this.insertedRange!,
-          );
-          const oldFocus = this.parentFocuses.length
-            ? asUnevenPathRange(this.parentFocuses[0])
-            : this.focus;
-          if (this.mode === Mode.InsertBefore) {
-            this.focus = {
-              anchor: applyPathOffset(oldFocus.anchor, focusOffset),
-              tip: applyPathOffset(oldFocus.tip, focusOffset),
-            };
-          } else {
-            this.focus = {
-              anchor: oldFocus.anchor,
-              tip: applyPathOffset(oldFocus.tip, focusOffset),
-            };
-          }
-          return newRoot;
-        });
+        const result = this.getReparsedDoc(false);
+        this.doc = result.doc;
+        this.focus = result.focus;
       } catch (err) {
         if (err instanceof PartialParseError) {
           console.warn(err);
@@ -1205,6 +1301,36 @@ class DocManager {
       this.onUpdate();
     }
   };
+
+  private getReparsedDoc(allowPartialParse: boolean): {
+    doc: Doc;
+    focus: UnevenPathRange;
+  } {
+    const oldFocus = this.parentFocuses.length
+      ? asUnevenPathRange(this.parentFocuses[0])
+      : this.focus;
+    let newFocus: UnevenPathRange;
+    const doc = docMapRoot(this.doc, (root) => {
+      const { updated: newRoot, focusOffset } = reparseNodes(
+        root,
+        this.insertedRange!,
+        allowPartialParse,
+      );
+      if (this.mode === Mode.InsertBefore) {
+        newFocus = {
+          anchor: applyPathOffset(oldFocus.anchor, focusOffset),
+          tip: applyPathOffset(oldFocus.tip, focusOffset),
+        };
+      } else {
+        newFocus = {
+          anchor: oldFocus.anchor,
+          tip: applyPathOffset(oldFocus.tip, focusOffset),
+        };
+      }
+      return newRoot;
+    });
+    return { doc, focus: newFocus! };
+  }
 
   private tryMoveOutOfList() {
     let evenFocus = asEvenPathRange(this.focus);
@@ -1341,6 +1467,7 @@ class DocManager {
       this.removeInvisibleNodes();
     }
     this.whileUnevenFocusChanges(() => this.normalizeFocus());
+    let reparseResult: ReturnType<DocManager["getReparsedDoc"]> | undefined;
     if (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) {
       if (this.lastMode !== this.mode) {
         this.history = [];
@@ -1354,11 +1481,13 @@ class DocManager {
         parentFocuses: [...this.parentFocuses],
         insertedRange: this.insertedRange,
       });
+      reparseResult = this.getReparsedDoc(true);
     }
     this.lastMode = this.mode;
+
     this._onUpdate({
-      doc: this.doc,
-      focus: asEvenPathRange(this.focus),
+      doc: reparseResult?.doc || this.doc,
+      focus: asEvenPathRange(reparseResult?.focus || this.focus),
       mode: this.mode,
     });
   }
