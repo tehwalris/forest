@@ -17,6 +17,7 @@ enum SyntaxKind {
 enum ParserKind {
   LooseExpression,
   TightExpression,
+  CallArguments,
 }
 
 enum NodeKind {
@@ -34,12 +35,13 @@ interface TokenNode {
 
 interface ListNode {
   kind: NodeKind.List;
-  parserKind: ParserKind;
+  parserKind?: ParserKind;
   delimiters: [string, string];
-  separator: string;
   content: Node[];
   equivalentToContent: boolean;
 }
+
+type ParsedListNode = ListNode & { parserKind: ParserKind };
 
 enum ParserInputKind {
   Token,
@@ -56,7 +58,8 @@ interface ParserInputToken {
 
 interface ParserInputListNode {
   kind: ParserInputKind.ListNode;
-  node: ListNode;
+  unparsedNode: ListNode;
+  tryParseNode: (parserKind: ParserKind) => ParsedListNode | undefined;
 }
 
 interface ParserResult {
@@ -66,6 +69,10 @@ interface ParserResult {
 
 type ParserFunction = (input: ParserInput[]) => ParserResult;
 
+function listNodeIsParsed(node: ListNode): node is ParsedListNode {
+  return node.parserKind !== undefined;
+}
+
 function parseLooseExpression(input: ParserInput[]): ParserResult {
   const parsed: Node[] = [];
   let remaining = [...input];
@@ -74,9 +81,13 @@ function parseLooseExpression(input: ParserInput[]): ParserResult {
 
     if (
       item.kind === ParserInputKind.ListNode &&
-      item.node.delimiters[0] === "("
+      item.unparsedNode.delimiters[0] === "("
     ) {
-      parsed.push(item.node);
+      const parsedChild = item.tryParseNode(ParserKind.LooseExpression);
+      if (!parsedChild) {
+        break;
+      }
+      parsed.push(parsedChild);
       remaining.shift();
       continue;
     }
@@ -106,7 +117,6 @@ function parseLooseExpression(input: ParserInput[]): ParserResult {
       kind: NodeKind.List,
       parserKind: ParserKind.TightExpression,
       delimiters: ["", ""],
-      separator: ".",
       content: tightExpressionResult.parsed,
       equivalentToContent: true,
     });
@@ -142,24 +152,87 @@ function parseTightExpression(input: ParserInput[]): ParserResult {
       item.kind === ParserInputKind.Token &&
       item.syntaxKind === SyntaxKind.RawText &&
       item.content === "." &&
-      remaining.length > 1 &&
-      isIdentifier(remaining[1])
+      remaining.length > 1
     ) {
       remaining.shift();
       continue;
+    }
+    if (
+      item.kind === ParserInputKind.ListNode &&
+      item.unparsedNode.delimiters[0] === "("
+    ) {
+      const parsedChild = item.tryParseNode(ParserKind.CallArguments);
+      if (parsedChild) {
+        parsed.push(parsedChild);
+        remaining.shift();
+        continue;
+      }
     }
     break;
   }
   return { parsed, remaining };
 }
 
-const parserFunctionsByKind: { [K in ParserKind]: ParserFunction } = {
+function parseCallArguments(input: ParserInput[]): ParserResult {
+  const parsed: Node[] = [];
+  let remaining = [...input];
+  while (remaining.length) {
+    const remainingBeforeComma: ParserInput[] = [];
+    const remainingAfterComma: ParserInput[] = [...remaining];
+    while (remainingAfterComma.length) {
+      const item = remainingAfterComma.shift()!;
+      if (
+        item.kind === ParserInputKind.Token &&
+        item.syntaxKind === SyntaxKind.RawText &&
+        item.content === ","
+      ) {
+        break;
+      }
+      remainingBeforeComma.push(item);
+    }
+
+    if (!remainingBeforeComma.length) {
+      remaining = remainingAfterComma;
+      continue;
+    }
+
+    const looseExpressionResult = parseLooseExpression(remainingBeforeComma);
+    if (
+      !looseExpressionResult.parsed.length ||
+      looseExpressionResult.remaining.length
+    ) {
+      break;
+    }
+    parsed.push({
+      kind: NodeKind.List,
+      parserKind: ParserKind.LooseExpression,
+      delimiters: ["", ""],
+      content: looseExpressionResult.parsed,
+      equivalentToContent: true,
+    });
+    remaining = remainingAfterComma;
+  }
+  if (!parsed.length) {
+    // HACK don't consume leading commas
+    return { parsed: [], remaining: input };
+  }
+  return { parsed, remaining };
+}
+
+const parserFunctionsByParserKind: { [K in ParserKind]: ParserFunction } = {
   [ParserKind.LooseExpression]: parseLooseExpression,
   [ParserKind.TightExpression]: parseTightExpression,
+  [ParserKind.CallArguments]: parseCallArguments,
+};
+
+const separatorsByParserKind: { [K in ParserKind]: string } = {
+  [ParserKind.LooseExpression]: " ",
+  [ParserKind.TightExpression]: ".",
+  [ParserKind.CallArguments]: ", ",
 };
 
 interface Doc {
-  root: ListNode;
+  root: ParsedListNode;
 }
 
 const emptyToken: TokenNode = {
@@ -173,19 +246,18 @@ const emptyDoc: Doc = {
     kind: NodeKind.List,
     parserKind: ParserKind.LooseExpression,
     delimiters: ["", ""],
-    separator: " ",
     content: [],
     equivalentToContent: true,
   },
 };
 
-function docMapRoot(doc: Doc, cb: (node: ListNode) => Node): Doc {
+function docMapRoot(doc: Doc, cb: (node: ParsedListNode) => Node): Doc {
   const newRoot = cb(doc.root);
   if (newRoot === doc.root) {
     return doc;
   }
-  if (newRoot.kind !== NodeKind.List) {
-    throw new Error("newRoot must be a list");
+  if (newRoot.kind !== NodeKind.List || !listNodeIsParsed(newRoot)) {
+    throw new Error("newRoot must be a ParsedListNode");
   }
   return { ...doc, root: newRoot };
 }
@@ -401,21 +473,41 @@ function convertNodesToParserInput(nodes: Node[]): ParserInput[] {
       case NodeKind.Token:
         if (node.syntaxKind !== SyntaxKind.RawText) {
           throw new Error(
-            "selected range contains nodes which are not valid parser inputs",
+            "selected range contains nodes which are not valid parser inputs (token which is not RawText)",
           );
         }
         result.push(...parserInputTokensFromString(node.content));
         break;
       case NodeKind.List:
-        if (node.content.length) {
-          const { updated } = reparseNodes(node, {
-            anchor: [0],
-            offset: node.content.length - 1,
-          });
-          result.push({ kind: ParserInputKind.ListNode, node: updated });
-        } else {
-          result.push({ kind: ParserInputKind.ListNode, node });
+        if (node.parserKind !== undefined) {
+          throw new Error(
+            "selected range contains nodes which are not valid parser inputs (list with defined parserKind)",
+          );
         }
+        result.push({
+          kind: ParserInputKind.ListNode,
+          unparsedNode: node,
+          tryParseNode: (parserKind: ParserKind) => {
+            const nodeForParse = { ...node, parserKind };
+            if (!node.content.length) {
+              return nodeForParse;
+            }
+            try {
+              const { updated } = reparseNodes(nodeForParse, {
+                anchor: [0],
+                offset: node.content.length - 1,
+              });
+              return updated;
+            } catch (err) {
+              if (err instanceof PartialParseError) {
+                console.warn(err);
+                return undefined;
+              }
+              throw err;
+            }
+          },
+        });
+
         break;
       default:
         return unreachable(node);
@@ -438,7 +530,10 @@ function applyPathOffset(path: Path, offset: Path) {
   return path.map((v, i) => v + offset[i]);
 }
 
-function reparseNodes(root: ListNode, insertedRange: EvenPathRange) {
+function reparseNodes(
+  root: ParsedListNode,
+  insertedRange: EvenPathRange,
+): { updated: ParsedListNode; focusOffset: number[] } {
   const {
     updated,
     remainingAfter: remaining,
@@ -451,10 +546,10 @@ function reparseNodes(root: ListNode, insertedRange: EvenPathRange) {
 }
 
 function _reparseNodes(
-  root: ListNode,
+  root: ParsedListNode,
   insertedRange: EvenPathRange,
 ): {
-  updated: ListNode;
+  updated: ParsedListNode;
   remainingBefore: ParserInput[];
   remainingAfter: ParserInput[];
   focusOffset: number[];
@@ -469,7 +564,8 @@ function _reparseNodes(
       root.content.slice(oldFirstIndex, oldLastIndex + 1),
     );
 
-    const parserResult = parserFunctionsByKind[root.parserKind](parserInput);
+    const parserResult =
+      parserFunctionsByParserKind[root.parserKind](parserInput);
     if (parserResult.remaining.length && !root.equivalentToContent) {
       throw new PartialParseError(
         "remaining parser inputs in list with equivalentToContent === false",
@@ -512,7 +608,10 @@ function _reparseNodes(
     };
   } else {
     const oldTargetChild = root.content[insertedRange.anchor[0]];
-    if (oldTargetChild?.kind !== NodeKind.List) {
+    if (
+      oldTargetChild?.kind !== NodeKind.List ||
+      !listNodeIsParsed(oldTargetChild)
+    ) {
       throw new Error("insertedRange is not valid");
     }
 
@@ -528,18 +627,21 @@ function _reparseNodes(
         "remaining parse inputs on both sides of child are not supported",
       );
     }
-    const parserResultBefore = parserFunctionsByKind[root.parserKind](
+    const parserResultBefore = parserFunctionsByParserKind[root.parserKind](
       childResult.remainingBefore,
     );
-    const parserResultAfter = parserFunctionsByKind[root.parserKind](
+    const parserResultAfter = parserFunctionsByParserKind[root.parserKind](
       childResult.remainingAfter,
     );
+
+    const newContent = [...root.content];
+    newContent[insertedRange.anchor[0]] = childResult.updated;
 
     if (parserResultBefore.remaining.length) {
       if (insertedRange.anchor[0] === 0) {
         return {
-          updated: root,
-          remainingBefore: parserResultBefore.remaining,
+          updated: { ...root, content: newContent },
+          remainingBefore: childResult.remainingBefore,
           remainingAfter: [],
           focusOffset: [0, ...childResult.focusOffset],
         };
@@ -559,8 +661,6 @@ function _reparseNodes(
       );
     }
 
-    const newContent = [...root.content];
-    newContent[insertedRange.anchor[0]] = childResult.updated;
     newContent.splice(insertedRange.anchor[0], 0, ...parserResultBefore.parsed);
     newContent.splice(
       insertedRange.anchor[0] + 1,
@@ -652,6 +752,9 @@ function _withoutInvisibleNodes(
         .map((v) => v!),
     };
 
+    if (!newNode.content.length && node.equivalentToContent) {
+      return undefined;
+    }
     if (!focus) {
       return { node: newNode, focus: undefined };
     }
@@ -685,9 +788,17 @@ function _withoutInvisibleNodes(
           },
         };
       } else {
+        const minIndexAfterFocused = filteredOldIndices.findIndex(
+          (i) => i > focusedChildIndex!,
+        );
+        const maxIndexBeforeFocused = Math.max(
+          ...filteredOldIndices.filter((i) => i < focusedChildIndex!),
+          -1,
+        );
         const newFocusedChildIndex =
-          filteredOldIndices.find((i) => i > focusedChildIndex!) ||
-          filteredOldIndices[0];
+          minIndexAfterFocused >= 0
+            ? minIndexAfterFocused
+            : maxIndexBeforeFocused;
         return {
           node: newNode,
           focus: { anchor: [newFocusedChildIndex], offset: 0 },
@@ -697,19 +808,23 @@ function _withoutInvisibleNodes(
     if (!directlyFocusedChildRange) {
       return { node: newNode, focus: focus };
     }
-    const minIndexAfterFocused = filteredOldIndices.findIndex(
-      (i) => i > directlyFocusedChildRange![1],
-    );
-    const maxIndexBeforeFocused = Math.max(
-      ...filteredOldIndices.filter((i) => i < directlyFocusedChildRange![1]),
-      -1,
-    );
-    const newFocusedChildIndex =
-      minIndexAfterFocused >= 0 ? minIndexAfterFocused : maxIndexBeforeFocused;
-    return {
-      node: newNode,
-      focus: { anchor: [newFocusedChildIndex], offset: 0 },
-    };
+    {
+      const minIndexAfterFocused = filteredOldIndices.findIndex(
+        (i) => i > directlyFocusedChildRange![1],
+      );
+      const maxIndexBeforeFocused = Math.max(
+        ...filteredOldIndices.filter((i) => i < directlyFocusedChildRange![1]),
+        -1,
+      );
+      const newFocusedChildIndex =
+        minIndexAfterFocused >= 0
+          ? minIndexAfterFocused
+          : maxIndexBeforeFocused;
+      return {
+        node: newNode,
+        focus: { anchor: [newFocusedChildIndex], offset: 0 },
+      };
+    }
   }
 }
 
@@ -961,9 +1076,7 @@ class DocManager {
             if (ev.key === delimiters[0]) {
               pushNode({
                 kind: NodeKind.List,
-                parserKind: ParserKind.LooseExpression,
                 delimiters,
-                separator: " ",
                 content: [emptyToken, emptyToken],
                 equivalentToContent: false,
               });
@@ -1438,7 +1551,9 @@ function renderNode({
                     i === tipOfFocusIndex + cursorOffset,
                   cursorOffset,
                   trailingSeparator:
-                    i + 1 === node.content.length ? "" : node.separator,
+                    i + 1 === node.content.length || !listNodeIsParsed(node)
+                      ? ""
+                      : separatorsByParserKind[node.parserKind],
                 }),
               )}
             </div>
@@ -1502,7 +1617,16 @@ export const LinearEditor = () => {
         })}
       </div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
-      <pre>{JSON.stringify({ doc, focus }, null, 2)}</pre>
+      <pre>
+        {JSON.stringify(
+          {
+            focus,
+            tip: nodeGetByPath(doc.root, flipEvenPathRange(focus).anchor),
+          },
+          null,
+          2,
+        )}
+      </pre>
     </div>
   );
 };
