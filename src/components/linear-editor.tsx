@@ -1,6 +1,7 @@
 import { css, keyframes } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
+import { markAsUntransferable } from "worker_threads";
 import { unreachable } from "../logic/util";
 
 type Path = number[];
@@ -102,6 +103,67 @@ function isIdentifier(
     item.kind === ParserInputKind.Token &&
     item.syntaxKind === SyntaxKind.Identifier
   );
+}
+
+function makeSeparatedListParser(
+  separatorString: string,
+  itemParserKind: ParserKind,
+) {
+  return function parseObjectLiteral({
+    input,
+    after,
+  }: ParserArgs): ParserResult {
+    const parsed: Node[] = [];
+    let remaining = [...input];
+    while (remaining.length) {
+      const remainingBeforeSeparator: ParserInput[] = [];
+      const remainingAfterSeparator: ParserInput[] = [...remaining];
+      let separatorToken;
+      while (remainingAfterSeparator.length) {
+        const item = remainingAfterSeparator.shift()!;
+        if (isRawText(item) && item.content === separatorString) {
+          separatorToken = item;
+          break;
+        }
+        remainingBeforeSeparator.push(item);
+      }
+
+      if (!remainingBeforeSeparator.length) {
+        remaining = remainingAfterSeparator;
+        if (!remaining.length && separatorToken) {
+          remaining.unshift(separatorToken);
+          break;
+        }
+        continue;
+      }
+
+      const itemResult = parserFunctionsByParserKind[itemParserKind]({
+        before: [],
+        input: remainingBeforeSeparator,
+        after: [],
+      });
+      if (!itemResult.parsed.length || itemResult.remaining.length) {
+        break;
+      }
+      parsed.push({
+        kind: NodeKind.List,
+        parserKind: itemParserKind,
+        delimiters: ["", ""],
+        content: itemResult.parsed,
+        equivalentToContent: true,
+      });
+      remaining = remainingAfterSeparator;
+      if (!remaining.length && !after.length && separatorToken) {
+        remaining.unshift(separatorToken);
+        break;
+      }
+    }
+    if (!parsed.length) {
+      // HACK don't consume leading separators
+      return { parsed: [], remaining: input };
+    }
+    return { parsed, remaining };
+  };
 }
 
 function parseLooseExpression({ input }: ParserArgs): ParserResult {
@@ -206,97 +268,15 @@ function parseTightExpression({ input }: ParserArgs): ParserResult {
   return { parsed, remaining };
 }
 
-function parseCallArguments({ input }: ParserArgs): ParserResult {
-  const parsed: Node[] = [];
-  let remaining = [...input];
-  while (remaining.length) {
-    const remainingBeforeComma: ParserInput[] = [];
-    const remainingAfterComma: ParserInput[] = [...remaining];
-    while (remainingAfterComma.length) {
-      const item = remainingAfterComma.shift()!;
-      if (isRawText(item) && item.content === ",") {
-        break;
-      }
-      remainingBeforeComma.push(item);
-    }
+const parseCallArguments = makeSeparatedListParser(
+  ",",
+  ParserKind.LooseExpression,
+);
 
-    if (!remainingBeforeComma.length) {
-      remaining = remainingAfterComma;
-      continue;
-    }
-
-    const looseExpressionResult = parseLooseExpression({
-      before: [],
-      input: remainingBeforeComma,
-      after: [],
-    });
-    if (
-      !looseExpressionResult.parsed.length ||
-      looseExpressionResult.remaining.length
-    ) {
-      break;
-    }
-    parsed.push({
-      kind: NodeKind.List,
-      parserKind: ParserKind.LooseExpression,
-      delimiters: ["", ""],
-      content: looseExpressionResult.parsed,
-      equivalentToContent: true,
-    });
-    remaining = remainingAfterComma;
-  }
-  if (!parsed.length) {
-    // HACK don't consume leading commas
-    return { parsed: [], remaining: input };
-  }
-  return { parsed, remaining };
-}
-
-function parseObjectLiteral({ input }: ParserArgs): ParserResult {
-  const parsed: Node[] = [];
-  let remaining = [...input];
-  while (remaining.length) {
-    const remainingBeforeComma: ParserInput[] = [];
-    const remainingAfterComma: ParserInput[] = [...remaining];
-    while (remainingAfterComma.length) {
-      const item = remainingAfterComma.shift()!;
-      if (isRawText(item) && item.content === ",") {
-        break;
-      }
-      remainingBeforeComma.push(item);
-    }
-
-    if (!remainingBeforeComma.length) {
-      remaining = remainingAfterComma;
-      continue;
-    }
-
-    const objectLiteralElementResult = parseObjectLiteralElement({
-      before: [],
-      input: remainingBeforeComma,
-      after: [],
-    });
-    if (
-      !objectLiteralElementResult.parsed.length ||
-      objectLiteralElementResult.remaining.length
-    ) {
-      break;
-    }
-    parsed.push({
-      kind: NodeKind.List,
-      parserKind: ParserKind.ObjectLiteralElement,
-      delimiters: ["", ""],
-      content: objectLiteralElementResult.parsed,
-      equivalentToContent: true,
-    });
-    remaining = remainingAfterComma;
-  }
-  if (!parsed.length) {
-    // HACK don't consume leading commas
-    return { parsed: [], remaining: input };
-  }
-  return { parsed, remaining };
-}
+const parseObjectLiteral = makeSeparatedListParser(
+  ",",
+  ParserKind.ObjectLiteralElement,
+);
 
 function parseObjectLiteralElement({
   before,
