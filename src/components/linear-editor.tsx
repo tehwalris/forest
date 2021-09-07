@@ -294,7 +294,7 @@ function parseObjectLiteralElement({
     parsedNow.push(node);
   };
 
-  const remaining = [...input];
+  let remaining = [...input];
   const lookahead: ParserInput[] = [];
   let expectInitializer = false;
   while (remaining.length) {
@@ -314,15 +314,28 @@ function parseObjectLiteralElement({
       lookahead.push(item);
       continue;
     }
-    if (isIdentifier(item) && expectInitializer) {
+    if (expectInitializer) {
+      const looseExpressionResult = parseLooseExpression({
+        before: [],
+        input: remaining,
+        after: [],
+      });
+      if (
+        !looseExpressionResult.parsed.length ||
+        looseExpressionResult.remaining.length
+      ) {
+        break;
+      }
       pushParsed({
-        kind: NodeKind.Token,
-        syntaxKind: item.syntaxKind,
-        content: item.content,
+        kind: NodeKind.List,
+        parserKind: ParserKind.LooseExpression,
+        delimiters: ["", ""],
+        content: looseExpressionResult.parsed,
+        equivalentToContent: true,
       });
       lookahead.shift();
-      remaining.shift();
-      continue;
+      remaining = [];
+      break;
     }
     if (lookahead.length) {
       break;
