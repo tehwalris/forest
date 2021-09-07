@@ -1,7 +1,6 @@
 import { css, keyframes } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { markAsUntransferable } from "worker_threads";
 import { unreachable } from "../logic/util";
 
 type Path = number[];
