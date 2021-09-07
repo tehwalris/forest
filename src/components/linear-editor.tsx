@@ -18,6 +18,8 @@ enum ParserKind {
   LooseExpression,
   TightExpression,
   CallArguments,
+  ObjectLiteral,
+  ObjectLiteralElement,
 }
 
 enum NodeKind {
@@ -87,6 +89,15 @@ function isRawText<T extends Node | ParserInput>(
   return node.kind === NodeKind.Token && node.syntaxKind === SyntaxKind.RawText;
 }
 
+function isIdentifier(
+  item: ParserInput,
+): item is ParserInputToken & { syntaxKind: SyntaxKind.Identifier } {
+  return (
+    item.kind === ParserInputKind.Token &&
+    item.syntaxKind === SyntaxKind.Identifier
+  );
+}
+
 function parseLooseExpression(input: ParserInput[]): ParserResult {
   const parsed: Node[] = [];
   let remaining = [...input];
@@ -140,15 +151,6 @@ function parseLooseExpression(input: ParserInput[]): ParserResult {
 }
 
 function parseTightExpression(input: ParserInput[]): ParserResult {
-  function isIdentifier(
-    item: ParserInput,
-  ): item is ParserInputToken & { syntaxKind: SyntaxKind.Identifier } {
-    return (
-      item.kind === ParserInputKind.Token &&
-      item.syntaxKind === SyntaxKind.Identifier
-    );
-  }
-
   const parsed: Node[] = [];
   const remaining = [...input];
   while (remaining.length) {
@@ -171,6 +173,18 @@ function parseTightExpression(input: ParserInput[]): ParserResult {
       item.unparsedNode.delimiters[0] === "("
     ) {
       const parsedChild = item.tryParseNode(ParserKind.CallArguments);
+      if (parsedChild) {
+        parsed.push(parsedChild);
+        remaining.shift();
+        continue;
+      }
+    }
+    if (
+      item.kind === ParserInputKind.ListNode &&
+      item.unparsedNode.delimiters[0] === "{" &&
+      parsed.length === 0
+    ) {
+      const parsedChild = item.tryParseNode(ParserKind.ObjectLiteral);
       if (parsedChild) {
         parsed.push(parsedChild);
         remaining.shift();
@@ -224,10 +238,72 @@ function parseCallArguments(input: ParserInput[]): ParserResult {
   return { parsed, remaining };
 }
 
+function parseObjectLiteral(input: ParserInput[]): ParserResult {
+  const parsed: Node[] = [];
+  let remaining = [...input];
+  while (remaining.length) {
+    const remainingBeforeComma: ParserInput[] = [];
+    const remainingAfterComma: ParserInput[] = [...remaining];
+    while (remainingAfterComma.length) {
+      const item = remainingAfterComma.shift()!;
+      if (isRawText(item) && item.content === ",") {
+        break;
+      }
+      remainingBeforeComma.push(item);
+    }
+
+    if (!remainingBeforeComma.length) {
+      remaining = remainingAfterComma;
+      continue;
+    }
+
+    const objectLiteralElementResult =
+      parseObjectLiteralElement(remainingBeforeComma);
+    if (
+      !objectLiteralElementResult.parsed.length ||
+      objectLiteralElementResult.remaining.length
+    ) {
+      break;
+    }
+    parsed.push({
+      kind: NodeKind.List,
+      parserKind: ParserKind.ObjectLiteralElement,
+      delimiters: ["", ""],
+      content: objectLiteralElementResult.parsed,
+      equivalentToContent: true,
+    });
+    remaining = remainingAfterComma;
+  }
+  if (!parsed.length) {
+    // HACK don't consume leading commas
+    return { parsed: [], remaining: input };
+  }
+  return { parsed, remaining };
+}
+
+function parseObjectLiteralElement(input: ParserInput[]): ParserResult {
+  const parsed: Node[] = [];
+  const remaining = [...input];
+  if (remaining.length) {
+    const item = remaining[0];
+    if (isIdentifier(item)) {
+      parsed.push({
+        kind: NodeKind.Token,
+        syntaxKind: item.syntaxKind,
+        content: item.content,
+      });
+      remaining.shift();
+    }
+  }
+  return { parsed, remaining };
+}
+
 const parserFunctionsByParserKind: { [K in ParserKind]: ParserFunction } = {
   [ParserKind.LooseExpression]: parseLooseExpression,
   [ParserKind.TightExpression]: parseTightExpression,
   [ParserKind.CallArguments]: parseCallArguments,
+  [ParserKind.ObjectLiteral]: parseObjectLiteral,
+  [ParserKind.ObjectLiteralElement]: parseObjectLiteralElement,
 };
 
 const withNothingNearRawText =
@@ -248,6 +324,8 @@ const separatorDecidersByParserKind: { [K in ParserKind]: SeparatorDecider } = {
     return ".";
   }),
   [ParserKind.CallArguments]: withNothingNearRawText(() => ", "),
+  [ParserKind.ObjectLiteral]: withNothingNearRawText(() => ", "),
+  [ParserKind.ObjectLiteralElement]: withNothingNearRawText(() => "|"),
 };
 
 interface Doc {
@@ -1210,7 +1288,10 @@ class DocManager {
             }
           };
 
-          const listDelimiters: [string, string][] = [["(", ")"]];
+          const listDelimiters: [string, string][] = [
+            ["(", ")"],
+            ["{", "}"],
+          ];
           for (const delimiters of listDelimiters) {
             if (ev.key === delimiters[0]) {
               pushNode({
