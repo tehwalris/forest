@@ -221,7 +221,7 @@ function parseLooseExpression({ input }: ParserArgs): ParserResult {
   return { parsed, remaining };
 }
 
-function parseTightExpression({ input }: ParserArgs): ParserResult {
+function parseTightExpression({ input, after }: ParserArgs): ParserResult {
   const parsed: Node[] = [];
   const remaining = [...input];
   while (remaining.length) {
@@ -235,7 +235,11 @@ function parseTightExpression({ input }: ParserArgs): ParserResult {
       remaining.shift();
       continue;
     }
-    if (isRawText(item) && item.content === "." && remaining.length > 1) {
+    if (
+      isRawText(item) &&
+      item.content === "." &&
+      (remaining.length > 1 || after.length)
+    ) {
       remaining.shift();
       continue;
     }
