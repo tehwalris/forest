@@ -64,12 +64,18 @@ interface ParserInputListNode {
   tryParseNode: (parserKind: ParserKind) => ParsedListNode | undefined;
 }
 
+interface ParserArgs {
+  before: Node[];
+  input: ParserInput[];
+  after: Node[];
+}
+
 interface ParserResult {
   parsed: Node[];
   remaining: ParserInput[];
 }
 
-type ParserFunction = (input: ParserInput[]) => ParserResult;
+type ParserFunction = (args: ParserArgs) => ParserResult;
 
 type SeparatorDecider = (before: Node, after: Node) => string;
 
@@ -98,7 +104,7 @@ function isIdentifier(
   );
 }
 
-function parseLooseExpression(input: ParserInput[]): ParserResult {
+function parseLooseExpression({ input }: ParserArgs): ParserResult {
   const parsed: Node[] = [];
   let remaining = [...input];
   while (remaining.length) {
@@ -131,7 +137,11 @@ function parseLooseExpression(input: ParserInput[]): ParserResult {
       continue;
     }
 
-    const tightExpressionResult = parseTightExpression(remaining);
+    const tightExpressionResult = parseTightExpression({
+      before: [],
+      input: remaining,
+      after: [],
+    });
     if (!tightExpressionResult.parsed.length) {
       break;
     }
@@ -150,7 +160,7 @@ function parseLooseExpression(input: ParserInput[]): ParserResult {
   return { parsed, remaining };
 }
 
-function parseTightExpression(input: ParserInput[]): ParserResult {
+function parseTightExpression({ input }: ParserArgs): ParserResult {
   const parsed: Node[] = [];
   const remaining = [...input];
   while (remaining.length) {
@@ -196,7 +206,7 @@ function parseTightExpression(input: ParserInput[]): ParserResult {
   return { parsed, remaining };
 }
 
-function parseCallArguments(input: ParserInput[]): ParserResult {
+function parseCallArguments({ input }: ParserArgs): ParserResult {
   const parsed: Node[] = [];
   let remaining = [...input];
   while (remaining.length) {
@@ -215,7 +225,11 @@ function parseCallArguments(input: ParserInput[]): ParserResult {
       continue;
     }
 
-    const looseExpressionResult = parseLooseExpression(remainingBeforeComma);
+    const looseExpressionResult = parseLooseExpression({
+      before: [],
+      input: remainingBeforeComma,
+      after: [],
+    });
     if (
       !looseExpressionResult.parsed.length ||
       looseExpressionResult.remaining.length
@@ -238,7 +252,7 @@ function parseCallArguments(input: ParserInput[]): ParserResult {
   return { parsed, remaining };
 }
 
-function parseObjectLiteral(input: ParserInput[]): ParserResult {
+function parseObjectLiteral({ input }: ParserArgs): ParserResult {
   const parsed: Node[] = [];
   let remaining = [...input];
   while (remaining.length) {
@@ -257,8 +271,11 @@ function parseObjectLiteral(input: ParserInput[]): ParserResult {
       continue;
     }
 
-    const objectLiteralElementResult =
-      parseObjectLiteralElement(remainingBeforeComma);
+    const objectLiteralElementResult = parseObjectLiteralElement({
+      before: [],
+      input: remainingBeforeComma,
+      after: [],
+    });
     if (
       !objectLiteralElementResult.parsed.length ||
       objectLiteralElementResult.remaining.length
@@ -281,21 +298,59 @@ function parseObjectLiteral(input: ParserInput[]): ParserResult {
   return { parsed, remaining };
 }
 
-function parseObjectLiteralElement(input: ParserInput[]): ParserResult {
-  const parsed: Node[] = [];
+function parseObjectLiteralElement({
+  before,
+  input,
+  after,
+}: ParserArgs): ParserResult {
+  if (after.length) {
+    return { parsed: [], remaining: input };
+  }
+
+  const parsedTotal: Node[] = [...before];
+  const parsedNow: Node[] = [];
+  const pushParsed = (node: Node) => {
+    parsedTotal.push(node);
+    parsedNow.push(node);
+  };
+
   const remaining = [...input];
-  if (remaining.length) {
+  const lookahead: ParserInput[] = [];
+  let expectInitializer = false;
+  while (remaining.length) {
     const item = remaining[0];
-    if (isIdentifier(item)) {
-      parsed.push({
+    if (isIdentifier(item) && parsedTotal.length === 0) {
+      pushParsed({
         kind: NodeKind.Token,
         syntaxKind: item.syntaxKind,
         content: item.content,
       });
       remaining.shift();
+      continue;
     }
+    if (isRawText(item) && item.content === ":" && parsedTotal.length === 1) {
+      expectInitializer = true;
+      remaining.shift();
+      lookahead.push(item);
+      continue;
+    }
+    if (isIdentifier(item) && expectInitializer) {
+      pushParsed({
+        kind: NodeKind.Token,
+        syntaxKind: item.syntaxKind,
+        content: item.content,
+      });
+      lookahead.shift();
+      remaining.shift();
+      continue;
+    }
+    if (lookahead.length) {
+      break;
+    }
+    break;
   }
-  return { parsed, remaining };
+  remaining.unshift(...lookahead);
+  return { parsed: parsedNow, remaining };
 }
 
 const parserFunctionsByParserKind: { [K in ParserKind]: ParserFunction } = {
@@ -325,7 +380,7 @@ const separatorDecidersByParserKind: { [K in ParserKind]: SeparatorDecider } = {
   }),
   [ParserKind.CallArguments]: withNothingNearRawText(() => ", "),
   [ParserKind.ObjectLiteral]: withNothingNearRawText(() => ", "),
-  [ParserKind.ObjectLiteralElement]: withNothingNearRawText(() => "|"),
+  [ParserKind.ObjectLiteralElement]: withNothingNearRawText(() => ": "),
 };
 
 interface Doc {
@@ -554,7 +609,7 @@ function parserInputTokensFromString(input: string): ParserInputToken[] {
         output.push(lastToken);
       }
       lastToken.syntaxKind = syntaxKind;
-      lastToken.content += char;
+      lastToken.content += char.trim();
       continue charLoop;
     }
     throw new Error(`unhandled char: ${char}`);
@@ -702,8 +757,11 @@ function _reparseNodes(
       root.content.slice(oldFirstIndex, oldLastIndex + 1),
     );
 
-    const parserResult =
-      parserFunctionsByParserKind[root.parserKind](parserInput);
+    const parserResult = parserFunctionsByParserKind[root.parserKind]({
+      before: root.content.slice(0, oldFirstIndex),
+      input: parserInput,
+      after: root.content.slice(oldLastIndex + 1),
+    });
     if (parserResult.remaining.length && !root.equivalentToContent) {
       if (allowPartialParse) {
         const newContent = [...root.content];
@@ -799,13 +857,22 @@ function _reparseNodes(
         "remaining parse inputs on both sides of child are not supported",
       );
     }
-    const parserResultBefore = parserFunctionsByParserKind[root.parserKind](
-      childResult.remainingBefore,
-    );
-    const parserResultAfter = parserFunctionsByParserKind[root.parserKind](
-      childResult.remainingAfter,
-    );
-
+    const parserResultBefore = parserFunctionsByParserKind[root.parserKind]({
+      before: root.content.slice(0, insertedRange.anchor[0]),
+      input: childResult.remainingBefore,
+      after: [
+        childResult.updated,
+        ...root.content.slice(insertedRange.anchor[0] + 1),
+      ],
+    });
+    const parserResultAfter = parserFunctionsByParserKind[root.parserKind]({
+      before: [
+        ...root.content.slice(0, insertedRange.anchor[0]),
+        childResult.updated,
+      ],
+      input: childResult.remainingAfter,
+      after: root.content.slice(insertedRange.anchor[0] + 1),
+    });
     let partialResult: ReturnType<typeof _reparseNodes> | undefined;
     {
       const remainingNodesBefore = convertParserInputToNodes(
@@ -1249,6 +1316,7 @@ class DocManager {
       this.mode === Mode.InsertAfter
     ) {
       ev.preventDefault();
+      ev.stopPropagation();
       let evenFocus = asEvenPathRange(this.focus);
       if (!evenFocus.anchor.length) {
         throw new Error("root focused in insert mode");
@@ -1398,6 +1466,13 @@ class DocManager {
       this.parentFocuses = old.parentFocuses;
       this.insertedRange = old.insertedRange;
       this.onUpdate();
+    }
+  };
+
+  onKeyUp = (ev: KeyboardEvent) => {
+    if (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) {
+      ev.stopPropagation();
+      ev.preventDefault();
     }
   };
 
@@ -1849,11 +1924,14 @@ export const LinearEditor = () => {
   }, [DocManager]);
 
   useEffect(() => {
-    document.addEventListener("keypress", docManager.onKeyPress);
-    document.addEventListener("keydown", docManager.onKeyDown);
+    const options: EventListenerOptions = { capture: true };
+    document.addEventListener("keypress", docManager.onKeyPress, options);
+    document.addEventListener("keydown", docManager.onKeyDown, options);
+    document.addEventListener("keyup", docManager.onKeyUp, options);
     return () => {
-      document.removeEventListener("keypress", docManager.onKeyPress);
-      document.removeEventListener("keydown", docManager.onKeyDown);
+      document.removeEventListener("keypress", docManager.onKeyPress, options);
+      document.removeEventListener("keydown", docManager.onKeyDown, options);
+      document.removeEventListener("keyup", docManager.onKeyUp, options);
     };
   }, [docManager]);
 
@@ -1878,6 +1956,7 @@ export const LinearEditor = () => {
         <input
           type="checkbox"
           checked={liveReparse}
+          tabIndex={-1}
           onChange={(ev) => docManager.setLiveReparse(ev.target.checked)}
         />
       </label>
