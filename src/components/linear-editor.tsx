@@ -578,24 +578,24 @@ function reparseNodes(
   insertedRange: EvenPathRange,
   allowPartialParse: boolean,
 ): { updated: ParsedListNode; focusOffset: number[] } {
-  const {
-    updated,
-    remainingAfter: remaining,
-    focusOffset,
-  } = _reparseNodes(root, insertedRange, allowPartialParse);
-  if (remaining.length) {
+  const { updated, remainingBefore, remainingAfter, focusOffset } =
+    _reparseNodes(root, insertedRange, allowPartialParse);
+  if (remainingBefore.length || remainingAfter.length) {
     if (allowPartialParse) {
-      const remainingNodes = convertParserInputToNodes(remaining);
+      const remainingNodesBefore = convertParserInputToNodes(remainingBefore);
+      const remainingNodesAfter = convertParserInputToNodes(remainingAfter);
       if (!focusOffset.length) {
         throw new Error("focusOffset can't be adjusted because it is empty");
       }
+      const newContent = [
+        ...remainingNodesBefore,
+        ...updated.content,
+        ...remainingNodesAfter,
+      ];
       const newFocusOffset = [...focusOffset];
-      newFocusOffset[0] += remainingNodes.length;
+      newFocusOffset[0] += newContent.length - updated.content.length;
       return {
-        updated: {
-          ...updated,
-          content: [...updated.content, ...remainingNodes],
-        },
+        updated: { ...updated, content: newContent },
         focusOffset: newFocusOffset,
       };
     }
@@ -661,7 +661,7 @@ function _reparseNodes(
           updated: { ...root, content: newContent },
           remainingBefore: parserInput,
           remainingAfter: [],
-          focusOffset: [0],
+          focusOffset: [newContent.length - root.content.length],
         };
       }
       if (allowPartialParse) {
@@ -730,20 +730,26 @@ function _reparseNodes(
 
     let partialResult: ReturnType<typeof _reparseNodes> | undefined;
     {
+      const remainingNodesBefore = convertParserInputToNodes(
+        childResult.remainingBefore,
+      );
+      const remainingNodesAfter = convertParserInputToNodes(
+        childResult.remainingAfter,
+      );
       const newContent = [...root.content];
       newContent.splice(
         insertedRange.anchor[0],
         1,
-        ...convertParserInputToNodes(childResult.remainingBefore),
+        ...remainingNodesBefore,
         childResult.updated,
-        ...convertParserInputToNodes(childResult.remainingAfter),
+        ...remainingNodesAfter,
       );
       partialResult = {
         updated: { ...root, content: newContent },
         remainingBefore: [],
         remainingAfter: [],
         focusOffset: [
-          newContent.length - root.content.length,
+          remainingNodesBefore.length - 1,
           ...childResult.focusOffset,
         ],
       };
