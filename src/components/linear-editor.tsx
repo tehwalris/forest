@@ -1064,14 +1064,21 @@ class DocManager {
   private mode = Mode.Normal;
   private lastMode = this.mode;
   private insertedRange: EvenPathRange | undefined;
+  private liveReparse = true;
 
   constructor(
     private _onUpdate: (stuff: {
       doc: Doc;
       focus: EvenPathRange;
       mode: Mode;
+      liveReparse: boolean;
     }) => void,
   ) {}
+
+  setLiveReparse(v: boolean) {
+    this.liveReparse = v;
+    this.reportUpdate();
+  }
 
   onKeyPress = (ev: KeyboardEvent) => {
     if (this.mode === Mode.Normal) {
@@ -1559,7 +1566,6 @@ class DocManager {
       this.removeInvisibleNodes();
     }
     this.whileUnevenFocusChanges(() => this.normalizeFocus());
-    let reparseResult: ReturnType<DocManager["getReparsedDoc"]> | undefined;
     if (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) {
       if (this.lastMode !== this.mode) {
         this.history = [];
@@ -1573,14 +1579,27 @@ class DocManager {
         parentFocuses: [...this.parentFocuses],
         insertedRange: this.insertedRange,
       });
-      reparseResult = this.getReparsedDoc(true);
+      if (this.liveReparse) {
+      }
     }
     this.lastMode = this.mode;
 
+    this.reportUpdate();
+  }
+
+  private reportUpdate() {
+    let reparseResult: ReturnType<DocManager["getReparsedDoc"]> | undefined;
+    if (
+      this.liveReparse &&
+      (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter)
+    ) {
+      reparseResult = this.getReparsedDoc(true);
+    }
     this._onUpdate({
       doc: reparseResult?.doc || this.doc,
       focus: asEvenPathRange(reparseResult?.focus || this.focus),
       mode: this.mode,
+      liveReparse: this.liveReparse,
     });
   }
 
@@ -1807,14 +1826,16 @@ function renderNode({
 }
 
 export const LinearEditor = () => {
-  const [{ doc, focus, mode }, setStuff] = useState<{
+  const [{ doc, focus, mode, liveReparse }, setStuff] = useState<{
     doc: Doc;
     focus: EvenPathRange;
     mode: Mode;
+    liveReparse: boolean;
   }>({
     doc: emptyDoc,
     focus: { anchor: [], offset: 0 },
     mode: Mode.Normal,
+    liveReparse: true,
   });
   const [docManager, setDocManager] = useState(new DocManager(setStuff));
   useEffect(() => {
@@ -1852,6 +1873,14 @@ export const LinearEditor = () => {
         })}
       </div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
+      <label>
+        Live reparse{" "}
+        <input
+          type="checkbox"
+          checked={liveReparse}
+          onChange={(ev) => docManager.setLiveReparse(ev.target.checked)}
+        />
+      </label>
       <pre>
         {JSON.stringify(
           {
