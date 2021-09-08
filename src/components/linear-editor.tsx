@@ -20,6 +20,7 @@ enum ParserKind {
   CallArguments,
   ObjectLiteral,
   ObjectLiteralElement,
+  ArrayLiteral,
 }
 
 enum NodeKind {
@@ -266,6 +267,18 @@ function parseTightExpression({ input, after }: ParserArgs): ParserResult {
         continue;
       }
     }
+    if (
+      item.kind === ParserInputKind.ListNode &&
+      item.unparsedNode.delimiters[0] === "[" &&
+      parsed.length === 0
+    ) {
+      const parsedChild = item.tryParseNode(ParserKind.ArrayLiteral);
+      if (parsedChild) {
+        parsed.push(parsedChild);
+        remaining.shift();
+        continue;
+      }
+    }
     break;
   }
   return { parsed, remaining };
@@ -349,12 +362,18 @@ function parseObjectLiteralElement({
   return { parsed: parsedNow, remaining };
 }
 
+const parseArrayLiteral = makeSeparatedListParser(
+  ",",
+  ParserKind.LooseExpression,
+);
+
 const parserFunctionsByParserKind: { [K in ParserKind]: ParserFunction } = {
   [ParserKind.LooseExpression]: parseLooseExpression,
   [ParserKind.TightExpression]: parseTightExpression,
   [ParserKind.CallArguments]: parseCallArguments,
   [ParserKind.ObjectLiteral]: parseObjectLiteral,
   [ParserKind.ObjectLiteralElement]: parseObjectLiteralElement,
+  [ParserKind.ArrayLiteral]: parseArrayLiteral,
 };
 
 const withNothingNearRawText =
@@ -377,6 +396,7 @@ const separatorDecidersByParserKind: { [K in ParserKind]: SeparatorDecider } = {
   [ParserKind.CallArguments]: withNothingNearRawText(() => ", "),
   [ParserKind.ObjectLiteral]: withNothingNearRawText(() => ", "),
   [ParserKind.ObjectLiteralElement]: withNothingNearRawText(() => ": "),
+  [ParserKind.ArrayLiteral]: withNothingNearRawText(() => ", "),
 };
 
 interface Doc {
@@ -1362,6 +1382,7 @@ class DocManager {
           const listDelimiters: [string, string][] = [
             ["(", ")"],
             ["{", "}"],
+            ["[", "]"],
           ];
           for (const delimiters of listDelimiters) {
             if (ev.key === delimiters[0]) {
