@@ -1,13 +1,15 @@
-import { css, keyframes } from "@emotion/css";
+import { css } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
-import ts from "typescript";
+import ts, { isDoStatement } from "typescript";
 import { CompilerHost } from "../logic/providers/typescript/compiler-host";
 import { unreachable } from "../logic/util";
 
 const exampleFile = `
 console.log("walrus")
-  .test("bla");
+  .test( 
+    "bla"
+   );
 
 if (Date.now() % 100 == 0) {
   console.log("lucky you");
@@ -18,14 +20,14 @@ type Path = number[];
 type EvenPathRange = { anchor: Path; offset: number };
 type UnevenPathRange = { anchor: Path; tip: Path };
 
-enum NodeKind {
-  Token,
-  List,
-}
-
 interface TextRange {
   pos: number;
   end: number;
+}
+
+enum NodeKind {
+  Token,
+  List,
 }
 
 type Node = TokenNode | ListNode;
@@ -35,8 +37,14 @@ interface TokenNode extends TextRange {
   content: string;
 }
 
+enum ListKind {
+  LooseExpression,
+  TightExpression,
+}
+
 interface ListNode extends TextRange {
   kind: NodeKind.List;
+  listKind?: ListKind;
   delimiters: [string, string];
   content: Node[];
   equivalentToContent: boolean;
@@ -52,6 +60,110 @@ function astFromTypescriptFileContent(fileContent: string) {
   return file;
 }
 
+function flattenLeftIfListKind(
+  listKind: ListKind,
+  left: Node,
+  right: Node,
+): Node[] {
+  if (left.kind === NodeKind.List && left.listKind === listKind) {
+    return [...left.content, right];
+  }
+  return [left, right];
+}
+
+function listNodeFromTsCallExpression(
+  callExpression: ts.CallExpression,
+  file: ts.SourceFile,
+): ListNode {
+  return {
+    kind: NodeKind.List,
+    listKind: ListKind.TightExpression,
+    delimiters: ["", ""],
+    content: flattenLeftIfListKind(
+      ListKind.TightExpression,
+      nodeFromTsNode(callExpression.expression, file),
+      listNodeFromDelimitedTsNodeArray(
+        callExpression.arguments,
+        file,
+        undefined,
+        callExpression.arguments.pos - 1,
+        callExpression.end,
+      ),
+    ),
+    equivalentToContent: true,
+    pos: file.pos,
+    end: file.end,
+  };
+}
+
+function listNodeFromPropertyAccessExpression(
+  propertyAccessExpression: ts.PropertyAccessExpression,
+  file: ts.SourceFile,
+): ListNode {
+  return {
+    kind: NodeKind.List,
+    listKind: ListKind.TightExpression,
+    delimiters: ["", ""],
+    content: flattenLeftIfListKind(
+      ListKind.TightExpression,
+      nodeFromTsNode(propertyAccessExpression.expression, file),
+      nodeFromTsNode(propertyAccessExpression.name, file),
+    ),
+    equivalentToContent: true,
+    pos: file.pos,
+    end: file.end,
+  };
+}
+
+function nodeFromTsNode(node: ts.Node, file: ts.SourceFile): Node {
+  if (ts.isExpressionStatement(node)) {
+    return nodeFromTsNode(node.expression, file);
+  } else if (ts.isCallExpression(node)) {
+    return listNodeFromTsCallExpression(node, file);
+  } else if (ts.isPropertyAccessExpression(node)) {
+    return listNodeFromPropertyAccessExpression(node, file);
+  } else {
+    return {
+      kind: NodeKind.Token,
+      content: node.getText(file),
+      pos: node.pos,
+      end: node.end,
+    };
+  }
+}
+
+function listNodeFromDelimitedTsNodeArray(
+  nodeArray: ts.NodeArray<ts.Node>,
+  file: ts.SourceFile,
+  listKind: ListKind | undefined,
+  pos: number,
+  end: number,
+): Node {
+  const validDelimiters = [
+    ["(", ")"],
+    ["{", "}"],
+    ["[", "]"],
+  ];
+  const delimiters: [string, string] = [file.text[pos], file.text[end - 1]];
+  if (
+    !validDelimiters.find(
+      (d) => d[0] === delimiters[0] && d[1] === delimiters[1],
+    )
+  ) {
+    throw new Error(`invalid delimiters ${JSON.stringify(delimiters)}`);
+  }
+
+  return {
+    kind: NodeKind.List,
+    listKind,
+    delimiters,
+    content: nodeArray.map((c) => nodeFromTsNode(c, file)),
+    equivalentToContent: false,
+    pos,
+    end,
+  };
+}
+
 function docFromAst(file: ts.SourceFile): Doc {
   for (const s of file.statements) {
     console.log(
@@ -65,12 +177,7 @@ function docFromAst(file: ts.SourceFile): Doc {
     root: {
       kind: NodeKind.List,
       delimiters: ["", ""],
-      content: file.statements.map((s) => ({
-        kind: NodeKind.Token,
-        content: s.getText(file),
-        pos: s.pos,
-        end: s.end,
-      })),
+      content: file.statements.map((s) => nodeFromTsNode(s, file)),
       equivalentToContent: true,
       pos: file.pos,
       end: file.end,
@@ -1128,11 +1235,11 @@ function splitDocRenderRegions(
   const regions: DocRenderRegion[] = [];
   let start = 0;
   const pushRegion = (end: number) => {
-      regions.push({
-        text: text.slice(start, end),
-        selection: selectionsByChar[start],
-      });
-      start = end;
+    regions.push({
+      text: text.slice(start, end),
+      selection: selectionsByChar[start],
+    });
+    start = end;
   };
   for (const [i, selection] of selectionsByChar.entries()) {
     if (selection !== selectionsByChar[start]) {
