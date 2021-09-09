@@ -30,15 +30,20 @@ enum NodeKind {
   List,
 }
 
+interface TextRange {
+  pos: number;
+  end: number;
+}
+
 type Node = TokenNode | ListNode;
 
-interface TokenNode {
+interface TokenNode extends TextRange {
   kind: NodeKind.Token;
   syntaxKind: SyntaxKind;
   content: string;
 }
 
-interface ListNode {
+interface ListNode extends TextRange {
   kind: NodeKind.List;
   delimiters: [string, string];
   content: Node[];
@@ -71,10 +76,15 @@ function docFromAst(file: ts.SourceFile): Doc {
       content: file.statements.map((s) => ({
         kind: NodeKind.Token,
         syntaxKind: SyntaxKind.RawText,
-        content: s.getFullText(file),
+        content: s.getText(file),
+        pos: s.pos,
+        end: s.end,
       })),
       equivalentToContent: true,
+      pos: file.pos,
+      end: file.end,
     },
+    text: file.text,
   };
 }
 
@@ -86,12 +96,15 @@ function isRawText(
 
 interface Doc {
   root: ListNode;
+  text: string;
 }
 
 const emptyToken: TokenNode = {
   kind: NodeKind.Token,
   syntaxKind: SyntaxKind.RawText,
   content: "",
+  pos: -1,
+  end: -1,
 };
 
 const emptyDoc: Doc = {
@@ -100,7 +113,10 @@ const emptyDoc: Doc = {
     delimiters: ["", ""],
     content: [],
     equivalentToContent: true,
+    pos: 0,
+    end: 0,
   },
+  text: "",
 };
 
 const initialDoc = docFromAst(astFromTypescriptFileContent(exampleFile));
@@ -681,6 +697,8 @@ class DocManager {
                 delimiters,
                 content: [emptyToken, emptyToken],
                 equivalentToContent: false,
+                pos: -1,
+                end: -1,
               });
               this.parentFocuses.push(evenFocus);
               this.focus = asUnevenPathRange({
@@ -1057,7 +1075,7 @@ function renderNode({
   showCursorAfterThis: boolean;
   cursorOffset: -1 | 0;
   trailingSeparator: string;
-}): React.ReactChild {
+}): React.ReactNode {
   const focused = focus !== undefined && focus.anchor.length === 0;
   let focusedChildRange: [number, number] | undefined;
   let tipOfFocusIndex: number | undefined;
@@ -1156,6 +1174,150 @@ function renderNode({
   }
 }
 
+enum CharSelection {
+  None = 0,
+  Normal = 1,
+  Tip = 2,
+}
+
+function setCharSelections({
+  selectionsByChar,
+  node,
+  focus,
+  isTipOfFocus,
+}: {
+  selectionsByChar: Uint8Array;
+  node: Node;
+  focus: EvenPathRange | undefined;
+  isTipOfFocus: boolean;
+}) {
+  const focused = focus !== undefined && focus.anchor.length === 0;
+  let focusedChildRange: [number, number] | undefined;
+  let tipOfFocusIndex: number | undefined;
+  if (focus?.anchor.length) {
+    const offset = focus.anchor.length === 1 ? focus.offset : 0;
+    focusedChildRange = [focus.anchor[0], focus.anchor[0] + offset];
+    if (focus.anchor.length === 1) {
+      tipOfFocusIndex = focusedChildRange[1];
+    }
+    if (focusedChildRange[0] > focusedChildRange[1]) {
+      focusedChildRange = [focusedChildRange[1], focusedChildRange[0]];
+    }
+  }
+
+  if (focused) {
+    selectionsByChar.fill(
+      isTipOfFocus ? CharSelection.Tip : CharSelection.Normal,
+      node.pos,
+      node.end,
+    );
+  }
+
+  if (node.kind === NodeKind.List) {
+    for (const [i, c] of node.content.entries()) {
+      setCharSelections({
+        selectionsByChar,
+        node: c,
+        focus:
+          focusedChildRange &&
+          i >= focusedChildRange[0] &&
+          i <= focusedChildRange[1]
+            ? {
+                anchor: focus!.anchor.slice(1),
+                offset: focus!.offset,
+              }
+            : undefined,
+        isTipOfFocus: i === tipOfFocusIndex,
+      });
+    }
+  }
+}
+
+interface DocRenderLine {
+  regions: DocRenderRegion[];
+}
+
+interface DocRenderRegion {
+  text: string;
+  selection: CharSelection;
+}
+
+function splitDocRenderRegions(
+  text: string,
+  selectionsByChar: Uint8Array,
+): DocRenderRegion[] {
+  if (text.length !== selectionsByChar.length) {
+    throw new Error("text and selectionsByChar must have same length");
+  }
+
+  if (!selectionsByChar.length) {
+    return [];
+  }
+
+  const regions: DocRenderRegion[] = [];
+  let start = 0;
+  for (const [i, selection] of selectionsByChar.entries()) {
+    const isDifferent = selection !== selectionsByChar[start];
+    const isLast = i + 1 === selectionsByChar.length;
+    const stopBecauseLast = !isDifferent && isLast;
+    if (isDifferent || isLast) {
+      const end = stopBecauseLast ? i + 1 : i;
+      regions.push({
+        text: text.slice(start, end),
+        selection: selectionsByChar[start],
+      });
+      start = end;
+    }
+  }
+  return regions;
+}
+
+function renderDoc(doc: Doc, focus: EvenPathRange): React.ReactNode {
+  const selectionsByChar = new Uint8Array(doc.text.length);
+  setCharSelections({
+    selectionsByChar,
+    node: doc.root,
+    focus,
+    isTipOfFocus: false,
+  });
+
+  const lines: DocRenderLine[] = [];
+  let pos = 0;
+  for (const lineText of doc.text.split("\n")) {
+    lines.push({
+      regions: splitDocRenderRegions(
+        lineText,
+        selectionsByChar.subarray(pos, pos + lineText.length),
+      ),
+    });
+    pos += lineText.length + 1;
+  }
+
+  const backgroundsBySelection: { [K in CharSelection]: string | undefined } = {
+    [CharSelection.None]: undefined,
+    [CharSelection.Normal]: "rgba(11, 83, 255, 0.15)",
+    [CharSelection.Tip]: "rgba(11, 83, 255, 0.37)",
+  };
+
+  return (
+    <div style={{ whiteSpace: "pre" }}>
+      {lines.map((line, iLine) => (
+        <div key={iLine}>
+          {!line.regions.length && <br />}
+          {line.regions.map((region, iRegion) => (
+            <span
+              key={iRegion}
+              style={{ background: backgroundsBySelection[region.selection] }}
+            >
+              {region.text}
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export const LinearEditor = () => {
   const [{ doc, focus, mode, liveReparse }, setStuff] = useState<{
     doc: Doc;
@@ -1209,6 +1371,7 @@ export const LinearEditor = () => {
           trailingSeparator: "",
         })}
       </div>
+      <div className={styles.doc}>{renderDoc(doc, focus)}</div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
       <label>
         Live reparse{" "}
