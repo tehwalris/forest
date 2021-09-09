@@ -116,6 +116,61 @@ function docMapRoot(doc: Doc, cb: (node: ListNode) => Node): Doc {
   return { ...doc, root: newRoot };
 }
 
+function docDeleteText(doc: Doc, pos: number, end: number): Doc {
+  if (!(pos >= 0 && pos <= end && end <= doc.text.length)) {
+    throw new Error("invalid range");
+  }
+  return {
+    root: nodeDeleteText(doc.root, pos, end),
+    text: doc.text.slice(0, pos) + doc.text.slice(end),
+  };
+}
+
+function nodeDeleteText(node: ListNode, pos: number, end: number): ListNode;
+function nodeDeleteText(node: Node, pos: number, end: number): Node;
+function nodeDeleteText(node: Node, pos: number, end: number): Node {
+  // Examples
+  //
+  // xxx---
+  // ---xxx
+  //
+  // xxx----
+  // ----xxx
+  //
+  // xxx--
+  // --xxx
+  //
+  // --xxx
+  // xxx--
+  //
+  // ---xxx
+  // xxx---
+  //
+  // ----xxx
+  // xxx----
+  //
+  // --xxxxx--
+  // ---xxx---
+  //
+  // ---xxx---
+  // --xxxxx--
+
+  const leadingDeletions = Math.max(0, Math.min(end - pos, node.pos - pos));
+  const overlappingDeletions = Math.max(
+    0,
+    Math.min(node.pos - pos, end - node.pos),
+  );
+  const updated: Node = {
+    ...node,
+    pos: node.pos - leadingDeletions,
+    end: node.end - leadingDeletions - overlappingDeletions,
+  };
+  if (updated.kind === NodeKind.List) {
+    updated.content = updated.content.map((c) => nodeDeleteText(c, pos, end));
+  }
+  return updated;
+}
+
 function asUnevenPathRange(even: EvenPathRange): UnevenPathRange {
   if (!even.offset) {
     return { anchor: even.anchor, tip: even.anchor };
@@ -564,6 +619,7 @@ class DocManager {
           };
         }
         let newFocusIndex: number | undefined;
+        let deletedNodes: Node[] | undefined;
         this.doc = docMapRoot(
           this.doc,
           nodeMapAtPath(forwardFocus.anchor.slice(0, -1), (oldListNode) => {
@@ -579,9 +635,17 @@ class DocManager {
             } else if (deleteFrom > 0) {
               newFocusIndex = deleteFrom - 1;
             }
-            newContent.splice(deleteFrom, deleteCount);
+            deletedNodes = newContent.splice(deleteFrom, deleteCount);
             return { ...oldListNode, content: newContent };
           }),
+        );
+        if (!deletedNodes?.length) {
+          throw new Error("deletedNodes contains no nodes");
+        }
+        this.doc = docDeleteText(
+          this.doc,
+          deletedNodes[0].pos,
+          deletedNodes[deletedNodes.length - 1].end,
         );
         this.focus = asUnevenPathRange({
           anchor:
