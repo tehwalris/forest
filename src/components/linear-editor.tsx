@@ -445,14 +445,12 @@ class DocManager {
   private mode = Mode.Normal;
   private lastMode = this.mode;
   private insertedRange: EvenPathRange | undefined;
-  private liveReparse = true;
 
   constructor(
     private _onUpdate: (stuff: {
       doc: Doc;
       focus: EvenPathRange;
       mode: Mode;
-      liveReparse: boolean;
     }) => void,
   ) {}
 
@@ -462,11 +460,6 @@ class DocManager {
     }
     this.onUpdate();
     this.history = [];
-  }
-
-  setLiveReparse(v: boolean) {
-    this.liveReparse = v;
-    this.reportUpdate();
   }
 
   onKeyPress = (ev: KeyboardEvent) => {
@@ -941,8 +934,6 @@ class DocManager {
         parentFocuses: [...this.parentFocuses],
         insertedRange: this.insertedRange,
       });
-      if (this.liveReparse) {
-      }
     }
     this.lastMode = this.mode;
 
@@ -954,7 +945,6 @@ class DocManager {
       doc: this.doc,
       focus: asEvenPathRange(this.focus),
       mode: this.mode,
-      liveReparse: this.liveReparse,
     });
   }
 
@@ -1158,16 +1148,14 @@ function renderDoc(doc: Doc, focus: EvenPathRange): React.ReactNode {
 }
 
 export const LinearEditor = () => {
-  const [{ doc, focus, mode, liveReparse }, setStuff] = useState<{
+  const [{ doc, focus, mode }, setStuff] = useState<{
     doc: Doc;
     focus: EvenPathRange;
     mode: Mode;
-    liveReparse: boolean;
   }>({
     doc: emptyDoc,
     focus: { anchor: [], offset: 0 },
     mode: Mode.Normal,
-    liveReparse: true,
   });
   const [docManager, setDocManager] = useState(new DocManager(setStuff));
   useEffect(() => {
@@ -1199,15 +1187,6 @@ export const LinearEditor = () => {
     <div>
       <div className={styles.doc}>{renderDoc(doc, focus)}</div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
-      <label>
-        Live reparse{" "}
-        <input
-          type="checkbox"
-          checked={liveReparse}
-          tabIndex={-1}
-          onChange={(ev) => docManager.setLiveReparse(ev.target.checked)}
-        />
-      </label>
       <pre>
         {JSON.stringify(
           {
