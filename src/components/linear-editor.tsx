@@ -997,18 +997,6 @@ class DocManager {
   }
 }
 
-const pulse = keyframes`
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-`;
-
 const styles = {
   doc: css`
     margin: 5px;
@@ -1017,162 +1005,7 @@ const styles = {
     margin: 5px;
     margin-top: 15px;
   `,
-  selectionWrapper: css`
-    position: relative;
-    display: inline-block;
-  `,
-  separator: css`
-    display: inline-block;
-    white-space: pre;
-  `,
-  token: css`
-    display: inline-block;
-    white-space: pre;
-  `,
-  list: css`
-    display: inline-block;
-    white-space: pre;
-  `,
-  listInner: css`
-    display: inline-block;
-  `,
-  listDelimiter: css`
-    display: inline-block;
-  `,
-  cursor: css`
-    position: absolute;
-    display: block;
-    background: black;
-    width: ${2 / window.devicePixelRatio}px;
-    top: -2px;
-    bottom: -2px;
-    right: -1.5px;
-    animation: ${pulse} 1s ease infinite;
-    ::before {
-      content: ".";
-      visibility: hidden;
-    }
-  `,
 };
-
-function renderNode({
-  node,
-  key,
-  focus,
-  isTipOfFocus,
-  isLastOfFocus,
-  showCursor,
-  showCursorAfterThis,
-  cursorOffset,
-  trailingSeparator,
-}: {
-  node: Node;
-  key: React.Key;
-  focus: EvenPathRange | undefined;
-  isTipOfFocus: boolean;
-  isLastOfFocus: boolean;
-  showCursor: boolean;
-  showCursorAfterThis: boolean;
-  cursorOffset: -1 | 0;
-  trailingSeparator: string;
-}): React.ReactNode {
-  const focused = focus !== undefined && focus.anchor.length === 0;
-  let focusedChildRange: [number, number] | undefined;
-  let tipOfFocusIndex: number | undefined;
-  if (focus?.anchor.length) {
-    const offset = focus.anchor.length === 1 ? focus.offset : 0;
-    focusedChildRange = [focus.anchor[0], focus.anchor[0] + offset];
-    if (focus.anchor.length === 1) {
-      tipOfFocusIndex = focusedChildRange[1];
-    }
-    if (focusedChildRange[0] > focusedChildRange[1]) {
-      focusedChildRange = [focusedChildRange[1], focusedChildRange[0]];
-    }
-  }
-
-  const tokenBackground = focused
-    ? isTipOfFocus
-      ? "rgba(11, 83, 255, 0.37)"
-      : "rgba(11, 83, 255, 0.15)"
-    : undefined;
-
-  switch (node.kind) {
-    case NodeKind.Token:
-      return (
-        <div
-          key={key}
-          className={styles.token}
-          style={{
-            color: isRawText(node) ? "red" : undefined,
-          }}
-        >
-          <div
-            className={styles.selectionWrapper}
-            style={{
-              background: tokenBackground,
-            }}
-          >
-            {node.content || "\u200b"}
-            {showCursorAfterThis && <div className={styles.cursor} />}
-            <div className={styles.separator}>
-              {!isLastOfFocus && trailingSeparator}
-            </div>
-          </div>
-          <div className={styles.separator}>
-            {isLastOfFocus && trailingSeparator}
-          </div>
-        </div>
-      );
-    case NodeKind.List:
-      return (
-        <div key={key} className={styles.list}>
-          <div
-            className={styles.selectionWrapper}
-            style={{
-              background: tokenBackground,
-            }}
-          >
-            <div className={styles.listDelimiter}>{node.delimiters[0]}</div>
-            <div className={styles.listInner}>
-              {node.content.map((c, i) =>
-                renderNode({
-                  node: c,
-                  key: i,
-                  focus:
-                    focusedChildRange &&
-                    i >= focusedChildRange[0] &&
-                    i <= focusedChildRange[1]
-                      ? {
-                          anchor: focus!.anchor.slice(1),
-                          offset: focus!.offset,
-                        }
-                      : undefined,
-                  isTipOfFocus: i === tipOfFocusIndex,
-                  isLastOfFocus:
-                    !!focusedChildRange && i === focusedChildRange[1],
-                  showCursor,
-                  showCursorAfterThis:
-                    showCursor &&
-                    tipOfFocusIndex !== undefined &&
-                    i === tipOfFocusIndex + cursorOffset,
-                  cursorOffset,
-                  trailingSeparator: "",
-                }),
-              )}
-            </div>
-            <div className={styles.listDelimiter}>{node.delimiters[1]}</div>
-            {showCursorAfterThis && <div className={styles.cursor} />}
-            <div className={styles.separator}>
-              {!isLastOfFocus && trailingSeparator}
-            </div>
-          </div>
-          <div className={styles.separator}>
-            {isLastOfFocus && trailingSeparator}
-          </div>
-        </div>
-      );
-  }
-}
 
 enum CharSelection {
   None = 0,
@@ -1284,13 +1117,19 @@ function renderDoc(doc: Doc, focus: EvenPathRange): React.ReactNode {
   const lines: DocRenderLine[] = [];
   let pos = 0;
   for (const lineText of doc.text.split("\n")) {
-    lines.push({
+    const line = {
       regions: splitDocRenderRegions(
         lineText,
         selectionsByChar.subarray(pos, pos + lineText.length),
       ),
-    });
+    };
+    if (line.regions.length || lines.length) {
+      lines.push(line);
+    }
     pos += lineText.length + 1;
+  }
+  while (lines.length && !lines[lines.length - 1].regions.length) {
+    lines.pop();
   }
 
   const backgroundsBySelection: { [K in CharSelection]: string | undefined } = {
@@ -1358,19 +1197,6 @@ export const LinearEditor = () => {
 
   return (
     <div>
-      <div className={styles.doc}>
-        {renderNode({
-          node: doc.root,
-          key: "root",
-          focus,
-          isTipOfFocus: false,
-          isLastOfFocus: focus.anchor.length === 0,
-          showCursor: mode === Mode.InsertBefore || mode === Mode.InsertAfter,
-          showCursorAfterThis: false,
-          cursorOffset: mode === Mode.InsertBefore ? -1 : 0,
-          trailingSeparator: "",
-        })}
-      </div>
       <div className={styles.doc}>{renderDoc(doc, focus)}</div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
       <label>
