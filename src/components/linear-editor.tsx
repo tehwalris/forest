@@ -1,7 +1,16 @@
 import { css, keyframes } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
+import ts from "typescript";
+import { CompilerHost } from "../logic/providers/typescript/compiler-host";
 import { unreachable } from "../logic/util";
+
+const exampleFile = `
+console.log("walrus");
+if (Date.now() % 100 == 0) {
+  console.log("lucky you");
+}
+`;
 
 type Path = number[];
 type EvenPathRange = { anchor: Path; offset: number };
@@ -42,6 +51,32 @@ interface ListNode {
   delimiters: [string, string];
   content: Node[];
   equivalentToContent: boolean;
+}
+
+function astFromTypescriptFileContent(fileContent: string) {
+  const compilerHost = new CompilerHost();
+  const file = compilerHost.addFile(
+    "file.ts",
+    fileContent,
+    ts.ScriptTarget.ES5,
+  );
+  return file;
+}
+
+function docFromAst(file: ts.SourceFile): Doc {
+  return {
+    root: {
+      kind: NodeKind.List,
+      parserKind: ParserKind.LooseExpression, // TODO statement
+      delimiters: ["", ""],
+      content: file.statements.map((s) => ({
+        kind: NodeKind.Token,
+        syntaxKind: SyntaxKind.RawText,
+        content: s.getFullText(file),
+      })),
+      equivalentToContent: true,
+    },
+  };
 }
 
 type ParsedListNode = ListNode & { parserKind: ParserKind };
@@ -418,6 +453,8 @@ const emptyDoc: Doc = {
     equivalentToContent: true,
   },
 };
+
+const initialDoc = docFromAst(astFromTypescriptFileContent(exampleFile));
 
 function docMapRoot(doc: Doc, cb: (node: ParsedListNode) => Node): Doc {
   const newRoot = cb(doc.root);
@@ -1135,7 +1172,7 @@ enum Mode {
 }
 
 class DocManager {
-  private doc: Doc = emptyDoc;
+  private doc: Doc = initialDoc;
   private focus: UnevenPathRange = { anchor: [], tip: [] };
   private parentFocuses: EvenPathRange[] = [];
   private history: {
@@ -1157,6 +1194,14 @@ class DocManager {
       liveReparse: boolean;
     }) => void,
   ) {}
+
+  forceUpdate() {
+    if (this.mode !== Mode.Normal) {
+      throw new Error("forceUpdate can only be called in normal mode");
+    }
+    this.onUpdate();
+    this.history = [];
+  }
 
   setLiveReparse(v: boolean) {
     this.liveReparse = v;
@@ -1939,6 +1984,9 @@ export const LinearEditor = () => {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [DocManager]);
+  useEffect(() => {
+    docManager.forceUpdate();
+  }, [docManager]);
 
   useEffect(() => {
     const options: EventListenerOptions = { capture: true };
