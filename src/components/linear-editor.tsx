@@ -1127,17 +1127,19 @@ function splitDocRenderRegions(
 
   const regions: DocRenderRegion[] = [];
   let start = 0;
-  for (const [i, selection] of selectionsByChar.entries()) {
-    const isDifferent = selection !== selectionsByChar[start];
-    const isLast = i + 1 === selectionsByChar.length;
-    const stopBecauseLast = !isDifferent && isLast;
-    if (isDifferent || isLast) {
-      const end = stopBecauseLast ? i + 1 : i;
+  const pushRegion = (end: number) => {
       regions.push({
         text: text.slice(start, end),
         selection: selectionsByChar[start],
       });
       start = end;
+  };
+  for (const [i, selection] of selectionsByChar.entries()) {
+    if (selection !== selectionsByChar[start]) {
+      pushRegion(i);
+    }
+    if (i + 1 === selectionsByChar.length) {
+      pushRegion(i + 1);
     }
   }
   return regions;
