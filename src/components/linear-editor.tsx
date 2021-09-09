@@ -18,13 +18,6 @@ type Path = number[];
 type EvenPathRange = { anchor: Path; offset: number };
 type UnevenPathRange = { anchor: Path; tip: Path };
 
-enum SyntaxKind {
-  RawText,
-  Identifier,
-  NumericLiteral,
-  BinaryOperator,
-}
-
 enum NodeKind {
   Token,
   List,
@@ -39,7 +32,6 @@ type Node = TokenNode | ListNode;
 
 interface TokenNode extends TextRange {
   kind: NodeKind.Token;
-  syntaxKind: SyntaxKind;
   content: string;
 }
 
@@ -75,7 +67,6 @@ function docFromAst(file: ts.SourceFile): Doc {
       delimiters: ["", ""],
       content: file.statements.map((s) => ({
         kind: NodeKind.Token,
-        syntaxKind: SyntaxKind.RawText,
         content: s.getText(file),
         pos: s.pos,
         end: s.end,
@@ -88,12 +79,6 @@ function docFromAst(file: ts.SourceFile): Doc {
   };
 }
 
-function isRawText(
-  node: Node,
-): node is TokenNode & { syntaxKind: SyntaxKind.RawText } {
-  return node.kind === NodeKind.Token && node.syntaxKind === SyntaxKind.RawText;
-}
-
 interface Doc {
   root: ListNode;
   text: string;
@@ -101,7 +86,6 @@ interface Doc {
 
 const emptyToken: TokenNode = {
   kind: NodeKind.Token,
-  syntaxKind: SyntaxKind.RawText,
   content: "",
   pos: -1,
   end: -1,
@@ -723,7 +707,7 @@ class DocManager {
             return oldListNode;
           }
 
-          if (!isRawText(targetNode)) {
+          if (targetNode.kind !== NodeKind.Token) {
             pushNode(emptyToken);
           }
           targetNode = {
