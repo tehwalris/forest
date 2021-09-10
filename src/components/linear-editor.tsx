@@ -282,6 +282,14 @@ function nodeDeleteText(node: Node, pos: number, end: number): Node {
   return updated;
 }
 
+function getPosAfterOpeningDelimiter(text: string, listNode: ListNode): number {
+  const pos = listNode.pos + listNode.delimiters[0].length;
+  if (text.slice(listNode.pos, pos) !== listNode.delimiters[0]) {
+    throw new Error("opening delimiter not found at expected location");
+  }
+  return pos;
+}
+
 function getPosOfClosingDelimiter(text: string, listNode: ListNode): number {
   const pos = listNode.end - listNode.delimiters[1].length;
   if (text.slice(pos, listNode.end) !== listNode.delimiters[1]) {
@@ -777,17 +785,25 @@ class DocManager {
         if (!_oldListNode) {
           throw new Error("_oldListNode was not set by callback");
         }
-        this.doc = docDeleteText(
-          this.doc,
-          deletedNodes[0].pos,
-          nodeAfterDeleted
-            ? nodeAfterDeleted.pos
-            : extendToWhitespace(
-                this.doc.text,
-                deletedNodes[deletedNodes.length - 1].end,
-                getPosOfClosingDelimiter(this.doc.text, _oldListNode) - 1,
-              ),
-        );
+        if (_oldListNode.content.length === deletedNodes.length) {
+          this.doc = docDeleteText(
+            this.doc,
+            getPosAfterOpeningDelimiter(this.doc.text, _oldListNode),
+            getPosOfClosingDelimiter(this.doc.text, _oldListNode),
+          );
+        } else {
+          this.doc = docDeleteText(
+            this.doc,
+            deletedNodes[0].pos,
+            nodeAfterDeleted
+              ? nodeAfterDeleted.pos
+              : extendToWhitespace(
+                  this.doc.text,
+                  deletedNodes[deletedNodes.length - 1].end,
+                  getPosOfClosingDelimiter(this.doc.text, _oldListNode) - 1,
+                ),
+          );
+        }
         this.focus = asUnevenPathRange({
           anchor:
             newFocusIndex === undefined
