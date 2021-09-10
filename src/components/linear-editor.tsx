@@ -36,7 +36,6 @@ type Node = TokenNode | ListNode;
 
 interface TokenNode extends TextRange {
   kind: NodeKind.Token;
-  content: string;
 }
 
 enum ListKind {
@@ -93,8 +92,8 @@ function listNodeFromTsCallExpression(
       ),
     ),
     equivalentToContent: true,
-    pos: file.pos,
-    end: file.end,
+    pos: callExpression.pos,
+    end: callExpression.end,
   };
 }
 
@@ -112,8 +111,8 @@ function listNodeFromPropertyAccessExpression(
       nodeFromTsNode(propertyAccessExpression.name, file),
     ),
     equivalentToContent: true,
-    pos: file.pos,
-    end: file.end,
+    pos: propertyAccessExpression.pos,
+    end: propertyAccessExpression.end,
   };
 }
 
@@ -127,7 +126,6 @@ function nodeFromTsNode(node: ts.Node, file: ts.SourceFile): Node {
   } else {
     return {
       kind: NodeKind.Token,
-      content: node.getText(file),
       pos: node.pos,
       end: node.end,
     };
@@ -187,7 +185,6 @@ interface Doc {
 
 const emptyToken: TokenNode = {
   kind: NodeKind.Token,
-  content: "",
   pos: -1,
   end: -1,
 };
@@ -463,12 +460,10 @@ function _withoutInvisibleNodes(
   node: Node,
   focus: EvenPathRange | undefined,
 ): { node: Node; focus: EvenPathRange | undefined } | undefined {
-  if (node.kind === NodeKind.Token && node.content) {
+  if (node.kind === NodeKind.Token) {
     return { node, focus };
   }
-  if (node.kind === NodeKind.Token && !node.content) {
-    return undefined;
-  } else if (node.kind === NodeKind.List) {
+  if (node.kind === NodeKind.List) {
     if (!node.content.length) {
       if (node.equivalentToContent) {
         return undefined;
@@ -766,6 +761,7 @@ class DocManager {
             } else if (deleteFrom > 0) {
               newFocusIndex = deleteFrom - 1;
             }
+            console.log("DEBUG", oldListNode.content, deleteFrom, deleteCount);
             deletedNodes = newContent.splice(deleteFrom, deleteCount);
             nodeAfterDeleted = newContent[deleteFrom];
             return { ...oldListNode, content: newContent };
@@ -778,12 +774,19 @@ class DocManager {
           throw new Error("_oldListNode was not set by callback");
         }
         if (_oldListNode.content.length === deletedNodes.length) {
+          console.log(
+            "DEBUG A",
+            _oldListNode,
+            getPosAfterOpeningDelimiter(this.doc.text, _oldListNode),
+            getPosOfClosingDelimiter(this.doc.text, _oldListNode),
+          );
           this.doc = docDeleteText(
             this.doc,
             getPosAfterOpeningDelimiter(this.doc.text, _oldListNode),
             getPosOfClosingDelimiter(this.doc.text, _oldListNode),
           );
         } else {
+          console.log("DEBUG B");
           this.doc = docDeleteText(
             this.doc,
             deletedNodes[0].pos,
@@ -823,114 +826,6 @@ class DocManager {
           offset: 0,
         });
       }
-    } else if (
-      this.mode === Mode.InsertBefore ||
-      this.mode === Mode.InsertAfter
-    ) {
-      ev.preventDefault();
-      ev.stopPropagation();
-      let evenFocus = asEvenPathRange(this.focus);
-      if (!evenFocus.anchor.length) {
-        throw new Error("root focused in insert mode");
-      }
-      const listPath = evenFocus.anchor.slice(0, -1);
-      this.doc = docMapRoot(
-        this.doc,
-        nodeMapAtPath(listPath, (oldListNode) => {
-          if (oldListNode.kind !== NodeKind.List) {
-            throw new Error("parent of focused node is not a list");
-          }
-          const newListNode = {
-            ...oldListNode,
-            content: [...oldListNode.content],
-          };
-
-          let targetNodeIndex =
-            evenFocus.anchor[evenFocus.anchor.length - 1] + evenFocus.offset;
-          if (this.mode === Mode.InsertBefore) {
-            targetNodeIndex--;
-          }
-          let targetNode = newListNode.content[targetNodeIndex];
-          if (!targetNode) {
-            throw new Error("targetNode does not exist");
-          }
-
-          const pushNode = (node: Node) => {
-            targetNodeIndex += 1;
-            targetNode = node;
-            newListNode.content.splice(targetNodeIndex, 0, targetNode);
-            const newFocus = { ...evenFocus, anchor: [...evenFocus.anchor] };
-            if (this.mode === Mode.InsertBefore) {
-              newFocus.anchor[newFocus.anchor.length - 1] += 1;
-            } else {
-              newFocus.offset += 1;
-            }
-            evenFocus = newFocus;
-            this.focus = asUnevenPathRange(evenFocus);
-            if (!this.parentFocuses.length) {
-              this.insertedRange = {
-                ...this.insertedRange!,
-                offset: this.insertedRange!.offset + 1,
-              };
-            }
-          };
-
-          const listDelimiters: [string, string][] = [
-            ["(", ")"],
-            ["{", "}"],
-            ["[", "]"],
-          ];
-          for (const delimiters of listDelimiters) {
-            if (ev.key === delimiters[0]) {
-              pushNode({
-                kind: NodeKind.List,
-                delimiters,
-                content: [emptyToken, emptyToken],
-                equivalentToContent: false,
-                pos: -1,
-                end: -1,
-              });
-              this.parentFocuses.push(evenFocus);
-              this.focus = asUnevenPathRange({
-                anchor: [
-                  ...evenFocus.anchor.slice(0, -1),
-                  targetNodeIndex,
-                  this.mode === Mode.InsertBefore ? 1 : 0,
-                ],
-                offset: 0,
-              });
-              return newListNode;
-            } else if (ev.key === delimiters[1]) {
-              if (oldListNode.delimiters[1] === delimiters[1]) {
-                const parentFocus = this.parentFocuses.pop();
-                if (parentFocus) {
-                  this.focus = asUnevenPathRange(parentFocus);
-                } else {
-                  this.focus = asUnevenPathRange({
-                    anchor: listPath,
-                    offset: 0,
-                  });
-                }
-                return oldListNode;
-              }
-            }
-          }
-
-          if (ev.key.length !== 1) {
-            return oldListNode;
-          }
-
-          if (targetNode.kind !== NodeKind.Token) {
-            pushNode(emptyToken);
-          }
-          targetNode = {
-            ...(targetNode as typeof emptyToken),
-            content: targetNode.content + ev.key,
-          };
-          newListNode.content[targetNodeIndex] = targetNode;
-          return newListNode;
-        }),
-      );
     }
 
     this.onUpdate();
