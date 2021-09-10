@@ -9,6 +9,7 @@ const exampleFile = `
 console.log("walrus")
   .test( 
     "bla",
+    test,
     1234,
    );
 
@@ -281,13 +282,19 @@ function nodeDeleteText(node: Node, pos: number, end: number): Node {
   return updated;
 }
 
-function getPosBeforeClosingDelimiter(
-  text: string,
-  listNode: ListNode,
-): number {
+function getPosOfClosingDelimiter(text: string, listNode: ListNode): number {
   const pos = listNode.end - listNode.delimiters[1].length;
   if (text.slice(pos, listNode.end) !== listNode.delimiters[1]) {
     throw new Error("closing delimiter not found at expected location");
+  }
+  return pos;
+}
+
+// extendToWhitespace shifts pos to the right until it is on a whitespace character.
+// Ensures pos <= limit.
+function extendToWhitespace(text: string, pos: number, limit: number): number {
+  while (pos < limit && !text[pos].match(/\s/)) {
+    pos++;
   }
   return pos;
 }
@@ -775,7 +782,11 @@ class DocManager {
           deletedNodes[0].pos,
           nodeAfterDeleted
             ? nodeAfterDeleted.pos
-            : getPosBeforeClosingDelimiter(this.doc.text, _oldListNode),
+            : extendToWhitespace(
+                this.doc.text,
+                deletedNodes[deletedNodes.length - 1].end,
+                getPosOfClosingDelimiter(this.doc.text, _oldListNode) - 1,
+              ),
         );
         this.focus = asUnevenPathRange({
           anchor:
