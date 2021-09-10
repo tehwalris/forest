@@ -167,14 +167,6 @@ function listNodeFromDelimitedTsNodeArray(
 }
 
 function docFromAst(file: ts.SourceFile): Doc {
-  for (const s of file.statements) {
-    console.log(
-      s.getFullText(file).length,
-      s.getText(file).length,
-      s.getLeadingTriviaWidth(file),
-      s,
-    );
-  }
   return {
     root: {
       kind: NodeKind.List,
