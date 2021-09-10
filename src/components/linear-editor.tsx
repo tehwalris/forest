@@ -1,14 +1,15 @@
 import { css } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
-import ts, { isDoStatement } from "typescript";
+import ts from "typescript";
 import { CompilerHost } from "../logic/providers/typescript/compiler-host";
 import { unreachable } from "../logic/util";
 
 const exampleFile = `
 console.log("walrus")
   .test( 
-    "bla"
+    "bla",
+    1234,
    );
 
 if (Date.now() % 100 == 0) {
@@ -138,7 +139,7 @@ function listNodeFromDelimitedTsNodeArray(
   listKind: ListKind | undefined,
   pos: number,
   end: number,
-): Node {
+): ListNode {
   const validDelimiters = [
     ["(", ")"],
     ["{", "}"],
@@ -263,10 +264,12 @@ function nodeDeleteText(node: Node, pos: number, end: number): Node {
   // --xxxxx--
 
   const leadingDeletions = Math.max(0, Math.min(end - pos, node.pos - pos));
-  const overlappingDeletions = Math.max(
-    0,
-    Math.min(node.pos - pos, end - node.pos),
-  );
+
+  const overlappingDeletions =
+    node.pos < end && node.end > pos
+      ? Math.min(end, node.end) - Math.max(pos, node.pos)
+      : 0;
+
   const updated: Node = {
     ...node,
     pos: node.pos - leadingDeletions,
@@ -276,6 +279,17 @@ function nodeDeleteText(node: Node, pos: number, end: number): Node {
     updated.content = updated.content.map((c) => nodeDeleteText(c, pos, end));
   }
   return updated;
+}
+
+function getPosBeforeClosingDelimiter(
+  text: string,
+  listNode: ListNode,
+): number {
+  const pos = listNode.end - listNode.delimiters[1].length;
+  if (text.slice(pos, listNode.end) !== listNode.delimiters[1]) {
+    throw new Error("closing delimiter not found at expected location");
+  }
+  return pos;
 }
 
 function asUnevenPathRange(even: EvenPathRange): UnevenPathRange {
@@ -727,12 +741,15 @@ class DocManager {
         }
         let newFocusIndex: number | undefined;
         let deletedNodes: Node[] | undefined;
+        let nodeAfterDeleted: Node | undefined;
+        let _oldListNode: ListNode | undefined;
         this.doc = docMapRoot(
           this.doc,
           nodeMapAtPath(forwardFocus.anchor.slice(0, -1), (oldListNode) => {
             if (oldListNode?.kind !== NodeKind.List) {
               throw new Error("oldListNode is not a list");
             }
+            _oldListNode = oldListNode;
             const newContent = [...oldListNode.content];
             const deleteFrom =
               forwardFocus.anchor[forwardFocus.anchor.length - 1];
@@ -743,16 +760,22 @@ class DocManager {
               newFocusIndex = deleteFrom - 1;
             }
             deletedNodes = newContent.splice(deleteFrom, deleteCount);
+            nodeAfterDeleted = newContent[deleteFrom];
             return { ...oldListNode, content: newContent };
           }),
         );
         if (!deletedNodes?.length) {
           throw new Error("deletedNodes contains no nodes");
         }
+        if (!_oldListNode) {
+          throw new Error("_oldListNode was not set by callback");
+        }
         this.doc = docDeleteText(
           this.doc,
           deletedNodes[0].pos,
-          deletedNodes[deletedNodes.length - 1].end,
+          nodeAfterDeleted
+            ? nodeAfterDeleted.pos
+            : getPosBeforeClosingDelimiter(this.doc.text, _oldListNode),
         );
         this.focus = asUnevenPathRange({
           anchor:
