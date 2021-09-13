@@ -3,6 +3,7 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import ts from "typescript";
 import { CompilerHost } from "../logic/providers/typescript/compiler-host";
+import { prettierFormat } from "../logic/providers/typescript/pretty-print";
 import { unreachable } from "../logic/util";
 
 const exampleFile = `
@@ -13,6 +14,7 @@ console.log("walrus")
     1234,
    );
 
+foo();
 if (Date.now() % 100 == 0) {
   console.log("lucky you");
 }
@@ -36,28 +38,29 @@ type Node = TokenNode | ListNode;
 
 interface TokenNode extends TextRange {
   kind: NodeKind.Token;
+  tsNode: ts.Node;
 }
 
 enum ListKind {
-  LooseExpression,
   TightExpression,
+  CallArguments,
+  File,
 }
 
 interface ListNode extends TextRange {
   kind: NodeKind.List;
-  listKind?: ListKind;
+  listKind: ListKind;
   delimiters: [string, string];
   content: Node[];
   equivalentToContent: boolean;
 }
 
+const fakeFileName = "file.ts";
+const languageVersion = ts.ScriptTarget.ES2020;
+
 function astFromTypescriptFileContent(fileContent: string) {
   const compilerHost = new CompilerHost();
-  const file = compilerHost.addFile(
-    "file.ts",
-    fileContent,
-    ts.ScriptTarget.ES5,
-  );
+  const file = compilerHost.addFile(fakeFileName, fileContent, languageVersion);
   return file;
 }
 
@@ -74,7 +77,7 @@ function flattenLeftIfListKind(
 
 function listNodeFromTsCallExpression(
   callExpression: ts.CallExpression,
-  file: ts.SourceFile,
+  file: ts.SourceFile | undefined,
 ): ListNode {
   return {
     kind: NodeKind.List,
@@ -86,7 +89,7 @@ function listNodeFromTsCallExpression(
       listNodeFromDelimitedTsNodeArray(
         callExpression.arguments,
         file,
-        undefined,
+        ListKind.CallArguments,
         callExpression.arguments.pos - 1,
         callExpression.end,
       ),
@@ -99,7 +102,7 @@ function listNodeFromTsCallExpression(
 
 function listNodeFromPropertyAccessExpression(
   propertyAccessExpression: ts.PropertyAccessExpression,
-  file: ts.SourceFile,
+  file: ts.SourceFile | undefined,
 ): ListNode {
   return {
     kind: NodeKind.List,
@@ -116,7 +119,7 @@ function listNodeFromPropertyAccessExpression(
   };
 }
 
-function nodeFromTsNode(node: ts.Node, file: ts.SourceFile): Node {
+function nodeFromTsNode(node: ts.Node, file: ts.SourceFile | undefined): Node {
   if (ts.isExpressionStatement(node)) {
     return nodeFromTsNode(node.expression, file);
   } else if (ts.isCallExpression(node)) {
@@ -128,17 +131,22 @@ function nodeFromTsNode(node: ts.Node, file: ts.SourceFile): Node {
       kind: NodeKind.Token,
       pos: node.pos,
       end: node.end,
+      tsNode: node,
     };
   }
 }
 
 function listNodeFromDelimitedTsNodeArray(
   nodeArray: ts.NodeArray<ts.Node>,
-  file: ts.SourceFile,
-  listKind: ListKind | undefined,
+  file: ts.SourceFile | undefined,
+  listKind: ListKind,
   pos: number,
   end: number,
 ): ListNode {
+  if (!file) {
+    throw new Error("listNodeFromDelimitedTsNodeArray requires file");
+  }
+
   const validDelimiters = [
     ["(", ")"],
     ["{", "}"],
@@ -168,6 +176,7 @@ function docFromAst(file: ts.SourceFile): Doc {
   return {
     root: {
       kind: NodeKind.List,
+      listKind: ListKind.File,
       delimiters: ["", ""],
       content: file.statements.map((s) => nodeFromTsNode(s, file)),
       equivalentToContent: true,
@@ -176,6 +185,82 @@ function docFromAst(file: ts.SourceFile): Doc {
     },
     text: file.text,
   };
+}
+
+function tsNodeFromNode(node: Node): ts.Node {
+  let fixedNode = node;
+  if (
+    node.kind === NodeKind.List &&
+    node.listKind === ListKind.TightExpression
+  ) {
+    if (
+      node.content.length > 0 &&
+      node.content[0].kind === NodeKind.List &&
+      node.content[0].listKind === ListKind.CallArguments
+    ) {
+      fixedNode = {
+        ...node,
+        content: [
+          nodeFromTsNode(ts.createIdentifier("placeholder"), undefined),
+          ...node.content,
+        ],
+      };
+    }
+  }
+  return _tsNodeFromNode(fixedNode);
+}
+
+function _tsNodeFromNode(node: Node): ts.Node {
+  if (node.kind === NodeKind.Token) {
+    return node.tsNode;
+  }
+  switch (node.listKind) {
+    case ListKind.TightExpression: {
+      if (node.content.length === 0) {
+        throw new Error("empty TightExpression");
+      }
+      const lastChild = node.content[node.content.length - 1];
+      if (node.content.length === 1) {
+        return _tsNodeFromNode(lastChild);
+      }
+      const restNode = { ...node, content: node.content.slice(0, -1) };
+      if (
+        lastChild.kind === NodeKind.List &&
+        lastChild.listKind === ListKind.CallArguments
+      ) {
+        return ts.createCall(
+          _tsNodeFromNode(restNode) as ts.Expression,
+          undefined,
+          [], // TODO args
+        );
+      } else if (lastChild.kind === NodeKind.List) {
+        throw new Error("child list has unsupported ListKind");
+      } else {
+        return ts.createPropertyAccess(
+          _tsNodeFromNode(restNode) as ts.Expression,
+          _tsNodeFromNode(lastChild) as ts.Identifier,
+        );
+      }
+    }
+    case ListKind.CallArguments:
+      throw new Error(
+        "CallArguments should be handled by TightExpression parent",
+      );
+    case ListKind.File:
+      return ts.updateSourceFileNode(
+        ts.createSourceFile(fakeFileName, "", languageVersion),
+        node.content.map((c) => tsNodeFromNode(c) as ts.Statement),
+      );
+    default:
+      return unreachable(node.listKind);
+  }
+}
+
+function printTsSourceFile(file: ts.SourceFile): string {
+  const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
+  const unformattedText = printer.printNode(ts.EmitHint.SourceFile, file, file);
+  const formattedText = prettierFormat(unformattedText);
+  return formattedText;
 }
 
 interface Doc {
@@ -187,11 +272,13 @@ const emptyToken: TokenNode = {
   kind: NodeKind.Token,
   pos: -1,
   end: -1,
+  tsNode: ts.createIdentifier(""),
 };
 
 const emptyDoc: Doc = {
   root: {
     kind: NodeKind.List,
+    listKind: ListKind.File,
     delimiters: ["", ""],
     content: [],
     equivalentToContent: true,
@@ -212,88 +299,6 @@ function docMapRoot(doc: Doc, cb: (node: ListNode) => Node): Doc {
     throw new Error("newRoot must be a ListNode");
   }
   return { ...doc, root: newRoot };
-}
-
-function docDeleteText(doc: Doc, pos: number, end: number): Doc {
-  if (!(pos >= 0 && pos <= end && end <= doc.text.length)) {
-    throw new Error("invalid range");
-  }
-  return {
-    root: nodeDeleteText(doc.root, pos, end),
-    text: doc.text.slice(0, pos) + doc.text.slice(end),
-  };
-}
-
-function nodeDeleteText(node: ListNode, pos: number, end: number): ListNode;
-function nodeDeleteText(node: Node, pos: number, end: number): Node;
-function nodeDeleteText(node: Node, pos: number, end: number): Node {
-  // Examples
-  //
-  // xxx---
-  // ---xxx
-  //
-  // xxx----
-  // ----xxx
-  //
-  // xxx--
-  // --xxx
-  //
-  // --xxx
-  // xxx--
-  //
-  // ---xxx
-  // xxx---
-  //
-  // ----xxx
-  // xxx----
-  //
-  // --xxxxx--
-  // ---xxx---
-  //
-  // ---xxx---
-  // --xxxxx--
-
-  const leadingDeletions = Math.max(0, Math.min(end - pos, node.pos - pos));
-
-  const overlappingDeletions =
-    node.pos < end && node.end > pos
-      ? Math.min(end, node.end) - Math.max(pos, node.pos)
-      : 0;
-
-  const updated: Node = {
-    ...node,
-    pos: node.pos - leadingDeletions,
-    end: node.end - leadingDeletions - overlappingDeletions,
-  };
-  if (updated.kind === NodeKind.List) {
-    updated.content = updated.content.map((c) => nodeDeleteText(c, pos, end));
-  }
-  return updated;
-}
-
-function getPosAfterOpeningDelimiter(text: string, listNode: ListNode): number {
-  const pos = listNode.pos + listNode.delimiters[0].length;
-  if (text.slice(listNode.pos, pos) !== listNode.delimiters[0]) {
-    throw new Error("opening delimiter not found at expected location");
-  }
-  return pos;
-}
-
-function getPosOfClosingDelimiter(text: string, listNode: ListNode): number {
-  const pos = listNode.end - listNode.delimiters[1].length;
-  if (text.slice(pos, listNode.end) !== listNode.delimiters[1]) {
-    throw new Error("closing delimiter not found at expected location");
-  }
-  return pos;
-}
-
-// extendToWhitespace shifts pos to the right until it is on a whitespace character.
-// Ensures pos <= limit.
-function extendToWhitespace(text: string, pos: number, limit: number): number {
-  while (pos < limit && !text[pos].match(/\s/)) {
-    pos++;
-  }
-  return pos;
 }
 
 function asUnevenPathRange(even: EvenPathRange): UnevenPathRange {
@@ -742,16 +747,12 @@ class DocManager {
           };
         }
         let newFocusIndex: number | undefined;
-        let deletedNodes: Node[] | undefined;
-        let nodeAfterDeleted: Node | undefined;
-        let _oldListNode: ListNode | undefined;
         this.doc = docMapRoot(
           this.doc,
           nodeMapAtPath(forwardFocus.anchor.slice(0, -1), (oldListNode) => {
             if (oldListNode?.kind !== NodeKind.List) {
               throw new Error("oldListNode is not a list");
             }
-            _oldListNode = oldListNode;
             const newContent = [...oldListNode.content];
             const deleteFrom =
               forwardFocus.anchor[forwardFocus.anchor.length - 1];
@@ -761,44 +762,10 @@ class DocManager {
             } else if (deleteFrom > 0) {
               newFocusIndex = deleteFrom - 1;
             }
-            console.log("DEBUG", oldListNode.content, deleteFrom, deleteCount);
-            deletedNodes = newContent.splice(deleteFrom, deleteCount);
-            nodeAfterDeleted = newContent[deleteFrom];
+            newContent.splice(deleteFrom, deleteCount);
             return { ...oldListNode, content: newContent };
           }),
         );
-        if (!deletedNodes?.length) {
-          throw new Error("deletedNodes contains no nodes");
-        }
-        if (!_oldListNode) {
-          throw new Error("_oldListNode was not set by callback");
-        }
-        if (_oldListNode.content.length === deletedNodes.length) {
-          console.log(
-            "DEBUG A",
-            _oldListNode,
-            getPosAfterOpeningDelimiter(this.doc.text, _oldListNode),
-            getPosOfClosingDelimiter(this.doc.text, _oldListNode),
-          );
-          this.doc = docDeleteText(
-            this.doc,
-            getPosAfterOpeningDelimiter(this.doc.text, _oldListNode),
-            getPosOfClosingDelimiter(this.doc.text, _oldListNode),
-          );
-        } else {
-          console.log("DEBUG B");
-          this.doc = docDeleteText(
-            this.doc,
-            deletedNodes[0].pos,
-            nodeAfterDeleted
-              ? nodeAfterDeleted.pos
-              : extendToWhitespace(
-                  this.doc.text,
-                  deletedNodes[deletedNodes.length - 1].end,
-                  getPosOfClosingDelimiter(this.doc.text, _oldListNode) - 1,
-                ),
-          );
-        }
         this.focus = asUnevenPathRange({
           anchor:
             newFocusIndex === undefined
@@ -1029,6 +996,8 @@ class DocManager {
     }
     this.lastMode = this.mode;
 
+    this.updateDocText();
+
     this.reportUpdate();
   }
 
@@ -1038,6 +1007,12 @@ class DocManager {
       focus: asEvenPathRange(this.focus),
       mode: this.mode,
     });
+  }
+
+  private updateDocText() {
+    const sourceFile = tsNodeFromNode(this.doc.root) as ts.SourceFile;
+    const text = printTsSourceFile(sourceFile);
+    this.doc = docFromAst(astFromTypescriptFileContent(text));
   }
 
   private normalizeFocus() {
