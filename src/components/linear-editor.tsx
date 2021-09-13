@@ -1,11 +1,11 @@
 import { css } from "@emotion/css";
-import { range } from "ramda";
 import * as React from "react";
 import { useEffect, useState } from "react";
 import ts from "typescript";
 import { CompilerHost } from "../logic/providers/typescript/compiler-host";
 import { prettierFormat } from "../logic/providers/typescript/pretty-print";
 import { unreachable } from "../logic/util";
+import { NodeContent } from "./tree/node-content";
 
 const exampleFile = `
 console.log("walrus")
@@ -341,6 +341,19 @@ function _withCopiedRanges(rangeSource: Node, nodeSource: Node): Node {
     };
   }
   throw new Error("unreachable");
+}
+
+function mapNodeTextRanges(
+  node: ListNode,
+  cb: (pos: number) => number,
+): ListNode;
+function mapNodeTextRanges(node: Node, cb: (pos: number) => number): Node;
+function mapNodeTextRanges(node: Node, cb: (pos: number) => number): Node {
+  node = { ...node, pos: cb(node.pos), end: cb(node.end) };
+  if (node.kind === NodeKind.List) {
+    node.content = node.content.map((c) => mapNodeTextRanges(c, cb));
+  }
+  return node;
 }
 
 interface Doc {
@@ -679,6 +692,12 @@ enum Mode {
   InsertAfter,
 }
 
+interface InsertState {
+  beforePos: number;
+  beforePath: Path;
+  text: string;
+}
+
 class DocManager {
   private doc: Doc = initialDoc;
   private focus: UnevenPathRange = { anchor: [], tip: [] };
@@ -687,11 +706,11 @@ class DocManager {
     doc: Doc;
     focus: UnevenPathRange;
     parentFocuses: EvenPathRange[];
-    insertedRange: EvenPathRange;
+    insertState: InsertState;
   }[] = [];
   private mode = Mode.Normal;
   private lastMode = this.mode;
-  private insertedRange: EvenPathRange | undefined;
+  private insertState: InsertState | undefined;
 
   constructor(
     private _onUpdate: (stuff: {
@@ -720,19 +739,10 @@ class DocManager {
         if (focusedNode?.kind !== NodeKind.List || focusedNode.content.length) {
           return;
         }
-        this.doc = docMapRoot(this.doc, (root) =>
-          nodeSetByPath(root, evenFocus.anchor, {
-            ...focusedNode,
-            content: [emptyToken],
-          }),
-        );
-        this.focus = asUnevenPathRange({
-          anchor: [...evenFocus.anchor, 0],
-          offset: 0,
-        });
-        this.insertedRange = {
-          anchor: [...evenFocus.anchor, 0],
-          offset: 0,
+        this.insertState = {
+          beforePos: focusedNode.pos + focusedNode.delimiters[0].length,
+          beforePath: [...evenFocus.anchor, 0],
+          text: "",
         };
         this.mode = Mode.InsertAfter;
       } else if (ev.key === "i") {
@@ -769,10 +779,7 @@ class DocManager {
         };
         evenFocus = flipEvenPathRange(evenFocus);
         this.focus = asUnevenPathRange(evenFocus);
-        this.insertedRange = {
-          anchor: [...evenFocus.anchor.slice(0, -1), newTokenIndex],
-          offset: 0,
-        };
+        // TODO this.insertBefore...
         this.mode = Mode.InsertBefore;
       } else if (ev.key === "a") {
         let evenFocus = asEvenPathRange(this.focus);
@@ -808,10 +815,7 @@ class DocManager {
         };
         evenFocus = flipEvenPathRange(evenFocus);
         this.focus = asUnevenPathRange(evenFocus);
-        this.insertedRange = {
-          anchor: [...evenFocus.anchor.slice(0, -1), newTokenIndex],
-          offset: 0,
-        };
+        // TODO this.insertBefore...
         this.mode = Mode.InsertAfter;
       } else if (ev.key === "d") {
         const evenFocus = asEvenPathRange(this.focus);
@@ -873,6 +877,19 @@ class DocManager {
           offset: 0,
         });
       }
+    } else if (
+      this.mode === Mode.InsertBefore ||
+      this.mode === Mode.InsertAfter
+    ) {
+      if (!this.insertState) {
+        throw new Error("this.insertState was undefined in insert mode");
+      }
+      if (ev.key.length === 1) {
+        this.insertState = {
+          ...this.insertState,
+          text: this.insertState.text + ev.key,
+        };
+      }
     }
 
     this.onUpdate();
@@ -886,12 +903,6 @@ class DocManager {
       (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
       ev.key === "Escape"
     ) {
-      if (!this.insertedRange) {
-        throw new Error(
-          "this.insertedRange is undefined when exiting in insert mode",
-        );
-      }
-
       if (this.history.length > 1) {
         return;
       }
@@ -913,7 +924,7 @@ class DocManager {
       this.doc = old.doc;
       this.focus = old.focus;
       this.parentFocuses = old.parentFocuses;
-      this.insertedRange = old.insertedRange;
+      this.insertState = old.insertState;
       this.onUpdate();
     }
   };
@@ -1061,17 +1072,17 @@ class DocManager {
     }
     this.whileUnevenFocusChanges(() => this.normalizeFocus());
     if (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) {
+      if (!this.insertState) {
+        throw new Error("this.insertState was undefined in insert mode");
+      }
       if (this.lastMode !== this.mode) {
         this.history = [];
-      }
-      if (!this.insertedRange) {
-        throw new Error("this.insertedRange is undefined in insert mode");
       }
       this.history.push({
         doc: this.doc,
         focus: this.focus,
         parentFocuses: [...this.parentFocuses],
-        insertedRange: this.insertedRange,
+        insertState: this.insertState,
       });
     }
     this.lastMode = this.mode;
@@ -1082,8 +1093,23 @@ class DocManager {
   }
 
   private reportUpdate() {
+    let docWithInsert = this.doc;
+    if (this.insertState) {
+      docWithInsert = {
+        root: mapNodeTextRanges(this.doc.root, (pos) =>
+          pos >= this.insertState!.beforePos
+            ? pos + this.insertState!.text.length
+            : pos,
+        ),
+        text:
+          this.doc.text.slice(0, this.insertState.beforePos) +
+          this.insertState.text +
+          this.doc.text.slice(this.insertState.beforePos),
+      };
+    }
+
     this._onUpdate({
-      doc: this.doc,
+      doc: docWithInsert,
       focus: asEvenPathRange(this.focus),
       mode: this.mode,
     });
