@@ -1,4 +1,5 @@
 import { css } from "@emotion/css";
+import { range } from "ramda";
 import * as React from "react";
 import { useEffect, useState } from "react";
 import ts from "typescript";
@@ -39,6 +40,7 @@ type Node = TokenNode | ListNode;
 interface TokenNode extends TextRange {
   kind: NodeKind.Token;
   tsNode: ts.Node;
+  isPlaceholder?: boolean;
 }
 
 enum ListKind {
@@ -53,6 +55,7 @@ interface ListNode extends TextRange {
   delimiters: [string, string];
   content: Node[];
   equivalentToContent: boolean;
+  isPlaceholder?: boolean;
 }
 
 const fakeFileName = "file.ts";
@@ -201,12 +204,31 @@ function makeNodeValidTs(_node: Node): Node {
     node.content[0].kind === NodeKind.List &&
     node.content[0].listKind === ListKind.CallArguments
   ) {
+    const placeholder = nodeFromTsNode(
+      ts.createIdentifier("placeholder"),
+      undefined,
+    );
+    placeholder.isPlaceholder = true;
     node = {
       ...node,
-      content: [
-        nodeFromTsNode(ts.createIdentifier("placeholder"), undefined),
-        ...node.content,
-      ],
+      content: [placeholder, ...node.content],
+    };
+  }
+  return node;
+}
+
+function withoutPlaceholders(node: ListNode): ListNode;
+function withoutPlaceholders(node: Node): Node;
+function withoutPlaceholders(node: Node): Node {
+  if (node.isPlaceholder) {
+    throw new Error("placeholder outside of list");
+  }
+  if (node.kind === NodeKind.List) {
+    return {
+      ...node,
+      content: node.content
+        .filter((c) => !c.isPlaceholder)
+        .map((c) => withoutPlaceholders(c)),
     };
   }
   return node;
@@ -233,7 +255,7 @@ function tsNodeFromNode(node: Node): ts.Node {
         return ts.createCall(
           tsNodeFromNode(restNode) as ts.Expression,
           undefined,
-          [], // TODO args
+          lastChild.content.map((c) => tsNodeFromNode(c) as ts.Expression),
         );
       } else if (lastChild.kind === NodeKind.List) {
         throw new Error("child list has unsupported ListKind");
@@ -263,6 +285,56 @@ function printTsSourceFile(file: ts.SourceFile): string {
   const unformattedText = printer.printNode(ts.EmitHint.SourceFile, file, file);
   const formattedText = prettierFormat(unformattedText);
   return formattedText;
+}
+
+function nodesAreEqualExceptRanges(a: Node, b: Node): boolean {
+  if (a.kind === NodeKind.Token && b.kind === NodeKind.Token) {
+    // TODO check that the tsNodes have equal content
+    return a.tsNode.kind === b.tsNode.kind;
+  }
+  if (a.kind === NodeKind.List && b.kind === NodeKind.List) {
+    return (
+      a.listKind === b.listKind &&
+      a.delimiters[0] === b.delimiters[0] &&
+      a.delimiters[1] === b.delimiters[1] &&
+      a.content.length === b.content.length &&
+      a.content.every((ca, i) => nodesAreEqualExceptRanges(ca, b.content[i])) &&
+      a.equivalentToContent === b.equivalentToContent
+    );
+  }
+  return false;
+}
+
+function withCopiedRanges(
+  rangeSource: ListNode,
+  nodeSource: ListNode,
+): ListNode;
+function withCopiedRanges(rangeSource: Node, nodeSource: Node): Node;
+function withCopiedRanges(rangeSource: Node, nodeSource: Node): Node {
+  if (!nodesAreEqualExceptRanges(rangeSource, nodeSource)) {
+    throw new Error("nodes do not satisfy nodesAreEqualExceptRanges");
+  }
+  return _withCopiedRanges(rangeSource, nodeSource);
+}
+
+function _withCopiedRanges(rangeSource: Node, nodeSource: Node): Node {
+  if (
+    rangeSource.kind === NodeKind.Token &&
+    nodeSource.kind === NodeKind.Token
+  ) {
+    return { ...nodeSource, pos: rangeSource.pos, end: rangeSource.end };
+  }
+  if (rangeSource.kind === NodeKind.List && nodeSource.kind === NodeKind.List) {
+    return {
+      ...nodeSource,
+      pos: rangeSource.pos,
+      end: rangeSource.end,
+      content: rangeSource.content.map((rangeSourceChild, i) =>
+        _withCopiedRanges(rangeSourceChild, nodeSource.content[i]),
+      ),
+    };
+  }
+  throw new Error("unreachable");
 }
 
 interface Doc {
@@ -1015,7 +1087,15 @@ class DocManager {
     const validRoot = makeNodeValidTs(this.doc.root);
     const sourceFile = tsNodeFromNode(validRoot) as ts.SourceFile;
     const text = printTsSourceFile(sourceFile);
-    this.doc = docFromAst(astFromTypescriptFileContent(text));
+    const doc = docFromAst(astFromTypescriptFileContent(text));
+    if (!nodesAreEqualExceptRanges(validRoot, doc.root)) {
+      console.warn("update would change tree", validRoot, doc.root);
+      throw new Error("update would change tree");
+    }
+    this.doc = {
+      ...doc,
+      root: withoutPlaceholders(withCopiedRanges(doc.root, validRoot)),
+    };
   }
 
   private normalizeFocus() {
