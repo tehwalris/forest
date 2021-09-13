@@ -213,6 +213,12 @@ function makeNodeValidTs(_node: Node): Node {
       ...node,
       content: [placeholder, ...node.content],
     };
+  } else if (
+    node.kind === NodeKind.List &&
+    node.listKind === ListKind.TightExpression &&
+    node.content.length === 1
+  ) {
+    node = node.content[0];
   }
   return node;
 }
@@ -1095,6 +1101,16 @@ class DocManager {
     this.doc = {
       ...doc,
       root: withoutPlaceholders(withCopiedRanges(doc.root, validRoot)),
+    };
+    // HACK makeNodeValidTs makes replaces some single item lists by their only item.
+    // This is the easiest way to make the focus valid again, even though it's not very clean.
+    this.fixFocus();
+  }
+
+  private fixFocus() {
+    this.focus = {
+      anchor: nodeTryGetDeepestByPath(this.doc.root, this.focus.anchor).path,
+      tip: nodeTryGetDeepestByPath(this.doc.root, this.focus.tip).path,
     };
   }
 
