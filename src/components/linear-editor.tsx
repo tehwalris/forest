@@ -187,30 +187,32 @@ function docFromAst(file: ts.SourceFile): Doc {
   };
 }
 
-function tsNodeFromNode(node: Node): ts.Node {
-  let fixedNode = node;
+function makeNodeValidTs(node: ListNode): ListNode;
+function makeNodeValidTs(node: Node): Node;
+function makeNodeValidTs(_node: Node): Node {
+  let node = _node;
+  if (node.kind === NodeKind.List) {
+    node = { ...node, content: node.content.map((c) => makeNodeValidTs(c)) };
+  }
   if (
     node.kind === NodeKind.List &&
-    node.listKind === ListKind.TightExpression
+    node.listKind === ListKind.TightExpression &&
+    node.content.length > 0 &&
+    node.content[0].kind === NodeKind.List &&
+    node.content[0].listKind === ListKind.CallArguments
   ) {
-    if (
-      node.content.length > 0 &&
-      node.content[0].kind === NodeKind.List &&
-      node.content[0].listKind === ListKind.CallArguments
-    ) {
-      fixedNode = {
-        ...node,
-        content: [
-          nodeFromTsNode(ts.createIdentifier("placeholder"), undefined),
-          ...node.content,
-        ],
-      };
-    }
+    node = {
+      ...node,
+      content: [
+        nodeFromTsNode(ts.createIdentifier("placeholder"), undefined),
+        ...node.content,
+      ],
+    };
   }
-  return _tsNodeFromNode(fixedNode);
+  return node;
 }
 
-function _tsNodeFromNode(node: Node): ts.Node {
+function tsNodeFromNode(node: Node): ts.Node {
   if (node.kind === NodeKind.Token) {
     return node.tsNode;
   }
@@ -221,7 +223,7 @@ function _tsNodeFromNode(node: Node): ts.Node {
       }
       const lastChild = node.content[node.content.length - 1];
       if (node.content.length === 1) {
-        return _tsNodeFromNode(lastChild);
+        return tsNodeFromNode(lastChild);
       }
       const restNode = { ...node, content: node.content.slice(0, -1) };
       if (
@@ -229,7 +231,7 @@ function _tsNodeFromNode(node: Node): ts.Node {
         lastChild.listKind === ListKind.CallArguments
       ) {
         return ts.createCall(
-          _tsNodeFromNode(restNode) as ts.Expression,
+          tsNodeFromNode(restNode) as ts.Expression,
           undefined,
           [], // TODO args
         );
@@ -237,8 +239,8 @@ function _tsNodeFromNode(node: Node): ts.Node {
         throw new Error("child list has unsupported ListKind");
       } else {
         return ts.createPropertyAccess(
-          _tsNodeFromNode(restNode) as ts.Expression,
-          _tsNodeFromNode(lastChild) as ts.Identifier,
+          tsNodeFromNode(restNode) as ts.Expression,
+          tsNodeFromNode(lastChild) as ts.Identifier,
         );
       }
     }
@@ -1010,7 +1012,8 @@ class DocManager {
   }
 
   private updateDocText() {
-    const sourceFile = tsNodeFromNode(this.doc.root) as ts.SourceFile;
+    const validRoot = makeNodeValidTs(this.doc.root);
+    const sourceFile = tsNodeFromNode(validRoot) as ts.SourceFile;
     const text = printTsSourceFile(sourceFile);
     this.doc = docFromAst(astFromTypescriptFileContent(text));
   }
