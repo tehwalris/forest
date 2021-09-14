@@ -1,11 +1,10 @@
 import { css } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
-import ts, { isConstructorDeclaration } from "typescript";
+import ts from "typescript";
 import { CompilerHost } from "../logic/providers/typescript/compiler-host";
 import { prettierFormat } from "../logic/providers/typescript/pretty-print";
 import { unreachable } from "../logic/util";
-import { NodeContent } from "./tree/node-content";
 
 const exampleFile = `
 console.log("walrus")
@@ -360,13 +359,6 @@ interface Doc {
   root: ListNode;
   text: string;
 }
-
-const emptyToken: TokenNode = {
-  kind: NodeKind.Token,
-  pos: -1,
-  end: -1,
-  tsNode: ts.createIdentifier(""),
-};
 
 const emptyDoc: Doc = {
   root: {
