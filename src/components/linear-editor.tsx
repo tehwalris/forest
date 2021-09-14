@@ -312,32 +312,47 @@ function nodesAreEqualExceptRangesAndPlaceholders(a: Node, b: Node): boolean {
   return false;
 }
 
-function withCopiedRanges(
-  rangeSource: ListNode,
+function withCopiedPlaceholders(
+  placeholderSource: ListNode,
   nodeSource: ListNode,
 ): ListNode;
-function withCopiedRanges(rangeSource: Node, nodeSource: Node): Node;
-function withCopiedRanges(rangeSource: Node, nodeSource: Node): Node {
-  if (!nodesAreEqualExceptRangesAndPlaceholders(rangeSource, nodeSource)) {
-    throw new Error("nodes do not satisfy nodesAreEqualExceptRangesAndPlaceholders");
+function withCopiedPlaceholders(
+  placeholderSource: Node,
+  nodeSource: Node,
+): Node;
+function withCopiedPlaceholders(
+  placeholderSource: Node,
+  nodeSource: Node,
+): Node {
+  if (
+    !nodesAreEqualExceptRangesAndPlaceholders(placeholderSource, nodeSource)
+  ) {
+    throw new Error(
+      "nodes do not satisfy nodesAreEqualExceptRangesAndPlaceholders",
+    );
   }
-  return _withCopiedRanges(rangeSource, nodeSource);
+  return _withCopiedPlaceholders(placeholderSource, nodeSource);
 }
 
-function _withCopiedRanges(rangeSource: Node, nodeSource: Node): Node {
+function _withCopiedPlaceholders(
+  placeholderSource: Node,
+  nodeSource: Node,
+): Node {
   if (
-    rangeSource.kind === NodeKind.Token &&
+    placeholderSource.kind === NodeKind.Token &&
     nodeSource.kind === NodeKind.Token
   ) {
-    return { ...nodeSource, pos: rangeSource.pos, end: rangeSource.end };
+    return { ...nodeSource, isPlaceholder: placeholderSource.isPlaceholder };
   }
-  if (rangeSource.kind === NodeKind.List && nodeSource.kind === NodeKind.List) {
+  if (
+    placeholderSource.kind === NodeKind.List &&
+    nodeSource.kind === NodeKind.List
+  ) {
     return {
       ...nodeSource,
-      pos: rangeSource.pos,
-      end: rangeSource.end,
-      content: rangeSource.content.map((rangeSourceChild, i) =>
-        _withCopiedRanges(rangeSourceChild, nodeSource.content[i]),
+      isPlaceholder: placeholderSource.isPlaceholder,
+      content: placeholderSource.content.map((placeholderSourceChild, i) =>
+        _withCopiedPlaceholders(placeholderSourceChild, nodeSource.content[i]),
       ),
     };
   }
@@ -1113,7 +1128,7 @@ class DocManager {
     }
     this.doc = {
       ...doc,
-      root: withoutPlaceholders(withCopiedRanges(doc.root, validRoot)),
+      root: withoutPlaceholders(withCopiedPlaceholders(validRoot, doc.root)),
     };
     // HACK makeNodeValidTs makes replaces some single item lists by their only item.
     // This is the easiest way to make the focus valid again, even though it's not very clean.
