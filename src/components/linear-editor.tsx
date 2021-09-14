@@ -890,7 +890,11 @@ class DocManager {
         try {
           this.doc = docFromAst(
             astFromTypescriptFileContent(
-              getDocWithInsert(this.doc, this.insertState).text,
+              printTsSourceFile(
+                astFromTypescriptFileContent(
+                  getDocWithInsert(this.doc, this.insertState).text,
+                ),
+              ),
             ),
           );
         } catch (err) {
