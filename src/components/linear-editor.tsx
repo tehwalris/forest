@@ -1,7 +1,7 @@
 import { css } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
-import ts from "typescript";
+import ts, { isConstructorDeclaration } from "typescript";
 import { CompilerHost } from "../logic/providers/typescript/compiler-host";
 import { prettierFormat } from "../logic/providers/typescript/pretty-print";
 import { unreachable } from "../logic/util";
@@ -392,6 +392,18 @@ function docMapRoot(doc: Doc, cb: (node: ListNode) => Node): Doc {
     throw new Error("newRoot must be a ListNode");
   }
   return { ...doc, root: newRoot };
+}
+
+function getDocWithInsert(doc: Doc, insertState: InsertState): Doc {
+  return {
+    root: mapNodeTextRanges(doc.root, (pos) =>
+      pos >= insertState.beforePos ? pos + insertState.text.length : pos,
+    ),
+    text:
+      doc.text.slice(0, insertState.beforePos) +
+      insertState.text +
+      doc.text.slice(insertState.beforePos),
+  };
 }
 
 function asUnevenPathRange(even: EvenPathRange): UnevenPathRange {
@@ -903,13 +915,27 @@ class DocManager {
       (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
       ev.key === "Escape"
     ) {
+      if (!this.insertState) {
+        throw new Error("this.insertState was undefined in insert mode");
+      }
+
       if (this.history.length > 1) {
-        return;
+        try {
+          this.doc = docFromAst(
+            astFromTypescriptFileContent(
+              getDocWithInsert(this.doc, this.insertState).text,
+            ),
+          );
+        } catch (err) {
+          console.warn("insertion would make doc invalid");
+          return;
+        }
       }
 
       this.mode = Mode.Normal;
       this.history = [];
       this.parentFocuses = [];
+      this.insertState = undefined;
       this.removeInvisibleNodes();
       this.onUpdate();
     } else if (
@@ -1093,21 +1119,9 @@ class DocManager {
   }
 
   private reportUpdate() {
-    let docWithInsert = this.doc;
-    if (this.insertState) {
-      docWithInsert = {
-        root: mapNodeTextRanges(this.doc.root, (pos) =>
-          pos >= this.insertState!.beforePos
-            ? pos + this.insertState!.text.length
-            : pos,
-        ),
-        text:
-          this.doc.text.slice(0, this.insertState.beforePos) +
-          this.insertState.text +
-          this.doc.text.slice(this.insertState.beforePos),
-      };
-    }
-
+    const docWithInsert = this.insertState
+      ? getDocWithInsert(this.doc, this.insertState)
+      : this.doc;
     this._onUpdate({
       doc: docWithInsert,
       focus: asEvenPathRange(this.focus),
