@@ -292,7 +292,7 @@ function printTsSourceFile(file: ts.SourceFile): string {
   return formattedText;
 }
 
-function nodesAreEqualExceptRanges(a: Node, b: Node): boolean {
+function nodesAreEqualExceptRangesAndPlaceholders(a: Node, b: Node): boolean {
   if (a.kind === NodeKind.Token && b.kind === NodeKind.Token) {
     // TODO check that the tsNodes have equal content
     return a.tsNode.kind === b.tsNode.kind;
@@ -303,7 +303,9 @@ function nodesAreEqualExceptRanges(a: Node, b: Node): boolean {
       a.delimiters[0] === b.delimiters[0] &&
       a.delimiters[1] === b.delimiters[1] &&
       a.content.length === b.content.length &&
-      a.content.every((ca, i) => nodesAreEqualExceptRanges(ca, b.content[i])) &&
+      a.content.every((ca, i) =>
+        nodesAreEqualExceptRangesAndPlaceholders(ca, b.content[i]),
+      ) &&
       a.equivalentToContent === b.equivalentToContent
     );
   }
@@ -316,8 +318,8 @@ function withCopiedRanges(
 ): ListNode;
 function withCopiedRanges(rangeSource: Node, nodeSource: Node): Node;
 function withCopiedRanges(rangeSource: Node, nodeSource: Node): Node {
-  if (!nodesAreEqualExceptRanges(rangeSource, nodeSource)) {
-    throw new Error("nodes do not satisfy nodesAreEqualExceptRanges");
+  if (!nodesAreEqualExceptRangesAndPlaceholders(rangeSource, nodeSource)) {
+    throw new Error("nodes do not satisfy nodesAreEqualExceptRangesAndPlaceholders");
   }
   return _withCopiedRanges(rangeSource, nodeSource);
 }
@@ -1105,7 +1107,7 @@ class DocManager {
     const sourceFile = tsNodeFromNode(validRoot) as ts.SourceFile;
     const text = printTsSourceFile(sourceFile);
     const doc = docFromAst(astFromTypescriptFileContent(text));
-    if (!nodesAreEqualExceptRanges(validRoot, doc.root)) {
+    if (!nodesAreEqualExceptRangesAndPlaceholders(validRoot, doc.root)) {
       console.warn("update would change tree", validRoot, doc.root);
       throw new Error("update would change tree");
     }
