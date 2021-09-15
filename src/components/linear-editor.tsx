@@ -359,6 +359,225 @@ function _withCopiedPlaceholders(
   throw new Error("unreachable");
 }
 
+function flattenNode(node: Node): Node[] {
+  if (node.kind === NodeKind.Token || !node.equivalentToContent) {
+    return [node];
+  }
+  return node.content.flatMap(flattenNode);
+}
+
+function flattenNodeAroundSplit(
+  node: Node,
+  splitBeforePath: Path,
+): { before: Node[]; after: Node[] } {
+  if (!splitBeforePath.length || node.kind === NodeKind.Token) {
+    return { before: [], after: flattenNode(node) };
+  }
+  const before = node.content
+    .slice(0, splitBeforePath[0])
+    .flatMap((c) => flattenNode(c));
+  const nodeAt = node.content[splitBeforePath[0]] as Node | undefined;
+  const at = nodeAt && flattenNodeAroundSplit(nodeAt, splitBeforePath.slice(1));
+  const after = node.content
+    .slice(splitBeforePath[0] + 1)
+    .flatMap((c) => flattenNode(c));
+  return {
+    before: [...before, ...(at?.before || [])],
+    after: [...(at?.after || []), ...after],
+  };
+}
+
+function getPathToDeepestDelimitedListOrRoot(root: ListNode, path: Path): Path {
+  return _getPathToDeepestDelimitedList(root, path) || [];
+}
+
+function _getPathToDeepestDelimitedList(
+  node: ListNode,
+  path: Path,
+): Path | undefined {
+  let deeperPathSuffix: Path | undefined;
+  if (path.length) {
+    const child = node.content[path[0]];
+    if (child?.kind === NodeKind.List) {
+      deeperPathSuffix = _getPathToDeepestDelimitedList(child, path.slice(1));
+    }
+  }
+  const pathIfDelimited = node.equivalentToContent ? undefined : [];
+  return deeperPathSuffix ? [path[0], ...deeperPathSuffix] : pathIfDelimited;
+}
+
+function splitAtDeepestDelimiter(
+  root: ListNode,
+  targetPath: Path,
+): {
+  withEmptyList: ListNode;
+  list: ListNode;
+  pathToList: Path;
+  pathFromList: Path;
+} {
+  const delimitedPath = getPathToDeepestDelimitedListOrRoot(root, targetPath);
+  return {
+    withEmptyList: nodeMapAtPath(delimitedPath, (node) => {
+      if (node.kind !== NodeKind.List) {
+        throw new Error("node is not a list");
+      }
+      return { ...node, content: [] };
+    })(root) as ListNode,
+    list: nodeGetByPath(root, delimitedPath) as ListNode,
+    pathToList: delimitedPath,
+    pathFromList: targetPath.slice(delimitedPath.length),
+  };
+}
+
+function isInsertionValidNew(
+  nodeOld: ListNode,
+  nodeNew: ListNode,
+  insertBeforePath: Path,
+): boolean {
+  if (!insertBeforePath.length) {
+    throw new Error("insertBeforePath must not be empty");
+  }
+
+  const delimiterSplitOld = splitAtDeepestDelimiter(nodeOld, insertBeforePath);
+  const delimiterSplitNew = splitAtDeepestDelimiter(nodeNew, insertBeforePath);
+  if (
+    !nodesAreEqualExceptRangesAndPlaceholders(
+      delimiterSplitOld.withEmptyList,
+      delimiterSplitNew.withEmptyList,
+    )
+  ) {
+    console.log(
+      "DEBUG reason: changes outside of nearest containing delimited list",
+    );
+    return false;
+  }
+
+  if (
+    !pathsAreEqual(delimiterSplitOld.pathToList, delimiterSplitNew.pathToList)
+  ) {
+    console.log(
+      "DEBUG reason: path to nearest containing delimited list has changed",
+    );
+    return false;
+  }
+
+  const flatOld = flattenNodeAroundSplit(
+    delimiterSplitOld.list,
+    delimiterSplitOld.pathFromList,
+  );
+  const flatNew = flattenNodeAroundSplit(
+    delimiterSplitNew.list,
+    delimiterSplitNew.pathFromList,
+  );
+  if (
+    flatOld.before.length > flatNew.before.length ||
+    flatOld.after.length > flatNew.after.length
+  ) {
+    console.log("DEBUG reason: new flat lists are shorter", flatOld, flatNew);
+    return false;
+  }
+
+  const allNodesAreEqual = (nodesA: Node[], nodesB: Node[]): boolean =>
+    nodesA.every((a, i) =>
+      nodesAreEqualExceptRangesAndPlaceholders(a, nodesB[i]),
+    );
+  if (
+    !allNodesAreEqual(
+      flatOld.before,
+      flatNew.before.slice(0, flatOld.before.length),
+    )
+  ) {
+    console.log("DEBUG reason: existing nodes before cursor changed");
+    return false;
+  }
+  if (
+    !allNodesAreEqual(
+      flatOld.after,
+      sliceTail(flatNew.after, flatOld.after.length),
+    )
+  ) {
+    console.log("DEBUG reason: existing nodes after cursor changed");
+    return false;
+  }
+
+  return true;
+}
+
+function isInsertionValid(
+  nodeOld: ListNode,
+  nodeNew: ListNode,
+  insertBeforePath: Path,
+): boolean {
+  if (!insertBeforePath.length) {
+    throw new Error("insertBeforePath must not be empty");
+  }
+  if (insertBeforePath.length === 1) {
+    throw new Error("TODO A");
+  }
+  if (nodeOld.content.length !== nodeNew.content.length) {
+    console.log("DEBUG reason: different content lengths");
+    return false;
+  }
+
+  const nextOnPathOld = nodeOld.content[insertBeforePath[0]];
+  const nextOnPathNew = nodeNew.content[insertBeforePath[0]];
+  if (
+    nextOnPathOld.kind === NodeKind.Token ||
+    nextOnPathOld.equivalentToContent
+  ) {
+    console.log(
+      "DEBUG flattenNodeAroundSplit nextOnPathOld",
+      nextOnPathOld,
+      insertBeforePath,
+      flattenNodeAroundSplit(nextOnPathOld, insertBeforePath.slice(1)),
+    );
+    console.log(
+      "DEBUG flattenNodeAroundSplit nextOnPathNew",
+      nextOnPathNew,
+      insertBeforePath,
+      flattenNodeAroundSplit(nextOnPathNew, insertBeforePath.slice(1)),
+    );
+    throw new Error("TODO C");
+  }
+  if (
+    nextOnPathNew.kind !== NodeKind.List ||
+    !nextOnPathNew.equivalentToContent
+  ) {
+    console.log(
+      "DEBUG reason: nextOnPathOld and nextOnPathNew have different types",
+    );
+    return false;
+  }
+
+  const sliceBeforeOld = nodeOld.content.slice(0, insertBeforePath[0]);
+  const sliceBeforeNew = nodeNew.content.slice(0, insertBeforePath[0]);
+  if (
+    !sliceBeforeOld.every((c, i) =>
+      nodesAreEqualExceptRangesAndPlaceholders(c, sliceBeforeNew[i]),
+    )
+  ) {
+    console.log("DEBUG reason: different before");
+    return false;
+  }
+
+  const sliceAfterOld = nodeOld.content.slice(insertBeforePath[0] + 1);
+  const sliceAfterNew = nodeNew.content.slice(insertBeforePath[0] + 1);
+  if (
+    !sliceAfterOld.every((c, i) =>
+      nodesAreEqualExceptRangesAndPlaceholders(c, sliceAfterNew[i]),
+    )
+  ) {
+    console.log("DEBUG reason: different after");
+    return false;
+  }
+
+  return isInsertionValid(
+    nextOnPathOld,
+    nextOnPathNew,
+    insertBeforePath.slice(1),
+  );
+}
+
 function mapNodeTextRanges(
   node: ListNode,
   cb: (pos: number) => number,
@@ -444,6 +663,16 @@ function asEvenPathRange(uneven: UnevenPathRange): EvenPathRange {
         offset: firstUnequal.tip - firstUnequal.anchor,
       }
     : { anchor: commonPrefix, offset: 0 };
+}
+
+function sliceTail<T>(a: T[], n: number): T[] {
+  if (n < 0) {
+    throw new Error("negative count");
+  }
+  if (n === 0) {
+    return [];
+  }
+  return a.slice(-n);
 }
 
 function pathsAreEqual(a: Path, b: Path): boolean {
@@ -905,7 +1134,7 @@ class DocManager {
 
       if (this.history.length > 1) {
         try {
-          this.doc = docFromAst(
+          const doc = docFromAst(
             astFromTypescriptFileContent(
               printTsSourceFile(
                 astFromTypescriptFileContent(
@@ -914,8 +1143,22 @@ class DocManager {
               ),
             ),
           );
+          try {
+            if (
+              !isInsertionValidNew(
+                this.doc.root,
+                doc.root,
+                this.insertState.beforePath,
+              )
+            ) {
+              console.warn("isInsertionValid returned false");
+            }
+          } catch (err) {
+            console.warn("isInsertionValid threw", err);
+          }
+          this.doc = doc;
         } catch (err) {
-          console.warn("insertion would make doc invalid");
+          console.warn("insertion would make doc invalid", err);
           return;
         }
       }
