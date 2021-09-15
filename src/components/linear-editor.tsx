@@ -359,28 +359,53 @@ function _withCopiedPlaceholders(
   throw new Error("unreachable");
 }
 
-function flattenNode(node: Node): Node[] {
+interface NodeWithPath {
+  node: Node;
+  path: Path;
+}
+
+function prefixNodesWithPaths(
+  nodes: NodeWithPath[],
+  prefix: number,
+): NodeWithPath[] {
+  return nodes.map((r) => ({ ...r, path: [prefix, ...r.path] }));
+}
+
+function flattenNode(node: Node): NodeWithPath[] {
   if (node.kind === NodeKind.Token || !node.equivalentToContent) {
-    return [node];
+    return [{ node, path: [] }];
   }
-  return node.content.flatMap(flattenNode);
+  return node.content.flatMap((c, i) =>
+    prefixNodesWithPaths(flattenNode(c), i),
+  );
 }
 
 function flattenNodeAroundSplit(
   node: Node,
   splitBeforePath: Path,
-): { before: Node[]; after: Node[] } {
+): { before: NodeWithPath[]; after: NodeWithPath[] } {
   if (!splitBeforePath.length || node.kind === NodeKind.Token) {
     return { before: [], after: flattenNode(node) };
   }
   const before = node.content
     .slice(0, splitBeforePath[0])
-    .flatMap((c) => flattenNode(c));
+    .flatMap((c, i) => prefixNodesWithPaths(flattenNode(c), i));
   const nodeAt = node.content[splitBeforePath[0]] as Node | undefined;
-  const at = nodeAt && flattenNodeAroundSplit(nodeAt, splitBeforePath.slice(1));
+  const prefixRecursion = ({
+    before,
+    after,
+  }: ReturnType<typeof flattenNodeAroundSplit>) => ({
+    before: prefixNodesWithPaths(before, splitBeforePath[0]),
+    after: prefixNodesWithPaths(after, splitBeforePath[0]),
+  });
+  const at =
+    nodeAt &&
+    prefixRecursion(flattenNodeAroundSplit(nodeAt, splitBeforePath.slice(1)));
   const after = node.content
     .slice(splitBeforePath[0] + 1)
-    .flatMap((c) => flattenNode(c));
+    .flatMap((c, i) =>
+      prefixNodesWithPaths(flattenNode(c), splitBeforePath[0] + 1 + i),
+    );
   return {
     before: [...before, ...(at?.before || [])],
     after: [...(at?.after || []), ...after],
@@ -433,11 +458,20 @@ function splitAtDeepestDelimiter(
   };
 }
 
-function isInsertionValid(
+type CheckedInsertion =
+  | {
+      valid: false;
+    }
+  | {
+      valid: true;
+      mapPath: (path: Path) => Path;
+    };
+
+function checkInsertion(
   nodeOld: ListNode,
   nodeNew: ListNode,
   insertBeforePath: Path,
-): boolean {
+): CheckedInsertion {
   const printReason = (reason: string) => {
     console.warn(`Insertion is not valid. Reason: ${reason}`);
   };
@@ -455,14 +489,14 @@ function isInsertionValid(
     )
   ) {
     printReason("changes outside of nearest containing delimited list");
-    return false;
+    return { valid: false };
   }
 
   if (
     !pathsAreEqual(delimiterSplitOld.pathToList, delimiterSplitNew.pathToList)
   ) {
     printReason("path to nearest containing delimited list has changed");
-    return false;
+    return { valid: false };
   }
 
   const flatOld = flattenNodeAroundSplit(
@@ -478,33 +512,84 @@ function isInsertionValid(
     flatOld.after.length > flatNew.after.length
   ) {
     printReason("new flat lists are shorter");
-    return false;
+    return { valid: false };
   }
 
-  const allNodesAreEqual = (nodesA: Node[], nodesB: Node[]): boolean =>
+  const allNodesAreEqualWithoutPaths = (
+    nodesA: NodeWithPath[],
+    nodesB: NodeWithPath[],
+  ): boolean =>
     nodesA.every((a, i) =>
-      nodesAreEqualExceptRangesAndPlaceholders(a, nodesB[i]),
+      nodesAreEqualExceptRangesAndPlaceholders(a.node, nodesB[i].node),
     );
-  if (
-    !allNodesAreEqual(
-      flatOld.before,
-      flatNew.before.slice(0, flatOld.before.length),
-    )
-  ) {
+  const flatNewBeforeCommon = flatNew.before.slice(0, flatOld.before.length);
+  if (!allNodesAreEqualWithoutPaths(flatOld.before, flatNewBeforeCommon)) {
     printReason("existing nodes before cursor changed");
-    return false;
+    return { valid: false };
   }
-  if (
-    !allNodesAreEqual(
-      flatOld.after,
-      sliceTail(flatNew.after, flatOld.after.length),
-    )
-  ) {
+  const flatNewAfterCommon = sliceTail(flatNew.after, flatOld.after.length);
+  if (!allNodesAreEqualWithoutPaths(flatOld.after, flatNewAfterCommon)) {
     printReason("existing nodes after cursor changed");
-    return false;
+    return { valid: false };
   }
 
-  return true;
+  interface PathMapping {
+    old: Path;
+    new: Path;
+  }
+
+  const pathMappings: PathMapping[] = [];
+  for (const [i, oldEntry] of flatOld.before.entries()) {
+    pathMappings.push({ old: oldEntry.path, new: flatNewBeforeCommon[i].path });
+  }
+  for (const [i, oldEntry] of flatOld.after.entries()) {
+    pathMappings.push({ old: oldEntry.path, new: flatNewAfterCommon[i].path });
+  }
+
+  const mapPath = (externalPath: Path): Path => {
+    if (
+      !pathsAreEqual(
+        externalPath.slice(0, delimiterSplitOld.pathToList.length),
+        delimiterSplitOld.pathToList,
+      )
+    ) {
+      return externalPath;
+    }
+    const path = externalPath.slice(delimiterSplitOld.pathToList.length);
+
+    let bestMapping: PathMapping | undefined;
+    for (const m of pathMappings) {
+      if (
+        !bestMapping ||
+        getCommonPathPrefix(m.old, path).length >
+          getCommonPathPrefix(bestMapping.old, path).length
+      ) {
+        bestMapping = m;
+      }
+    }
+    if (!bestMapping) {
+      return externalPath;
+    }
+    const common = getCommonPathPrefix(bestMapping.old, path);
+    return [
+      ...delimiterSplitOld.pathToList,
+      ...bestMapping.new.slice(0, common.length),
+      ...path.slice(common.length),
+    ];
+  };
+
+  const insertedNodes = [
+    ...flatNew.before.slice(flatOld.before.length),
+    ...flatNew.after.slice(0, flatNew.after.length - flatOld.after.length),
+  ];
+  console.log(
+    "DEBUG insertedNodes",
+    insertedNodes,
+    delimiterSplitOld.pathFromList,
+    pathMappings,
+  );
+
+  return { valid: true, mapPath };
 }
 
 function mapNodeTextRanges(
@@ -606,6 +691,17 @@ function sliceTail<T>(a: T[], n: number): T[] {
 
 function pathsAreEqual(a: Path, b: Path): boolean {
   return a === b || (a.length === b.length && a.every((v, i) => v === b[i]));
+}
+
+function getCommonPathPrefix(a: Path, b: Path): Path {
+  const common: Path = [];
+  for (let i = 0; i < Math.min(a.length, b.length); i++) {
+    if (a[i] !== b[i]) {
+      break;
+    }
+    common.push(a[i]);
+  }
+  return common;
 }
 
 function evenPathRangesAreEqual(a: EvenPathRange, b: EvenPathRange): boolean {
@@ -1073,16 +1169,21 @@ class DocManager {
               ),
             ),
           );
-          if (
-            !isInsertionValid(
-              this.doc.root,
-              doc.root,
-              this.insertState.beforePath,
-            )
-          ) {
-            throw new Error("isInsertionValid returned false");
+          const checkedInsertion = checkInsertion(
+            this.doc.root,
+            doc.root,
+            this.insertState.beforePath,
+          );
+          if (!checkedInsertion.valid) {
+            throw new Error("checkedInsertion is not valid");
           }
           this.doc = doc;
+          console.log("DEBUG old focus", this.focus);
+          this.focus = {
+            anchor: checkedInsertion.mapPath(this.focus.anchor),
+            tip: checkedInsertion.mapPath(this.focus.tip),
+          };
+          console.log("DEBUG new focus", this.focus);
         } catch (err) {
           console.warn("insertion would make doc invalid", err);
           return;
