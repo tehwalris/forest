@@ -1035,6 +1035,7 @@ class DocManager {
         throw new Error("this.insertState was undefined in insert mode");
       }
       if (ev.key.length === 1) {
+        ev.preventDefault();
         this.insertState = {
           ...this.insertState,
           text: this.insertState.text + ev.key,
