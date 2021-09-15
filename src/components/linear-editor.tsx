@@ -387,6 +387,7 @@ function flattenNodeAroundSplit(
   };
 }
 
+// path must point *inside* the list, not just at it
 function getPathToDeepestDelimitedListOrRoot(root: ListNode, path: Path): Path {
   return _getPathToDeepestDelimitedList(root, path) || [];
 }
@@ -395,13 +396,16 @@ function _getPathToDeepestDelimitedList(
   node: ListNode,
   path: Path,
 ): Path | undefined {
-  let deeperPathSuffix: Path | undefined;
-  if (path.length) {
-    const child = node.content[path[0]];
-    if (child?.kind === NodeKind.List) {
-      deeperPathSuffix = _getPathToDeepestDelimitedList(child, path.slice(1));
-    }
+  if (!path.length) {
+    return undefined;
   }
+
+  let deeperPathSuffix: Path | undefined;
+  const child = node.content[path[0]];
+  if (child?.kind === NodeKind.List) {
+    deeperPathSuffix = _getPathToDeepestDelimitedList(child, path.slice(1));
+  }
+
   const pathIfDelimited = node.equivalentToContent ? undefined : [];
   return deeperPathSuffix ? [path[0], ...deeperPathSuffix] : pathIfDelimited;
 }
