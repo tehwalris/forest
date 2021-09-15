@@ -429,11 +429,15 @@ function splitAtDeepestDelimiter(
   };
 }
 
-function isInsertionValidNew(
+function isInsertionValid(
   nodeOld: ListNode,
   nodeNew: ListNode,
   insertBeforePath: Path,
 ): boolean {
+  const printReason = (reason: string) => {
+    console.warn(`Insertion is not valid. Reason: ${reason}`);
+  };
+
   if (!insertBeforePath.length) {
     throw new Error("insertBeforePath must not be empty");
   }
@@ -446,18 +450,14 @@ function isInsertionValidNew(
       delimiterSplitNew.withEmptyList,
     )
   ) {
-    console.log(
-      "DEBUG reason: changes outside of nearest containing delimited list",
-    );
+    printReason("changes outside of nearest containing delimited list");
     return false;
   }
 
   if (
     !pathsAreEqual(delimiterSplitOld.pathToList, delimiterSplitNew.pathToList)
   ) {
-    console.log(
-      "DEBUG reason: path to nearest containing delimited list has changed",
-    );
+    printReason("path to nearest containing delimited list has changed");
     return false;
   }
 
@@ -473,7 +473,7 @@ function isInsertionValidNew(
     flatOld.before.length > flatNew.before.length ||
     flatOld.after.length > flatNew.after.length
   ) {
-    console.log("DEBUG reason: new flat lists are shorter", flatOld, flatNew);
+    printReason("new flat lists are shorter");
     return false;
   }
 
@@ -487,7 +487,7 @@ function isInsertionValidNew(
       flatNew.before.slice(0, flatOld.before.length),
     )
   ) {
-    console.log("DEBUG reason: existing nodes before cursor changed");
+    printReason("existing nodes before cursor changed");
     return false;
   }
   if (
@@ -496,86 +496,11 @@ function isInsertionValidNew(
       sliceTail(flatNew.after, flatOld.after.length),
     )
   ) {
-    console.log("DEBUG reason: existing nodes after cursor changed");
+    printReason("existing nodes after cursor changed");
     return false;
   }
 
   return true;
-}
-
-function isInsertionValid(
-  nodeOld: ListNode,
-  nodeNew: ListNode,
-  insertBeforePath: Path,
-): boolean {
-  if (!insertBeforePath.length) {
-    throw new Error("insertBeforePath must not be empty");
-  }
-  if (insertBeforePath.length === 1) {
-    throw new Error("TODO A");
-  }
-  if (nodeOld.content.length !== nodeNew.content.length) {
-    console.log("DEBUG reason: different content lengths");
-    return false;
-  }
-
-  const nextOnPathOld = nodeOld.content[insertBeforePath[0]];
-  const nextOnPathNew = nodeNew.content[insertBeforePath[0]];
-  if (
-    nextOnPathOld.kind === NodeKind.Token ||
-    nextOnPathOld.equivalentToContent
-  ) {
-    console.log(
-      "DEBUG flattenNodeAroundSplit nextOnPathOld",
-      nextOnPathOld,
-      insertBeforePath,
-      flattenNodeAroundSplit(nextOnPathOld, insertBeforePath.slice(1)),
-    );
-    console.log(
-      "DEBUG flattenNodeAroundSplit nextOnPathNew",
-      nextOnPathNew,
-      insertBeforePath,
-      flattenNodeAroundSplit(nextOnPathNew, insertBeforePath.slice(1)),
-    );
-    throw new Error("TODO C");
-  }
-  if (
-    nextOnPathNew.kind !== NodeKind.List ||
-    !nextOnPathNew.equivalentToContent
-  ) {
-    console.log(
-      "DEBUG reason: nextOnPathOld and nextOnPathNew have different types",
-    );
-    return false;
-  }
-
-  const sliceBeforeOld = nodeOld.content.slice(0, insertBeforePath[0]);
-  const sliceBeforeNew = nodeNew.content.slice(0, insertBeforePath[0]);
-  if (
-    !sliceBeforeOld.every((c, i) =>
-      nodesAreEqualExceptRangesAndPlaceholders(c, sliceBeforeNew[i]),
-    )
-  ) {
-    console.log("DEBUG reason: different before");
-    return false;
-  }
-
-  const sliceAfterOld = nodeOld.content.slice(insertBeforePath[0] + 1);
-  const sliceAfterNew = nodeNew.content.slice(insertBeforePath[0] + 1);
-  if (
-    !sliceAfterOld.every((c, i) =>
-      nodesAreEqualExceptRangesAndPlaceholders(c, sliceAfterNew[i]),
-    )
-  ) {
-    console.log("DEBUG reason: different after");
-    return false;
-  }
-
-  return isInsertionValid(
-    nextOnPathOld,
-    nextOnPathNew,
-    insertBeforePath.slice(1),
-  );
 }
 
 function mapNodeTextRanges(
@@ -1143,18 +1068,14 @@ class DocManager {
               ),
             ),
           );
-          try {
-            if (
-              !isInsertionValidNew(
-                this.doc.root,
-                doc.root,
-                this.insertState.beforePath,
-              )
-            ) {
-              console.warn("isInsertionValid returned false");
-            }
-          } catch (err) {
-            console.warn("isInsertionValid threw", err);
+          if (
+            !isInsertionValid(
+              this.doc.root,
+              doc.root,
+              this.insertState.beforePath,
+            )
+          ) {
+            throw new Error("isInsertionValid returned false");
           }
           this.doc = doc;
         } catch (err) {
