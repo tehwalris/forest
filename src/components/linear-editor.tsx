@@ -189,6 +189,64 @@ function docFromAst(file: ts.SourceFile): Doc {
   };
 }
 
+interface PathMapping {
+  old: Path;
+  new: Path;
+}
+
+class PathMapper {
+  private mappings: PathMapping[] = [];
+
+  constructor(private prefix: Path) {}
+
+  record(m: PathMapping) {
+    this.mappings.push(m);
+  }
+
+  mapExact(oldExternalPath: Path): Path | undefined {
+    if (
+      !pathsAreEqual(oldExternalPath.slice(0, this.prefix.length), this.prefix)
+    ) {
+      return undefined;
+    }
+    const oldPath = oldExternalPath.slice(this.prefix.length);
+    const mapping = this.mappings.find((m) => pathsAreEqual(m.old, oldPath));
+    if (!mapping) {
+      return undefined;
+    }
+    return [...this.prefix, ...mapping.new];
+  }
+
+  mapRough(oldExternalPath: Path): Path {
+    if (
+      !pathsAreEqual(oldExternalPath.slice(0, this.prefix.length), this.prefix)
+    ) {
+      return oldExternalPath;
+    }
+    const oldPath = oldExternalPath.slice(this.prefix.length);
+
+    let bestMapping: PathMapping | undefined;
+    for (const m of this.mappings) {
+      if (
+        !bestMapping ||
+        getCommonPathPrefix(m.old, oldPath).length >
+          getCommonPathPrefix(bestMapping.old, oldPath).length
+      ) {
+        bestMapping = m;
+      }
+    }
+    if (!bestMapping) {
+      return oldExternalPath;
+    }
+    const common = getCommonPathPrefix(bestMapping.old, oldPath);
+    return [
+      ...this.prefix,
+      ...bestMapping.new.slice(0, common.length),
+      ...oldPath.slice(common.length),
+    ];
+  }
+}
+
 function makeNodeValidTs(node: ListNode): ListNode;
 function makeNodeValidTs(node: Node): Node;
 function makeNodeValidTs(_node: Node): Node {
@@ -533,63 +591,15 @@ function checkInsertion(
     return { valid: false };
   }
 
-  interface PathMapping {
-    old: Path;
-    new: Path;
-  }
-
-  const pathMappings: PathMapping[] = [];
+  const pathMapper = new PathMapper(delimiterSplitOld.pathToList);
   for (const [i, oldEntry] of flatOld.before.entries()) {
-    pathMappings.push({ old: oldEntry.path, new: flatNewBeforeCommon[i].path });
+    pathMapper.record({ old: oldEntry.path, new: flatNewBeforeCommon[i].path });
   }
   for (const [i, oldEntry] of flatOld.after.entries()) {
-    pathMappings.push({ old: oldEntry.path, new: flatNewAfterCommon[i].path });
-  }
-
-  const mapPath = (externalPath: Path): Path => {
-    if (
-      !pathsAreEqual(
-        externalPath.slice(0, delimiterSplitOld.pathToList.length),
-        delimiterSplitOld.pathToList,
-      )
-    ) {
-      return externalPath;
+    pathMapper.record({ old: oldEntry.path, new: flatNewAfterCommon[i].path });
     }
-    const path = externalPath.slice(delimiterSplitOld.pathToList.length);
 
-    let bestMapping: PathMapping | undefined;
-    for (const m of pathMappings) {
-      if (
-        !bestMapping ||
-        getCommonPathPrefix(m.old, path).length >
-          getCommonPathPrefix(bestMapping.old, path).length
-      ) {
-        bestMapping = m;
-      }
-    }
-    if (!bestMapping) {
-      return externalPath;
-    }
-    const common = getCommonPathPrefix(bestMapping.old, path);
-    return [
-      ...delimiterSplitOld.pathToList,
-      ...bestMapping.new.slice(0, common.length),
-      ...path.slice(common.length),
-    ];
-  };
-
-  const insertedNodes = [
-    ...flatNew.before.slice(flatOld.before.length),
-    ...flatNew.after.slice(0, flatNew.after.length - flatOld.after.length),
-  ];
-  console.log(
-    "DEBUG insertedNodes",
-    insertedNodes,
-    delimiterSplitOld.pathFromList,
-    pathMappings,
-  );
-
-  return { valid: true, mapPath };
+  return { valid: true, mapPath: (p) => pathMapper.mapRough(p) };
 }
 
 function mapNodeTextRanges(
