@@ -203,20 +203,6 @@ class PathMapper {
     this.mappings.push(m);
   }
 
-  mapExact(oldExternalPath: Path): Path | undefined {
-    if (
-      !pathsAreEqual(oldExternalPath.slice(0, this.prefix.length), this.prefix)
-    ) {
-      return undefined;
-    }
-    const oldPath = oldExternalPath.slice(this.prefix.length);
-    const mapping = this.mappings.find((m) => pathsAreEqual(m.old, oldPath));
-    if (!mapping) {
-      return undefined;
-    }
-    return [...this.prefix, ...mapping.new];
-  }
-
   mapRough(oldExternalPath: Path): Path {
     if (
       !pathsAreEqual(oldExternalPath.slice(0, this.prefix.length), this.prefix)
@@ -247,12 +233,32 @@ class PathMapper {
   }
 }
 
-function makeNodeValidTs(node: ListNode): ListNode;
-function makeNodeValidTs(node: Node): Node;
-function makeNodeValidTs(_node: Node): Node {
-  let node = _node;
-  if (node.kind === NodeKind.List) {
-    node = { ...node, content: node.content.map((c) => makeNodeValidTs(c)) };
+function makeNodeValidTs(node: ListNode): {
+  node: ListNode;
+  pathMapper: PathMapper;
+};
+function makeNodeValidTs(node: Node): { node: Node; pathMapper: PathMapper };
+function makeNodeValidTs(node: Node): { node: Node; pathMapper: PathMapper } {
+  const pathMapper = new PathMapper([]);
+  return {
+    node: _makeNodeValidTs({ node, pathMapper, oldPath: [], newPath: [] }),
+    pathMapper,
+  };
+}
+
+function _makeNodeValidTs({
+  node,
+  pathMapper,
+  oldPath,
+  newPath,
+}: {
+  node: Node;
+  pathMapper: PathMapper;
+  oldPath: Path;
+  newPath: Path;
+}): Node {
+  if (!pathsAreEqual(oldPath, newPath)) {
+    pathMapper.record({ old: oldPath, new: newPath });
   }
   if (
     node.kind === NodeKind.List &&
@@ -266,16 +272,49 @@ function makeNodeValidTs(_node: Node): Node {
       undefined,
     );
     placeholder.isPlaceholder = true;
+    // HACK this.insertState.beforePath might be one past the end of the list,
+    // this makes sure it gets mapped correctly
+    pathMapper.record({
+      old: [...oldPath, node.content.length],
+      new: [...oldPath, node.content.length + 1],
+    });
     node = {
       ...node,
-      content: [placeholder, ...node.content],
+      content: [
+        placeholder,
+        ...node.content.map((c, i) =>
+          _makeNodeValidTs({
+            node: c,
+            pathMapper,
+            oldPath: [...oldPath, i],
+            newPath: [...newPath, i + 1],
+          }),
+        ),
+      ],
     };
   } else if (
     node.kind === NodeKind.List &&
     node.listKind === ListKind.TightExpression &&
     node.content.length === 1
   ) {
-    node = node.content[0];
+    node = _makeNodeValidTs({
+      node: node.content[0],
+      pathMapper,
+      oldPath: [...oldPath, 0],
+      newPath: [...newPath],
+    });
+  } else if (node.kind === NodeKind.List) {
+    node = {
+      ...node,
+      content: node.content.map((c, i) =>
+        _makeNodeValidTs({
+          node: c,
+          pathMapper,
+          oldPath: [...oldPath, i],
+          newPath: [...newPath, i],
+        }),
+      ),
+    };
   }
   return node;
 }
@@ -522,7 +561,7 @@ type CheckedInsertion =
     }
   | {
       valid: true;
-      mapPath: (path: Path) => Path;
+      pathMapper: PathMapper;
     };
 
 function checkInsertion(
@@ -597,9 +636,9 @@ function checkInsertion(
   }
   for (const [i, oldEntry] of flatOld.after.entries()) {
     pathMapper.record({ old: oldEntry.path, new: flatNewAfterCommon[i].path });
-    }
+  }
 
-  return { valid: true, mapPath: (p) => pathMapper.mapRough(p) };
+  return { valid: true, pathMapper };
 }
 
 function mapNodeTextRanges(
@@ -794,6 +833,19 @@ function nodeMapAtPath(
     }
     return nodeSetByPath(node, path, cb(oldFocusedNode));
   };
+}
+
+function nodeVisitDeep(
+  node: Node,
+  cb: (node: Node, path: Path) => void,
+  path: Path = [],
+) {
+  cb(node, path);
+  if (node.kind === NodeKind.List) {
+    for (const [i, c] of node.content.entries()) {
+      nodeVisitDeep(c, cb, [...path, i]);
+    }
+  }
 }
 
 function flipEvenPathRange(oldPathRange: EvenPathRange): EvenPathRange {
@@ -1169,8 +1221,15 @@ class DocManager {
       }
 
       if (this.history.length > 1) {
+        // TODO you were here
+        //   - preserve placeholders
+        //     x insert location in text has to consider placeholders (maybe it already does)
+        //     x parser should get text with placeholders (maybe it already does)
+        //     - use checkedInsertion.mapPath to match old and new placeholders
+        //     - remove all placeholders before saving tree
+        //   - remove placeholders next to cursor during insert
         try {
-          const doc = docFromAst(
+          const docWithInsert = docFromAst(
             astFromTypescriptFileContent(
               printTsSourceFile(
                 astFromTypescriptFileContent(
@@ -1179,21 +1238,41 @@ class DocManager {
               ),
             ),
           );
+          const { node: oldValidRoot, pathMapper: oldToValidMapper } =
+            makeNodeValidTs(this.doc.root);
           const checkedInsertion = checkInsertion(
-            this.doc.root,
-            doc.root,
-            this.insertState.beforePath,
+            oldValidRoot,
+            docWithInsert.root,
+            oldToValidMapper.mapRough(this.insertState.beforePath),
           );
           if (!checkedInsertion.valid) {
             throw new Error("checkedInsertion is not valid");
           }
-          this.doc = doc;
-          console.log("DEBUG old focus", this.focus);
+
+          nodeVisitDeep(oldValidRoot, (oldNode, oldPath) => {
+            if (!oldNode.isPlaceholder) {
+              return;
+            }
+            const newNode = nodeGetByPath(
+              docWithInsert.root,
+              checkedInsertion.pathMapper.mapRough(oldPath),
+            );
+            if (!newNode) {
+              throw new Error("placeholder not found in new tree");
+            }
+            // HACK mutating docWithInsert
+            newNode.isPlaceholder = true;
+          });
+
+          this.doc = docWithInsert;
           this.focus = {
-            anchor: checkedInsertion.mapPath(this.focus.anchor),
-            tip: checkedInsertion.mapPath(this.focus.tip),
+            anchor: checkedInsertion.pathMapper.mapRough(
+              oldToValidMapper.mapRough(this.focus.anchor),
+            ),
+            tip: checkedInsertion.pathMapper.mapRough(
+              oldToValidMapper.mapRough(this.focus.tip),
+            ),
           };
-          console.log("DEBUG new focus", this.focus);
         } catch (err) {
           console.warn("insertion would make doc invalid", err);
           return;
@@ -1398,7 +1477,7 @@ class DocManager {
   }
 
   private updateDocText() {
-    const validRoot = makeNodeValidTs(this.doc.root);
+    const validRoot = makeNodeValidTs(this.doc.root).node;
     const sourceFile = tsNodeFromNode(validRoot) as ts.SourceFile;
     const text = printTsSourceFile(sourceFile);
     const doc = docFromAst(astFromTypescriptFileContent(text));
