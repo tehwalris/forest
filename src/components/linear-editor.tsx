@@ -319,9 +319,36 @@ function _makeNodeValidTs({
   return node;
 }
 
-function withoutPlaceholders(node: ListNode): ListNode;
-function withoutPlaceholders(node: Node): Node;
-function withoutPlaceholders(node: Node): Node {
+function withoutPlaceholders(node: ListNode): {
+  node: ListNode;
+  pathMapper: PathMapper;
+};
+function withoutPlaceholders(node: Node): {
+  node: Node;
+  pathMapper: PathMapper;
+};
+function withoutPlaceholders(node: Node): {
+  node: Node;
+  pathMapper: PathMapper;
+} {
+  const pathMapper = new PathMapper([]);
+  return {
+    node: _withoutPlaceholders({ node, pathMapper, oldPath: [], newPath: [] }),
+    pathMapper,
+  };
+}
+
+function _withoutPlaceholders({
+  node,
+  pathMapper,
+  oldPath,
+  newPath,
+}: {
+  node: Node;
+  pathMapper: PathMapper;
+  oldPath: Path;
+  newPath: Path;
+}): Node {
   if (node.isPlaceholder) {
     throw new Error("placeholder outside of list");
   }
@@ -329,8 +356,16 @@ function withoutPlaceholders(node: Node): Node {
     return {
       ...node,
       content: node.content
-        .filter((c) => !c.isPlaceholder)
-        .map((c) => withoutPlaceholders(c)),
+        .map((c, i) => ({ c, i }))
+        .filter(({ c }) => !c.isPlaceholder)
+        .map(({ c, i: oldI }, newI) =>
+          _withoutPlaceholders({
+            node: c,
+            pathMapper,
+            oldPath: [...oldPath, oldI],
+            newPath: [...newPath, newI],
+          }),
+        ),
     };
   }
   return node;
@@ -1264,14 +1299,18 @@ class DocManager {
             newNode.isPlaceholder = true;
           });
 
-          this.doc = docWithInsert;
+          const placeholderRemoval = withoutPlaceholders(docWithInsert.root);
+
+          this.doc = { ...docWithInsert, root: placeholderRemoval.node };
+          const mapPath = (p: Path) =>
+            placeholderRemoval.pathMapper.mapRough(
+              checkedInsertion.pathMapper.mapRough(
+                oldToValidMapper.mapRough(p),
+              ),
+            );
           this.focus = {
-            anchor: checkedInsertion.pathMapper.mapRough(
-              oldToValidMapper.mapRough(this.focus.anchor),
-            ),
-            tip: checkedInsertion.pathMapper.mapRough(
-              oldToValidMapper.mapRough(this.focus.tip),
-            ),
+            anchor: mapPath(this.focus.anchor),
+            tip: mapPath(this.focus.tip),
           };
         } catch (err) {
           console.warn("insertion would make doc invalid", err);
@@ -1487,7 +1526,8 @@ class DocManager {
     }
     this.doc = {
       ...doc,
-      root: withoutPlaceholders(withCopiedPlaceholders(validRoot, doc.root)),
+      root: withoutPlaceholders(withCopiedPlaceholders(validRoot, doc.root))
+        .node,
     };
     // HACK makeNodeValidTs makes replaces some single item lists by their only item.
     // This is the easiest way to make the focus valid again, even though it's not very clean.
