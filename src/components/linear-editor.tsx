@@ -1256,13 +1256,7 @@ class DocManager {
       }
 
       if (this.history.length > 1) {
-        // TODO you were here
-        //   - preserve placeholders
-        //     x insert location in text has to consider placeholders (maybe it already does)
-        //     x parser should get text with placeholders (maybe it already does)
-        //     - use checkedInsertion.mapPath to match old and new placeholders
-        //     - remove all placeholders before saving tree
-        //   - remove placeholders next to cursor during insert
+        // TODO remove placeholders next to cursor during insert
         try {
           const docWithInsert = docFromAst(
             astFromTypescriptFileContent(
