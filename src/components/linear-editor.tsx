@@ -11,7 +11,7 @@ console.log("walrus")
   .test( 
     "bla",
     test,
-    1234,
+    1234 + 5,
    );
 
 foo();
@@ -44,6 +44,8 @@ interface TokenNode extends TextRange {
 
 enum ListKind {
   TightExpression,
+  LooseExpression,
+  ParenthesizedExpression,
   CallArguments,
   File,
 }
@@ -66,15 +68,29 @@ function astFromTypescriptFileContent(fileContent: string) {
   return file;
 }
 
+function isTsBinaryOperatorToken(
+  node: ts.Node,
+): node is ts.BinaryOperatorToken {
+  return (
+    ts.isToken(node) &&
+    node.kind >= ts.SyntaxKind.FirstBinaryOperator &&
+    node.kind <= ts.SyntaxKind.LastBinaryOperator
+  );
+}
+
 function flattenLeftIfListKind(
   listKind: ListKind,
   left: Node,
-  right: Node,
+  right: Node[],
 ): Node[] {
-  if (left.kind === NodeKind.List && left.listKind === listKind) {
-    return [...left.content, right];
+  if (
+    left.kind === NodeKind.List &&
+    left.listKind === listKind &&
+    left.equivalentToContent
+  ) {
+    return [...left.content, ...right];
   }
-  return [left, right];
+  return [left, ...right];
 }
 
 function listNodeFromTsCallExpression(
@@ -88,13 +104,15 @@ function listNodeFromTsCallExpression(
     content: flattenLeftIfListKind(
       ListKind.TightExpression,
       nodeFromTsNode(callExpression.expression, file),
-      listNodeFromDelimitedTsNodeArray(
-        callExpression.arguments,
-        file,
-        ListKind.CallArguments,
-        callExpression.arguments.pos - 1,
-        callExpression.end,
-      ),
+      [
+        listNodeFromDelimitedTsNodeArray(
+          callExpression.arguments,
+          file,
+          ListKind.CallArguments,
+          callExpression.arguments.pos - 1,
+          callExpression.end,
+        ),
+      ],
     ),
     equivalentToContent: true,
     pos: callExpression.pos,
@@ -102,7 +120,7 @@ function listNodeFromTsCallExpression(
   };
 }
 
-function listNodeFromPropertyAccessExpression(
+function listNodeFromTsPropertyAccessExpression(
   propertyAccessExpression: ts.PropertyAccessExpression,
   file: ts.SourceFile | undefined,
 ): ListNode {
@@ -113,11 +131,48 @@ function listNodeFromPropertyAccessExpression(
     content: flattenLeftIfListKind(
       ListKind.TightExpression,
       nodeFromTsNode(propertyAccessExpression.expression, file),
-      nodeFromTsNode(propertyAccessExpression.name, file),
+      [nodeFromTsNode(propertyAccessExpression.name, file)],
     ),
     equivalentToContent: true,
     pos: propertyAccessExpression.pos,
     end: propertyAccessExpression.end,
+  };
+}
+
+function listNodeFromTsBinaryExpression(
+  binaryExpression: ts.BinaryExpression,
+  file: ts.SourceFile | undefined,
+): ListNode {
+  return {
+    kind: NodeKind.List,
+    listKind: ListKind.LooseExpression,
+    delimiters: ["", ""],
+    content: flattenLeftIfListKind(
+      ListKind.LooseExpression,
+      nodeFromTsNode(binaryExpression.left, file),
+      [
+        nodeFromTsNode(binaryExpression.operatorToken, file),
+        nodeFromTsNode(binaryExpression.right, file),
+      ],
+    ),
+    equivalentToContent: true,
+    pos: binaryExpression.pos,
+    end: binaryExpression.end,
+  };
+}
+
+function listNodeFromTsParenthesizedExpression(
+  parenthesizedExpression: ts.ParenthesizedExpression,
+  file: ts.SourceFile | undefined,
+): ListNode {
+  return {
+    kind: NodeKind.List,
+    listKind: ListKind.ParenthesizedExpression,
+    delimiters: ["(", ")"],
+    content: [nodeFromTsNode(parenthesizedExpression.expression, file)],
+    equivalentToContent: false,
+    pos: parenthesizedExpression.pos,
+    end: parenthesizedExpression.end,
   };
 }
 
@@ -127,7 +182,11 @@ function nodeFromTsNode(node: ts.Node, file: ts.SourceFile | undefined): Node {
   } else if (ts.isCallExpression(node)) {
     return listNodeFromTsCallExpression(node, file);
   } else if (ts.isPropertyAccessExpression(node)) {
-    return listNodeFromPropertyAccessExpression(node, file);
+    return listNodeFromTsPropertyAccessExpression(node, file);
+  } else if (ts.isBinaryExpression(node)) {
+    return listNodeFromTsBinaryExpression(node, file);
+  } else if (ts.isParenthesizedExpression(node)) {
+    return listNodeFromTsParenthesizedExpression(node, file);
   } else {
     return {
       kind: NodeKind.Token,
@@ -294,9 +353,11 @@ function _makeNodeValidTs({
     };
   } else if (
     node.kind === NodeKind.List &&
-    node.listKind === ListKind.TightExpression &&
+    (node.listKind === ListKind.TightExpression ||
+      node.listKind === ListKind.LooseExpression) &&
     node.content.length === 1
   ) {
+    // TODO what if this is a BinaryOperatorToken?
     node = _makeNodeValidTs({
       node: node.content[0],
       pathMapper,
@@ -403,6 +464,33 @@ function tsNodeFromNode(node: Node): ts.Node {
         );
       }
     }
+    case ListKind.LooseExpression: {
+      if (node.content.length === 0) {
+        throw new Error("empty LooseExpression");
+      }
+      const lastChild = node.content[node.content.length - 1];
+      if (node.content.length === 1) {
+        return tsNodeFromNode(lastChild);
+      }
+      if (node.content.length < 3) {
+        throw new Error("not enough children to make BinaryExpression");
+      }
+      const operator = tsNodeFromNode(node.content[node.content.length - 2]);
+      if (!isTsBinaryOperatorToken(operator)) {
+        throw new Error("operator is not a BinaryOperatorToken");
+      }
+      const restNode = { ...node, content: node.content.slice(0, -2) };
+      return ts.createBinary(
+        tsNodeFromNode(restNode) as ts.Expression,
+        operator,
+        tsNodeFromNode(lastChild) as ts.Expression,
+      );
+    }
+    case ListKind.ParenthesizedExpression:
+      if (node.content.length !== 1) {
+        throw new Error("ParenthesizedExpression must have exactly 1 child");
+      }
+      return ts.createParen(tsNodeFromNode(node.content[0]) as ts.Expression);
     case ListKind.CallArguments:
       throw new Error(
         "CallArguments should be handled by TightExpression parent",
@@ -420,8 +508,26 @@ function tsNodeFromNode(node: Node): ts.Node {
 function printTsSourceFile(file: ts.SourceFile): string {
   const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
   const unformattedText = printer.printNode(ts.EmitHint.SourceFile, file, file);
+
   const formattedText = prettierFormat(unformattedText);
-  return formattedText;
+
+  const transformer: ts.TransformerFactory<ts.SourceFile> =
+    (context) => (rootNode) => {
+      function visit(node: ts.Node): ts.Node {
+        if (ts.isParenthesizedExpression(node)) {
+          return ts.visitEachChild(node.expression, visit, context);
+        }
+        return ts.visitEachChild(node, visit, context);
+      }
+      return ts.visitNode(rootNode, visit);
+    };
+
+  const formattedAst = astFromTypescriptFileContent(formattedText);
+  const transformResult = ts.transform(formattedAst, [transformer]);
+  const astWithoutParens = transformResult.transformed[0];
+
+  const textWithoutParens = printer.printFile(astWithoutParens);
+  return textWithoutParens;
 }
 
 function nodesAreEqualExceptRangesAndPlaceholders(a: Node, b: Node): boolean {
