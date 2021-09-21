@@ -506,6 +506,57 @@ function _withoutPlaceholders({
   return node;
 }
 
+const precedenceByBinaryOperator = new Map<ts.SyntaxKind, number>();
+for (const [i, ops] of [
+  [ts.SyntaxKind.QuestionQuestionToken],
+  [ts.SyntaxKind.BarBarToken],
+  [ts.SyntaxKind.AmpersandAmpersandToken],
+  [ts.SyntaxKind.BarToken],
+  [ts.SyntaxKind.CaretToken],
+  [ts.SyntaxKind.AmpersandToken],
+  [
+    ts.SyntaxKind.EqualsEqualsToken,
+    ts.SyntaxKind.ExclamationEqualsToken,
+    ts.SyntaxKind.EqualsEqualsEqualsToken,
+    ts.SyntaxKind.ExclamationEqualsEqualsToken,
+  ],
+  [
+    ts.SyntaxKind.LessThanToken,
+    ts.SyntaxKind.GreaterThanToken,
+    ts.SyntaxKind.LessThanEqualsToken,
+    ts.SyntaxKind.GreaterThanEqualsToken,
+    ts.SyntaxKind.InstanceOfKeyword,
+    ts.SyntaxKind.InKeyword,
+    ts.SyntaxKind.AsKeyword,
+  ],
+  [
+    ts.SyntaxKind.LessThanLessThanToken,
+    ts.SyntaxKind.GreaterThanGreaterThanToken,
+    ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken,
+  ],
+  [ts.SyntaxKind.PlusToken, ts.SyntaxKind.MinusToken],
+  [
+    ts.SyntaxKind.AsteriskToken,
+    ts.SyntaxKind.SlashToken,
+    ts.SyntaxKind.PercentToken,
+  ],
+  [ts.SyntaxKind.AsteriskAsteriskToken],
+].entries()) {
+  for (const op of ops) {
+    precedenceByBinaryOperator.set(op, i);
+  }
+}
+
+function getBinaryOperatorPrecedence(operator: ts.BinaryOperator) {
+  const precedence = precedenceByBinaryOperator.get(operator);
+  if (precedence === undefined) {
+    throw new Error(
+      `unknown operator ${operator} (${ts.SyntaxKind[operator]})`,
+    );
+  }
+  return precedence;
+}
+
 function tsNodeFromNode(node: Node): ts.Node {
   if (node.kind === NodeKind.Token) {
     return node.tsNode;
@@ -542,22 +593,42 @@ function tsNodeFromNode(node: Node): ts.Node {
       if (node.content.length === 0) {
         throw new Error("empty LooseExpression");
       }
-      const lastChild = node.content[node.content.length - 1];
       if (node.content.length === 1) {
-        return tsNodeFromNode(lastChild);
+        return tsNodeFromNode(node.content[0]);
       }
-      if (node.content.length < 3) {
-        throw new Error("not enough children to make BinaryExpression");
+      const operators = node.content
+        .map((c, i) => {
+          if (c.kind === NodeKind.Token && isTsBinaryOperatorToken(c.tsNode)) {
+            return {
+              i,
+              tsNode: c.tsNode,
+              precedence: getBinaryOperatorPrecedence(c.tsNode.kind),
+            };
+          }
+          return undefined;
+        })
+        .filter((v) => v)
+        .map((v) => v!);
+      const minPrecedence = Math.min(...operators.map((o) => o.precedence));
+      const rightAssociative =
+        minPrecedence ===
+        getBinaryOperatorPrecedence(ts.SyntaxKind.AsteriskAsteriskToken);
+      const splitAt = (
+        rightAssociative ? operators : [...operators].reverse()
+      ).find((o) => o.precedence === minPrecedence);
+      if (!splitAt) {
+        throw new Error("LooseExpression contains no operators");
       }
-      const operator = tsNodeFromNode(node.content[node.content.length - 2]);
-      if (!isTsBinaryOperatorToken(operator)) {
-        throw new Error("operator is not a BinaryOperatorToken");
-      }
-      const restNode = { ...node, content: node.content.slice(0, -2) };
       return ts.createBinary(
-        tsNodeFromNode(restNode) as ts.Expression,
-        operator,
-        tsNodeFromNode(lastChild) as ts.Expression,
+        tsNodeFromNode({
+          ...node,
+          content: node.content.slice(0, splitAt.i),
+        }) as ts.Expression,
+        splitAt.tsNode,
+        tsNodeFromNode({
+          ...node,
+          content: node.content.slice(splitAt.i + 1),
+        }) as ts.Expression,
       );
     }
     case ListKind.ParenthesizedExpression:
