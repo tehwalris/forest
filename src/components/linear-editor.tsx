@@ -506,8 +506,28 @@ function _withoutPlaceholders({
   return node;
 }
 
+// https://github.com/microsoft/TypeScript/blob/663b19fe4a7c4d4ddaa61aedadd28da06acd27b6/src/compiler/utilities.ts#L3659
+// https://github.com/prettier/prettier/blob/30f82c0356ad3c24e56e79c95933988c02555427/src/language-js/utils.js#L1106
 const precedenceByBinaryOperator = new Map<ts.SyntaxKind, number>();
 for (const [i, ops] of [
+  [
+    ts.SyntaxKind.EqualsToken,
+    ts.SyntaxKind.PlusEqualsToken,
+    ts.SyntaxKind.MinusEqualsToken,
+    ts.SyntaxKind.AsteriskAsteriskEqualsToken,
+    ts.SyntaxKind.AsteriskEqualsToken,
+    ts.SyntaxKind.SlashEqualsToken,
+    ts.SyntaxKind.PercentEqualsToken,
+    ts.SyntaxKind.LessThanLessThanEqualsToken,
+    ts.SyntaxKind.GreaterThanGreaterThanEqualsToken,
+    ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken,
+    ts.SyntaxKind.AmpersandEqualsToken,
+    ts.SyntaxKind.CaretEqualsToken,
+    ts.SyntaxKind.BarEqualsToken,
+    ts.SyntaxKind.BarBarEqualsToken,
+    ts.SyntaxKind.AmpersandAmpersandEqualsToken,
+    ts.SyntaxKind.QuestionQuestionEqualsToken,
+  ],
   [ts.SyntaxKind.QuestionQuestionToken],
   [ts.SyntaxKind.BarBarToken],
   [ts.SyntaxKind.AmpersandAmpersandToken],
