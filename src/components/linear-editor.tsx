@@ -454,48 +454,84 @@ function _makeNodeValidTs({
   return node;
 }
 
-function withoutPlaceholders(node: ListNode): {
+function filterNodes(
+  node: ListNode,
+  shouldKeep: (node: Node) => boolean,
+): {
   node: ListNode;
   pathMapper: PathMapper;
 };
-function withoutPlaceholders(node: Node): {
+function filterNodes(
+  node: Node,
+  shouldKeep: (node: Node) => boolean,
+): {
   node: Node;
   pathMapper: PathMapper;
 };
-function withoutPlaceholders(node: Node): {
+function filterNodes(
+  node: Node,
+  shouldKeep: (node: Node) => boolean,
+): {
   node: Node;
   pathMapper: PathMapper;
 } {
   const pathMapper = new PathMapper([]);
   return {
-    node: _withoutPlaceholders({ node, pathMapper, oldPath: [], newPath: [] }),
+    node: _filterNodes({
+      node,
+      shouldKeep,
+      pathMapper,
+      oldPath: [],
+      newPath: [],
+    }),
     pathMapper,
   };
 }
 
-function _withoutPlaceholders({
+function _filterNodes({
   node,
+  shouldKeep,
   pathMapper,
   oldPath,
   newPath,
 }: {
   node: Node;
+  shouldKeep: (node: Node) => boolean;
   pathMapper: PathMapper;
   oldPath: Path;
   newPath: Path;
 }): Node {
-  if (node.isPlaceholder) {
-    throw new Error("placeholder outside of list");
+  if (!shouldKeep(node)) {
+    throw new Error("node outside of list can't be removed");
   }
   if (node.kind === NodeKind.List) {
+    const stuff = node.content.map((c, i) => ({
+      c,
+      oldI: i,
+      newI: i,
+      keep: shouldKeep(c),
+    }));
+    if (!stuff.every(({ keep }) => keep)) {
+      let i = 0;
+      for (const entry of stuff) {
+        entry.newI = i;
+        pathMapper.record({
+          old: [...oldPath, entry.oldI],
+          new: [...newPath, entry.newI],
+        });
+        if (entry.keep) {
+          i++;
+        }
+      }
+    }
     return {
       ...node,
-      content: node.content
-        .map((c, i) => ({ c, i }))
-        .filter(({ c }) => !c.isPlaceholder)
-        .map(({ c, i: oldI }, newI) =>
-          _withoutPlaceholders({
+      content: stuff
+        .filter(({ keep }) => keep)
+        .map(({ c, oldI, newI }) =>
+          _filterNodes({
             node: c,
+            shouldKeep,
             pathMapper,
             oldPath: [...oldPath, oldI],
             newPath: [...newPath, newI],
@@ -960,6 +996,12 @@ function mapNodeTextRanges(node: Node, cb: (pos: number) => number): Node {
   return node;
 }
 
+function checkTextRangesDoNotOverlap(ranges: TextRange[]): boolean {
+  const sortedRanges = [...ranges];
+  sortedRanges.sort();
+  return ranges.every((r, i) => i === 0 || ranges[i - 1].end <= r.pos);
+}
+
 interface Doc {
   root: ListNode;
   text: string;
@@ -991,7 +1033,79 @@ function docMapRoot(doc: Doc, cb: (node: ListNode) => Node): Doc {
   return { ...doc, root: newRoot };
 }
 
-function getDocWithInsert(doc: Doc, insertState: InsertState): Doc {
+function getDocWithAllPlaceholders(docWithoutPlaceholders: Doc): {
+  doc: Doc;
+  pathMapper: PathMapper;
+} {
+  const placeholderAddition = makeNodeValidTs(docWithoutPlaceholders.root);
+  const validRoot = placeholderAddition.node;
+  const sourceFile = tsNodeFromNode(validRoot) as ts.SourceFile;
+  const text = printTsSourceFile(sourceFile);
+  const parsedDoc = docFromAst(astFromTypescriptFileContent(text));
+  if (!nodesAreEqualExceptRangesAndPlaceholders(validRoot, parsedDoc.root)) {
+    console.warn("update would change tree", validRoot, parsedDoc.root);
+    throw new Error("update would change tree");
+  }
+  const docWithPlaceholders = {
+    root: withCopiedPlaceholders(validRoot, parsedDoc.root),
+    text: parsedDoc.text,
+  };
+  return {
+    doc: docWithPlaceholders,
+    pathMapper: placeholderAddition.pathMapper,
+  };
+}
+
+function getDocWithoutPlaceholdersNearCursor(
+  doc: Doc,
+  cursorBeforePos: number,
+): {
+  doc: Doc;
+  mapOldToWithoutAdjacent: (path: Path) => Path;
+  cursorBeforePos: number;
+} {
+  const placeholderAddition = getDocWithAllPlaceholders(doc);
+
+  // TODO ignore whitespace
+  const isAdjacentToCursor = (range: TextRange) =>
+    range.pos === cursorBeforePos || range.end === cursorBeforePos;
+  const shouldKeepNode = (node: Node) =>
+    !node.isPlaceholder || !isAdjacentToCursor(node);
+  const placeholderRemoval = filterNodes(
+    placeholderAddition.doc.root,
+    shouldKeepNode,
+  );
+  const removedPlaceholders: Node[] = [];
+  nodeVisitDeep(placeholderAddition.doc.root, (node) => {
+    if (!shouldKeepNode(node)) {
+      removedPlaceholders.push(node);
+    }
+  });
+
+  const textDeletion = getTextWithDeletions(
+    placeholderAddition.doc.text,
+    removedPlaceholders,
+  );
+
+  const mapOldToWithoutAdjacent = (oldPath: Path) =>
+    placeholderRemoval.pathMapper.mapRough(
+      placeholderAddition.pathMapper.mapRough(oldPath),
+    );
+
+  return {
+    doc: {
+      root: mapNodeTextRanges(placeholderRemoval.node, textDeletion.mapPos),
+      text: textDeletion.text,
+    },
+    mapOldToWithoutAdjacent,
+    cursorBeforePos: textDeletion.mapPos(cursorBeforePos),
+  };
+}
+
+function getDocWithInsert(
+  doc: Doc,
+  insertState: Pick<InsertState, "beforePos" | "text">,
+): Doc {
   return {
     root: mapNodeTextRanges(doc.root, (pos) =>
       pos >= insertState.beforePos ? pos + insertState.text.length : pos,
@@ -1000,6 +1114,53 @@ function getDocWithInsert(doc: Doc, insertState: InsertState): Doc {
       doc.text.slice(0, insertState.beforePos) +
       insertState.text +
       doc.text.slice(insertState.beforePos),
+  };
+}
+
+function getTextWithDeletions(
+  text: string,
+  _deleteRanges: TextRange[],
+): { text: string; mapPos: (pos: number) => number } {
+  if (!_deleteRanges.length) {
+    return { text, mapPos: (pos) => pos };
+  }
+
+  const deleteRanges = [..._deleteRanges];
+  deleteRanges.sort();
+
+  if (!checkTextRangesDoNotOverlap(deleteRanges)) {
+    throw new Error("deleteRanges overlap");
+  }
+
+  return {
+    text:
+      text.slice(0, deleteRanges[0].pos) +
+      deleteRanges.map((r, i) => {
+        const nextPos =
+          i + 1 === deleteRanges.length ? text.length : deleteRanges[i + 1].pos;
+        return text.slice(r.end, nextPos);
+      }),
+
+    // Example
+    // 0123456789
+    //  xxx x
+    //    !
+    // 046789
+    //  !
+    mapPos: (pos) => {
+      const containingRange = deleteRanges.find(
+        (r) => r.pos <= pos && r.end > pos,
+      );
+      if (containingRange) {
+        pos = containingRange.end;
+      }
+      const rangesBefore = deleteRanges.filter((r) => r.end <= pos);
+      const deletedCharsBefore = rangesBefore.reduce(
+        (a, c) => a + (c.end - c.pos),
+        0,
+      );
+      return pos - deletedCharsBefore;
+    },
   };
 }
 
@@ -1529,48 +1690,64 @@ class DocManager {
       if (this.history.length > 1) {
         // TODO remove placeholders next to cursor during insert
         try {
+          const initialPlaceholderInsertion =
+            getDocWithoutPlaceholdersNearCursor(
+              this.doc,
+              this.insertState.beforePos,
+            );
+
           const docWithInsert = docFromAst(
             astFromTypescriptFileContent(
               printTsSourceFile(
                 astFromTypescriptFileContent(
-                  getDocWithInsert(this.doc, this.insertState).text,
+                  getDocWithInsert(initialPlaceholderInsertion.doc, {
+                    text: this.insertState.text,
+                    beforePos: initialPlaceholderInsertion.cursorBeforePos,
+                  }).text,
                 ),
               ),
             ),
           );
-          const { node: oldValidRoot, pathMapper: oldToValidMapper } =
-            makeNodeValidTs(this.doc.root);
+
           const checkedInsertion = checkInsertion(
-            oldValidRoot,
+            initialPlaceholderInsertion.doc.root,
             docWithInsert.root,
-            oldToValidMapper.mapRough(this.insertState.beforePath),
+            initialPlaceholderInsertion.mapOldToWithoutAdjacent(
+              this.insertState.beforePath,
+            ),
           );
           if (!checkedInsertion.valid) {
             throw new Error("checkedInsertion is not valid");
           }
 
-          nodeVisitDeep(oldValidRoot, (oldNode, oldPath) => {
-            if (!oldNode.isPlaceholder) {
-              return;
-            }
-            const newNode = nodeGetByPath(
-              docWithInsert.root,
-              checkedInsertion.pathMapper.mapRough(oldPath),
-            );
-            if (!newNode) {
-              throw new Error("placeholder not found in new tree");
-            }
-            // HACK mutating docWithInsert
-            newNode.isPlaceholder = true;
-          });
+          nodeVisitDeep(
+            initialPlaceholderInsertion.doc.root,
+            (oldNode, oldPath) => {
+              if (!oldNode.isPlaceholder) {
+                return;
+              }
+              const newNode = nodeGetByPath(
+                docWithInsert.root,
+                checkedInsertion.pathMapper.mapRough(oldPath),
+              );
+              if (!newNode) {
+                throw new Error("placeholder not found in new tree");
+              }
+              // HACK mutating docWithInsert
+              newNode.isPlaceholder = true;
+            },
+          );
 
-          const placeholderRemoval = withoutPlaceholders(docWithInsert.root);
+          const placeholderRemoval = filterNodes(
+            docWithInsert.root,
+            (node) => !node.isPlaceholder,
+          );
 
           this.doc = { ...docWithInsert, root: placeholderRemoval.node };
           const mapPath = (p: Path) =>
             placeholderRemoval.pathMapper.mapRough(
               checkedInsertion.pathMapper.mapRough(
-                oldToValidMapper.mapRough(p),
+                initialPlaceholderInsertion.mapOldToWithoutAdjacent(p),
               ),
             );
           this.focus = {
@@ -1770,29 +1947,33 @@ class DocManager {
   }
 
   private reportUpdate() {
-    const docWithInsert = this.insertState
-      ? getDocWithInsert(this.doc, this.insertState)
-      : this.doc;
+    let doc = this.doc;
+    if (this.insertState) {
+      const result = getDocWithoutPlaceholdersNearCursor(
+        this.doc,
+        this.insertState.beforePos,
+      );
+      doc = getDocWithInsert(result.doc, {
+        beforePos: result.cursorBeforePos,
+        text: this.insertState.text,
+      });
+      doc = {
+        ...doc,
+        root: filterNodes(doc.root, (node) => !node.isPlaceholder).node,
+      };
+    }
     this._onUpdate({
-      doc: docWithInsert,
+      doc,
       focus: asEvenPathRange(this.focus),
       mode: this.mode,
     });
   }
 
   private updateDocText() {
-    const validRoot = makeNodeValidTs(this.doc.root).node;
-    const sourceFile = tsNodeFromNode(validRoot) as ts.SourceFile;
-    const text = printTsSourceFile(sourceFile);
-    const doc = docFromAst(astFromTypescriptFileContent(text));
-    if (!nodesAreEqualExceptRangesAndPlaceholders(validRoot, doc.root)) {
-      console.warn("update would change tree", validRoot, doc.root);
-      throw new Error("update would change tree");
-    }
+    this.doc = getDocWithAllPlaceholders(this.doc).doc;
     this.doc = {
-      ...doc,
-      root: withoutPlaceholders(withCopiedPlaceholders(validRoot, doc.root))
-        .node,
+      ...this.doc,
+      root: filterNodes(this.doc.root, (node) => !node.isPlaceholder).node,
     };
     // HACK makeNodeValidTs makes replaces some single item lists by their only item.
     // This is the easiest way to make the focus valid again, even though it's not very clean.
