@@ -78,19 +78,30 @@ function isTsBinaryOperatorToken(
   );
 }
 
+function shouldFlattenWithListKind<K extends ListKind>(
+  listKind: K,
+  list: Node,
+): list is ListNode & { listKind: K } {
+  return (
+    list.kind === NodeKind.List &&
+    list.listKind === listKind &&
+    list.equivalentToContent
+  );
+}
+
 function flattenLeftIfListKind(
   listKind: ListKind,
   left: Node,
   right: Node[],
 ): Node[] {
-  if (
-    left.kind === NodeKind.List &&
-    left.listKind === listKind &&
-    left.equivalentToContent
-  ) {
+  if (shouldFlattenWithListKind(listKind, left)) {
     return [...left.content, ...right];
   }
   return [left, ...right];
+}
+
+function flattenIfListKind(listKind: ListKind, node: Node): Node[] {
+  return shouldFlattenWithListKind(listKind, node) ? node.content : [node];
 }
 
 function listNodeFromTsCallExpression(
@@ -147,14 +158,17 @@ function listNodeFromTsBinaryExpression(
     kind: NodeKind.List,
     listKind: ListKind.LooseExpression,
     delimiters: ["", ""],
-    content: flattenLeftIfListKind(
-      ListKind.LooseExpression,
-      nodeFromTsNode(binaryExpression.left, file),
-      [
-        nodeFromTsNode(binaryExpression.operatorToken, file),
+    content: [
+      ...flattenIfListKind(
+        ListKind.LooseExpression,
+        nodeFromTsNode(binaryExpression.left, file),
+      ),
+      nodeFromTsNode(binaryExpression.operatorToken, file),
+      ...flattenIfListKind(
+        ListKind.LooseExpression,
         nodeFromTsNode(binaryExpression.right, file),
-      ],
-    ),
+      ),
+    ],
     equivalentToContent: true,
     pos: binaryExpression.pos,
     end: binaryExpression.end,
@@ -305,6 +319,48 @@ function makeNodeValidTs(node: Node): { node: Node; pathMapper: PathMapper } {
   };
 }
 
+interface OnMapChildArgs {
+  node: Node;
+  oldIndex: number;
+  newIndex: number;
+}
+
+function makeLooseExpressionValidTs(
+  oldContent: Node[],
+  mapChild: (args: OnMapChildArgs) => Node,
+): Node[] {
+  let wantOperator = false;
+  const newContent: Node[] = [];
+  const remainingOldContent = [...oldContent];
+  while (remainingOldContent.length || !wantOperator) {
+    const nextOldNode = remainingOldContent[0];
+    const nextIsOperator =
+      nextOldNode?.kind === NodeKind.Token &&
+      isTsBinaryOperatorToken(nextOldNode.tsNode);
+    if (nextOldNode && nextIsOperator === wantOperator) {
+      newContent.push(
+        mapChild({
+          node: nextOldNode,
+          oldIndex: oldContent.length - remainingOldContent.length,
+          newIndex: newContent.length,
+        }),
+      );
+      remainingOldContent.shift();
+    } else {
+      const newNode = nodeFromTsNode(
+        wantOperator
+          ? ts.createToken(ts.SyntaxKind.PlusToken)
+          : ts.createIdentifier("placeholder"),
+        undefined,
+      );
+      newNode.isPlaceholder = true;
+      newContent.push(newNode);
+    }
+    wantOperator = !wantOperator;
+  }
+  return newContent;
+}
+
 function _makeNodeValidTs({
   node,
   pathMapper,
@@ -353,17 +409,35 @@ function _makeNodeValidTs({
     };
   } else if (
     node.kind === NodeKind.List &&
+    node.content.length === 1 &&
     (node.listKind === ListKind.TightExpression ||
-      node.listKind === ListKind.LooseExpression) &&
-    node.content.length === 1
+      (node.listKind === ListKind.LooseExpression &&
+        (node.content[0].kind !== NodeKind.Token ||
+          !isTsBinaryOperatorToken(node.content[0].tsNode))))
   ) {
-    // TODO what if this is a BinaryOperatorToken?
     node = _makeNodeValidTs({
       node: node.content[0],
       pathMapper,
       oldPath: [...oldPath, 0],
       newPath: [...newPath],
     });
+  } else if (
+    node.kind === NodeKind.List &&
+    node.listKind === ListKind.LooseExpression
+  ) {
+    node = {
+      ...node,
+      content: makeLooseExpressionValidTs(
+        node.content,
+        ({ node: c, oldIndex, newIndex }) =>
+          _makeNodeValidTs({
+            node: c,
+            pathMapper,
+            oldPath: [...oldPath, oldIndex],
+            newPath: [...newPath, newIndex],
+          }),
+      ),
+    };
   } else if (node.kind === NodeKind.List) {
     node = {
       ...node,
