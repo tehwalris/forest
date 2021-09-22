@@ -1,5 +1,11 @@
 import ts from "typescript";
-import { ListKind, ListNode, Node, NodeKind } from "../logic/tree-interfaces";
+import {
+  ListKind,
+  ListNode,
+  Node,
+  NodeKind,
+  Doc,
+} from "../logic/tree-interfaces";
 
 function shouldFlattenWithListKind<K extends ListKind>(
   listKind: K,
@@ -171,4 +177,19 @@ export function nodeFromTsNode(
       tsNode: node,
     };
   }
+}
+
+export function docFromAst(file: ts.SourceFile): Doc {
+  return {
+    root: {
+      kind: NodeKind.List,
+      listKind: ListKind.File,
+      delimiters: ["", ""],
+      content: file.statements.map((s) => nodeFromTsNode(s, file)),
+      equivalentToContent: true,
+      pos: file.pos,
+      end: file.end,
+    },
+    text: file.text,
+  };
 }

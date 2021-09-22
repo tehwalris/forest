@@ -1,5 +1,10 @@
 import ts from "typescript";
 
+export interface Doc {
+  root: ListNode;
+  text: string;
+}
+
 export interface TextRange {
   pos: number;
   end: number;

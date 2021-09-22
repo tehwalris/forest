@@ -2,11 +2,18 @@ import { css } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
 import ts from "typescript";
-import { isTsBinaryOperatorToken } from "../logic/binary-operator";
-import { nodeFromTsNode } from "../logic/node-from-ts";
+import { makeNodeValidTs } from '../logic/make-valid';
+import { docFromAst } from "../logic/node-from-ts";
 import { astFromTypescriptFileContent } from "../logic/parse";
+import { PathMapper } from "../logic/path-mapper";
+import {
+  evenPathRangesAreEqual,
+  pathsAreEqual,
+  unevenPathRangesAreEqual
+} from "../logic/path-utils";
 import { prettierFormat } from "../logic/pretty-print";
 import {
+  Doc,
   EvenPathRange,
   ListKind,
   ListNode,
@@ -14,7 +21,7 @@ import {
   NodeKind,
   Path,
   TextRange,
-  UnevenPathRange,
+  UnevenPathRange
 } from "../logic/tree-interfaces";
 import { tsNodeFromNode } from "../logic/ts-from-node";
 import { unreachable } from "../logic/util";
@@ -33,212 +40,6 @@ if (Date.now() % 100 == 0) {
 }
 `;
 
-function docFromAst(file: ts.SourceFile): Doc {
-  return {
-    root: {
-      kind: NodeKind.List,
-      listKind: ListKind.File,
-      delimiters: ["", ""],
-      content: file.statements.map((s) => nodeFromTsNode(s, file)),
-      equivalentToContent: true,
-      pos: file.pos,
-      end: file.end,
-    },
-    text: file.text,
-  };
-}
-
-interface PathMapping {
-  old: Path;
-  new: Path;
-}
-
-class PathMapper {
-  private mappings: PathMapping[] = [];
-
-  constructor(private prefix: Path) {}
-
-  record(m: PathMapping) {
-    this.mappings.push(m);
-  }
-
-  mapRough(oldExternalPath: Path): Path {
-    if (
-      !pathsAreEqual(oldExternalPath.slice(0, this.prefix.length), this.prefix)
-    ) {
-      return oldExternalPath;
-    }
-    const oldPath = oldExternalPath.slice(this.prefix.length);
-
-    let bestMapping: PathMapping | undefined;
-    for (const m of this.mappings) {
-      if (
-        !bestMapping ||
-        getCommonPathPrefix(m.old, oldPath).length >
-          getCommonPathPrefix(bestMapping.old, oldPath).length
-      ) {
-        bestMapping = m;
-      }
-    }
-    if (!bestMapping) {
-      return oldExternalPath;
-    }
-    const common = getCommonPathPrefix(bestMapping.old, oldPath);
-    return [
-      ...this.prefix,
-      ...bestMapping.new.slice(0, common.length),
-      ...oldPath.slice(common.length),
-    ];
-  }
-}
-
-function makeNodeValidTs(node: ListNode): {
-  node: ListNode;
-  pathMapper: PathMapper;
-};
-function makeNodeValidTs(node: Node): { node: Node; pathMapper: PathMapper };
-function makeNodeValidTs(node: Node): { node: Node; pathMapper: PathMapper } {
-  const pathMapper = new PathMapper([]);
-  return {
-    node: _makeNodeValidTs({ node, pathMapper, oldPath: [], newPath: [] }),
-    pathMapper,
-  };
-}
-
-interface OnMapChildArgs {
-  node: Node;
-  oldIndex: number;
-  newIndex: number;
-}
-
-function makeLooseExpressionValidTs(
-  oldContent: Node[],
-  mapChild: (args: OnMapChildArgs) => Node,
-): Node[] {
-  let wantOperator = false;
-  const newContent: Node[] = [];
-  const remainingOldContent = [...oldContent];
-  while (remainingOldContent.length || !wantOperator) {
-    const nextOldNode = remainingOldContent[0];
-    const nextIsOperator =
-      nextOldNode?.kind === NodeKind.Token &&
-      isTsBinaryOperatorToken(nextOldNode.tsNode);
-    if (nextOldNode && nextIsOperator === wantOperator) {
-      newContent.push(
-        mapChild({
-          node: nextOldNode,
-          oldIndex: oldContent.length - remainingOldContent.length,
-          newIndex: newContent.length,
-        }),
-      );
-      remainingOldContent.shift();
-    } else {
-      const newNode = nodeFromTsNode(
-        wantOperator
-          ? ts.createToken(ts.SyntaxKind.PlusToken)
-          : ts.createIdentifier("placeholder"),
-        undefined,
-      );
-      newNode.isPlaceholder = true;
-      newContent.push(newNode);
-    }
-    wantOperator = !wantOperator;
-  }
-  return newContent;
-}
-
-function _makeNodeValidTs({
-  node,
-  pathMapper,
-  oldPath,
-  newPath,
-}: {
-  node: Node;
-  pathMapper: PathMapper;
-  oldPath: Path;
-  newPath: Path;
-}): Node {
-  if (!pathsAreEqual(oldPath, newPath)) {
-    pathMapper.record({ old: oldPath, new: newPath });
-  }
-  if (
-    node.kind === NodeKind.List &&
-    node.listKind === ListKind.TightExpression &&
-    node.content.length > 0 &&
-    node.content[0].kind === NodeKind.List &&
-    node.content[0].listKind === ListKind.CallArguments
-  ) {
-    const placeholder = nodeFromTsNode(
-      ts.createIdentifier("placeholder"),
-      undefined,
-    );
-    placeholder.isPlaceholder = true;
-    // HACK this.insertState.beforePath might be one past the end of the list,
-    // this makes sure it gets mapped correctly
-    pathMapper.record({
-      old: [...oldPath, node.content.length],
-      new: [...oldPath, node.content.length + 1],
-    });
-    node = {
-      ...node,
-      content: [
-        placeholder,
-        ...node.content.map((c, i) =>
-          _makeNodeValidTs({
-            node: c,
-            pathMapper,
-            oldPath: [...oldPath, i],
-            newPath: [...newPath, i + 1],
-          }),
-        ),
-      ],
-    };
-  } else if (
-    node.kind === NodeKind.List &&
-    node.content.length === 1 &&
-    (node.listKind === ListKind.TightExpression ||
-      (node.listKind === ListKind.LooseExpression &&
-        (node.content[0].kind !== NodeKind.Token ||
-          !isTsBinaryOperatorToken(node.content[0].tsNode))))
-  ) {
-    node = _makeNodeValidTs({
-      node: node.content[0],
-      pathMapper,
-      oldPath: [...oldPath, 0],
-      newPath: [...newPath],
-    });
-  } else if (
-    node.kind === NodeKind.List &&
-    node.listKind === ListKind.LooseExpression
-  ) {
-    node = {
-      ...node,
-      content: makeLooseExpressionValidTs(
-        node.content,
-        ({ node: c, oldIndex, newIndex }) =>
-          _makeNodeValidTs({
-            node: c,
-            pathMapper,
-            oldPath: [...oldPath, oldIndex],
-            newPath: [...newPath, newIndex],
-          }),
-      ),
-    };
-  } else if (node.kind === NodeKind.List) {
-    node = {
-      ...node,
-      content: node.content.map((c, i) =>
-        _makeNodeValidTs({
-          node: c,
-          pathMapper,
-          oldPath: [...oldPath, i],
-          newPath: [...newPath, i],
-        }),
-      ),
-    };
-  }
-  return node;
-}
 
 function filterNodes(
   node: ListNode,
@@ -624,11 +425,6 @@ function checkTextRangesDoNotOverlap(ranges: TextRange[]): boolean {
   return ranges.every((r, i) => i === 0 || ranges[i - 1].end <= r.pos);
 }
 
-interface Doc {
-  root: ListNode;
-  text: string;
-}
-
 const emptyDoc: Doc = {
   root: {
     kind: NodeKind.List,
@@ -825,37 +621,6 @@ function sliceTail<T>(a: T[], n: number): T[] {
     return [];
   }
   return a.slice(-n);
-}
-
-function pathsAreEqual(a: Path, b: Path): boolean {
-  return a === b || (a.length === b.length && a.every((v, i) => v === b[i]));
-}
-
-function getCommonPathPrefix(a: Path, b: Path): Path {
-  const common: Path = [];
-  for (let i = 0; i < Math.min(a.length, b.length); i++) {
-    if (a[i] !== b[i]) {
-      break;
-    }
-    common.push(a[i]);
-  }
-  return common;
-}
-
-function evenPathRangesAreEqual(a: EvenPathRange, b: EvenPathRange): boolean {
-  return (
-    a === b || (pathsAreEqual(a.anchor, b.anchor) && a.offset === b.offset)
-  );
-}
-
-function unevenPathRangesAreEqual(
-  a: UnevenPathRange,
-  b: UnevenPathRange,
-): boolean {
-  return (
-    a === b ||
-    (pathsAreEqual(a.anchor, b.anchor) && pathsAreEqual(a.tip, b.tip))
-  );
 }
 
 function nodeTryGetDeepestByPath(
