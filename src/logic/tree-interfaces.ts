@@ -43,3 +43,8 @@ export interface ListNode extends TextRange {
 export type Path = number[];
 export type EvenPathRange = { anchor: Path; offset: number };
 export type UnevenPathRange = { anchor: Path; tip: Path };
+
+export interface NodeWithPath {
+  node: Node;
+  path: Path;
+}

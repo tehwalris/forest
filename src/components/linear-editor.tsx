@@ -2,16 +2,16 @@ import { css } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
 import ts from "typescript";
-import { makeNodeValidTs } from '../logic/make-valid';
+import { makeNodeValidTs } from "../logic/make-valid";
 import { docFromAst } from "../logic/node-from-ts";
 import { astFromTypescriptFileContent } from "../logic/parse";
 import { PathMapper } from "../logic/path-mapper";
 import {
   evenPathRangesAreEqual,
   pathsAreEqual,
-  unevenPathRangesAreEqual
+  unevenPathRangesAreEqual,
 } from "../logic/path-utils";
-import { prettierFormat } from "../logic/pretty-print";
+import { printTsSourceFile } from "../logic/pretty-print";
 import {
   Doc,
   EvenPathRange,
@@ -19,12 +19,26 @@ import {
   ListNode,
   Node,
   NodeKind,
+  NodeWithPath,
   Path,
   TextRange,
-  UnevenPathRange
+  UnevenPathRange,
 } from "../logic/tree-interfaces";
 import { tsNodeFromNode } from "../logic/ts-from-node";
 import { unreachable } from "../logic/util";
+import { filterNodes } from "../logic/tree-utils/filter";
+import { nodesAreEqualExceptRangesAndPlaceholders } from "../logic/tree-utils/equal";
+import { withCopiedPlaceholders } from "../logic/tree-utils/copy-placeholders";
+import {
+  flattenNodeAroundSplit,
+  splitAtDeepestDelimiter,
+} from "../logic/tree-utils/flatten";
+import {
+  nodeGetByPath,
+  nodeMapAtPath,
+  nodeTryGetDeepestByPath,
+  nodeVisitDeep,
+} from "../logic/tree-utils/access";
 
 const exampleFile = `
 console.log("walrus")
@@ -39,286 +53,6 @@ if (Date.now() % 100 == 0) {
   console.log("lucky you");
 }
 `;
-
-
-function filterNodes(
-  node: ListNode,
-  shouldKeep: (node: Node) => boolean,
-): {
-  node: ListNode;
-  pathMapper: PathMapper;
-};
-function filterNodes(
-  node: Node,
-  shouldKeep: (node: Node) => boolean,
-): {
-  node: Node;
-  pathMapper: PathMapper;
-};
-function filterNodes(
-  node: Node,
-  shouldKeep: (node: Node) => boolean,
-): {
-  node: Node;
-  pathMapper: PathMapper;
-} {
-  const pathMapper = new PathMapper([]);
-  return {
-    node: _filterNodes({
-      node,
-      shouldKeep,
-      pathMapper,
-      oldPath: [],
-      newPath: [],
-    }),
-    pathMapper,
-  };
-}
-
-function _filterNodes({
-  node,
-  shouldKeep,
-  pathMapper,
-  oldPath,
-  newPath,
-}: {
-  node: Node;
-  shouldKeep: (node: Node) => boolean;
-  pathMapper: PathMapper;
-  oldPath: Path;
-  newPath: Path;
-}): Node {
-  if (!shouldKeep(node)) {
-    throw new Error("node outside of list can't be removed");
-  }
-  if (node.kind === NodeKind.List) {
-    const stuff = node.content.map((c, i) => ({
-      c,
-      oldI: i,
-      newI: i,
-      keep: shouldKeep(c),
-    }));
-    if (!stuff.every(({ keep }) => keep)) {
-      let i = 0;
-      for (const entry of stuff) {
-        entry.newI = i;
-        pathMapper.record({
-          old: [...oldPath, entry.oldI],
-          new: [...newPath, entry.newI],
-        });
-        if (entry.keep) {
-          i++;
-        }
-      }
-    }
-    return {
-      ...node,
-      content: stuff
-        .filter(({ keep }) => keep)
-        .map(({ c, oldI, newI }) =>
-          _filterNodes({
-            node: c,
-            shouldKeep,
-            pathMapper,
-            oldPath: [...oldPath, oldI],
-            newPath: [...newPath, newI],
-          }),
-        ),
-    };
-  }
-  return node;
-}
-
-function printTsSourceFile(file: ts.SourceFile): string {
-  const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
-  const unformattedText = printer.printNode(ts.EmitHint.SourceFile, file, file);
-
-  const formattedText = prettierFormat(unformattedText);
-
-  const transformer: ts.TransformerFactory<ts.SourceFile> =
-    (context) => (rootNode) => {
-      function visit(node: ts.Node): ts.Node {
-        if (ts.isParenthesizedExpression(node)) {
-          return ts.visitEachChild(node.expression, visit, context);
-        }
-        return ts.visitEachChild(node, visit, context);
-      }
-      return ts.visitNode(rootNode, visit);
-    };
-
-  const formattedAst = astFromTypescriptFileContent(formattedText);
-  const transformResult = ts.transform(formattedAst, [transformer]);
-  const astWithoutParens = transformResult.transformed[0];
-
-  const textWithoutParens = printer.printFile(astWithoutParens);
-  return textWithoutParens;
-}
-
-function nodesAreEqualExceptRangesAndPlaceholders(a: Node, b: Node): boolean {
-  if (a.kind === NodeKind.Token && b.kind === NodeKind.Token) {
-    // TODO check that the tsNodes have equal content
-    return a.tsNode.kind === b.tsNode.kind;
-  }
-  if (a.kind === NodeKind.List && b.kind === NodeKind.List) {
-    return (
-      a.listKind === b.listKind &&
-      a.delimiters[0] === b.delimiters[0] &&
-      a.delimiters[1] === b.delimiters[1] &&
-      a.content.length === b.content.length &&
-      a.content.every((ca, i) =>
-        nodesAreEqualExceptRangesAndPlaceholders(ca, b.content[i]),
-      ) &&
-      a.equivalentToContent === b.equivalentToContent
-    );
-  }
-  return false;
-}
-
-function withCopiedPlaceholders(
-  placeholderSource: ListNode,
-  nodeSource: ListNode,
-): ListNode;
-function withCopiedPlaceholders(
-  placeholderSource: Node,
-  nodeSource: Node,
-): Node;
-function withCopiedPlaceholders(
-  placeholderSource: Node,
-  nodeSource: Node,
-): Node {
-  if (
-    !nodesAreEqualExceptRangesAndPlaceholders(placeholderSource, nodeSource)
-  ) {
-    throw new Error(
-      "nodes do not satisfy nodesAreEqualExceptRangesAndPlaceholders",
-    );
-  }
-  return _withCopiedPlaceholders(placeholderSource, nodeSource);
-}
-
-function _withCopiedPlaceholders(
-  placeholderSource: Node,
-  nodeSource: Node,
-): Node {
-  if (
-    placeholderSource.kind === NodeKind.Token &&
-    nodeSource.kind === NodeKind.Token
-  ) {
-    return { ...nodeSource, isPlaceholder: placeholderSource.isPlaceholder };
-  }
-  if (
-    placeholderSource.kind === NodeKind.List &&
-    nodeSource.kind === NodeKind.List
-  ) {
-    return {
-      ...nodeSource,
-      isPlaceholder: placeholderSource.isPlaceholder,
-      content: placeholderSource.content.map((placeholderSourceChild, i) =>
-        _withCopiedPlaceholders(placeholderSourceChild, nodeSource.content[i]),
-      ),
-    };
-  }
-  throw new Error("unreachable");
-}
-
-interface NodeWithPath {
-  node: Node;
-  path: Path;
-}
-
-function prefixNodesWithPaths(
-  nodes: NodeWithPath[],
-  prefix: number,
-): NodeWithPath[] {
-  return nodes.map((r) => ({ ...r, path: [prefix, ...r.path] }));
-}
-
-function flattenNode(node: Node): NodeWithPath[] {
-  if (node.kind === NodeKind.Token || !node.equivalentToContent) {
-    return [{ node, path: [] }];
-  }
-  return node.content.flatMap((c, i) =>
-    prefixNodesWithPaths(flattenNode(c), i),
-  );
-}
-
-function flattenNodeAroundSplit(
-  node: Node,
-  splitBeforePath: Path,
-): { before: NodeWithPath[]; after: NodeWithPath[] } {
-  if (!splitBeforePath.length || node.kind === NodeKind.Token) {
-    return { before: [], after: flattenNode(node) };
-  }
-  const before = node.content
-    .slice(0, splitBeforePath[0])
-    .flatMap((c, i) => prefixNodesWithPaths(flattenNode(c), i));
-  const nodeAt = node.content[splitBeforePath[0]] as Node | undefined;
-  const prefixRecursion = ({
-    before,
-    after,
-  }: ReturnType<typeof flattenNodeAroundSplit>) => ({
-    before: prefixNodesWithPaths(before, splitBeforePath[0]),
-    after: prefixNodesWithPaths(after, splitBeforePath[0]),
-  });
-  const at =
-    nodeAt &&
-    prefixRecursion(flattenNodeAroundSplit(nodeAt, splitBeforePath.slice(1)));
-  const after = node.content
-    .slice(splitBeforePath[0] + 1)
-    .flatMap((c, i) =>
-      prefixNodesWithPaths(flattenNode(c), splitBeforePath[0] + 1 + i),
-    );
-  return {
-    before: [...before, ...(at?.before || [])],
-    after: [...(at?.after || []), ...after],
-  };
-}
-
-// path must point *inside* the list, not just at it
-function getPathToDeepestDelimitedListOrRoot(root: ListNode, path: Path): Path {
-  return _getPathToDeepestDelimitedList(root, path) || [];
-}
-
-function _getPathToDeepestDelimitedList(
-  node: ListNode,
-  path: Path,
-): Path | undefined {
-  if (!path.length) {
-    return undefined;
-  }
-
-  let deeperPathSuffix: Path | undefined;
-  const child = node.content[path[0]];
-  if (child?.kind === NodeKind.List) {
-    deeperPathSuffix = _getPathToDeepestDelimitedList(child, path.slice(1));
-  }
-
-  const pathIfDelimited = node.equivalentToContent ? undefined : [];
-  return deeperPathSuffix ? [path[0], ...deeperPathSuffix] : pathIfDelimited;
-}
-
-function splitAtDeepestDelimiter(
-  root: ListNode,
-  targetPath: Path,
-): {
-  withEmptyList: ListNode;
-  list: ListNode;
-  pathToList: Path;
-  pathFromList: Path;
-} {
-  const delimitedPath = getPathToDeepestDelimitedListOrRoot(root, targetPath);
-  return {
-    withEmptyList: nodeMapAtPath(delimitedPath, (node) => {
-      if (node.kind !== NodeKind.List) {
-        throw new Error("node is not a list");
-      }
-      return { ...node, content: [] };
-    })(root) as ListNode,
-    list: nodeGetByPath(root, delimitedPath) as ListNode,
-    pathToList: delimitedPath,
-    pathFromList: targetPath.slice(delimitedPath.length),
-  };
-}
 
 type CheckedInsertion =
   | {
@@ -621,85 +355,6 @@ function sliceTail<T>(a: T[], n: number): T[] {
     return [];
   }
   return a.slice(-n);
-}
-
-function nodeTryGetDeepestByPath(
-  node: Node,
-  path: Path,
-): { path: Path; node: Node } {
-  if (!path.length) {
-    return { path: [], node };
-  }
-  switch (node.kind) {
-    case NodeKind.Token:
-      return { path: [], node };
-    case NodeKind.List: {
-      const childNode = node.content[path[0]];
-      if (!childNode) {
-        return { path: [], node };
-      }
-      const childResult = nodeTryGetDeepestByPath(childNode, path.slice(1));
-      return { node: childResult.node, path: [path[0], ...childResult.path] };
-    }
-    default:
-      return unreachable(node);
-  }
-}
-
-function nodeGetByPath(node: Node, path: Path): Node | undefined {
-  const result = nodeTryGetDeepestByPath(node, path);
-  return result.path.length === path.length ? result.node : undefined;
-}
-
-function nodeSetByPath(node: Node, path: Path, value: Node): Node {
-  if (!path.length) {
-    return value;
-  }
-  switch (node.kind) {
-    case NodeKind.Token:
-      throw new Error("path too long");
-    case NodeKind.List: {
-      const targetIndex = path[0];
-      const childNode = node.content[targetIndex];
-      if (!childNode) {
-        throw new Error("missing child");
-      }
-      const newContent = [...node.content];
-      newContent[targetIndex] = nodeSetByPath(childNode, path.slice(1), value);
-      if (newContent[targetIndex] === node.content[targetIndex]) {
-        return node;
-      }
-      return { ...node, content: newContent };
-    }
-    default:
-      return unreachable(node);
-  }
-}
-
-function nodeMapAtPath(
-  path: Path,
-  cb: (node: Node) => Node,
-): (node: Node) => Node {
-  return (node) => {
-    const oldFocusedNode = nodeGetByPath(node, path);
-    if (!oldFocusedNode) {
-      throw new Error("node at path does not exist");
-    }
-    return nodeSetByPath(node, path, cb(oldFocusedNode));
-  };
-}
-
-function nodeVisitDeep(
-  node: Node,
-  cb: (node: Node, path: Path) => void,
-  path: Path = [],
-) {
-  cb(node, path);
-  if (node.kind === NodeKind.List) {
-    for (const [i, c] of node.content.entries()) {
-      nodeVisitDeep(c, cb, [...path, i]);
-    }
-  }
 }
 
 function flipEvenPathRange(oldPathRange: EvenPathRange): EvenPathRange {

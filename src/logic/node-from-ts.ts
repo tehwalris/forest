@@ -1,11 +1,5 @@
 import ts from "typescript";
-import {
-  ListKind,
-  ListNode,
-  Node,
-  NodeKind,
-  Doc,
-} from "../logic/tree-interfaces";
+import { ListKind, ListNode, Node, NodeKind, Doc } from "./tree-interfaces";
 
 function shouldFlattenWithListKind<K extends ListKind>(
   listKind: K,

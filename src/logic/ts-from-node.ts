@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { ListKind, Node, NodeKind } from "../logic/tree-interfaces";
+import { ListKind, Node, NodeKind } from "./tree-interfaces";
 import {
   getBinaryOperatorPrecedence,
   isTsBinaryOperatorToken,

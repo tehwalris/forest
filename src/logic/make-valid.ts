@@ -1,11 +1,5 @@
 import ts from "typescript";
-import {
-  ListKind,
-  ListNode,
-  Node,
-  NodeKind,
-  Path,
-} from "../logic/tree-interfaces";
+import { ListKind, ListNode, Node, NodeKind, Path } from "./tree-interfaces";
 import { isTsBinaryOperatorToken } from "./binary-operator";
 import { nodeFromTsNode } from "./node-from-ts";
 import { PathMapper } from "./path-mapper";

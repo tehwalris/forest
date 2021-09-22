@@ -1,4 +1,9 @@
-import { EvenPathRange, Path, UnevenPathRange } from "../logic/tree-interfaces";
+import {
+  EvenPathRange,
+  NodeWithPath,
+  Path,
+  UnevenPathRange,
+} from "../logic/tree-interfaces";
 
 export function pathsAreEqual(a: Path, b: Path): boolean {
   return a === b || (a.length === b.length && a.every((v, i) => v === b[i]));
@@ -32,4 +37,11 @@ export function unevenPathRangesAreEqual(
     a === b ||
     (pathsAreEqual(a.anchor, b.anchor) && pathsAreEqual(a.tip, b.tip))
   );
+}
+
+export function prefixNodesWithPaths(
+  nodes: NodeWithPath[],
+  prefix: number,
+): NodeWithPath[] {
+  return nodes.map((r) => ({ ...r, path: [prefix, ...r.path] }));
 }
