@@ -1502,6 +1502,18 @@ interface InsertState {
   text: string;
 }
 
+interface DocManagerPublicState {
+  doc: Doc;
+  focus: EvenPathRange;
+  mode: Mode;
+}
+
+const initialDocManagerPublicState = {
+  doc: emptyDoc,
+  focus: { anchor: [], offset: 0 },
+  mode: Mode.Normal,
+};
+
 class DocManager {
   private doc: Doc = initialDoc;
   private focus: UnevenPathRange = { anchor: [], tip: [] };
@@ -1517,11 +1529,7 @@ class DocManager {
   private insertState: InsertState | undefined;
 
   constructor(
-    private _onUpdate: (stuff: {
-      doc: Doc;
-      focus: EvenPathRange;
-      mode: Mode;
-    }) => void,
+    private _onUpdate: (publicState: DocManagerPublicState) => void,
   ) {}
 
   forceUpdate() {
@@ -2189,15 +2197,9 @@ function renderDoc(doc: Doc, focus: EvenPathRange): React.ReactNode {
 }
 
 export const LinearEditor = () => {
-  const [{ doc, focus, mode }, setStuff] = useState<{
-    doc: Doc;
-    focus: EvenPathRange;
-    mode: Mode;
-  }>({
-    doc: emptyDoc,
-    focus: { anchor: [], offset: 0 },
-    mode: Mode.Normal,
-  });
+  const [{ doc, focus, mode }, setStuff] = useState<DocManagerPublicState>(
+    initialDocManagerPublicState,
+  );
   const [docManager, setDocManager] = useState(new DocManager(setStuff));
   useEffect(() => {
     setDocManager((oldDocManager) => {
