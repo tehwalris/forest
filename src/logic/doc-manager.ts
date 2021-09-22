@@ -52,6 +52,13 @@ export const initialDocManagerPublicState = {
   mode: Mode.Normal,
 };
 
+export interface MinimalKeyboardEvent {
+  key: string;
+  altKey?: boolean;
+  preventDefault?: () => void;
+  stopPropagation?: () => void;
+}
+
 export class DocManager {
   private focus: UnevenPathRange = { anchor: [], tip: [] };
   private parentFocuses: EvenPathRange[] = [];
@@ -78,7 +85,7 @@ export class DocManager {
     this.history = [];
   }
 
-  onKeyPress = (ev: KeyboardEvent) => {
+  onKeyPress = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal) {
       if (ev.key === "Enter") {
         const evenFocus = asEvenPathRange(this.focus);
@@ -210,7 +217,7 @@ export class DocManager {
         throw new Error("this.insertState was undefined in insert mode");
       }
       if (ev.key.length === 1) {
-        ev.preventDefault();
+        ev.preventDefault?.();
         this.insertState = {
           ...this.insertState,
           text: this.insertState.text + ev.key,
@@ -221,7 +228,7 @@ export class DocManager {
     this.onUpdate();
   };
 
-  onKeyDown = (ev: KeyboardEvent) => {
+  onKeyDown = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal && ev.key === ";" && ev.altKey) {
       this.focus = flipUnevenPathRange(this.focus);
       this.onUpdate();
@@ -329,10 +336,10 @@ export class DocManager {
     }
   };
 
-  onKeyUp = (ev: KeyboardEvent) => {
+  onKeyUp = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) {
-      ev.stopPropagation();
-      ev.preventDefault();
+      ev.stopPropagation?.();
+      ev.preventDefault?.();
     }
   };
 
