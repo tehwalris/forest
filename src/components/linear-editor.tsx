@@ -1,44 +1,42 @@
 import { css } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
-import ts from "typescript";
 import { checkInsertion } from "../logic/check-insertion";
-import { makeNodeValidTs } from "../logic/make-valid";
-import { docFromAst } from "../logic/node-from-ts";
-import { astFromTypescriptFileContent } from "../logic/parse";
-import { PathMapper } from "../logic/path-mapper";
-import {
-  evenPathRangesAreEqual,
-  unevenPathRangesAreEqual,
-} from "../logic/path-utils";
-import { printTsSourceFile } from "../logic/print";
-import {
-  getDocWithInsert,
-  getTextWithDeletions,
-  mapNodeTextRanges,
-} from "../logic/text";
+import { docMapRoot, emptyDoc } from "../logic/doc-utils";
 import {
   Doc,
   EvenPathRange,
   InsertState,
-  ListKind,
-  ListNode,
   Node,
   NodeKind,
   Path,
-  TextRange,
   UnevenPathRange,
 } from "../logic/interfaces";
+import { docFromAst } from "../logic/node-from-ts";
+import { astFromTypescriptFileContent } from "../logic/parse";
+import {
+  asEvenPathRange,
+  asUnevenPathRange,
+  evenPathRangesAreEqual,
+  flipEvenPathRange,
+  flipUnevenPathRange,
+  getPathToTip,
+  unevenPathRangesAreEqual,
+} from "../logic/path-utils";
+import {
+  getDocWithAllPlaceholders,
+  getDocWithoutPlaceholdersNearCursor,
+} from "../logic/placeholders";
+import { printTsSourceFile } from "../logic/print";
+import { getDocWithInsert } from "../logic/text";
 import {
   nodeGetByPath,
   nodeMapAtPath,
   nodeTryGetDeepestByPath,
   nodeVisitDeep,
 } from "../logic/tree-utils/access";
-import { withCopiedPlaceholders } from "../logic/tree-utils/copy-placeholders";
-import { nodesAreEqualExceptRangesAndPlaceholders } from "../logic/tree-utils/equal";
 import { filterNodes } from "../logic/tree-utils/filter";
-import { tsNodeFromNode } from "../logic/ts-from-node";
+import { withoutInvisibleNodes } from "../logic/without-invisible";
 
 const exampleFile = `
 console.log("walrus")
@@ -54,306 +52,7 @@ if (Date.now() % 100 == 0) {
 }
 `;
 
-const emptyDoc: Doc = {
-  root: {
-    kind: NodeKind.List,
-    listKind: ListKind.File,
-    delimiters: ["", ""],
-    content: [],
-    equivalentToContent: true,
-    pos: 0,
-    end: 0,
-  },
-  text: "",
-};
-
 const initialDoc = docFromAst(astFromTypescriptFileContent(exampleFile));
-
-function docMapRoot(doc: Doc, cb: (node: ListNode) => Node): Doc {
-  const newRoot = cb(doc.root);
-  if (newRoot === doc.root) {
-    return doc;
-  }
-  if (newRoot.kind !== NodeKind.List) {
-    throw new Error("newRoot must be a ListNode");
-  }
-  return { ...doc, root: newRoot };
-}
-
-function getDocWithAllPlaceholders(docWithoutPlaceholders: Doc): {
-  doc: Doc;
-  pathMapper: PathMapper;
-} {
-  const placeholderAddition = makeNodeValidTs(docWithoutPlaceholders.root);
-  const validRoot = placeholderAddition.node;
-  const sourceFile = tsNodeFromNode(validRoot) as ts.SourceFile;
-  const text = printTsSourceFile(sourceFile);
-  const parsedDoc = docFromAst(astFromTypescriptFileContent(text));
-  if (!nodesAreEqualExceptRangesAndPlaceholders(validRoot, parsedDoc.root)) {
-    console.warn("update would change tree", validRoot, parsedDoc.root);
-    throw new Error("update would change tree");
-  }
-  const docWithPlaceholders = {
-    root: withCopiedPlaceholders(validRoot, parsedDoc.root),
-    text: parsedDoc.text,
-  };
-  return {
-    doc: docWithPlaceholders,
-    pathMapper: placeholderAddition.pathMapper,
-  };
-}
-
-function getDocWithoutPlaceholdersNearCursor(
-  doc: Doc,
-  cursorBeforePos: number,
-): {
-  doc: Doc;
-  mapOldToWithoutAdjacent: (path: Path) => Path;
-  cursorBeforePos: number;
-} {
-  const placeholderAddition = getDocWithAllPlaceholders(doc);
-
-  // TODO ignore whitespace
-  const isAdjacentToCursor = (range: TextRange) =>
-    range.pos === cursorBeforePos || range.end === cursorBeforePos;
-  const shouldKeepNode = (node: Node) =>
-    !node.isPlaceholder || !isAdjacentToCursor(node);
-  const placeholderRemoval = filterNodes(
-    placeholderAddition.doc.root,
-    shouldKeepNode,
-  );
-  const removedPlaceholders: Node[] = [];
-  nodeVisitDeep(placeholderAddition.doc.root, (node) => {
-    if (!shouldKeepNode(node)) {
-      removedPlaceholders.push(node);
-    }
-  });
-
-  const textDeletion = getTextWithDeletions(
-    placeholderAddition.doc.text,
-    removedPlaceholders,
-  );
-
-  const mapOldToWithoutAdjacent = (oldPath: Path) =>
-    placeholderRemoval.pathMapper.mapRough(
-      placeholderAddition.pathMapper.mapRough(oldPath),
-    );
-
-  return {
-    doc: {
-      root: mapNodeTextRanges(placeholderRemoval.node, textDeletion.mapPos),
-      text: textDeletion.text,
-    },
-    mapOldToWithoutAdjacent,
-    cursorBeforePos: textDeletion.mapPos(cursorBeforePos),
-  };
-}
-
-function asUnevenPathRange(even: EvenPathRange): UnevenPathRange {
-  if (!even.offset) {
-    return { anchor: even.anchor, tip: even.anchor };
-  }
-  if (!even.anchor.length) {
-    throw new Error("offset at root is invalid");
-  }
-  const tip = [...even.anchor];
-  tip[tip.length - 1] += even.offset;
-  return { anchor: even.anchor, tip };
-}
-
-function asEvenPathRange(uneven: UnevenPathRange): EvenPathRange {
-  const commonPrefix = [];
-  let firstUnequal: { anchor: number; tip: number } | undefined;
-  for (let i = 0; i < Math.min(uneven.anchor.length, uneven.tip.length); i++) {
-    if (uneven.anchor[i] === uneven.tip[i]) {
-      commonPrefix.push(uneven.anchor[i]);
-    } else {
-      firstUnequal = { anchor: uneven.anchor[i], tip: uneven.tip[i] };
-      break;
-    }
-  }
-  return firstUnequal
-    ? {
-        anchor: [...commonPrefix, firstUnequal.anchor],
-        offset: firstUnequal.tip - firstUnequal.anchor,
-      }
-    : { anchor: commonPrefix, offset: 0 };
-}
-
-function flipEvenPathRange(oldPathRange: EvenPathRange): EvenPathRange {
-  if (!oldPathRange.anchor.length || !oldPathRange.offset) {
-    return oldPathRange;
-  }
-  const newPathRange = {
-    anchor: [...oldPathRange.anchor],
-    offset: -oldPathRange.offset,
-  };
-  newPathRange.anchor[newPathRange.anchor.length - 1] += oldPathRange.offset;
-  return newPathRange;
-}
-
-function flipUnevenPathRange({
-  anchor,
-  tip,
-}: UnevenPathRange): UnevenPathRange {
-  return { anchor: tip, tip: anchor };
-}
-
-function getPathToTip(pathRange: EvenPathRange): Path {
-  const path = [...pathRange.anchor];
-  if (!path.length) {
-    return [];
-  }
-  path[path.length - 1] += pathRange.offset;
-  return path;
-}
-
-function withoutInvisibleNodes(
-  doc: Doc,
-  focus: EvenPathRange,
-): { doc: Doc; focus: EvenPathRange } {
-  if (focus.offset < 0) {
-    const result = withoutInvisibleNodes(doc, flipEvenPathRange(focus));
-    return { doc: result.doc, focus: flipEvenPathRange(result.focus) };
-  }
-  const result = _withoutInvisibleNodes(doc.root, focus);
-  return {
-    doc: result ? docMapRoot(doc, () => result.node) : emptyDoc,
-    focus: result?.focus || { anchor: [], offset: 0 },
-  };
-}
-
-function _withoutInvisibleNodes(
-  node: Node,
-  focus: EvenPathRange | undefined,
-): { node: Node; focus: EvenPathRange | undefined } | undefined {
-  if (node.kind === NodeKind.Token) {
-    return { node, focus };
-  }
-  if (node.kind === NodeKind.List) {
-    if (!node.content.length) {
-      if (node.equivalentToContent) {
-        return undefined;
-      }
-      return { node, focus };
-    }
-
-    let focusedChildIndex: number | undefined;
-    let directlyFocusedChildRange: [number, number] | undefined;
-    if (focus?.anchor.length === 1) {
-      directlyFocusedChildRange = [
-        focus.anchor[0],
-        focus.anchor[0] + focus.offset,
-      ];
-      if (directlyFocusedChildRange[0] > directlyFocusedChildRange[1]) {
-        directlyFocusedChildRange = [
-          directlyFocusedChildRange[1],
-          directlyFocusedChildRange[0],
-        ];
-      }
-    } else if (focus && focus.anchor.length > 1) {
-      focusedChildIndex = focus.anchor[0];
-    }
-
-    const results = node.content.map((c, i) =>
-      _withoutInvisibleNodes(
-        c,
-        focusedChildIndex === i
-          ? { anchor: focus!.anchor.slice(1), offset: focus!.offset }
-          : directlyFocusedChildRange &&
-            i >= directlyFocusedChildRange[0] &&
-            i <= directlyFocusedChildRange[1]
-          ? { anchor: [], offset: 0 }
-          : undefined,
-      ),
-    );
-    const filteredOldIndices = results
-      .map((r, i) => [r, i] as const)
-      .filter(([r, _i]) => r)
-      .map(([_r, i]) => i);
-    const newNode = {
-      ...node,
-      content: results
-        .map((r) => r?.node)
-        .filter((v) => v)
-        .map((v) => v!),
-    };
-
-    if (!newNode.content.length && node.equivalentToContent) {
-      return undefined;
-    }
-    if (!focus) {
-      return { node: newNode, focus: undefined };
-    }
-    if (!newNode.content.length) {
-      return { node: newNode, focus: { anchor: [], offset: 0 } };
-    }
-    if (directlyFocusedChildRange && results.some((r) => r?.focus)) {
-      const remainingResults = results.filter((r) => r);
-      const firstIndex = remainingResults.findIndex((r) => r?.focus);
-      let lastIndex = firstIndex;
-      for (let i = firstIndex; i < remainingResults.length; i++) {
-        if (remainingResults[i]?.focus) {
-          lastIndex = i;
-        }
-      }
-      return {
-        node: newNode,
-        focus: { anchor: [firstIndex], offset: lastIndex - firstIndex },
-      };
-    }
-    if (focusedChildIndex !== undefined) {
-      const childFocus = results[focusedChildIndex]?.focus;
-      if (childFocus) {
-        const newFocusedChildIndex =
-          filteredOldIndices.indexOf(focusedChildIndex);
-        return {
-          node: newNode,
-          focus: {
-            anchor: [newFocusedChildIndex, ...childFocus.anchor],
-            offset: childFocus.offset,
-          },
-        };
-      } else {
-        const minIndexAfterFocused = filteredOldIndices.findIndex(
-          (i) => i > focusedChildIndex!,
-        );
-        const maxIndexBeforeFocused = Math.max(
-          ...filteredOldIndices.filter((i) => i < focusedChildIndex!),
-          -1,
-        );
-        const newFocusedChildIndex =
-          minIndexAfterFocused >= 0
-            ? minIndexAfterFocused
-            : maxIndexBeforeFocused;
-        return {
-          node: newNode,
-          focus: { anchor: [newFocusedChildIndex], offset: 0 },
-        };
-      }
-    }
-    if (!directlyFocusedChildRange) {
-      return { node: newNode, focus: focus };
-    }
-    {
-      const minIndexAfterFocused = filteredOldIndices.findIndex(
-        (i) => i > directlyFocusedChildRange![1],
-      );
-      const maxIndexBeforeFocused = Math.max(
-        ...filteredOldIndices.filter((i) => i < directlyFocusedChildRange![1]),
-        -1,
-      );
-      const newFocusedChildIndex =
-        minIndexAfterFocused >= 0
-          ? minIndexAfterFocused
-          : maxIndexBeforeFocused;
-      return {
-        node: newNode,
-        focus: { anchor: [newFocusedChildIndex], offset: 0 },
-      };
-    }
-  }
-}
 
 enum Mode {
   Normal,
