@@ -1,4 +1,4 @@
-import { Node, NodeKind, Path } from "../tree-interfaces";
+import { Node, NodeKind, Path } from "../interfaces";
 import { unreachable } from "../util";
 
 export function nodeTryGetDeepestByPath(

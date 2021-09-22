@@ -23,3 +23,13 @@ export function mergeIntoMapNoOverwrite<K, V>(
     target.set(k, v);
   }
 }
+
+export function sliceTail<T>(a: T[], n: number): T[] {
+  if (n < 0) {
+    throw new Error("negative count");
+  }
+  if (n === 0) {
+    return [];
+  }
+  return a.slice(-n);
+}

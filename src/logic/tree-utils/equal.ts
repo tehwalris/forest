@@ -1,4 +1,4 @@
-import { Node, NodeKind } from "../tree-interfaces";
+import { Node, NodeKind } from "../interfaces";
 
 export function nodesAreEqualExceptRangesAndPlaceholders(
   a: Node,

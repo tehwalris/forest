@@ -2,43 +2,43 @@ import { css } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
 import ts from "typescript";
+import { checkInsertion } from "../logic/check-insertion";
 import { makeNodeValidTs } from "../logic/make-valid";
 import { docFromAst } from "../logic/node-from-ts";
 import { astFromTypescriptFileContent } from "../logic/parse";
 import { PathMapper } from "../logic/path-mapper";
 import {
   evenPathRangesAreEqual,
-  pathsAreEqual,
   unevenPathRangesAreEqual,
 } from "../logic/path-utils";
-import { printTsSourceFile } from "../logic/pretty-print";
+import { printTsSourceFile } from "../logic/print";
+import {
+  getDocWithInsert,
+  getTextWithDeletions,
+  mapNodeTextRanges,
+} from "../logic/text";
 import {
   Doc,
   EvenPathRange,
+  InsertState,
   ListKind,
   ListNode,
   Node,
   NodeKind,
-  NodeWithPath,
   Path,
   TextRange,
   UnevenPathRange,
-} from "../logic/tree-interfaces";
-import { tsNodeFromNode } from "../logic/ts-from-node";
-import { unreachable } from "../logic/util";
-import { filterNodes } from "../logic/tree-utils/filter";
-import { nodesAreEqualExceptRangesAndPlaceholders } from "../logic/tree-utils/equal";
-import { withCopiedPlaceholders } from "../logic/tree-utils/copy-placeholders";
-import {
-  flattenNodeAroundSplit,
-  splitAtDeepestDelimiter,
-} from "../logic/tree-utils/flatten";
+} from "../logic/interfaces";
 import {
   nodeGetByPath,
   nodeMapAtPath,
   nodeTryGetDeepestByPath,
   nodeVisitDeep,
 } from "../logic/tree-utils/access";
+import { withCopiedPlaceholders } from "../logic/tree-utils/copy-placeholders";
+import { nodesAreEqualExceptRangesAndPlaceholders } from "../logic/tree-utils/equal";
+import { filterNodes } from "../logic/tree-utils/filter";
+import { tsNodeFromNode } from "../logic/ts-from-node";
 
 const exampleFile = `
 console.log("walrus")
@@ -53,111 +53,6 @@ if (Date.now() % 100 == 0) {
   console.log("lucky you");
 }
 `;
-
-type CheckedInsertion =
-  | {
-      valid: false;
-    }
-  | {
-      valid: true;
-      pathMapper: PathMapper;
-    };
-
-function checkInsertion(
-  nodeOld: ListNode,
-  nodeNew: ListNode,
-  insertBeforePath: Path,
-): CheckedInsertion {
-  const printReason = (reason: string) => {
-    console.warn(`Insertion is not valid. Reason: ${reason}`);
-  };
-
-  if (!insertBeforePath.length) {
-    throw new Error("insertBeforePath must not be empty");
-  }
-
-  const delimiterSplitOld = splitAtDeepestDelimiter(nodeOld, insertBeforePath);
-  const delimiterSplitNew = splitAtDeepestDelimiter(nodeNew, insertBeforePath);
-  if (
-    !nodesAreEqualExceptRangesAndPlaceholders(
-      delimiterSplitOld.withEmptyList,
-      delimiterSplitNew.withEmptyList,
-    )
-  ) {
-    printReason("changes outside of nearest containing delimited list");
-    return { valid: false };
-  }
-
-  if (
-    !pathsAreEqual(delimiterSplitOld.pathToList, delimiterSplitNew.pathToList)
-  ) {
-    printReason("path to nearest containing delimited list has changed");
-    return { valid: false };
-  }
-
-  const flatOld = flattenNodeAroundSplit(
-    delimiterSplitOld.list,
-    delimiterSplitOld.pathFromList,
-  );
-  const flatNew = flattenNodeAroundSplit(
-    delimiterSplitNew.list,
-    delimiterSplitNew.pathFromList,
-  );
-  if (
-    flatOld.before.length > flatNew.before.length ||
-    flatOld.after.length > flatNew.after.length
-  ) {
-    printReason("new flat lists are shorter");
-    return { valid: false };
-  }
-
-  const allNodesAreEqualWithoutPaths = (
-    nodesA: NodeWithPath[],
-    nodesB: NodeWithPath[],
-  ): boolean =>
-    nodesA.every((a, i) =>
-      nodesAreEqualExceptRangesAndPlaceholders(a.node, nodesB[i].node),
-    );
-  const flatNewBeforeCommon = flatNew.before.slice(0, flatOld.before.length);
-  if (!allNodesAreEqualWithoutPaths(flatOld.before, flatNewBeforeCommon)) {
-    printReason("existing nodes before cursor changed");
-    return { valid: false };
-  }
-  const flatNewAfterCommon = sliceTail(flatNew.after, flatOld.after.length);
-  if (!allNodesAreEqualWithoutPaths(flatOld.after, flatNewAfterCommon)) {
-    printReason("existing nodes after cursor changed");
-    return { valid: false };
-  }
-
-  const pathMapper = new PathMapper(delimiterSplitOld.pathToList);
-  for (const [i, oldEntry] of flatOld.before.entries()) {
-    pathMapper.record({ old: oldEntry.path, new: flatNewBeforeCommon[i].path });
-  }
-  for (const [i, oldEntry] of flatOld.after.entries()) {
-    pathMapper.record({ old: oldEntry.path, new: flatNewAfterCommon[i].path });
-  }
-
-  return { valid: true, pathMapper };
-}
-
-function mapNodeTextRanges(
-  node: ListNode,
-  cb: (pos: number) => number,
-): ListNode;
-function mapNodeTextRanges(node: Node, cb: (pos: number) => number): Node;
-function mapNodeTextRanges(node: Node, cb: (pos: number) => number): Node {
-  node = { ...node, pos: cb(node.pos), end: cb(node.end) };
-  if (node.kind === NodeKind.List) {
-    node.content = node.content.map((c) => mapNodeTextRanges(c, cb));
-  }
-  return node;
-}
-
-function checkTextRangesDoNotOverlap(ranges: TextRange[]): boolean {
-  const sortedRanges = [...ranges];
-  sortedRanges.sort();
-  return ranges.every((r, i) => i === 0 || ranges[i - 1].end <= r.pos);
-}
 
 const emptyDoc: Doc = {
   root: {
@@ -254,68 +149,6 @@ function getDocWithoutPlaceholdersNearCursor(
   };
 }
 
-function getDocWithInsert(
-  doc: Doc,
-  insertState: Pick<InsertState, "beforePos" | "text">,
-): Doc {
-  return {
-    root: mapNodeTextRanges(doc.root, (pos) =>
-      pos >= insertState.beforePos ? pos + insertState.text.length : pos,
-    ),
-    text:
-      doc.text.slice(0, insertState.beforePos) +
-      insertState.text +
-      doc.text.slice(insertState.beforePos),
-  };
-}
-
-function getTextWithDeletions(
-  text: string,
-  _deleteRanges: TextRange[],
-): { text: string; mapPos: (pos: number) => number } {
-  if (!_deleteRanges.length) {
-    return { text, mapPos: (pos) => pos };
-  }
-
-  const deleteRanges = [..._deleteRanges];
-  deleteRanges.sort();
-
-  if (!checkTextRangesDoNotOverlap(deleteRanges)) {
-    throw new Error("deleteRanges overlap");
-  }
-
-  return {
-    text:
-      text.slice(0, deleteRanges[0].pos) +
-      deleteRanges.map((r, i) => {
-        const nextPos =
-          i + 1 === deleteRanges.length ? text.length : deleteRanges[i + 1].pos;
-        return text.slice(r.end, nextPos);
-      }),
-
-    // Example
-    // 0123456789
-    //  xxx x
-    //    !
-    // 046789
-    //  !
-    mapPos: (pos) => {
-      const containingRange = deleteRanges.find(
-        (r) => r.pos <= pos && r.end > pos,
-      );
-      if (containingRange) {
-        pos = containingRange.end;
-      }
-      const rangesBefore = deleteRanges.filter((r) => r.end <= pos);
-      const deletedCharsBefore = rangesBefore.reduce(
-        (a, c) => a + (c.end - c.pos),
-        0,
-      );
-      return pos - deletedCharsBefore;
-    },
-  };
-}
-
 function asUnevenPathRange(even: EvenPathRange): UnevenPathRange {
   if (!even.offset) {
     return { anchor: even.anchor, tip: even.anchor };
@@ -345,16 +178,6 @@ function asEvenPathRange(uneven: UnevenPathRange): EvenPathRange {
         offset: firstUnequal.tip - firstUnequal.anchor,
       }
     : { anchor: commonPrefix, offset: 0 };
-}
-
-function sliceTail<T>(a: T[], n: number): T[] {
-  if (n < 0) {
-    throw new Error("negative count");
-  }
-  if (n === 0) {
-    return [];
-  }
-  return a.slice(-n);
 }
 
 function flipEvenPathRange(oldPathRange: EvenPathRange): EvenPathRange {
@@ -536,12 +359,6 @@ enum Mode {
   Normal,
   InsertBefore,
   InsertAfter,
-}
-
-interface InsertState {
-  beforePos: number;
-  beforePath: Path;
-  text: string;
 }
 
 interface DocManagerPublicState {

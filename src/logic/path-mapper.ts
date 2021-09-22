@@ -1,4 +1,4 @@
-import { Path } from "../logic/tree-interfaces";
+import { Path } from "./interfaces";
 import { getCommonPathPrefix, pathsAreEqual } from "./path-utils";
 
 export interface PathMapping {

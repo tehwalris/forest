@@ -1,4 +1,4 @@
-import { ListNode, Node, NodeKind } from "../tree-interfaces";
+import { ListNode, Node, NodeKind } from "../interfaces";
 import { nodesAreEqualExceptRangesAndPlaceholders } from "./equal";
 
 export function withCopiedPlaceholders(

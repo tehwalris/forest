@@ -48,3 +48,9 @@ export interface NodeWithPath {
   node: Node;
   path: Path;
 }
+
+export interface InsertState {
+  beforePos: number;
+  beforePath: Path;
+  text: string;
+}

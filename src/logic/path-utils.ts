@@ -3,7 +3,7 @@ import {
   NodeWithPath,
   Path,
   UnevenPathRange,
-} from "../logic/tree-interfaces";
+} from "./interfaces";
 
 export function pathsAreEqual(a: Path, b: Path): boolean {
   return a === b || (a.length === b.length && a.every((v, i) => v === b[i]));

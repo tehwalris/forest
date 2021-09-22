@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { ListKind, ListNode, Node, NodeKind, Path } from "./tree-interfaces";
+import { ListKind, ListNode, Node, NodeKind, Path } from "./interfaces";
 import { isTsBinaryOperatorToken } from "./binary-operator";
 import { nodeFromTsNode } from "./node-from-ts";
 import { PathMapper } from "./path-mapper";
