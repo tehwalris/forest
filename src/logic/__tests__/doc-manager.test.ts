@@ -172,5 +172,3 @@ describe("DocManager", () => {
     });
   }
 });
-
-test("example test", () => {});
