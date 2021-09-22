@@ -2,9 +2,19 @@ import { css } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
 import ts from "typescript";
-import { CompilerHost } from "../logic/providers/typescript/compiler-host";
-import { prettierFormat } from "../logic/providers/typescript/pretty-print";
+import { CompilerHost } from "../logic/compiler-host";
+import { prettierFormat } from "../logic/pretty-print";
 import { unreachable } from "../logic/util";
+import {
+  Node,
+  ListKind,
+  ListNode,
+  NodeKind,
+  TextRange,
+  Path,
+  EvenPathRange,
+  UnevenPathRange,
+} from "../logic/tree-interfaces";
 
 const exampleFile = `
 console.log("walrus")
@@ -19,45 +29,6 @@ if (Date.now() % 100 == 0) {
   console.log("lucky you");
 }
 `;
-
-type Path = number[];
-type EvenPathRange = { anchor: Path; offset: number };
-type UnevenPathRange = { anchor: Path; tip: Path };
-
-interface TextRange {
-  pos: number;
-  end: number;
-}
-
-enum NodeKind {
-  Token,
-  List,
-}
-
-type Node = TokenNode | ListNode;
-
-interface TokenNode extends TextRange {
-  kind: NodeKind.Token;
-  tsNode: ts.Node;
-  isPlaceholder?: boolean;
-}
-
-enum ListKind {
-  TightExpression,
-  LooseExpression,
-  ParenthesizedExpression,
-  CallArguments,
-  File,
-}
-
-interface ListNode extends TextRange {
-  kind: NodeKind.List;
-  listKind: ListKind;
-  delimiters: [string, string];
-  content: Node[];
-  equivalentToContent: boolean;
-  isPlaceholder?: boolean;
-}
 
 const fakeFileName = "file.ts";
 const languageVersion = ts.ScriptTarget.ES2020;
