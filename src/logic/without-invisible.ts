@@ -1,7 +1,6 @@
+import { docMapRoot, emptyDoc } from "./doc-utils";
 import { Doc, EvenPathRange, Node, NodeKind } from "./interfaces";
 import { flipEvenPathRange } from "./path-utils";
-import { docMapRoot, emptyDoc } from "./doc-utils";
-import { filter } from "ramda";
 
 export function withoutInvisibleNodes(
   doc: Doc,
