@@ -4,6 +4,7 @@ import { isTsBinaryOperatorToken } from "./binary-operator";
 import { nodeFromTsNode } from "./node-from-ts";
 import { PathMapper } from "./path-mapper";
 import { pathsAreEqual } from "./path-utils";
+import { withDefaultContent } from "./struct";
 
 export function makeNodeValidTs(node: ListNode): {
   node: ListNode;
@@ -81,11 +82,10 @@ function _makeNodeValidTs({
     node.content[0].kind === NodeKind.List &&
     node.content[0].listKind === ListKind.CallArguments
   ) {
-    const placeholder = nodeFromTsNode(
-      ts.createIdentifier("placeholder"),
-      undefined,
-    );
-    placeholder.isPlaceholder = true;
+    const placeholder = {
+      ...nodeFromTsNode(ts.createIdentifier("placeholder"), undefined),
+      isPlaceholder: true,
+    };
     // HACK this.insertState.beforePath might be one past the end of the list,
     // this makes sure it gets mapped correctly
     pathMapper.record({
@@ -137,6 +137,37 @@ function _makeNodeValidTs({
           }),
       ),
     };
+  } else if (
+    node.kind === NodeKind.List &&
+    node.listKind === ListKind.TsNodeStruct &&
+    node.tsSyntaxKind === ts.SyntaxKind.ArrowFunction
+  ) {
+    node = withDefaultContent(
+      node,
+      [
+        { key: "modifiers" },
+        { key: "typeParameters" },
+        { key: "parameters" },
+        {
+          key: "body",
+          node: {
+            ...nodeFromTsNode(ts.createIdentifier("placeholder"), undefined),
+            isPlaceholder: true,
+          },
+        },
+      ],
+      ({ node: c, oldIndex, newIndex }) => {
+        if (oldIndex === undefined) {
+          return c;
+        }
+        return _makeNodeValidTs({
+          node: c,
+          pathMapper,
+          oldPath: [...oldPath, oldIndex],
+          newPath: [...newPath, newIndex],
+        });
+      },
+    );
   } else if (node.kind === NodeKind.List) {
     node = {
       ...node,

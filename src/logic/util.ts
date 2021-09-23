@@ -33,3 +33,28 @@ export function sliceTail<T>(a: T[], n: number): T[] {
   }
   return a.slice(-n);
 }
+
+// isSubarray([1, 2, 3], [2, 3]) === true
+// isSubarray([1, 2, 3], [1, 2, 3]) === true
+// isSubarray([1, 2, 3], [1]) === true
+// isSubarray([1], [1, 2, 3]) === false
+// isSubarray([1, 2, 3], [3, 2]) === false
+// isSubarray([1, 2, 3], []) === true
+// isSubarray([1, 2, 3], [2, 2, 3]) === false
+// isSubarray([1, 2, 2, 3], [2, 3]) === true
+// isSubarray([1, 2, 3], [1, 3]) === true
+export function isSubarray(long: unknown[], short: unknown[]): boolean {
+  if (long.length < short.length) {
+    return false;
+  }
+  const remainingShort = [...short];
+  for (const v of long) {
+    if (!remainingShort.length) {
+      return true;
+    }
+    if (remainingShort[0] === v) {
+      remainingShort.shift();
+    }
+  }
+  return !remainingShort.length;
+}
