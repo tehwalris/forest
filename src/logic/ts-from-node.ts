@@ -1,11 +1,18 @@
 import ts from "typescript";
-import { ListKind, Node, NodeKind } from "./interfaces";
 import {
   getBinaryOperatorPrecedence,
   isTsBinaryOperatorToken,
 } from "./binary-operator";
+import { ListKind, Node, NodeKind } from "./interfaces";
 import { astFromTypescriptFileContent } from "./parse";
 import { unreachable } from "./util";
+
+function tsNodeArrayFromNode(node: Node): ts.Node[] {
+  if (node.kind !== NodeKind.List) {
+    throw new Error("node is not a list");
+  }
+  return node.content.map((c) => tsNodeFromNode(c));
+}
 
 export function tsNodeFromNode(node: Node): ts.Node {
   if (node.kind === NodeKind.Token) {
@@ -89,6 +96,22 @@ export function tsNodeFromNode(node: Node): ts.Node {
     case ListKind.CallArguments:
       throw new Error(
         "CallArguments should be handled by TightExpression parent",
+      );
+    case ListKind.UnknownTsNodeArray:
+      throw new Error(
+        "UnknownTsNodeArray should be handled by TightExpression parent",
+      );
+    case ListKind.TsNodeStruct:
+      if (node.tsSyntaxKind !== ts.SyntaxKind.ArrowFunction) {
+        throw new Error("TsNodeStruct only supports ArrowFunction");
+      }
+      return ts.createArrowFunction(
+        undefined,
+        undefined,
+        tsNodeArrayFromNode(node.content[0]) as ts.ParameterDeclaration[],
+        undefined,
+        undefined,
+        tsNodeFromNode(node.content[1]) as ts.ConciseBody,
       );
     case ListKind.File:
       return ts.updateSourceFileNode(

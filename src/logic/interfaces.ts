@@ -28,12 +28,15 @@ export enum ListKind {
   LooseExpression,
   ParenthesizedExpression,
   CallArguments,
+  UnknownTsNodeArray,
+  TsNodeStruct,
   File,
 }
 
 export interface ListNode extends TextRange {
   kind: NodeKind.List;
   listKind: ListKind;
+  tsSyntaxKind?: ts.SyntaxKind;
   delimiters: [string, string];
   content: Node[];
   equivalentToContent: boolean;

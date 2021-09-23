@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { ListKind, ListNode, Node, NodeKind, Doc } from "./interfaces";
+import { Doc, ListKind, ListNode, Node, NodeKind } from "./interfaces";
 
 function shouldFlattenWithListKind<K extends ListKind>(
   listKind: K,
@@ -149,6 +149,31 @@ function listNodeFromTsParenthesizedExpression(
   };
 }
 
+function listNodeFromTsArrowFunction(
+  arrowFunction: ts.ArrowFunction,
+  file: ts.SourceFile | undefined,
+): ListNode {
+  return {
+    kind: NodeKind.List,
+    listKind: ListKind.TsNodeStruct,
+    tsSyntaxKind: ts.SyntaxKind.ArrowFunction,
+    delimiters: ["", ""],
+    content: [
+      listNodeFromDelimitedTsNodeArray(
+        arrowFunction.parameters,
+        file,
+        ListKind.UnknownTsNodeArray,
+        arrowFunction.parameters.pos - 1,
+        arrowFunction.parameters.end + 1,
+      ),
+      nodeFromTsNode(arrowFunction.body, file),
+    ],
+    equivalentToContent: true,
+    pos: arrowFunction.pos,
+    end: arrowFunction.end,
+  };
+}
+
 export function nodeFromTsNode(
   node: ts.Node,
   file: ts.SourceFile | undefined,
@@ -163,6 +188,8 @@ export function nodeFromTsNode(
     return listNodeFromTsBinaryExpression(node, file);
   } else if (ts.isParenthesizedExpression(node)) {
     return listNodeFromTsParenthesizedExpression(node, file);
+  } else if (ts.isArrowFunction(node)) {
+    return listNodeFromTsArrowFunction(node, file);
   } else {
     return {
       kind: NodeKind.Token,
