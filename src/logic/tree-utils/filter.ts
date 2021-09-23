@@ -84,6 +84,7 @@ function _filterNodes({
             newPath: [...newPath, newI],
           }),
         ),
+      structKeys: node.structKeys?.filter((_k, i) => stuff[i].keep),
     };
   }
   return node;

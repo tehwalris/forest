@@ -215,6 +215,9 @@ function listNodeFromTsArrowFunction(
     ),
   );
 
+  structKeys.push("equalsGreaterThanToken");
+  content.push(nodeFromTsNode(arrowFunction.equalsGreaterThanToken, file));
+
   structKeys.push("body");
   content.push(nodeFromTsNode(arrowFunction.body, file));
 

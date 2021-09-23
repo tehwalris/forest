@@ -148,6 +148,7 @@ function _makeNodeValidTs({
         { key: "modifiers" },
         { key: "typeParameters" },
         { key: "parameters" },
+        { key: "equalsGreaterThanToken" },
         {
           key: "body",
           node: {

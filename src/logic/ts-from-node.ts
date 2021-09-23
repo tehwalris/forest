@@ -108,7 +108,7 @@ export function tsNodeFromNode(node: Node): ts.Node {
       }
       const content = getStructContent(
         node,
-        ["parameters", "body"],
+        ["parameters", "equalsGreaterThanToken", "body"],
         ["typeParameters", "modifiers"],
       );
       return ts.createArrowFunction(
@@ -120,7 +120,9 @@ export function tsNodeFromNode(node: Node): ts.Node {
           ) as ts.TypeParameterDeclaration[]),
         tsNodeArrayFromNode(content.parameters) as ts.ParameterDeclaration[],
         undefined,
-        undefined,
+        tsNodeFromNode(
+          content.equalsGreaterThanToken,
+        ) as ts.EqualsGreaterThanToken,
         tsNodeFromNode(content.body) as ts.ConciseBody,
       );
     case ListKind.File:
