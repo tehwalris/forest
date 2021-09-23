@@ -169,7 +169,6 @@ export class DocManager {
             if (oldListNode?.kind !== NodeKind.List) {
               throw new Error("oldListNode is not a list");
             }
-            const newContent = [...oldListNode.content];
             const deleteFrom =
               forwardFocus.anchor[forwardFocus.anchor.length - 1];
             const deleteCount = forwardFocus.offset + 1;
@@ -178,8 +177,18 @@ export class DocManager {
             } else if (deleteFrom > 0) {
               newFocusIndex = deleteFrom - 1;
             }
+
+            const newContent = [...oldListNode.content];
+            const newStructKeys = oldListNode.structKeys && [
+              ...oldListNode.structKeys,
+            ];
             newContent.splice(deleteFrom, deleteCount);
-            return { ...oldListNode, content: newContent };
+            newStructKeys?.splice(deleteFrom, deleteCount);
+            return {
+              ...oldListNode,
+              content: newContent,
+              structKeys: newStructKeys,
+            };
           }),
         );
         this.focus = asUnevenPathRange({

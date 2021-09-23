@@ -37,6 +37,7 @@ export interface ListNode extends TextRange {
   kind: NodeKind.List;
   listKind: ListKind;
   tsSyntaxKind?: ts.SyntaxKind;
+  structKeys?: string[];
   delimiters: [string, string];
   content: Node[];
   equivalentToContent: boolean;

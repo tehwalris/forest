@@ -3,7 +3,7 @@ import {
   getBinaryOperatorPrecedence,
   isTsBinaryOperatorToken,
 } from "./binary-operator";
-import { ListKind, Node, NodeKind } from "./interfaces";
+import { ListKind, ListNode, Node, NodeKind } from "./interfaces";
 import { astFromTypescriptFileContent } from "./parse";
 import { unreachable } from "./util";
 
@@ -12,6 +12,44 @@ function tsNodeArrayFromNode(node: Node): ts.Node[] {
     throw new Error("node is not a list");
   }
   return node.content.map((c) => tsNodeFromNode(c));
+}
+
+function getStructContent<RK extends string, OK extends string>(
+  node: ListNode,
+  requiredKeys: RK[],
+  optionalKeys: OK[],
+): { [K in RK]: Node } & { [K in OK]: Node | undefined } {
+  if (
+    !node.structKeys ||
+    node.structKeys.length !== node.content.length ||
+    new Set(node.structKeys).size !== node.structKeys.length
+  ) {
+    throw new Error("structKeys is invalid");
+  }
+
+  const expectedKeySet = new Set<string>([...requiredKeys, ...optionalKeys]);
+  if (expectedKeySet.size !== requiredKeys.length + optionalKeys.length) {
+    throw new Error("requiredKeys and optionalKeys contain duplicates");
+  }
+  if (!node.structKeys.every((k) => expectedKeySet.has(k))) {
+    throw new Error("some structKeys are not known");
+  }
+
+  const output: { [key: string]: Node | undefined } = {};
+  for (const k of requiredKeys) {
+    const i = node.structKeys.indexOf(k);
+    if (i === -1) {
+      throw new Error(`required key not found: ${k}`);
+    }
+    output[k] = node.content[i];
+  }
+  for (const k of optionalKeys) {
+    const i = node.structKeys.indexOf(k);
+    if (i !== -1) {
+      output[k] = node.content[i];
+    }
+  }
+  return output as any;
 }
 
 export function tsNodeFromNode(node: Node): ts.Node {
@@ -105,13 +143,21 @@ export function tsNodeFromNode(node: Node): ts.Node {
       if (node.tsSyntaxKind !== ts.SyntaxKind.ArrowFunction) {
         throw new Error("TsNodeStruct only supports ArrowFunction");
       }
+      const content = getStructContent(
+        node,
+        ["parameters", "body"],
+        ["typeParameters"],
+      );
       return ts.createArrowFunction(
         undefined,
+        content.typeParameters &&
+          (tsNodeArrayFromNode(
+            content.typeParameters,
+          ) as ts.TypeParameterDeclaration[]),
+        tsNodeArrayFromNode(content.parameters) as ts.ParameterDeclaration[],
         undefined,
-        tsNodeArrayFromNode(node.content[0]) as ts.ParameterDeclaration[],
         undefined,
-        undefined,
-        tsNodeFromNode(node.content[1]) as ts.ConciseBody,
+        tsNodeFromNode(content.body) as ts.ConciseBody,
       );
     case ListKind.File:
       return ts.updateSourceFileNode(

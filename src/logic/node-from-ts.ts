@@ -42,6 +42,7 @@ function listNodeFromDelimitedTsNodeArray(
     ["(", ")"],
     ["{", "}"],
     ["[", "]"],
+    ["<", ">"],
   ];
   const delimiters: [string, string] = [file.text[pos], file.text[end - 1]];
   if (
@@ -153,21 +154,43 @@ function listNodeFromTsArrowFunction(
   arrowFunction: ts.ArrowFunction,
   file: ts.SourceFile | undefined,
 ): ListNode {
+  const structKeys: string[] = [];
+  const content: Node[] = [];
+
+  if (arrowFunction.typeParameters?.length) {
+    structKeys.push("typeParameters");
+    content.push(
+      listNodeFromDelimitedTsNodeArray(
+        arrowFunction.typeParameters,
+        file,
+        ListKind.UnknownTsNodeArray,
+        arrowFunction.typeParameters.pos - 1,
+        arrowFunction.typeParameters.end + 1,
+      ),
+    );
+  }
+
+  structKeys.push("parameters");
+  content.push(
+    listNodeFromDelimitedTsNodeArray(
+      arrowFunction.parameters,
+      file,
+      ListKind.UnknownTsNodeArray,
+      arrowFunction.parameters.pos - 1,
+      arrowFunction.parameters.end + 1,
+    ),
+  );
+
+  structKeys.push("body");
+  content.push(nodeFromTsNode(arrowFunction.body, file));
+
   return {
     kind: NodeKind.List,
     listKind: ListKind.TsNodeStruct,
     tsSyntaxKind: ts.SyntaxKind.ArrowFunction,
     delimiters: ["", ""],
-    content: [
-      listNodeFromDelimitedTsNodeArray(
-        arrowFunction.parameters,
-        file,
-        ListKind.UnknownTsNodeArray,
-        arrowFunction.parameters.pos - 1,
-        arrowFunction.parameters.end + 1,
-      ),
-      nodeFromTsNode(arrowFunction.body, file),
-    ],
+    structKeys,
+    content,
     equivalentToContent: true,
     pos: arrowFunction.pos,
     end: arrowFunction.end,
