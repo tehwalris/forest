@@ -146,10 +146,11 @@ export function tsNodeFromNode(node: Node): ts.Node {
       const content = getStructContent(
         node,
         ["parameters", "body"],
-        ["typeParameters"],
+        ["typeParameters", "modifiers"],
       );
       return ts.createArrowFunction(
-        undefined,
+        content.modifiers &&
+          (tsNodeArrayFromNode(content.modifiers) as ts.Modifier[]),
         content.typeParameters &&
           (tsNodeArrayFromNode(
             content.typeParameters,

@@ -64,6 +64,29 @@ function listNodeFromDelimitedTsNodeArray(
   };
 }
 
+function listNodeFromNonDelimitedTsNodeArray(
+  nodeArray: ts.NodeArray<ts.Node>,
+  file: ts.SourceFile | undefined,
+  listKind: ListKind,
+): ListNode {
+  if (!file) {
+    throw new Error("listNodeFromDelimitedTsNodeArray requires file");
+  }
+  if (!nodeArray.length) {
+    throw new Error("nodeArray must not be empty");
+  }
+
+  return {
+    kind: NodeKind.List,
+    listKind,
+    delimiters: ["", ""],
+    content: nodeArray.map((c) => nodeFromTsNode(c, file)),
+    equivalentToContent: true,
+    pos: nodeArray[0].pos,
+    end: nodeArray[nodeArray.length - 1].end,
+  };
+}
+
 function listNodeFromTsCallExpression(
   callExpression: ts.CallExpression,
   file: ts.SourceFile | undefined,
@@ -156,6 +179,17 @@ function listNodeFromTsArrowFunction(
 ): ListNode {
   const structKeys: string[] = [];
   const content: Node[] = [];
+
+  if (arrowFunction.modifiers?.length) {
+    structKeys.push("modifiers");
+    content.push(
+      listNodeFromNonDelimitedTsNodeArray(
+        arrowFunction.modifiers,
+        file,
+        ListKind.UnknownTsNodeArray,
+      ),
+    );
+  }
 
   if (arrowFunction.typeParameters?.length) {
     structKeys.push("typeParameters");

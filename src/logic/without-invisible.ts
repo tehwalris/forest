@@ -1,6 +1,7 @@
 import { Doc, EvenPathRange, Node, NodeKind } from "./interfaces";
 import { flipEvenPathRange } from "./path-utils";
 import { docMapRoot, emptyDoc } from "./doc-utils";
+import { filter } from "ramda";
 
 export function withoutInvisibleNodes(
   doc: Doc,
@@ -67,6 +68,8 @@ function _withoutInvisibleNodes(
       .map(([_r, i]) => i);
     const newNode = {
       ...node,
+      structKeys:
+        node.structKeys && filteredOldIndices.map((i) => node.structKeys![i]),
       content: results
         .map((r) => r?.node)
         .filter((v) => v)
