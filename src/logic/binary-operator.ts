@@ -1,15 +1,5 @@
 import ts from "typescript";
 
-export function isTsBinaryOperatorToken(
-  node: ts.Node,
-): node is ts.BinaryOperatorToken {
-  return (
-    ts.isToken(node) &&
-    node.kind >= ts.SyntaxKind.FirstBinaryOperator &&
-    node.kind <= ts.SyntaxKind.LastBinaryOperator
-  );
-}
-
 // https://github.com/microsoft/TypeScript/blob/663b19fe4a7c4d4ddaa61aedadd28da06acd27b6/src/compiler/utilities.ts#L3659
 // https://github.com/prettier/prettier/blob/30f82c0356ad3c24e56e79c95933988c02555427/src/language-js/utils.js#L1106
 const precedenceByBinaryOperator = new Map<ts.SyntaxKind, number>();

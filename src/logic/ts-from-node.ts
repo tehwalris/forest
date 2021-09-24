@@ -1,12 +1,14 @@
 import ts from "typescript";
-import {
-  getBinaryOperatorPrecedence,
-  isTsBinaryOperatorToken,
-} from "./binary-operator";
+import { getBinaryOperatorPrecedence } from "./binary-operator";
 import { ListKind, Node, NodeKind } from "./interfaces";
 import { astFromTypescriptFileContent } from "./parse";
-import { unreachable } from "./util";
 import { getStructContent } from "./struct";
+import {
+  isToken,
+  isTsBinaryOperatorToken,
+  isTsQuestionDotToken,
+} from "./ts-type-predicates";
+import { unreachable } from "./util";
 
 function tsNodeArrayFromNode(node: Node): ts.Node[] {
   if (node.kind !== NodeKind.List) {
@@ -28,21 +30,34 @@ export function tsNodeFromNode(node: Node): ts.Node {
       if (node.content.length === 1) {
         return tsNodeFromNode(lastChild);
       }
-      const restNode = { ...node, content: node.content.slice(0, -1) };
+
+      const secondToLastChild = node.content[node.content.length - 2];
+      let questionDotToken: ts.QuestionDotToken | undefined;
+      if (isToken(secondToLastChild, isTsQuestionDotToken)) {
+        questionDotToken = secondToLastChild.tsNode;
+      }
+
+      const restNode = {
+        ...node,
+        content: node.content.slice(0, questionDotToken ? -2 : -1),
+      };
+
       if (
         lastChild.kind === NodeKind.List &&
         lastChild.listKind === ListKind.CallArguments
       ) {
-        return ts.createCall(
+        return ts.factory.createCallChain(
           tsNodeFromNode(restNode) as ts.Expression,
-          undefined,
+          questionDotToken,
+          [],
           lastChild.content.map((c) => tsNodeFromNode(c) as ts.Expression),
         );
       } else if (lastChild.kind === NodeKind.List) {
         throw new Error("child list has unsupported ListKind");
       } else {
-        return ts.createPropertyAccess(
+        return ts.factory.createPropertyAccessChain(
           tsNodeFromNode(restNode) as ts.Expression,
+          questionDotToken,
           tsNodeFromNode(lastChild) as ts.Identifier,
         );
       }

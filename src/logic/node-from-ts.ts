@@ -99,6 +99,9 @@ function listNodeFromTsCallExpression(
       ListKind.TightExpression,
       nodeFromTsNode(callExpression.expression, file),
       [
+        ...(callExpression.questionDotToken
+          ? [nodeFromTsNode(callExpression.questionDotToken, file)]
+          : []),
         listNodeFromDelimitedTsNodeArray(
           callExpression.arguments,
           file,
@@ -125,7 +128,12 @@ function listNodeFromTsPropertyAccessExpression(
     content: flattenLeftIfListKind(
       ListKind.TightExpression,
       nodeFromTsNode(propertyAccessExpression.expression, file),
-      [nodeFromTsNode(propertyAccessExpression.name, file)],
+      [
+        ...(propertyAccessExpression.questionDotToken
+          ? [nodeFromTsNode(propertyAccessExpression.questionDotToken, file)]
+          : []),
+        nodeFromTsNode(propertyAccessExpression.name, file),
+      ],
     ),
     equivalentToContent: true,
     pos: propertyAccessExpression.pos,

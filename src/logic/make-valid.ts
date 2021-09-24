@@ -1,10 +1,15 @@
 import ts from "typescript";
 import { ListKind, ListNode, Node, NodeKind, Path } from "./interfaces";
-import { isTsBinaryOperatorToken } from "./binary-operator";
 import { nodeFromTsNode } from "./node-from-ts";
 import { PathMapper } from "./path-mapper";
 import { pathsAreEqual } from "./path-utils";
 import { withDefaultContent } from "./struct";
+import {
+  isToken,
+  isTsBinaryOperatorToken,
+  isTsQuestionDotToken,
+} from "./ts-type-predicates";
+import { last } from "ramda";
 
 export function makeNodeValidTs(node: ListNode): {
   node: ListNode;
@@ -23,6 +28,54 @@ export function makeNodeValidTs(node: Node): {
     node: _makeNodeValidTs({ node, pathMapper, oldPath: [], newPath: [] }),
     pathMapper,
   };
+}
+
+export interface WithInsertedContentMapArgs {
+  oldIndex?: number;
+  newIndex: number;
+  node: Node;
+}
+
+function insertIntoContent(
+  oldContent: Node[],
+  shouldInsert: (
+    newLeft: Node | undefined,
+    oldRight: Node | undefined,
+  ) => Node | undefined,
+  map: (args: WithInsertedContentMapArgs) => Node,
+): Node[] {
+  const newContent: Node[] = [];
+  const mapAndPush = ({
+    node,
+    oldIndex,
+  }: {
+    node: Node;
+    oldIndex?: number;
+  }) => {
+    const mappedNode = map({
+      oldIndex,
+      newIndex: newContent.length,
+      node,
+    });
+    newContent.push(mappedNode);
+  };
+
+  let oldIndex = 0;
+  while (true) {
+    const oldNode =
+      oldIndex < oldContent.length ? oldContent[oldIndex] : undefined;
+    const newNode = shouldInsert(last(newContent), oldNode);
+    if (newNode) {
+      mapAndPush({ node: newNode });
+    } else if (!oldNode) {
+      break;
+    } else {
+      mapAndPush({ node: oldNode, oldIndex });
+      oldIndex++;
+    }
+  }
+
+  return newContent;
 }
 
 function makeLooseExpressionValidTs(
@@ -61,6 +114,39 @@ function makeLooseExpressionValidTs(
   return newContent;
 }
 
+function makeTightExpressionValidTs(
+  oldContent: Node[],
+  mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
+): Node[] {
+  return insertIntoContent(
+    oldContent,
+    (newLeft, oldRight) => {
+      const placeholder = {
+        ...nodeFromTsNode(ts.createIdentifier("placeholder"), undefined),
+        isPlaceholder: true,
+      };
+      if (
+        newLeft === undefined &&
+        oldRight !== undefined &&
+        ((oldRight.kind === NodeKind.List &&
+          oldRight.listKind === ListKind.CallArguments) ||
+          isToken(oldRight, isTsQuestionDotToken))
+      ) {
+        return placeholder;
+      }
+      if (
+        newLeft !== undefined &&
+        isToken(newLeft, isTsQuestionDotToken) &&
+        (oldRight === undefined || isToken(oldRight, isTsQuestionDotToken))
+      ) {
+        return placeholder;
+      }
+      return undefined;
+    },
+    mapChild,
+  );
+}
+
 function _makeNodeValidTs({
   node,
   pathMapper,
@@ -72,71 +158,74 @@ function _makeNodeValidTs({
   oldPath: Path;
   newPath: Path;
 }): Node {
-  if (!pathsAreEqual(oldPath, newPath)) {
-    pathMapper.record({ old: oldPath, new: newPath });
-  }
-  if (
-    node.kind === NodeKind.List &&
-    node.listKind === ListKind.TightExpression &&
-    node.content.length > 0 &&
-    node.content[0].kind === NodeKind.List &&
-    node.content[0].listKind === ListKind.CallArguments
-  ) {
-    const placeholder = {
-      ...nodeFromTsNode(ts.createIdentifier("placeholder"), undefined),
-      isPlaceholder: true,
-    };
-    // HACK this.insertState.beforePath might be one past the end of the list,
-    // this makes sure it gets mapped correctly
-    pathMapper.record({
-      old: [...oldPath, node.content.length],
-      new: [...oldPath, node.content.length + 1],
-    });
-    node = {
-      ...node,
-      content: [
-        placeholder,
-        ...node.content.map((c, i) =>
-          _makeNodeValidTs({
-            node: c,
-            pathMapper,
-            oldPath: [...oldPath, i],
-            newPath: [...newPath, i + 1],
-          }),
-        ),
-      ],
-    };
-  } else if (
-    node.kind === NodeKind.List &&
-    node.content.length === 1 &&
-    (node.listKind === ListKind.TightExpression ||
-      (node.listKind === ListKind.LooseExpression &&
-        (node.content[0].kind !== NodeKind.Token ||
-          !isTsBinaryOperatorToken(node.content[0].tsNode))))
-  ) {
-    node = _makeNodeValidTs({
+  function extractOnlyChild(node: ListNode): Node {
+    if (node.content.length !== 1) {
+      throw new Error(
+        `want node.content.length === 1, got ${node.content.length}`,
+      );
+    }
+    return _makeNodeValidTs({
       node: node.content[0],
       pathMapper,
       oldPath: [...oldPath, 0],
       newPath: [...newPath],
     });
+  }
+
+  function mapChild({
+    node,
+    oldIndex,
+    newIndex,
+  }: {
+    node: Node;
+    oldIndex?: number;
+    newIndex: number;
+  }): Node {
+    if (oldIndex === undefined) {
+      return node;
+    }
+    return _makeNodeValidTs({
+      node: node,
+      pathMapper,
+      oldPath: [...oldPath, oldIndex],
+      newPath: [...newPath, newIndex],
+    });
+  }
+
+  if (!pathsAreEqual(oldPath, newPath)) {
+    pathMapper.record({ old: oldPath, new: newPath });
+  }
+
+  if (
+    node.kind === NodeKind.List &&
+    node.listKind === ListKind.TightExpression
+  ) {
+    if (
+      node.content.length === 1 &&
+      makeTightExpressionValidTs(node.content, (e) => e.node).length === 1
+    ) {
+      node = extractOnlyChild(node);
+    } else {
+      node = {
+        ...node,
+        content: makeTightExpressionValidTs(node.content, mapChild),
+      };
+    }
   } else if (
     node.kind === NodeKind.List &&
     node.listKind === ListKind.LooseExpression
   ) {
-    node = {
-      ...node,
-      content: makeLooseExpressionValidTs(
-        node.content,
-        ({ node: c, oldIndex, newIndex }) =>
-          _makeNodeValidTs({
-            node: c,
-            pathMapper,
-            oldPath: [...oldPath, oldIndex],
-            newPath: [...newPath, newIndex],
-          }),
-      ),
-    };
+    if (
+      node.content.length === 1 &&
+      makeLooseExpressionValidTs(node.content, (e) => e.node).length === 1
+    ) {
+      node = extractOnlyChild(node);
+    } else {
+      node = {
+        ...node,
+        content: makeLooseExpressionValidTs(node.content, mapChild),
+      };
+    }
   } else if (
     node.kind === NodeKind.List &&
     node.listKind === ListKind.TsNodeStruct &&
@@ -157,28 +246,13 @@ function _makeNodeValidTs({
           },
         },
       ],
-      ({ node: c, oldIndex, newIndex }) => {
-        if (oldIndex === undefined) {
-          return c;
-        }
-        return _makeNodeValidTs({
-          node: c,
-          pathMapper,
-          oldPath: [...oldPath, oldIndex],
-          newPath: [...newPath, newIndex],
-        });
-      },
+      mapChild,
     );
   } else if (node.kind === NodeKind.List) {
     node = {
       ...node,
       content: node.content.map((c, i) =>
-        _makeNodeValidTs({
-          node: c,
-          pathMapper,
-          oldPath: [...oldPath, i],
-          newPath: [...newPath, i],
-        }),
+        mapChild({ node: c, oldIndex: i, newIndex: i }),
       ),
     };
   }

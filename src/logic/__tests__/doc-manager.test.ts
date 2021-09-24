@@ -58,13 +58,21 @@ describe("DocManager", () => {
     expectedText: string;
   }
 
+  const makeRoundTripTest = (text: string): TestCase => ({
+    label: `round trip: ${text}`,
+    initialText: text,
+    events: [],
+    expectedText: text,
+  });
+
   const cases: TestCase[] = [
-    {
-      label: "do nothing with hello world",
-      initialText: 'console.log("walrus")',
-      events: [],
-      expectedText: 'console.log("walrus")',
-    },
+    makeRoundTripTest('console.log("walrus")'),
+    makeRoundTripTest("f(async <T>(x: T, y) => x + y)"),
+    makeRoundTripTest("f(g(x), y).foo.bar().baz"),
+    makeRoundTripTest("a!.b"),
+    makeRoundTripTest("a.b!"),
+    makeRoundTripTest("a?.b"),
+    makeRoundTripTest("a?.()"),
     {
       label: "delete everything",
       initialText: 'console.log("walrus")',
