@@ -46,7 +46,7 @@ export interface DocManagerPublicState {
   mode: Mode;
 }
 
-export const initialDocManagerPublicState = {
+export const initialDocManagerPublicState: DocManagerPublicState = {
   doc: emptyDoc,
   focus: { anchor: [], offset: 0 },
   mode: Mode.Normal,

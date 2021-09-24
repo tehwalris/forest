@@ -18,7 +18,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": [],
+    "types": ["jest"],
     "noFallthroughCasesInSwitch": true
   },
   "exclude": [
@@ -27,5 +27,5 @@
   ],
   "include": [
     "src"
-  ]
+  ],
 }
