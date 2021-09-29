@@ -18,7 +18,10 @@ function tsNodeArrayFromNode(node: Node): ts.Node[] {
   return node.content.map((c) => tsNodeFromNode(c));
 }
 
-function tsIfStatementFromIfBranchNode(node: Node): ts.IfStatement {
+function tsIfStatementFromIfBranchNode(
+  node: Node,
+  elseStatement: ts.Statement | undefined,
+): ts.IfStatement {
   if (node.kind !== NodeKind.List || node.listKind !== ListKind.IfBranch) {
     throw new Error("node is not a ListNode with listKind IfBranch");
   }
@@ -28,6 +31,7 @@ function tsIfStatementFromIfBranchNode(node: Node): ts.IfStatement {
       ? (tsNodeFromNode(content.expression) as ts.Expression)
       : ts.createLiteral(true),
     tsNodeFromNode(content.statement) as ts.Statement,
+    elseStatement,
   );
 }
 
@@ -131,20 +135,11 @@ export function tsNodeFromNode(node: Node): ts.Node {
       if (node.content.length < 1) {
         throw new Error("IfBranches must have at least 1 child");
       }
-      let first: ts.IfStatement = tsIfStatementFromIfBranchNode(
-        node.content[0],
-      );
-      let last: ts.IfStatement = first;
-      for (let i = 1; i < node.content.length; i++) {
-        // TODO allow else
-        const next = tsIfStatementFromIfBranchNode(node.content[i]);
-        last = ts.updateIf(last, last.expression, last.thenStatement, next);
-        if (i === 1) {
-          first = last;
-        }
-        last = next;
+      let current: ts.IfStatement | undefined;
+      for (let i = node.content.length - 1; i >= 0; i--) {
+        current = tsIfStatementFromIfBranchNode(node.content[i], current);
       }
-      return first;
+      return current!;
     }
     case ListKind.IfBranch:
       throw new Error("IfBranch should be handled by IfBranches parent");
