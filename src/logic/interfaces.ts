@@ -28,6 +28,8 @@ export enum ListKind {
   LooseExpression,
   ParenthesizedExpression,
   CallArguments,
+  IfBranches,
+  IfBranch,
   UnknownTsNodeArray,
   TsNodeStruct,
   File,

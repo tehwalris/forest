@@ -24,6 +24,8 @@ console.log("walrus")
 foo();
 if (Date.now() % 100 == 0) {
   console.log("lucky you");
+} else if (walrus) {
+  console.log("even better");
 }
 `;
 

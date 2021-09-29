@@ -1,6 +1,7 @@
 import ts from "typescript";
 import { getBinaryOperatorPrecedence } from "./binary-operator";
-import { ListKind, Node, NodeKind } from "./interfaces";
+import { ListKind, ListNode, Node, NodeKind } from "./interfaces";
+import { nodeFromTsNode } from "./node-from-ts";
 import { astFromTypescriptFileContent } from "./parse";
 import { getStructContent } from "./struct";
 import {
@@ -15,6 +16,19 @@ function tsNodeArrayFromNode(node: Node): ts.Node[] {
     throw new Error("node is not a list");
   }
   return node.content.map((c) => tsNodeFromNode(c));
+}
+
+function tsIfStatementFromIfBranchNode(node: Node): ts.IfStatement {
+  if (node.kind !== NodeKind.List || node.listKind !== ListKind.IfBranch) {
+    throw new Error("node is not a ListNode with listKind IfBranch");
+  }
+  const content = getStructContent(node, ["statement"], ["expression"]);
+  return ts.createIf(
+    content.expression
+      ? (tsNodeFromNode(content.expression) as ts.Expression)
+      : ts.createLiteral(true),
+    tsNodeFromNode(content.statement) as ts.Statement,
+  );
 }
 
 export function tsNodeFromNode(node: Node): ts.Node {
@@ -113,6 +127,27 @@ export function tsNodeFromNode(node: Node): ts.Node {
       throw new Error(
         "CallArguments should be handled by TightExpression parent",
       );
+    case ListKind.IfBranches: {
+      if (node.content.length < 1) {
+        throw new Error("IfBranches must have at least 1 child");
+      }
+      let first: ts.IfStatement = tsIfStatementFromIfBranchNode(
+        node.content[0],
+      );
+      let last: ts.IfStatement = first;
+      for (let i = 1; i < node.content.length; i++) {
+        // TODO allow else
+        const next = tsIfStatementFromIfBranchNode(node.content[i]);
+        last = ts.updateIf(last, last.expression, last.thenStatement, next);
+        if (i === 1) {
+          first = last;
+        }
+        last = next;
+      }
+      return first;
+    }
+    case ListKind.IfBranch:
+      throw new Error("IfBranch should be handled by IfBranches parent");
     case ListKind.UnknownTsNodeArray:
       throw new Error(
         "UnknownTsNodeArray should be handled by TightExpression parent",

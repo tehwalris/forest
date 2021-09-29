@@ -242,6 +242,65 @@ function listNodeFromTsArrowFunction(
   };
 }
 
+function listNodeFromTsIfStatementBranch(
+  {
+    expression,
+    statement,
+  }: { expression?: ts.Expression; statement: ts.Statement },
+  file: ts.SourceFile | undefined,
+): ListNode {
+  const structKeys: string[] = [];
+  const content: Node[] = [];
+
+  if (expression) {
+    structKeys.push("expression");
+    content.push(nodeFromTsNode(expression, file));
+  }
+
+  structKeys.push("statement");
+  content.push(nodeFromTsNode(statement, file));
+
+  return {
+    kind: NodeKind.List,
+    listKind: ListKind.IfBranch,
+    delimiters: ["", ""],
+    structKeys,
+    content,
+    equivalentToContent: true,
+    pos: (expression || statement).pos,
+    end: statement.end,
+  };
+}
+
+function listNodeFromTsIfStatement(
+  ifStatement: ts.IfStatement,
+  file: ts.SourceFile | undefined,
+): ListNode {
+  return {
+    kind: NodeKind.List,
+    listKind: ListKind.IfBranches,
+    delimiters: ["", ""],
+    content: [
+      listNodeFromTsIfStatementBranch(
+        {
+          expression: ifStatement.expression,
+          statement: ifStatement.thenStatement,
+        },
+        file,
+      ),
+      ...(ifStatement.elseStatement
+        ? flattenIfListKind(
+            ListKind.IfBranches,
+            nodeFromTsNode(ifStatement.elseStatement, file),
+          )
+        : []),
+    ],
+    equivalentToContent: true,
+    pos: ifStatement.pos,
+    end: ifStatement.end,
+  };
+}
+
 export function nodeFromTsNode(
   node: ts.Node,
   file: ts.SourceFile | undefined,
@@ -258,6 +317,8 @@ export function nodeFromTsNode(
     return listNodeFromTsParenthesizedExpression(node, file);
   } else if (ts.isArrowFunction(node)) {
     return listNodeFromTsArrowFunction(node, file);
+  } else if (ts.isIfStatement(node)) {
+    return listNodeFromTsIfStatement(node, file);
   } else {
     return {
       kind: NodeKind.Token,
