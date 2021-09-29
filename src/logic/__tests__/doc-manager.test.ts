@@ -56,6 +56,7 @@ describe("DocManager", () => {
     initialText: string;
     events: EventWithHandler[];
     expectedText: string;
+    skip?: boolean;
   }
 
   const makeRoundTripTest = (text: string): TestCase => ({
@@ -127,6 +128,33 @@ describe("DocManager", () => {
       expectedText: "1*2/3**4**5+6*7*8",
     },
     {
+      label:
+        "change arithmetic expression with parens which keeps them required",
+      initialText: "a*(b+c)",
+      events: [
+        evSemi,
+        ...eventsFromKeys("j"),
+        evSemi,
+        ...eventsFromKeys("hdi-"),
+        evEscape,
+      ],
+      expectedText: "a*(b-c)",
+    },
+    {
+      label:
+        "change arithmetic expression with parens which makes them optional",
+      initialText: "a*(b+c)",
+      events: [
+        evSemi,
+        ...eventsFromKeys("j"),
+        evSemi,
+        ...eventsFromKeys("hdi*"),
+        evEscape,
+      ],
+      expectedText: "a*(b*c)",
+      skip: true,
+    },
+    {
       label: "backspace works and does not go too far",
       initialText: 'console.log("walrus")',
       events: [
@@ -163,7 +191,7 @@ describe("DocManager", () => {
   ];
 
   for (const c of cases) {
-    test(c.label, () => {
+    (c.skip ? test.skip : test)(c.label, () => {
       const initialDoc = asPrettyDoc(c.initialText);
       let publicState = initialDocManagerPublicState;
       const docManager = new DocManager(initialDoc, (s) => {
