@@ -234,7 +234,6 @@ export const LinearEditor = () => {
         {JSON.stringify(
           {
             focus,
-            tip: nodeGetByPath(doc.root, flipEvenPathRange(focus).anchor),
           },
           null,
           2,

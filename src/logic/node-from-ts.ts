@@ -1,5 +1,6 @@
 import ts from "typescript";
 import { Doc, ListKind, ListNode, Node, NodeKind } from "./interfaces";
+import { tsNodeFromNode } from "./ts-from-node";
 
 function shouldFlattenWithListKind<K extends ListKind>(
   listKind: K,
@@ -243,40 +244,32 @@ function listNodeFromTsArrowFunction(
 }
 
 function listNodeFromTsIfStatementBranch(
-  {
-    expression,
-    thenStatement: statement,
-  }: Pick<ts.IfStatement, "expression" | "thenStatement">,
+  ifStatement: ts.IfStatement,
   file: ts.SourceFile | undefined,
 ): ListNode {
-  const structKeys: string[] = [];
-  const content: Node[] = [];
-
-  if (expression) {
-    structKeys.push("expression");
-    content.push(
-      listNodeFromDelimitedTsNodeArray(
-        [expression],
-        file,
-        ListKind.UnknownTsNodeArray,
-        expression.pos - 1,
-        expression.end + 1,
-      ),
-    );
+  const ifToken = ifStatement.getFirstToken(file);
+  if (!ifToken) {
+    throw new Error("could not get first token of if statement");
   }
-
-  structKeys.push("statement");
-  content.push(nodeFromTsNode(statement, file));
-
   return {
     kind: NodeKind.List,
     listKind: ListKind.IfBranch,
     delimiters: ["", ""],
-    structKeys,
-    content,
+    structKeys: ["ifToken", "expression", "statement"],
+    content: [
+      nodeFromTsNode(ifToken, file),
+      listNodeFromDelimitedTsNodeArray(
+        [ifStatement.expression],
+        file,
+        ListKind.UnknownTsNodeArray,
+        ifStatement.expression.pos - 1,
+        ifStatement.expression.end + 1,
+      ),
+      nodeFromTsNode(ifStatement.thenStatement, file),
+    ],
     equivalentToContent: true,
-    pos: (expression || statement).pos,
-    end: statement.end,
+    pos: ifStatement.pos,
+    end: ifStatement.end,
   };
 }
 

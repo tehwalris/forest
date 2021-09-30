@@ -25,7 +25,11 @@ function tsIfStatementFromIfBranchNode(
   if (node.kind !== NodeKind.List || node.listKind !== ListKind.IfBranch) {
     throw new Error("node is not a ListNode with listKind IfBranch");
   }
-  const content = getStructContent(node, ["statement"], ["expression"]);
+  const content = getStructContent(
+    node,
+    ["statement"],
+    ["expression", "ifToken"],
+  );
   if (!content.expression) {
     if (elseStatement) {
       throw new Error(
