@@ -1,17 +1,15 @@
 import { css } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { Doc, EvenPathRange, Node, NodeKind } from "../logic/interfaces";
-import { docFromAst } from "../logic/node-from-ts";
-import { astFromTypescriptFileContent } from "../logic/parse";
-import { flipEvenPathRange } from "../logic/path-utils";
-import { nodeGetByPath } from "../logic/tree-utils/access";
 import {
   DocManager,
   DocManagerPublicState,
   initialDocManagerPublicState,
   Mode,
 } from "../logic/doc-manager";
+import { Doc, EvenPathRange, Node, NodeKind } from "../logic/interfaces";
+import { docFromAst } from "../logic/node-from-ts";
+import { astFromTypescriptFileContent } from "../logic/parse";
 
 const exampleFile = `
 console.log("walrus")

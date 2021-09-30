@@ -1,6 +1,5 @@
 import ts from "typescript";
 import { Doc, ListKind, ListNode, Node, NodeKind } from "./interfaces";
-import { tsNodeFromNode } from "./ts-from-node";
 
 function shouldFlattenWithListKind<K extends ListKind>(
   listKind: K,
