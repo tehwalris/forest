@@ -65,6 +65,10 @@ describe("DocManager", () => {
     events: [],
     expectedText: text,
   });
+  makeRoundTripTest.skip = (text: string): TestCase => ({
+    ...makeRoundTripTest(text),
+    skip: true,
+  });
 
   const cases: TestCase[] = [
     makeRoundTripTest('console.log("walrus")'),
@@ -74,6 +78,43 @@ describe("DocManager", () => {
     makeRoundTripTest("a.b!"),
     makeRoundTripTest("a?.b"),
     makeRoundTripTest("a?.()"),
+    makeRoundTripTest(`
+      if (1 === 0) {
+        throw new Error("unreachable");
+      }
+    `),
+    makeRoundTripTest(`
+      if (Date.now() % 100 == 0) {
+        console.log("lucky you");
+      } else if (walrus) {
+        console.log("even better");
+      }
+    `),
+    makeRoundTripTest.skip(`
+      if (Date.now() % 100 == 0) {
+        console.log("lucky you");
+      } else {
+        console.log("not so lucky");
+      }
+    `),
+    makeRoundTripTest(`
+      if (Date.now() % 100 == 0) {
+        console.log("lucky you");
+      } else if (walrus) {
+        console.log("even better");
+      } else if (1 === 0) {
+        throw new Error("unreachable");
+      }
+    `),
+    makeRoundTripTest.skip(`
+      if (Date.now() % 100 == 0) {
+        console.log("lucky you");
+      } else if (walrus) {
+        console.log("even better");
+      } else {
+        throw new Error("not so lucky");
+      }
+    `),
     {
       label: "delete everything",
       initialText: 'console.log("walrus")',
