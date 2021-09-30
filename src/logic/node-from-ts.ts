@@ -28,7 +28,7 @@ function flattenIfListKind(listKind: ListKind, node: Node): Node[] {
 }
 
 function listNodeFromDelimitedTsNodeArray(
-  nodeArray: ts.NodeArray<ts.Node>,
+  nodeArray: ts.NodeArray<ts.Node> | ts.Node[],
   file: ts.SourceFile | undefined,
   listKind: ListKind,
   pos: number,
@@ -254,7 +254,15 @@ function listNodeFromTsIfStatementBranch(
 
   if (expression) {
     structKeys.push("expression");
-    content.push(nodeFromTsNode(expression, file));
+    content.push(
+      listNodeFromDelimitedTsNodeArray(
+        [expression],
+        file,
+        ListKind.UnknownTsNodeArray,
+        expression.pos - 1,
+        expression.end + 1,
+      ),
+    );
   }
 
   structKeys.push("statement");

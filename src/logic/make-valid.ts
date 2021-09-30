@@ -1,15 +1,16 @@
+import { last } from "ramda";
 import ts from "typescript";
 import { ListKind, ListNode, Node, NodeKind, Path } from "./interfaces";
 import { nodeFromTsNode } from "./node-from-ts";
 import { PathMapper } from "./path-mapper";
 import { pathsAreEqual } from "./path-utils";
-import { withDefaultContent } from "./struct";
+import { assertNodeHasValidStructKeys, withDefaultContent } from "./struct";
+import { onlyChildFromNode } from "./tree-utils/access";
 import {
   isToken,
   isTsBinaryOperatorToken,
   isTsQuestionDotToken,
 } from "./ts-type-predicates";
-import { last } from "ramda";
 
 export function makeNodeValidTs(node: ListNode): {
   node: ListNode;
@@ -159,13 +160,8 @@ function _makeNodeValidTs({
   newPath: Path;
 }): Node {
   function extractOnlyChild(node: ListNode): Node {
-    if (node.content.length !== 1) {
-      throw new Error(
-        `want node.content.length === 1, got ${node.content.length}`,
-      );
-    }
     return _makeNodeValidTs({
-      node: node.content[0],
+      node: onlyChildFromNode(node),
       pathMapper,
       oldPath: [...oldPath, 0],
       newPath: [...newPath],
@@ -248,6 +244,37 @@ function _makeNodeValidTs({
       ],
       mapChild,
     );
+  } else if (
+    node.kind === NodeKind.List &&
+    node.listKind === ListKind.IfBranch
+  ) {
+    assertNodeHasValidStructKeys(node);
+    const structKeys = node.structKeys;
+    node = {
+      ...node,
+      content: node.content.map((c, i) => {
+        if (
+          structKeys[i] === "expression" &&
+          c.kind === NodeKind.List &&
+          !c.content.length
+        ) {
+          return {
+            ...c,
+            content: [
+              {
+                ...nodeFromTsNode(
+                  ts.createIdentifier("placeholder"),
+                  undefined,
+                ),
+                isPlaceholder: true,
+              },
+            ],
+          };
+        } else {
+          return mapChild({ node: c, oldIndex: i, newIndex: i });
+        }
+      }),
+    };
   } else if (node.kind === NodeKind.List) {
     node = {
       ...node,

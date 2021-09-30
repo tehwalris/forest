@@ -1,9 +1,9 @@
 import ts from "typescript";
 import { getBinaryOperatorPrecedence } from "./binary-operator";
-import { ListKind, ListNode, Node, NodeKind } from "./interfaces";
-import { nodeFromTsNode } from "./node-from-ts";
+import { ListKind, Node, NodeKind } from "./interfaces";
 import { astFromTypescriptFileContent } from "./parse";
 import { getStructContent } from "./struct";
+import { onlyChildFromNode } from "./tree-utils/access";
 import {
   isToken,
   isTsBinaryOperatorToken,
@@ -28,7 +28,7 @@ function tsIfStatementFromIfBranchNode(
   const content = getStructContent(node, ["statement"], ["expression"]);
   return ts.createIf(
     content.expression
-      ? (tsNodeFromNode(content.expression) as ts.Expression)
+      ? (tsNodeFromNode(onlyChildFromNode(content.expression)) as ts.Expression)
       : ts.createLiteral(true),
     tsNodeFromNode(content.statement) as ts.Statement,
     elseStatement,
@@ -144,9 +144,7 @@ export function tsNodeFromNode(node: Node): ts.Node {
     case ListKind.IfBranch:
       throw new Error("IfBranch should be handled by IfBranches parent");
     case ListKind.UnknownTsNodeArray:
-      throw new Error(
-        "UnknownTsNodeArray should be handled by TightExpression parent",
-      );
+      throw new Error("UnknownTsNodeArray should be handled by parent");
     case ListKind.TsNodeStruct:
       if (node.tsSyntaxKind !== ts.SyntaxKind.ArrowFunction) {
         throw new Error("TsNodeStruct only supports ArrowFunction");

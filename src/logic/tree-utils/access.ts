@@ -79,3 +79,10 @@ export function nodeVisitDeep(
     }
   }
 }
+
+export function onlyChildFromNode(node: Node): Node {
+  if (node.kind !== NodeKind.List || node.content.length !== 1) {
+    throw new Error("node must be a list with exactly 1 child");
+  }
+  return node.content[0];
+}

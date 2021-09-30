@@ -1,7 +1,7 @@
 import { Node, ListNode } from "./interfaces";
 import { isSubarray } from "./util";
 
-function assertNodeHasValidStructKeys(
+export function assertNodeHasValidStructKeys(
   node: ListNode,
 ): asserts node is ListNode & { structKeys: string[] } {
   if (
