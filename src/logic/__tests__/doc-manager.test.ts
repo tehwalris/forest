@@ -259,6 +259,44 @@ describe("DocManager", () => {
         }
       `,
     },
+    {
+      label: "delete middle else-if",
+      initialText: `
+        if (Date.now() % 100 == 0) {
+          console.log("lucky you");
+        } else if (walrus) {
+          console.log("even better");
+        } else if (1 === 0) {
+          throw new Error("unreachable");
+        }
+      `,
+      events: [...eventsFromKeys("H"), evSemi, ...eventsFromKeys("d")],
+      expectedText: `
+        if (Date.now() % 100 == 0) {
+          console.log("lucky you");
+        } else if (1 === 0) {
+          throw new Error("unreachable");
+        }
+      `,
+    },
+    {
+      label: "make else-if into else",
+      initialText: `
+        if (Date.now() % 100 == 0) {
+          console.log("lucky you");
+        } else if (walrus) {
+          console.log("even better");
+        }
+      `,
+      events: [evSemi, ...eventsFromKeys("H"), ...eventsFromKeys("d")],
+      expectedText: `
+        if (Date.now() % 100 == 0) {
+          console.log("lucky you");
+        } else {
+          console.log("even better");
+        }
+      `,
+    },
   ];
 
   for (const c of cases) {

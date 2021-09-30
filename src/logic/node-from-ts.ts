@@ -268,7 +268,7 @@ function listNodeFromTsIfStatementBranch(
     ],
     equivalentToContent: true,
     pos: ifStatement.pos,
-    end: ifStatement.end,
+    end: ifStatement.thenStatement.end,
   };
 }
 
