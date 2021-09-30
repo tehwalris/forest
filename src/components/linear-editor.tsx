@@ -12,21 +12,24 @@ import { docFromAst } from "../logic/node-from-ts";
 import { astFromTypescriptFileContent } from "../logic/parse";
 
 const exampleFile = `
-console.log("walrus")
-  .test( 
-    "bla",
-    test,
-    1234 + 5,
-   );
-
-foo();
-if (Date.now() % 100 == 0) {
-  console.log("lucky you");
-} else if (walrus) {
-  console.log("even better");
-} else {
-  throw new Error("not so lucky");
-}
+  audit("readFile", (fileName) => {
+    if (files.has(fileName)) return files.get(fileName);
+    if (fileName.startsWith("/lib")) {
+      const tsLibName = \`\${tsLib}/\${fileName.replace("/", "")}\`;
+      const result = nodeSys.readFile(tsLibName);
+      if (!result) {
+        const libs = nodeSys.readDirectory(tsLib);
+        throw new Error(
+          "A request was made for " +
+            tsLibName +
+            " but no file was found in " +
+            libs,
+        );
+      }
+      return result;
+    }
+    return nodeSys.readFile(fileName);
+  });
 `;
 
 const initialDoc = docFromAst(astFromTypescriptFileContent(exampleFile));
