@@ -21,15 +21,21 @@ function tsNodeArrayFromNode(node: Node): ts.Node[] {
 function tsIfStatementFromIfBranchNode(
   node: Node,
   elseStatement: ts.Statement | undefined,
-): ts.IfStatement {
+): ts.Statement {
   if (node.kind !== NodeKind.List || node.listKind !== ListKind.IfBranch) {
     throw new Error("node is not a ListNode with listKind IfBranch");
   }
   const content = getStructContent(node, ["statement"], ["expression"]);
+  if (!content.expression) {
+    if (elseStatement) {
+      throw new Error(
+        "if branch has no condition, but can't be made an else, since it is not the last branch",
+      );
+    }
+    return tsNodeFromNode(content.statement) as ts.Statement;
+  }
   return ts.createIf(
-    content.expression
-      ? (tsNodeFromNode(onlyChildFromNode(content.expression)) as ts.Expression)
-      : ts.createLiteral(true),
+    tsNodeFromNode(onlyChildFromNode(content.expression)) as ts.Expression,
     tsNodeFromNode(content.statement) as ts.Statement,
     elseStatement,
   );
@@ -135,7 +141,7 @@ export function tsNodeFromNode(node: Node): ts.Node {
       if (node.content.length < 1) {
         throw new Error("IfBranches must have at least 1 child");
       }
-      let current: ts.IfStatement | undefined;
+      let current: ts.Statement | undefined;
       for (let i = node.content.length - 1; i >= 0; i--) {
         current = tsIfStatementFromIfBranchNode(node.content[i], current);
       }

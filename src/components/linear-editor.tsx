@@ -26,8 +26,8 @@ if (Date.now() % 100 == 0) {
   console.log("lucky you");
 } else if (walrus) {
   console.log("even better");
-} else if (1 === 0) {
-  throw new Error("unreachable");
+} else {
+  throw new Error("not so lucky");
 }
 `;
 

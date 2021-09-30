@@ -245,8 +245,8 @@ function listNodeFromTsArrowFunction(
 function listNodeFromTsIfStatementBranch(
   {
     expression,
-    statement,
-  }: { expression?: ts.Expression; statement: ts.Statement },
+    thenStatement: statement,
+  }: Pick<ts.IfStatement, "expression" | "thenStatement">,
   file: ts.SourceFile | undefined,
 ): ListNode {
   const structKeys: string[] = [];
@@ -284,25 +284,34 @@ function listNodeFromTsIfStatement(
   ifStatement: ts.IfStatement,
   file: ts.SourceFile | undefined,
 ): ListNode {
+  const wrapBranch = (node: Node): Node => {
+    if (node.kind === NodeKind.List && node.listKind === ListKind.IfBranch) {
+      return node;
+    }
+    return {
+      kind: NodeKind.List,
+      listKind: ListKind.IfBranch,
+      delimiters: ["", ""],
+      structKeys: ["statement"],
+      content: [node],
+      equivalentToContent: true,
+      pos: node.pos,
+      end: node.end,
+    };
+  };
   return {
     kind: NodeKind.List,
     listKind: ListKind.IfBranches,
     delimiters: ["", ""],
     content: [
-      listNodeFromTsIfStatementBranch(
-        {
-          expression: ifStatement.expression,
-          statement: ifStatement.thenStatement,
-        },
-        file,
-      ),
+      listNodeFromTsIfStatementBranch(ifStatement, file),
       ...(ifStatement.elseStatement
         ? flattenIfListKind(
             ListKind.IfBranches,
             nodeFromTsNode(ifStatement.elseStatement, file),
           )
         : []),
-    ],
+    ].map(wrapBranch),
     equivalentToContent: true,
     pos: ifStatement.pos,
     end: ifStatement.end,

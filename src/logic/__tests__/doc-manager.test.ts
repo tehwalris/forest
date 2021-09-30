@@ -90,7 +90,7 @@ describe("DocManager", () => {
         console.log("even better");
       }
     `),
-    makeRoundTripTest.skip(`
+    makeRoundTripTest(`
       if (Date.now() % 100 == 0) {
         console.log("lucky you");
       } else {
@@ -106,7 +106,7 @@ describe("DocManager", () => {
         throw new Error("unreachable");
       }
     `),
-    makeRoundTripTest.skip(`
+    makeRoundTripTest(`
       if (Date.now() % 100 == 0) {
         console.log("lucky you");
       } else if (walrus) {

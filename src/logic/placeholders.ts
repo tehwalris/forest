@@ -68,7 +68,9 @@ export function getDocWithAllPlaceholders(docWithoutPlaceholders: Doc): {
   const text = printTsSourceFile(sourceFile);
   const parsedDoc = docFromAst(astFromTypescriptFileContent(text));
   if (!nodesAreEqualExceptRangesAndPlaceholders(validRoot, parsedDoc.root)) {
-    console.warn("update would change tree", validRoot, parsedDoc.root);
+    console.warn("update would change tree");
+    console.warn("old", docWithoutPlaceholders.text, validRoot);
+    console.warn("new", text, parsedDoc.root);
     throw new Error("update would change tree");
   }
   const docWithPlaceholders = {

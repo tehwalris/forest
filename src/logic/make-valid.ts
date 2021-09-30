@@ -4,7 +4,11 @@ import { ListKind, ListNode, Node, NodeKind, Path } from "./interfaces";
 import { nodeFromTsNode } from "./node-from-ts";
 import { PathMapper } from "./path-mapper";
 import { pathsAreEqual } from "./path-utils";
-import { assertNodeHasValidStructKeys, withDefaultContent } from "./struct";
+import {
+  assertNodeHasValidStructKeys,
+  getStructContent,
+  withDefaultContent,
+} from "./struct";
 import { onlyChildFromNode } from "./tree-utils/access";
 import {
   isToken,
@@ -26,9 +30,26 @@ export function makeNodeValidTs(node: Node): {
 } {
   const pathMapper = new PathMapper([]);
   return {
-    node: _makeNodeValidTs({ node, pathMapper, oldPath: [], newPath: [] }),
+    node: _makeNodeValidTs({
+      node,
+      pathMapper,
+      oldPath: [],
+      newPath: [],
+      extraInfo: {},
+    }),
     pathMapper,
   };
+}
+
+function makePlaceholderIdentifier(): Node {
+  return {
+    ...nodeFromTsNode(ts.createIdentifier("placeholder"), undefined),
+    isPlaceholder: true,
+  };
+}
+
+function isEmptyListNode(node: Node): node is ListNode & { content: [] } {
+  return node.kind === NodeKind.List && !node.content.length;
 }
 
 export interface WithInsertedContentMapArgs {
@@ -100,15 +121,13 @@ function makeLooseExpressionValidTs(
         }),
       );
       remainingOldContent.shift();
+    } else if (wantOperator) {
+      newContent.push({
+        ...nodeFromTsNode(ts.createToken(ts.SyntaxKind.PlusToken), undefined),
+        isPlaceholder: true,
+      });
     } else {
-      const newNode = nodeFromTsNode(
-        wantOperator
-          ? ts.createToken(ts.SyntaxKind.PlusToken)
-          : ts.createIdentifier("placeholder"),
-        undefined,
-      );
-      newNode.isPlaceholder = true;
-      newContent.push(newNode);
+      newContent.push(makePlaceholderIdentifier());
     }
     wantOperator = !wantOperator;
   }
@@ -148,16 +167,22 @@ function makeTightExpressionValidTs(
   );
 }
 
+interface ExtraInfo {
+  couldBeElseBranch?: boolean;
+}
+
 function _makeNodeValidTs({
   node,
   pathMapper,
   oldPath,
   newPath,
+  extraInfo,
 }: {
   node: Node;
   pathMapper: PathMapper;
   oldPath: Path;
   newPath: Path;
+  extraInfo: ExtraInfo;
 }): Node {
   function extractOnlyChild(node: ListNode): Node {
     return _makeNodeValidTs({
@@ -165,6 +190,7 @@ function _makeNodeValidTs({
       pathMapper,
       oldPath: [...oldPath, 0],
       newPath: [...newPath],
+      extraInfo: {},
     });
   }
 
@@ -172,10 +198,12 @@ function _makeNodeValidTs({
     node,
     oldIndex,
     newIndex,
+    extraInfo,
   }: {
     node: Node;
     oldIndex?: number;
     newIndex: number;
+    extraInfo?: ExtraInfo;
   }): Node {
     if (oldIndex === undefined) {
       return node;
@@ -185,6 +213,7 @@ function _makeNodeValidTs({
       pathMapper,
       oldPath: [...oldPath, oldIndex],
       newPath: [...newPath, newIndex],
+      extraInfo: extraInfo || {},
     });
   }
 
@@ -234,16 +263,28 @@ function _makeNodeValidTs({
         { key: "typeParameters" },
         { key: "parameters" },
         { key: "equalsGreaterThanToken" },
-        {
-          key: "body",
-          node: {
-            ...nodeFromTsNode(ts.createIdentifier("placeholder"), undefined),
-            isPlaceholder: true,
-          },
-        },
+        { key: "body", node: makePlaceholderIdentifier() },
       ],
       mapChild,
     );
+  } else if (
+    node.kind === NodeKind.List &&
+    node.listKind === ListKind.IfBranches
+  ) {
+    const oldContent = node.content;
+    node = {
+      ...node,
+      content: node.content.map((c, i) =>
+        mapChild({
+          node: c,
+          oldIndex: i,
+          newIndex: i,
+          extraInfo: {
+            couldBeElseBranch: i > 0 && i + 1 === oldContent.length,
+          },
+        }),
+      ),
+    };
   } else if (
     node.kind === NodeKind.List &&
     node.listKind === ListKind.IfBranch
@@ -253,25 +294,17 @@ function _makeNodeValidTs({
     node = {
       ...node,
       content: node.content.map((c, i) => {
-        if (
-          structKeys[i] === "expression" &&
-          c.kind === NodeKind.List &&
-          !c.content.length
-        ) {
+        if (structKeys[i] === "expression" && isEmptyListNode(c)) {
           return {
             ...c,
-            content: [
-              {
-                ...nodeFromTsNode(
-                  ts.createIdentifier("placeholder"),
-                  undefined,
-                ),
-                isPlaceholder: true,
-              },
-            ],
+            content: [makePlaceholderIdentifier()],
           };
         } else {
-          return mapChild({ node: c, oldIndex: i, newIndex: i });
+          return mapChild({
+            node: c,
+            oldIndex: i,
+            newIndex: i,
+          });
         }
       }),
     };
