@@ -4,11 +4,7 @@ import { ListKind, ListNode, Node, NodeKind, Path } from "./interfaces";
 import { nodeFromTsNode } from "./node-from-ts";
 import { PathMapper } from "./path-mapper";
 import { pathsAreEqual } from "./path-utils";
-import {
-  assertNodeHasValidStructKeys,
-  getStructContent,
-  withDefaultContent,
-} from "./struct";
+import { assertNodeHasValidStructKeys, withDefaultContent } from "./struct";
 import { onlyChildFromNode } from "./tree-utils/access";
 import {
   isToken,

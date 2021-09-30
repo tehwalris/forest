@@ -174,6 +174,8 @@ export function tsNodeFromNode(node: Node): ts.Node {
         ) as ts.EqualsGreaterThanToken,
         tsNodeFromNode(content.body) as ts.ConciseBody,
       );
+    case ListKind.TsNodeList:
+      return ts.createBlock(tsNodeArrayFromNode(node) as ts.Statement[]);
     case ListKind.File:
       return ts.updateSourceFileNode(
         astFromTypescriptFileContent(""),

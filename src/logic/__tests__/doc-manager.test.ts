@@ -229,6 +229,36 @@ describe("DocManager", () => {
       ],
       expectedText: "f(x); h(z); g(y);",
     },
+    {
+      label: "delete non-last statement in block",
+      initialText: `
+        if (1 === 0) {
+          console.log("walrus");
+          console.log("seal");
+        }
+      `,
+      events: [evSemi, ...eventsFromKeys("j"), evSemi, ...eventsFromKeys("d")],
+      expectedText: `
+        if (1 === 0) {
+          console.log("walrus");
+        }
+      `,
+    },
+    {
+      label: "delete last statement in block",
+      initialText: `
+        if (1 === 0) {
+          console.log("walrus");
+          console.log("seal");
+        }
+      `,
+      events: [evSemi, ...eventsFromKeys("j"), evSemi, ...eventsFromKeys("d")],
+      expectedText: `
+        if (1 === 0) {
+          console.log("walrus");
+        }
+      `,
+    },
   ];
 
   for (const c of cases) {

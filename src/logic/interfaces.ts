@@ -32,6 +32,7 @@ export enum ListKind {
   IfBranch,
   UnknownTsNodeArray,
   TsNodeStruct,
+  TsNodeList,
   File,
 }
 

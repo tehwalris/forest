@@ -318,6 +318,22 @@ function listNodeFromTsIfStatement(
   };
 }
 
+function listNodeFromTsBlock(
+  block: ts.Block,
+  file: ts.SourceFile | undefined,
+): ListNode {
+  return {
+    ...listNodeFromDelimitedTsNodeArray(
+      block.statements,
+      file,
+      ListKind.TsNodeList,
+      block.pos + 1,
+      block.end,
+    ),
+    tsSyntaxKind: ts.SyntaxKind.Block,
+  };
+}
+
 export function nodeFromTsNode(
   node: ts.Node,
   file: ts.SourceFile | undefined,
@@ -336,6 +352,8 @@ export function nodeFromTsNode(
     return listNodeFromTsArrowFunction(node, file);
   } else if (ts.isIfStatement(node)) {
     return listNodeFromTsIfStatement(node, file);
+  } else if (ts.isBlock(node)) {
+    return listNodeFromTsBlock(node, file);
   } else {
     return {
       kind: NodeKind.Token,
