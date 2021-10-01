@@ -10,6 +10,7 @@ import {
   isToken,
   isTsBinaryOperatorToken,
   isTsQuestionDotToken,
+  isTsVarLetConst,
 } from "./ts-type-predicates";
 
 export function makeNodeValidTs(node: ListNode): {
@@ -137,10 +138,6 @@ function makeTightExpressionValidTs(
   return insertIntoContent(
     oldContent,
     (newLeft, oldRight) => {
-      const placeholder = {
-        ...nodeFromTsNode(ts.createIdentifier("placeholder"), undefined),
-        isPlaceholder: true,
-      };
       if (
         newLeft === undefined &&
         oldRight !== undefined &&
@@ -148,14 +145,53 @@ function makeTightExpressionValidTs(
           oldRight.listKind === ListKind.CallArguments) ||
           isToken(oldRight, isTsQuestionDotToken))
       ) {
-        return placeholder;
+        return makePlaceholderIdentifier();
       }
       if (
         newLeft !== undefined &&
         isToken(newLeft, isTsQuestionDotToken) &&
         (oldRight === undefined || isToken(oldRight, isTsQuestionDotToken))
       ) {
-        return placeholder;
+        return makePlaceholderIdentifier();
+      }
+      return undefined;
+    },
+    mapChild,
+  );
+}
+
+function makeVariableDeclarationListValidTs(
+  oldContent: Node[],
+  mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
+): Node[] {
+  return insertIntoContent(
+    oldContent,
+    (newLeft, oldRight) => {
+      if (
+        newLeft === undefined &&
+        oldRight !== undefined &&
+        !isToken(oldRight, isTsVarLetConst)
+      ) {
+        return {
+          ...nodeFromTsNode(
+            ts.createToken(ts.SyntaxKind.VarKeyword),
+            undefined,
+          ),
+          isPlaceholder: true,
+        };
+      }
+      if (
+        newLeft !== undefined &&
+        isToken(newLeft, isTsVarLetConst) &&
+        oldRight === undefined
+      ) {
+        return {
+          ...nodeFromTsNode(
+            ts.createVariableDeclaration(ts.createIdentifier("placeholder")),
+            undefined,
+          ),
+          isPlaceholder: true,
+        };
       }
       return undefined;
     },
@@ -260,6 +296,29 @@ function _makeNodeValidTs({
         { key: "parameters" },
         { key: "equalsGreaterThanToken" },
         { key: "body", node: makePlaceholderIdentifier() },
+      ],
+      mapChild,
+    );
+  } else if (
+    node.kind === NodeKind.List &&
+    node.listKind === ListKind.TsNodeList &&
+    node.tsSyntaxKind === ts.SyntaxKind.VariableDeclarationList
+  ) {
+    node = {
+      ...node,
+      content: makeVariableDeclarationListValidTs(node.content, mapChild),
+    };
+  } else if (
+    node.kind === NodeKind.List &&
+    node.listKind === ListKind.TsNodeStruct &&
+    node.tsSyntaxKind === ts.SyntaxKind.VariableDeclaration
+  ) {
+    node = withDefaultContent(
+      node,
+      [
+        { key: "name", node: makePlaceholderIdentifier() },
+        { key: "type" },
+        { key: "initializer" },
       ],
       mapChild,
     );
