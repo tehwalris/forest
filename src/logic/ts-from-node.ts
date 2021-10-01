@@ -223,6 +223,10 @@ export function tsNodeFromNode(node: Node): ts.Node {
           return ts.createObjectLiteral(
             tsNodeArrayFromNode(node) as ts.ObjectLiteralElementLike[],
           );
+        case ts.SyntaxKind.ArrayLiteralExpression:
+          return ts.createArrayLiteral(
+            tsNodeArrayFromNode(node) as ts.Expression[],
+          );
         case ts.SyntaxKind.VariableDeclarationList: {
           if (node.content.length < 2) {
             throw new Error(

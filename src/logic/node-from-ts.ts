@@ -413,6 +413,22 @@ function listNodeFromTsObjectLiteralExpression(
   };
 }
 
+function listNodeFromTsArrayLiteralExpression(
+  arrayLiteralExpression: ts.ArrayLiteralExpression,
+  file: ts.SourceFile | undefined,
+): ListNode {
+  return {
+    ...listNodeFromDelimitedTsNodeArray(
+      arrayLiteralExpression.elements,
+      file,
+      ListKind.TsNodeList,
+      arrayLiteralExpression.pos + 1,
+      arrayLiteralExpression.end,
+    ),
+    tsSyntaxKind: ts.SyntaxKind.ArrayLiteralExpression,
+  };
+}
+
 export function nodeFromTsNode(
   node: ts.Node,
   file: ts.SourceFile | undefined,
@@ -441,6 +457,8 @@ export function nodeFromTsNode(
     return listNodeFromTsBlock(node, file);
   } else if (ts.isObjectLiteralExpression(node)) {
     return listNodeFromTsObjectLiteralExpression(node, file);
+  } else if (ts.isArrayLiteralExpression(node)) {
+    return listNodeFromTsArrayLiteralExpression(node, file);
   } else {
     return {
       kind: NodeKind.Token,
