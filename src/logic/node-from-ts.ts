@@ -1,6 +1,6 @@
-import { notEqual } from "assert";
 import ts from "typescript";
 import { Doc, ListKind, ListNode, Node, NodeKind } from "./interfaces";
+import { isTsVarLetConst } from "./ts-type-predicates";
 
 function shouldFlattenWithListKind<K extends ListKind>(
   listKind: K,
@@ -340,14 +340,7 @@ function listNodeFromTsVariableDeclarationList(
   node.tsSyntaxKind = ts.SyntaxKind.VariableDeclarationList;
 
   const firstToken = variableDeclarationList.getFirstToken(file);
-  if (
-    !firstToken ||
-    ![
-      ts.SyntaxKind.VarKeyword,
-      ts.SyntaxKind.LetKeyword,
-      ts.SyntaxKind.ConstKeyword,
-    ].includes(firstToken.kind)
-  ) {
+  if (!firstToken || !isTsVarLetConst(firstToken)) {
     throw new Error("missing or unsupported firstToken");
   }
   node.content.unshift(nodeFromTsNode(firstToken, file));

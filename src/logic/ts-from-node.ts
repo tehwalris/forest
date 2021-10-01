@@ -5,9 +5,11 @@ import { astFromTypescriptFileContent } from "./parse";
 import { getStructContent } from "./struct";
 import { onlyChildFromNode } from "./tree-utils/access";
 import {
+  flagsForTsVarLetConst,
   isToken,
   isTsBinaryOperatorToken,
   isTsQuestionDotToken,
+  isTsVarLetConst,
 } from "./ts-type-predicates";
 import { unreachable } from "./util";
 
@@ -224,16 +226,9 @@ export function tsNodeFromNode(node: Node): ts.Node {
             );
           }
 
-          let flags: ts.NodeFlags;
           const varLetConst = tsNodeFromNode(node.content[0]);
-          if (varLetConst.kind === ts.SyntaxKind.VarKeyword) {
-            flags = ts.NodeFlags.None;
-          } else if (varLetConst.kind === ts.SyntaxKind.LetKeyword) {
-            flags = ts.NodeFlags.Let;
-          } else if (varLetConst.kind === ts.SyntaxKind.ConstKeyword) {
-            flags = ts.NodeFlags.Const;
-          } else {
-            throw new Error("unsupported varLetConst");
+          if (!isTsVarLetConst(varLetConst)) {
+            throw new Error("first child is not var/let/const");
           }
 
           return ts.createVariableDeclarationList(
@@ -241,7 +236,7 @@ export function tsNodeFromNode(node: Node): ts.Node {
               ...node,
               content: node.content.slice(1),
             }) as ts.VariableDeclaration[],
-            flags,
+            flagsForTsVarLetConst(varLetConst),
           );
         }
         default:
