@@ -217,10 +217,33 @@ export function tsNodeFromNode(node: Node): ts.Node {
           throw new Error("TsNodeList with undefined tsSyntaxKind");
         case ts.SyntaxKind.Block:
           return ts.createBlock(tsNodeArrayFromNode(node) as ts.Statement[]);
-        case ts.SyntaxKind.VariableDeclarationList:
+        case ts.SyntaxKind.VariableDeclarationList: {
+          if (node.content.length < 2) {
+            throw new Error(
+              "VariableDeclarationList must have at least 2 children (var/let/const and at least 1 VariableDeclaration)",
+            );
+          }
+
+          let flags: ts.NodeFlags;
+          const varLetConst = tsNodeFromNode(node.content[0]);
+          if (varLetConst.kind === ts.SyntaxKind.VarKeyword) {
+            flags = ts.NodeFlags.None;
+          } else if (varLetConst.kind === ts.SyntaxKind.LetKeyword) {
+            flags = ts.NodeFlags.Let;
+          } else if (varLetConst.kind === ts.SyntaxKind.ConstKeyword) {
+            flags = ts.NodeFlags.Const;
+          } else {
+            throw new Error("unsupported varLetConst");
+          }
+
           return ts.createVariableDeclarationList(
-            tsNodeArrayFromNode(node) as ts.VariableDeclaration[],
+            tsNodeArrayFromNode({
+              ...node,
+              content: node.content.slice(1),
+            }) as ts.VariableDeclaration[],
+            flags,
           );
+        }
         default:
           throw new Error(
             `TsNodeList with unsupported tsSyntaxKind: ${

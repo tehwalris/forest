@@ -1,3 +1,4 @@
+import { notEqual } from "assert";
 import ts from "typescript";
 import { Doc, ListKind, ListNode, Node, NodeKind } from "./interfaces";
 
@@ -331,14 +332,27 @@ function listNodeFromTsVariableDeclarationList(
   variableDeclarationList: ts.VariableDeclarationList,
   file: ts.SourceFile | undefined,
 ): ListNode {
-  return {
-    ...listNodeFromNonDelimitedTsNodeArray(
-      variableDeclarationList.declarations,
-      file,
-      ListKind.TsNodeList,
-    ),
-    tsSyntaxKind: ts.SyntaxKind.VariableDeclarationList,
-  };
+  const node = listNodeFromNonDelimitedTsNodeArray(
+    variableDeclarationList.declarations,
+    file,
+    ListKind.TsNodeList,
+  );
+  node.tsSyntaxKind = ts.SyntaxKind.VariableDeclarationList;
+
+  const firstToken = variableDeclarationList.getFirstToken(file);
+  if (
+    !firstToken ||
+    ![
+      ts.SyntaxKind.VarKeyword,
+      ts.SyntaxKind.LetKeyword,
+      ts.SyntaxKind.ConstKeyword,
+    ].includes(firstToken.kind)
+  ) {
+    throw new Error("missing or unsupported firstToken");
+  }
+  node.content.unshift(nodeFromTsNode(firstToken, file));
+
+  return node;
 }
 
 function listNodeFromTsVariableDeclaration(
