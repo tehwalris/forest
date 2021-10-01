@@ -156,30 +156,78 @@ export function tsNodeFromNode(node: Node): ts.Node {
     case ListKind.UnknownTsNodeArray:
       throw new Error("UnknownTsNodeArray should be handled by parent");
     case ListKind.TsNodeStruct:
-      if (node.tsSyntaxKind !== ts.SyntaxKind.ArrowFunction) {
-        throw new Error("TsNodeStruct only supports ArrowFunction");
+      switch (node.tsSyntaxKind) {
+        case undefined:
+          throw new Error("TsNodeStruct with undefined tsSyntaxKind");
+        case ts.SyntaxKind.ArrowFunction: {
+          const content = getStructContent(
+            node,
+            ["parameters", "equalsGreaterThanToken", "body"],
+            ["typeParameters", "modifiers"],
+          );
+          return ts.createArrowFunction(
+            content.modifiers &&
+              (tsNodeArrayFromNode(content.modifiers) as ts.Modifier[]),
+            content.typeParameters &&
+              (tsNodeArrayFromNode(
+                content.typeParameters,
+              ) as ts.TypeParameterDeclaration[]),
+            tsNodeArrayFromNode(
+              content.parameters,
+            ) as ts.ParameterDeclaration[],
+            undefined,
+            tsNodeFromNode(
+              content.equalsGreaterThanToken,
+            ) as ts.EqualsGreaterThanToken,
+            tsNodeFromNode(content.body) as ts.ConciseBody,
+          );
+        }
+        case ts.SyntaxKind.VariableStatement: {
+          const content = getStructContent(node, ["declarationList"], []);
+          return ts.createVariableStatement(
+            undefined,
+            tsNodeFromNode(
+              content.declarationList,
+            ) as ts.VariableDeclarationList,
+          );
+        }
+        case ts.SyntaxKind.VariableDeclaration: {
+          const content = getStructContent(
+            node,
+            ["name"],
+            ["type", "initializer"],
+          );
+          return ts.createVariableDeclaration(
+            tsNodeFromNode(content.name) as ts.BindingName,
+            content.type && (tsNodeFromNode(content.type) as ts.TypeNode),
+            content.initializer &&
+              (tsNodeFromNode(content.initializer) as ts.Expression),
+          );
+        }
+        default:
+          throw new Error(
+            `TsNodeStruct with unsupported tsSyntaxKind: ${
+              ts.SyntaxKind[node.tsSyntaxKind]
+            }`,
+          );
       }
-      const content = getStructContent(
-        node,
-        ["parameters", "equalsGreaterThanToken", "body"],
-        ["typeParameters", "modifiers"],
-      );
-      return ts.createArrowFunction(
-        content.modifiers &&
-          (tsNodeArrayFromNode(content.modifiers) as ts.Modifier[]),
-        content.typeParameters &&
-          (tsNodeArrayFromNode(
-            content.typeParameters,
-          ) as ts.TypeParameterDeclaration[]),
-        tsNodeArrayFromNode(content.parameters) as ts.ParameterDeclaration[],
-        undefined,
-        tsNodeFromNode(
-          content.equalsGreaterThanToken,
-        ) as ts.EqualsGreaterThanToken,
-        tsNodeFromNode(content.body) as ts.ConciseBody,
-      );
     case ListKind.TsNodeList:
-      return ts.createBlock(tsNodeArrayFromNode(node) as ts.Statement[]);
+      switch (node.tsSyntaxKind) {
+        case undefined:
+          throw new Error("TsNodeList with undefined tsSyntaxKind");
+        case ts.SyntaxKind.Block:
+          return ts.createBlock(tsNodeArrayFromNode(node) as ts.Statement[]);
+        case ts.SyntaxKind.VariableDeclarationList:
+          return ts.createVariableDeclarationList(
+            tsNodeArrayFromNode(node) as ts.VariableDeclaration[],
+          );
+        default:
+          throw new Error(
+            `TsNodeList with unsupported tsSyntaxKind: ${
+              ts.SyntaxKind[node.tsSyntaxKind]
+            }`,
+          );
+      }
     case ListKind.File:
       return ts.updateSourceFileNode(
         astFromTypescriptFileContent(""),

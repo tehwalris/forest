@@ -116,6 +116,11 @@ describe("DocManager", () => {
         throw new Error("not so lucky");
       }
     `),
+    makeRoundTripTest("var x = y"),
+    makeRoundTripTest.skip("const x = y"),
+    makeRoundTripTest.skip("let x = y"),
+    makeRoundTripTest.skip("let x: string"),
+    makeRoundTripTest.skip("let x: string = 0, y: number = 1, z = 2"),
     {
       label: "delete everything",
       initialText: 'console.log("walrus")',
