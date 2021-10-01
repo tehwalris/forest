@@ -121,6 +121,7 @@ describe("DocManager", () => {
     makeRoundTripTest("let x = y"),
     makeRoundTripTest("let x: string"),
     makeRoundTripTest("let x: string = 0, y: number = 1, z = 2"),
+    makeRoundTripTest("const x = { abc: def, [test]: 123, bla() { } }"),
     {
       label: "delete everything",
       initialText: 'console.log("walrus")',
