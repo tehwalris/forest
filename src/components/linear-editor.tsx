@@ -12,24 +12,22 @@ import { docFromAst } from "../logic/node-from-ts";
 import { astFromTypescriptFileContent } from "../logic/parse";
 
 const exampleFile = `
-  audit("readFile", (fileName) => {
-    if (files.has(fileName)) return files.get(fileName);
-    if (fileName.startsWith("/lib")) {
-      const tsLibName = \`\${tsLib}/\${fileName.replace("/", "")}\`;
-      const result = nodeSys.readFile(tsLibName);
-      if (!result) {
-        const libs = nodeSys.readDirectory(tsLib);
-        throw new Error(
-          "A request was made for " +
-            tsLibName +
-            " but no file was found in " +
-            libs,
-        );
-      }
-      return result;
-    }
-    return nodeSys.readFile(fileName);
-  });
+  export const handlers: {
+    [key: string]: (() => void) | undefined;
+  } = {
+    Enter: node.actions.setVariant
+      ? tryAction("setVariant", (n) => n.id, true)
+      : tryAction("setFromString"),
+    "ctrl-d": tryDeleteChild,
+    "ctrl-c": () => copyNode(node),
+    "ctrl-p": copiedNode && tryAction("replace", (n) => n.id),
+    "ctrl-f": editFlags,
+    "ctrl-4": () =>
+      setMarks({
+        ...marks,
+        TODO: idPathFromParentIndexEntry(parentIndexEntry),
+      }),
+  };
 `;
 
 const initialDoc = docFromAst(astFromTypescriptFileContent(exampleFile));
