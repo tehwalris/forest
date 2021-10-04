@@ -155,6 +155,62 @@ export function tsNodeFromNode(node: Node): ts.Node {
     }
     case ListKind.IfBranch:
       throw new Error("IfBranch should be handled by IfBranches parent");
+    case ListKind.ObjectLiteralElement: {
+      let syntaxKind:
+        | ts.SyntaxKind.PropertyAssignment
+        | ts.SyntaxKind.ShorthandPropertyAssignment
+        | ts.SyntaxKind.SpreadAssignment;
+      if (node.content.length < 1) {
+        throw new Error("ObjectLiteralElement must have at least 1 child");
+      }
+      if (isToken(node.content[0], ts.isDotDotDotToken)) {
+        syntaxKind = ts.SyntaxKind.SpreadAssignment;
+      } else if (node.content.length === 1) {
+        syntaxKind = ts.SyntaxKind.ShorthandPropertyAssignment;
+      } else {
+        syntaxKind = ts.SyntaxKind.PropertyAssignment;
+      }
+
+      switch (syntaxKind) {
+        case ts.SyntaxKind.PropertyAssignment: {
+          if (node.content.length !== 3) {
+            throw new Error(
+              `want length 3 for PropertyAssignment, but got ${node.content.length}`,
+            );
+          }
+          if (
+            !isToken(
+              node.content[1],
+              (tsNode): tsNode is ts.Token<ts.SyntaxKind.ColonToken> =>
+                tsNode.kind === ts.SyntaxKind.ColonToken,
+            )
+          ) {
+            throw new Error("expected node.content[1] to be ColonToken");
+          }
+          return ts.createPropertyAssignment(
+            tsNodeFromNode(node.content[0]) as ts.PropertyName,
+            tsNodeFromNode(node.content[2]) as ts.Expression,
+          );
+        }
+        case ts.SyntaxKind.ShorthandPropertyAssignment: {
+          return ts.createShorthandPropertyAssignment(
+            tsNodeFromNode(node.content[0]) as ts.Identifier,
+          );
+        }
+        case ts.SyntaxKind.SpreadAssignment: {
+          if (node.content.length !== 2) {
+            throw new Error(
+              `want length 2 for SpreadAssignment, but got ${node.content.length}`,
+            );
+          }
+          return ts.createSpreadAssignment(
+            tsNodeFromNode(node.content[1]) as ts.Expression,
+          );
+        }
+        default:
+          return unreachable(syntaxKind);
+      }
+    }
     case ListKind.UnknownTsNodeArray:
       throw new Error("UnknownTsNodeArray should be handled by parent");
     case ListKind.TsNodeStruct:

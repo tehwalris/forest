@@ -121,7 +121,8 @@ describe("DocManager", () => {
     makeRoundTripTest("let x = y"),
     makeRoundTripTest("let x: string"),
     makeRoundTripTest("let x: string = 0, y: number = 1, z = 2"),
-    makeRoundTripTest("const x = { abc: def, [test]: 123, bla() { } }"),
+    makeRoundTripTest.skip("const x = { abc: def, [test]: 123, bla() { } }"),
+    makeRoundTripTest("const x = { x: y, y: z }"),
     makeRoundTripTest("const x = [abc, 123, (x) => y]"),
     {
       label: "delete everything",
@@ -304,6 +305,30 @@ describe("DocManager", () => {
           console.log("even better");
         }
       `,
+    },
+    {
+      label: "make normal object property into shorthand",
+      initialText: "const x = { y: z }",
+      events: [
+        evSemi,
+        evSemi,
+        ...eventsFromKeys("j"),
+        evAltSemi,
+        ...eventsFromKeys("Ld"),
+      ],
+      expectedText: "const x = { y }",
+    },
+    {
+      label: "make shorthand object property into spread",
+      initialText: "const x = { y }",
+      events: [
+        evSemi,
+        evSemi,
+        ...eventsFromKeys("j"),
+        ...eventsFromKeys("i..."),
+        evEscape,
+      ],
+      expectedText: "const x = { ...y }",
     },
   ];
 

@@ -1,5 +1,6 @@
 import ts from "typescript";
 import { Doc, ListKind, ListNode, Node, NodeKind } from "./interfaces";
+import { createScanner } from "./parse";
 import { isTsVarLetConst } from "./ts-type-predicates";
 
 function shouldFlattenWithListKind<K extends ListKind>(
@@ -28,6 +29,28 @@ function flattenIfListKind(listKind: ListKind, node: Node): Node[] {
   return shouldFlattenWithListKind(listKind, node) ? node.content : [node];
 }
 
+function getToken<K extends ts.SyntaxKind>(
+  file: ts.SourceFile | undefined,
+  pos: number,
+  expectedKind: K,
+): ts.Token<K> {
+  if (!file) {
+    throw new Error("file is required to create scanner");
+  }
+  const scanner = createScanner(file.text);
+  scanner.setTextPos(pos);
+  const actualKind = scanner.scan();
+  if (actualKind !== expectedKind) {
+    throw new Error(
+      `want ${ts.SyntaxKind[expectedKind]}, got ${ts.SyntaxKind[actualKind]}`,
+    );
+  }
+  return ts.setTextRange(ts.createToken(expectedKind), {
+    pos,
+    end: scanner.getTextPos(),
+  });
+}
+
 function listNodeFromDelimitedTsNodeArray(
   nodeArray: ts.NodeArray<ts.Node> | ts.Node[],
   file: ts.SourceFile | undefined,
@@ -37,6 +60,11 @@ function listNodeFromDelimitedTsNodeArray(
 ): ListNode {
   if (!file) {
     throw new Error("listNodeFromDelimitedTsNodeArray requires file");
+  }
+
+  // HACK sometimes there's whitespace before the delimiters
+  while (pos < file.text.length && file.text[pos].match(/\s/)) {
+    pos += 1;
   }
 
   const validDelimiters = [
@@ -406,7 +434,7 @@ function listNodeFromTsObjectLiteralExpression(
       objectLiteralExpression.properties,
       file,
       ListKind.TsNodeList,
-      objectLiteralExpression.pos + 1,
+      objectLiteralExpression.pos,
       objectLiteralExpression.end,
     ),
     tsSyntaxKind: ts.SyntaxKind.ObjectLiteralExpression,
@@ -426,6 +454,53 @@ function listNodeFromTsArrayLiteralExpression(
       arrayLiteralExpression.end,
     ),
     tsSyntaxKind: ts.SyntaxKind.ArrayLiteralExpression,
+  };
+}
+
+function listNodeFromTsObjectLiteralElementLike(
+  objectLiteralElementLike: ts.ObjectLiteralElementLike,
+  file: ts.SourceFile | undefined,
+): ListNode {
+  const content: Node[] = [];
+
+  if (ts.isPropertyAssignment(objectLiteralElementLike)) {
+    content.push(nodeFromTsNode(objectLiteralElementLike.name, file));
+    content.push(
+      nodeFromTsNode(
+        getToken(
+          file,
+          objectLiteralElementLike.name.end,
+          ts.SyntaxKind.ColonToken,
+        ),
+        file,
+      ),
+    );
+    content.push(nodeFromTsNode(objectLiteralElementLike.initializer, file));
+  } else if (ts.isShorthandPropertyAssignment(objectLiteralElementLike)) {
+    content.push(nodeFromTsNode(objectLiteralElementLike.name, file));
+  } else if (ts.isSpreadAssignment(objectLiteralElementLike)) {
+    const dotDotDotToken = objectLiteralElementLike.getFirstToken(file);
+    if (!dotDotDotToken || !ts.isDotDotDotToken(dotDotDotToken)) {
+      throw new Error("expected dotDotDotToken");
+    }
+    content.push(nodeFromTsNode(dotDotDotToken, file));
+    content.push(nodeFromTsNode(objectLiteralElementLike.expression, file));
+  } else {
+    throw new Error(
+      `this specific subtype of ObjectLiteralElementLike (${
+        ts.SyntaxKind[objectLiteralElementLike.kind]
+      }) is not yet supported`,
+    );
+  }
+
+  return {
+    kind: NodeKind.List,
+    listKind: ListKind.ObjectLiteralElement,
+    delimiters: ["", ""],
+    content,
+    equivalentToContent: true,
+    pos: objectLiteralElementLike.pos,
+    end: objectLiteralElementLike.end,
   };
 }
 
@@ -459,6 +534,8 @@ export function nodeFromTsNode(
     return listNodeFromTsObjectLiteralExpression(node, file);
   } else if (ts.isArrayLiteralExpression(node)) {
     return listNodeFromTsArrayLiteralExpression(node, file);
+  } else if (ts.isObjectLiteralElementLike(node)) {
+    return listNodeFromTsObjectLiteralElementLike(node, file);
   } else {
     return {
       kind: NodeKind.Token,

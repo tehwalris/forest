@@ -9,3 +9,15 @@ export function astFromTypescriptFileContent(fileContent: string) {
   const file = compilerHost.addFile(fakeFileName, fileContent, languageVersion);
   return file;
 }
+
+export function createScanner(fileContent: string): ts.Scanner {
+  return ts.createScanner(
+    languageVersion,
+    true,
+    undefined,
+    fileContent,
+    (err) => {
+      throw new Error("err");
+    },
+  );
+}

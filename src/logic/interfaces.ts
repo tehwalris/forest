@@ -30,6 +30,7 @@ export enum ListKind {
   CallArguments,
   IfBranches,
   IfBranch,
+  ObjectLiteralElement,
   UnknownTsNodeArray,
   TsNodeStruct,
   TsNodeList,
