@@ -370,6 +370,19 @@ describe("DocManager", () => {
       ],
       expectedText: "const x = { ...a }",
     },
+    {
+      label: "add statement to block",
+      initialText: "const x = () => { y() }",
+      events: [
+        evSemi,
+        evSemi,
+        evSemi,
+        ...eventsFromKeys("j"),
+        ...eventsFromKeys("a;z()"),
+        evEscape,
+      ],
+      expectedText: "const x = () => { y(); z() }",
+    },
   ];
 
   for (const c of cases) {
