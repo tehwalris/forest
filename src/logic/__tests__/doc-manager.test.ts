@@ -330,6 +330,46 @@ describe("DocManager", () => {
       ],
       expectedText: "const x = { ...y }",
     },
+    {
+      label: "change object property initializer using placeholder",
+      initialText: "const x = { y: z }",
+      events: [
+        evSemi,
+        evSemi,
+        ...eventsFromKeys("j"),
+        evSemi,
+        ...eventsFromKeys("daa"),
+        evEscape,
+      ],
+      expectedText: "const x = { y: a }",
+    },
+    {
+      label: "change object property name using placeholder",
+      initialText: "const x = { y: z }",
+      events: [
+        evSemi,
+        evSemi,
+        ...eventsFromKeys("j"),
+        evAltSemi,
+        evSemi,
+        ...eventsFromKeys("dia"),
+        evEscape,
+      ],
+      expectedText: "const x = { a: z }",
+    },
+    {
+      label: "change spread assignment expression using placeholder",
+      initialText: "const x = { ...y }",
+      events: [
+        evSemi,
+        evSemi,
+        ...eventsFromKeys("j"),
+        evSemi,
+        ...eventsFromKeys("daa"),
+        evEscape,
+      ],
+      expectedText: "const x = { ...a }",
+    },
   ];
 
   for (const c of cases) {

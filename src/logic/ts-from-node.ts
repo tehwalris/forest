@@ -8,6 +8,7 @@ import {
   flagsForTsVarLetConst,
   isToken,
   isTsBinaryOperatorToken,
+  isTsColonToken,
   isTsQuestionDotToken,
   isTsVarLetConst,
 } from "./ts-type-predicates";
@@ -178,13 +179,7 @@ export function tsNodeFromNode(node: Node): ts.Node {
               `want length 3 for PropertyAssignment, but got ${node.content.length}`,
             );
           }
-          if (
-            !isToken(
-              node.content[1],
-              (tsNode): tsNode is ts.Token<ts.SyntaxKind.ColonToken> =>
-                tsNode.kind === ts.SyntaxKind.ColonToken,
-            )
-          ) {
+          if (!isToken(node.content[1], isTsColonToken)) {
             throw new Error("expected node.content[1] to be ColonToken");
           }
           return ts.createPropertyAssignment(

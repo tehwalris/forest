@@ -1,5 +1,5 @@
 import { last } from "ramda";
-import ts from "typescript";
+import ts, { isDotDotDotToken } from "typescript";
 import { ListKind, ListNode, Node, NodeKind, Path } from "./interfaces";
 import { nodeFromTsNode } from "./node-from-ts";
 import { PathMapper } from "./path-mapper";
@@ -9,6 +9,7 @@ import { onlyChildFromNode } from "./tree-utils/access";
 import {
   isToken,
   isTsBinaryOperatorToken,
+  isTsColonToken,
   isTsQuestionDotToken,
   isTsVarLetConst,
 } from "./ts-type-predicates";
@@ -199,6 +200,76 @@ function makeVariableDeclarationListValidTs(
   );
 }
 
+function makePropertyAssignmentValidTs(
+  oldContent: Node[],
+  mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
+): Node[] {
+  return insertIntoContent(
+    oldContent,
+    (newLeft, oldRight) => {
+      if (
+        newLeft === undefined &&
+        oldRight !== undefined &&
+        isToken(oldRight, isTsColonToken)
+      ) {
+        return makePlaceholderIdentifier();
+      }
+      if (
+        newLeft !== undefined &&
+        isToken(newLeft, isTsColonToken) &&
+        oldRight === undefined
+      ) {
+        return makePlaceholderIdentifier();
+      }
+      return undefined;
+    },
+    mapChild,
+  );
+}
+
+function makeShorthandPropertyAssignmentValidTs(
+  oldContent: Node[],
+  mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
+): Node[] {
+  return [mapChild({ node: oldContent[0], oldIndex: 0, newIndex: 0 })];
+}
+
+function makeSpreadAssignmentValidTs(
+  oldContent: Node[],
+  mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
+): Node[] {
+  return insertIntoContent(
+    oldContent,
+    (newLeft, oldRight) => {
+      if (
+        newLeft !== undefined &&
+        isToken(newLeft, isDotDotDotToken) &&
+        oldRight === undefined
+      ) {
+        return makePlaceholderIdentifier();
+      }
+      return undefined;
+    },
+    mapChild,
+  );
+}
+
+function makeObjectLiteralElementValidTs(
+  oldContent: Node[],
+  mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
+): Node[] {
+  if (oldContent.length < 1) {
+    throw new Error("ObjectLiteralElement must have at least 1 child");
+  }
+  if (isToken(oldContent[0], ts.isDotDotDotToken)) {
+    return makeSpreadAssignmentValidTs(oldContent, mapChild);
+  } else if (oldContent.length === 1) {
+    return makeShorthandPropertyAssignmentValidTs(oldContent, mapChild);
+  } else {
+    return makePropertyAssignmentValidTs(oldContent, mapChild);
+  }
+}
+
 interface ExtraInfo {
   couldBeElseBranch?: boolean;
 }
@@ -362,6 +433,14 @@ function _makeNodeValidTs({
           });
         }
       }),
+    };
+  } else if (
+    node.kind === NodeKind.List &&
+    node.listKind === ListKind.ObjectLiteralElement
+  ) {
+    node = {
+      ...node,
+      content: makeObjectLiteralElementValidTs(node.content, mapChild),
     };
   } else if (node.kind === NodeKind.List) {
     node = {

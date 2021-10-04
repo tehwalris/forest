@@ -15,6 +15,10 @@ export function isTsQuestionDotToken(
   return ts.isToken(node) && node.kind === ts.SyntaxKind.QuestionDotToken;
 }
 
+export function isTsColonToken(node: ts.Node): node is ts.ColonToken {
+  return ts.isToken(node) && node.kind === ts.SyntaxKind.ColonToken;
+}
+
 export function isTsBinaryOperatorToken(
   node: ts.Node,
 ): node is ts.BinaryOperatorToken {
