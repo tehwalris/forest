@@ -269,7 +269,10 @@ export function tsNodeFromNode(node: Node): ts.Node {
         case undefined:
           throw new Error("TsNodeList with undefined tsSyntaxKind");
         case ts.SyntaxKind.Block:
-          return ts.createBlock(tsNodeArrayFromNode(node) as ts.Statement[]);
+          return ts.createBlock(
+            tsNodeArrayFromNode(node) as ts.Statement[],
+            node.content.length > 1,
+          );
         case ts.SyntaxKind.ObjectLiteralExpression:
           return ts.createObjectLiteral(
             tsNodeArrayFromNode(node) as ts.ObjectLiteralElementLike[],
