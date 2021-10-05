@@ -33,6 +33,7 @@ import { filterNodes } from "./tree-utils/filter";
 import { docMapRoot, emptyDoc } from "./doc-utils";
 import { checkInsertion } from "./check-insertion";
 import { withoutInvisibleNodes } from "./without-invisible";
+import { memoize } from "./memoize";
 
 export enum Mode {
   Normal,
@@ -72,6 +73,9 @@ export class DocManager {
   private lastMode = this.mode;
   private lastDoc = emptyDoc;
   private insertState: InsertState | undefined;
+  private getDocWithoutPlaceholdersNearCursor = memoize(
+    getDocWithoutPlaceholdersNearCursor,
+  );
 
   constructor(
     private doc: Doc,
@@ -518,7 +522,7 @@ export class DocManager {
   private reportUpdate() {
     let doc = this.doc;
     if (this.insertState) {
-      const result = getDocWithoutPlaceholdersNearCursor(
+      const result = this.getDocWithoutPlaceholdersNearCursor(
         this.doc,
         this.insertState.beforePos,
       );
