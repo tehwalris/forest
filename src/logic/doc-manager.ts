@@ -70,6 +70,7 @@ export class DocManager {
   }[] = [];
   private mode = Mode.Normal;
   private lastMode = this.mode;
+  private lastDoc = emptyDoc;
   private insertState: InsertState | undefined;
 
   constructor(
@@ -483,7 +484,9 @@ export class DocManager {
   }
 
   private onUpdate() {
-    if (this.mode === Mode.Normal) {
+    const docChanged = this.doc !== this.lastDoc;
+
+    if (this.mode === Mode.Normal && docChanged) {
       this.removeInvisibleNodes();
     }
     this.whileUnevenFocusChanges(() => this.normalizeFocus());
@@ -503,9 +506,13 @@ export class DocManager {
     }
     this.lastMode = this.mode;
 
-    this.updateDocText();
+    if (docChanged) {
+      this.updateDocText();
+    }
 
     this.reportUpdate();
+
+    this.lastDoc = this.doc;
   }
 
   private reportUpdate() {
