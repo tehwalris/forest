@@ -7,6 +7,7 @@ import {
   initialDocManagerPublicState,
   Mode,
 } from "../logic/doc-manager";
+import { getBeforePos } from "../logic/doc-utils";
 import {
   Doc,
   EvenPathRange,
@@ -18,7 +19,6 @@ import {
 import { docFromAst } from "../logic/node-from-ts";
 import { astFromTypescriptFileContent } from "../logic/parse";
 import { asEvenPathRange } from "../logic/path-utils";
-import { nodeTryGetDeepestByPath } from "../logic/tree-utils/access";
 import { unreachable } from "../logic/util";
 
 const exampleFile = `
@@ -185,18 +185,6 @@ function splitDocRenderRegions(
     }
   }
   return regions;
-}
-
-function getBeforePos(doc: Doc, beforePath: Path): number {
-  const deepest = nodeTryGetDeepestByPath(doc.root, beforePath);
-  if (deepest.path.length === beforePath.length) {
-    return deepest.node.pos;
-  }
-  let pos = deepest.node.end;
-  if (deepest.node.kind === NodeKind.List) {
-    pos -= deepest.node.delimiters[1].length;
-  }
-  return pos;
 }
 
 function insertDocRenderCursor(lines: DocRenderLine[], beforePos: number) {

@@ -1,5 +1,5 @@
 import { checkInsertion } from "./check-insertion";
-import { docMapRoot, emptyDoc } from "./doc-utils";
+import { docMapRoot, emptyDoc, getBeforePos } from "./doc-utils";
 import {
   Doc,
   EvenPathRange,
@@ -39,6 +39,7 @@ import { withoutInvisibleNodes } from "./without-invisible";
 
 export enum Mode {
   Normal,
+  // TODO make generic insert mode
   InsertBefore,
   InsertAfter,
 }
@@ -97,10 +98,7 @@ export class DocManager {
 
   onKeyPress = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal) {
-      if (ev.key === "Enter") {
-        if (this.focus.kind !== FocusKind.Range) {
-          return;
-        }
+      if (ev.key === "Enter" && this.focus.kind === FocusKind.Range) {
         const evenFocus = asEvenPathRange(this.focus.range);
         if (evenFocus.offset !== 0) {
           return;
@@ -115,6 +113,13 @@ export class DocManager {
           text: "",
         };
         this.mode = Mode.InsertAfter;
+      } else if (ev.key === "Enter" && this.focus.kind === FocusKind.Location) {
+        this.insertState = {
+          beforePos: getBeforePos(this.doc, this.focus.before),
+          beforePath: this.focus.before,
+          text: "",
+        };
+        this.mode = Mode.InsertBefore;
       } else if (ev.key === "b") {
         if (this.focus.kind !== FocusKind.Range) {
           return;
