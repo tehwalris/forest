@@ -115,6 +115,18 @@ export class DocManager {
           text: "",
         };
         this.mode = Mode.InsertAfter;
+      } else if (ev.key === "b") {
+        if (this.focus.kind !== FocusKind.Range) {
+          return;
+        }
+        let evenFocus = asEvenPathRange(this.focus.range);
+        if (evenFocus.offset < 0) {
+          evenFocus = flipEvenPathRange(evenFocus);
+        }
+        this.focus = {
+          kind: FocusKind.Location,
+          before: evenFocus.anchor,
+        };
       } else if (ev.key === "i") {
         if (this.focus.kind !== FocusKind.Range) {
           return;

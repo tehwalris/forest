@@ -13,10 +13,13 @@ import {
   FocusKind,
   Node,
   NodeKind,
+  Path,
 } from "../logic/interfaces";
 import { docFromAst } from "../logic/node-from-ts";
 import { astFromTypescriptFileContent } from "../logic/parse";
 import { asEvenPathRange } from "../logic/path-utils";
+import { nodeTryGetDeepestByPath } from "../logic/tree-utils/access";
+import { unreachable } from "../logic/util";
 
 const exampleFile = `
   export const handlers: {
@@ -53,6 +56,7 @@ enum CharSelection {
   None = 0,
   Normal = 1,
   Tip = 2,
+  Cursor = 3,
 }
 
 function setCharSelections({
@@ -110,16 +114,21 @@ function setCharSelections({
 
 interface DocRenderLine {
   regions: DocRenderRegion[];
+  pos: number;
+  end: number;
 }
 
 interface DocRenderRegion {
   text: string;
   selection: CharSelection;
+  pos: number;
+  end: number;
 }
 
 function splitDocRenderRegions(
   text: string,
   selectionsByChar: Uint8Array,
+  linePos: number,
 ): DocRenderRegion[] {
   if (text.length !== selectionsByChar.length) {
     throw new Error("text and selectionsByChar must have same length");
@@ -130,16 +139,18 @@ function splitDocRenderRegions(
   }
 
   const regions: DocRenderRegion[] = [];
-  let start = 0;
+  let pos = 0;
   const pushRegion = (end: number) => {
     regions.push({
-      text: text.slice(start, end),
-      selection: selectionsByChar[start],
+      text: text.slice(pos, end),
+      selection: selectionsByChar[pos],
+      pos: pos + linePos,
+      end: end + linePos,
     });
-    start = end;
+    pos = end;
   };
   for (const [i, selection] of selectionsByChar.entries()) {
-    if (selection !== selectionsByChar[start]) {
+    if (selection !== selectionsByChar[pos]) {
       pushRegion(i);
     }
     if (i + 1 === selectionsByChar.length) {
@@ -149,15 +160,91 @@ function splitDocRenderRegions(
   return regions;
 }
 
-function renderDoc(
-  doc: Doc,
-  focus: EvenPathRange | undefined,
-): React.ReactNode {
+function getBeforePos(doc: Doc, beforePath: Path): number {
+  const deepest = nodeTryGetDeepestByPath(doc.root, beforePath);
+  if (deepest.path.length === beforePath.length) {
+    return deepest.node.pos;
+  }
+  let pos = deepest.node.end;
+  if (deepest.node.kind === NodeKind.List) {
+    pos -= deepest.node.delimiters[1].length;
+  }
+  return pos;
+}
+
+function insertDocRenderCursor(lines: DocRenderLine[], beforePos: number) {
+  if (!lines.length) {
+    return;
+  }
+
+  const targetLine =
+    lines.find((l) => l.pos <= beforePos && l.end >= beforePos) ||
+    lines[lines.length - 1];
+
+  let beforeOrAtIndex = targetLine.regions.findIndex(
+    (r) => r.pos <= beforePos && r.end >= beforePos,
+  );
+  if (beforeOrAtIndex === -1) {
+    beforeOrAtIndex = targetLine.regions.length;
+  }
+  let oldRegion: DocRenderRegion | undefined;
+  if (beforeOrAtIndex < targetLine.regions.length) {
+    oldRegion = targetLine.regions[beforeOrAtIndex];
+  }
+
+  let splitRegion: [DocRenderRegion, DocRenderRegion] | undefined;
+  if (oldRegion && oldRegion.pos < beforePos) {
+    const leftLength = beforePos - oldRegion.pos;
+    splitRegion = [
+      {
+        text: oldRegion.text.slice(0, leftLength),
+        selection: oldRegion.selection,
+        pos: oldRegion.pos,
+        end: oldRegion.pos + leftLength,
+      },
+      {
+        text: oldRegion.text.slice(leftLength),
+        selection: oldRegion.selection,
+        pos: oldRegion.pos + leftLength,
+        end: oldRegion.end,
+      },
+    ];
+  }
+
+  const cursorRegion: DocRenderRegion = {
+    text: "|",
+    selection: CharSelection.Cursor,
+    pos: beforePos,
+    end: beforePos,
+  };
+
+  if (splitRegion) {
+    targetLine.regions.splice(
+      beforeOrAtIndex,
+      1,
+      splitRegion[0],
+      cursorRegion,
+      splitRegion[1],
+    );
+  } else {
+    targetLine.regions.splice(beforeOrAtIndex, 0, cursorRegion);
+  }
+}
+
+function renderDoc({
+  doc,
+  evenFocusRange,
+  cursorBeforePath,
+}: {
+  doc: Doc;
+  evenFocusRange: EvenPathRange | undefined;
+  cursorBeforePath: Path | undefined;
+}): React.ReactNode {
   const selectionsByChar = new Uint8Array(doc.text.length);
   setCharSelections({
     selectionsByChar,
     node: doc.root,
-    focus,
+    focus: evenFocusRange,
     isTipOfFocus: false,
   });
 
@@ -168,21 +255,29 @@ function renderDoc(
       regions: splitDocRenderRegions(
         lineText,
         selectionsByChar.subarray(pos, pos + lineText.length),
+        pos,
       ),
+      pos,
+      end: pos + lineText.length + 1,
     };
     if (line.regions.length || lines.length) {
       lines.push(line);
     }
-    pos += lineText.length + 1;
+    pos = line.end;
   }
   while (lines.length && !lines[lines.length - 1].regions.length) {
     lines.pop();
+  }
+
+  if (cursorBeforePath) {
+    insertDocRenderCursor(lines, getBeforePos(doc, cursorBeforePath));
   }
 
   const backgroundsBySelection: { [K in CharSelection]: string | undefined } = {
     [CharSelection.None]: undefined,
     [CharSelection.Normal]: "rgba(11, 83, 255, 0.15)",
     [CharSelection.Tip]: "rgba(11, 83, 255, 0.37)",
+    [CharSelection.Cursor]: undefined,
   };
 
   return (
@@ -235,12 +330,21 @@ export const LinearEditor = () => {
     };
   }, [docManager]);
 
-  const evenFocusRange =
-    focus.kind === FocusKind.Range ? asEvenPathRange(focus.range) : undefined;
+  let evenFocusRange: EvenPathRange | undefined;
+  let cursorBeforePath: Path | undefined;
+  if (focus.kind === FocusKind.Range) {
+    evenFocusRange = asEvenPathRange(focus.range);
+  } else if (focus.kind === FocusKind.Location) {
+    cursorBeforePath = focus.before;
+  } else {
+    return unreachable(focus);
+  }
 
   return (
     <div>
-      <div className={styles.doc}>{renderDoc(doc, evenFocusRange)}</div>
+      <div className={styles.doc}>
+        {renderDoc({ doc, evenFocusRange, cursorBeforePath })}
+      </div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
       <pre>
         {JSON.stringify(
