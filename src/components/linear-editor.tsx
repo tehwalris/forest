@@ -75,6 +75,8 @@ const styles = {
     height: calc(100% + 2 * var(--overhang));
     top: calc(-1 * var(--overhang));
     left: calc(var(--thickness) / 2);
+  `,
+  insertCursorDiv: css`
     animation: ${pulse} 1s ease infinite;
   `,
 };
@@ -83,7 +85,8 @@ enum CharSelection {
   None = 0,
   Normal = 1,
   Tip = 2,
-  Cursor = 3,
+  NormalCursor = 3,
+  InsertCursor = 4,
 }
 
 function setCharSelections({
@@ -187,7 +190,15 @@ function splitDocRenderRegions(
   return regions;
 }
 
-function insertDocRenderCursor(lines: DocRenderLine[], beforePos: number) {
+function insertDocRenderCursor({
+  lines,
+  beforePos,
+  cursorStyle,
+}: {
+  lines: DocRenderLine[];
+  beforePos: number;
+  cursorStyle: CharSelection;
+}) {
   if (!lines.length) {
     return;
   }
@@ -228,7 +239,7 @@ function insertDocRenderCursor(lines: DocRenderLine[], beforePos: number) {
 
   const cursorRegion: DocRenderRegion = {
     text: "",
-    selection: CharSelection.Cursor,
+    selection: cursorStyle,
     pos: beforePos,
     end: beforePos,
   };
@@ -250,10 +261,12 @@ function renderDoc({
   doc,
   evenFocusRange,
   cursorBeforePath,
+  cursorStyle,
 }: {
   doc: Doc;
   evenFocusRange: EvenPathRange | undefined;
   cursorBeforePath: Path | undefined;
+  cursorStyle: CharSelection;
 }): React.ReactNode {
   const selectionsByChar = new Uint8Array(doc.text.length);
   setCharSelections({
@@ -285,14 +298,19 @@ function renderDoc({
   }
 
   if (cursorBeforePath) {
-    insertDocRenderCursor(lines, getBeforePos(doc, cursorBeforePath));
+    insertDocRenderCursor({
+      lines,
+      beforePos: getBeforePos(doc, cursorBeforePath),
+      cursorStyle,
+    });
   }
 
   const backgroundsBySelection: { [K in CharSelection]: string | undefined } = {
     [CharSelection.None]: undefined,
     [CharSelection.Normal]: "rgba(11, 83, 255, 0.15)",
     [CharSelection.Tip]: "rgba(11, 83, 255, 0.37)",
-    [CharSelection.Cursor]: undefined,
+    [CharSelection.NormalCursor]: "rgba(11, 83, 255, 0.37)",
+    [CharSelection.InsertCursor]: "rgba(0, 0, 0, 1)",
   };
 
   return (
@@ -300,23 +318,35 @@ function renderDoc({
       {lines.map((line, iLine) => (
         <div key={iLine}>
           {!line.regions.length && <br />}
-          {line.regions.map((region, iRegion) => (
-            <span
-              key={iRegion}
-              style={{ background: backgroundsBySelection[region.selection] }}
-              className={
-                region.selection === CharSelection.Cursor
-                  ? styles.cursorSpan
-                  : undefined
-              }
-            >
-              {region.selection === CharSelection.Cursor ? (
-                <div className={styles.cursorDiv} />
-              ) : (
-                region.text
-              )}
-            </span>
-          ))}
+          {line.regions.map((region, iRegion) => {
+            const isCursor =
+              region.selection === CharSelection.NormalCursor ||
+              region.selection === CharSelection.InsertCursor;
+            return (
+              <span
+                key={iRegion}
+                style={{ background: backgroundsBySelection[region.selection] }}
+                className={isCursor ? styles.cursorSpan : undefined}
+              >
+                {isCursor ? (
+                  <div
+                    className={[
+                      styles.cursorDiv,
+                      region.selection === CharSelection.InsertCursor &&
+                        styles.insertCursorDiv,
+                    ]
+                      .filter((v) => v)
+                      .join(" ")}
+                    style={{
+                      background: backgroundsBySelection[region.selection],
+                    }}
+                  />
+                ) : (
+                  region.text
+                )}
+              </span>
+            );
+          })}
         </div>
       ))}
     </div>
@@ -367,7 +397,15 @@ export const LinearEditor = () => {
   return (
     <div>
       <div className={styles.doc}>
-        {renderDoc({ doc, evenFocusRange, cursorBeforePath })}
+        {renderDoc({
+          doc,
+          evenFocusRange,
+          cursorBeforePath,
+          cursorStyle:
+            mode === Mode.Insert
+              ? CharSelection.InsertCursor
+              : CharSelection.NormalCursor,
+        })}
       </div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
       <pre>
