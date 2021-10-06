@@ -222,6 +222,16 @@ export class DocManager {
           anchor: getPathToTip(asEvenPathRange(this.focus)),
           offset: 0,
         });
+      } else if (ev.key === "o") {
+        console.log({
+          doc: this.doc,
+          focus: this.focus,
+          tip: nodeGetByPath(
+            this.doc.root,
+            getPathToTip(asEvenPathRange(this.focus)),
+          ),
+          insertState: this.insertState,
+        });
       }
     } else if (
       this.mode === Mode.InsertBefore ||
