@@ -520,11 +520,18 @@ export class DocManager {
   }
 
   private tryMoveThroughLeaves(offset: -1 | 1, extend: boolean) {
-    if (this.focus.kind !== FocusKind.Range) {
-      return;
+    let currentPath: Path;
+    if (this.focus.kind === FocusKind.Range) {
+      currentPath = [...this.focus.range.tip];
+    } else if (this.focus.kind === FocusKind.Location) {
+      currentPath = [...this.focus.before];
+      if (currentPath.length && offset === 1) {
+        currentPath[currentPath.length - 1] -= 1;
+      }
+    } else {
+      return unreachable(this.focus);
     }
 
-    let currentPath = [...this.focus.range.tip];
     while (true) {
       if (!currentPath.length) {
         return;
@@ -555,9 +562,10 @@ export class DocManager {
 
     this.focus = {
       kind: FocusKind.Range,
-      range: extend
-        ? { anchor: this.focus.range.anchor, tip: currentPath }
-        : { anchor: currentPath, tip: currentPath },
+      range:
+        extend && this.focus.kind === FocusKind.Range
+          ? { anchor: this.focus.range.anchor, tip: currentPath }
+          : { anchor: currentPath, tip: currentPath },
     };
   }
 
