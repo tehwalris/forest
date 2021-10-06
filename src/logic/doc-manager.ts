@@ -132,6 +132,21 @@ export class DocManager {
           kind: FocusKind.Location,
           before: evenFocus.anchor,
         };
+      } else if (ev.key === "e") {
+        if (this.focus.kind !== FocusKind.Range) {
+          return;
+        }
+        let evenFocus = asEvenPathRange(this.focus.range);
+        if (evenFocus.offset > 0) {
+          evenFocus = flipEvenPathRange(evenFocus);
+        }
+        this.focus = {
+          kind: FocusKind.Location,
+          before: [
+            ...evenFocus.anchor.slice(0, -1),
+            evenFocus.anchor[evenFocus.anchor.length - 1] + 1,
+          ],
+        };
       } else if (ev.key === "i") {
         if (this.focus.kind !== FocusKind.Range) {
           return;
