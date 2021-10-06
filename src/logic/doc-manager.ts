@@ -7,7 +7,7 @@ import {
   FocusKind,
   InsertState,
   NodeKind,
-  Path,
+  Path
 } from "./interfaces";
 import { memoize } from "./memoize";
 import { docFromAst } from "./node-from-ts";
@@ -19,11 +19,11 @@ import {
   flipEvenPathRange,
   flipUnevenPathRange,
   focusesAreEqual,
-  getPathToTip,
+  getPathToTip
 } from "./path-utils";
 import {
   getDocWithAllPlaceholders,
-  getDocWithoutPlaceholdersNearCursor,
+  getDocWithoutPlaceholdersNearCursor
 } from "./placeholders";
 import { printTsSourceFile } from "./print";
 import { getDocWithInsert } from "./text";
@@ -31,7 +31,7 @@ import {
   nodeGetByPath,
   nodeMapAtPath,
   nodeTryGetDeepestByPath,
-  nodeVisitDeep,
+  nodeVisitDeep
 } from "./tree-utils/access";
 import { filterNodes } from "./tree-utils/filter";
 import { unreachable } from "./util";
@@ -39,9 +39,7 @@ import { withoutInvisibleNodes } from "./without-invisible";
 
 export enum Mode {
   Normal,
-  // TODO make generic insert mode
-  InsertBefore,
-  InsertAfter,
+  Insert,
 }
 
 export interface DocManagerPublicState {
@@ -112,14 +110,14 @@ export class DocManager {
           beforePath: [...evenFocus.anchor, 0],
           text: "",
         };
-        this.mode = Mode.InsertAfter;
+        this.mode = Mode.Insert;
       } else if (ev.key === "Enter" && this.focus.kind === FocusKind.Location) {
         this.insertState = {
           beforePos: getBeforePos(this.doc, this.focus.before),
           beforePath: this.focus.before,
           text: "",
         };
-        this.mode = Mode.InsertBefore;
+        this.mode = Mode.Insert;
       } else if (ev.key === "b") {
         if (this.focus.kind !== FocusKind.Range) {
           return;
@@ -147,65 +145,6 @@ export class DocManager {
             evenFocus.anchor[evenFocus.anchor.length - 1] + 1,
           ],
         };
-      } else if (ev.key === "i") {
-        if (this.focus.kind !== FocusKind.Range) {
-          return;
-        }
-        let evenFocus = asEvenPathRange(this.focus.range);
-        if (!evenFocus.anchor.length) {
-          return;
-        }
-        if (evenFocus.offset < 0) {
-          evenFocus = flipEvenPathRange(evenFocus);
-        }
-        const firstFocusedPath = evenFocus.anchor;
-        evenFocus = flipEvenPathRange(evenFocus);
-        this.focus = {
-          kind: FocusKind.Range,
-          range: asUnevenPathRange(evenFocus),
-        };
-
-        const firstFocusedNode = nodeGetByPath(this.doc.root, firstFocusedPath);
-        if (!firstFocusedNode) {
-          throw new Error("invalid focus");
-        }
-        this.insertState = {
-          beforePos: firstFocusedNode.pos,
-          beforePath: firstFocusedPath,
-          text: "",
-        };
-        this.mode = Mode.InsertBefore;
-      } else if (ev.key === "a") {
-        if (this.focus.kind !== FocusKind.Range) {
-          return;
-        }
-        let evenFocus = asEvenPathRange(this.focus.range);
-        if (!evenFocus.anchor.length) {
-          return;
-        }
-        if (evenFocus.offset > 0) {
-          evenFocus = flipEvenPathRange(evenFocus);
-        }
-        const lastFocusedPath = evenFocus.anchor;
-        evenFocus = flipEvenPathRange(evenFocus);
-        this.focus = {
-          kind: FocusKind.Range,
-          range: asUnevenPathRange(evenFocus),
-        };
-
-        const lastFocusedNode = nodeGetByPath(this.doc.root, lastFocusedPath);
-        if (!lastFocusedNode) {
-          throw new Error("invalid focus");
-        }
-        this.insertState = {
-          beforePos: lastFocusedNode.end,
-          beforePath: [
-            ...lastFocusedPath.slice(0, -1),
-            lastFocusedPath[lastFocusedPath.length - 1] + 1,
-          ],
-          text: "",
-        };
-        this.mode = Mode.InsertAfter;
       } else if (ev.key === "d") {
         if (this.focus.kind !== FocusKind.Range) {
           return;
@@ -300,10 +239,7 @@ export class DocManager {
           insertState: this.insertState,
         });
       }
-    } else if (
-      this.mode === Mode.InsertBefore ||
-      this.mode === Mode.InsertAfter
-    ) {
+    } else if (this.mode === Mode.Insert) {
       if (!this.insertState) {
         throw new Error("this.insertState was undefined in insert mode");
       }
@@ -329,10 +265,7 @@ export class DocManager {
         range: flipUnevenPathRange(this.focus.range),
       };
       this.onUpdate();
-    } else if (
-      (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
-      ev.key === "Escape"
-    ) {
+    } else if (this.mode === Mode.Insert && ev.key === "Escape") {
       if (!this.insertState) {
         throw new Error("this.insertState was undefined in insert mode");
       }
@@ -428,10 +361,7 @@ export class DocManager {
       this.insertState = undefined;
       this.removeInvisibleNodes();
       this.onUpdate();
-    } else if (
-      (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
-      ev.key === "Backspace"
-    ) {
+    } else if (this.mode === Mode.Insert && ev.key === "Backspace") {
       if (this.history.length < 2) {
         return;
       }
@@ -446,7 +376,7 @@ export class DocManager {
   };
 
   onKeyUp = (ev: MinimalKeyboardEvent) => {
-    if (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) {
+    if (this.mode === Mode.Insert) {
       ev.stopPropagation?.();
       ev.preventDefault?.();
     }
@@ -624,7 +554,7 @@ export class DocManager {
       this.removeInvisibleNodes();
     }
     this.whileUnevenFocusChanges(() => this.normalizeFocus());
-    if (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) {
+    if (this.mode === Mode.Insert) {
       if (!this.insertState) {
         throw new Error("this.insertState was undefined in insert mode");
       }
