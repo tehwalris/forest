@@ -1,9 +1,12 @@
 import {
   EvenPathRange,
+  Focus,
+  FocusKind,
   NodeWithPath,
   Path,
   UnevenPathRange,
 } from "./interfaces";
+import { unreachable } from "./util";
 
 export function pathsAreEqual(a: Path, b: Path): boolean {
   return a === b || (a.length === b.length && a.every((v, i) => v === b[i]));
@@ -37,6 +40,24 @@ export function unevenPathRangesAreEqual(
     a === b ||
     (pathsAreEqual(a.anchor, b.anchor) && pathsAreEqual(a.tip, b.tip))
   );
+}
+
+export function focusesAreEqual(a: Focus, _b: Focus): boolean {
+  if (a === _b) {
+    return true;
+  }
+  if (a.kind !== _b.kind) {
+    return false;
+  }
+  if (a.kind === FocusKind.Range) {
+    const b = _b as typeof a;
+    return unevenPathRangesAreEqual(a.range, b.range);
+  } else if (a.kind === FocusKind.Location) {
+    const b = _b as typeof a;
+    return pathsAreEqual(a.before, b.before);
+  } else {
+    return unreachable(a);
+  }
 }
 
 export function prefixNodesWithPaths(

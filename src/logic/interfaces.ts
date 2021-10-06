@@ -62,3 +62,20 @@ export interface InsertState {
   beforePath: Path;
   text: string;
 }
+
+export type Focus = RangeFocus | LocationFocus;
+
+export enum FocusKind {
+  Range,
+  Location,
+}
+
+export interface RangeFocus {
+  kind: FocusKind.Range;
+  range: UnevenPathRange;
+}
+
+export interface LocationFocus {
+  kind: FocusKind.Location;
+  before: Path;
+}

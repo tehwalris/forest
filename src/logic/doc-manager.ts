@@ -1,25 +1,29 @@
+import { checkInsertion } from "./check-insertion";
+import { docMapRoot, emptyDoc } from "./doc-utils";
 import {
   Doc,
   EvenPathRange,
+  Focus,
+  FocusKind,
   InsertState,
   NodeKind,
   Path,
-  UnevenPathRange,
 } from "./interfaces";
+import { memoize } from "./memoize";
 import { docFromAst } from "./node-from-ts";
 import { astFromTypescriptFileContent } from "./parse";
 import {
   asEvenPathRange,
-  flipEvenPathRange,
   asUnevenPathRange,
-  getPathToTip,
-  flipUnevenPathRange,
-  unevenPathRangesAreEqual,
   evenPathRangesAreEqual,
+  flipEvenPathRange,
+  flipUnevenPathRange,
+  focusesAreEqual,
+  getPathToTip,
 } from "./path-utils";
 import {
-  getDocWithoutPlaceholdersNearCursor,
   getDocWithAllPlaceholders,
+  getDocWithoutPlaceholdersNearCursor,
 } from "./placeholders";
 import { printTsSourceFile } from "./print";
 import { getDocWithInsert } from "./text";
@@ -30,10 +34,8 @@ import {
   nodeVisitDeep,
 } from "./tree-utils/access";
 import { filterNodes } from "./tree-utils/filter";
-import { docMapRoot, emptyDoc } from "./doc-utils";
-import { checkInsertion } from "./check-insertion";
+import { unreachable } from "./util";
 import { withoutInvisibleNodes } from "./without-invisible";
-import { memoize } from "./memoize";
 
 export enum Mode {
   Normal,
@@ -43,13 +45,13 @@ export enum Mode {
 
 export interface DocManagerPublicState {
   doc: Doc;
-  focus: EvenPathRange;
+  focus: Focus;
   mode: Mode;
 }
 
 export const initialDocManagerPublicState: DocManagerPublicState = {
   doc: emptyDoc,
-  focus: { anchor: [], offset: 0 },
+  focus: { kind: FocusKind.Range, range: { anchor: [], tip: [] } },
   mode: Mode.Normal,
 };
 
@@ -61,11 +63,14 @@ export interface MinimalKeyboardEvent {
 }
 
 export class DocManager {
-  private focus: UnevenPathRange = { anchor: [], tip: [] };
+  private focus: Focus = {
+    kind: FocusKind.Range,
+    range: { anchor: [], tip: [] },
+  };
   private parentFocuses: EvenPathRange[] = [];
   private history: {
     doc: Doc;
-    focus: UnevenPathRange;
+    focus: Focus;
     parentFocuses: EvenPathRange[];
     insertState: InsertState;
   }[] = [];
@@ -93,7 +98,10 @@ export class DocManager {
   onKeyPress = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal) {
       if (ev.key === "Enter") {
-        const evenFocus = asEvenPathRange(this.focus);
+        if (this.focus.kind !== FocusKind.Range) {
+          return;
+        }
+        const evenFocus = asEvenPathRange(this.focus.range);
         if (evenFocus.offset !== 0) {
           return;
         }
@@ -108,7 +116,10 @@ export class DocManager {
         };
         this.mode = Mode.InsertAfter;
       } else if (ev.key === "i") {
-        let evenFocus = asEvenPathRange(this.focus);
+        if (this.focus.kind !== FocusKind.Range) {
+          return;
+        }
+        let evenFocus = asEvenPathRange(this.focus.range);
         if (!evenFocus.anchor.length) {
           return;
         }
@@ -117,7 +128,10 @@ export class DocManager {
         }
         const firstFocusedPath = evenFocus.anchor;
         evenFocus = flipEvenPathRange(evenFocus);
-        this.focus = asUnevenPathRange(evenFocus);
+        this.focus = {
+          kind: FocusKind.Range,
+          range: asUnevenPathRange(evenFocus),
+        };
 
         const firstFocusedNode = nodeGetByPath(this.doc.root, firstFocusedPath);
         if (!firstFocusedNode) {
@@ -130,7 +144,10 @@ export class DocManager {
         };
         this.mode = Mode.InsertBefore;
       } else if (ev.key === "a") {
-        let evenFocus = asEvenPathRange(this.focus);
+        if (this.focus.kind !== FocusKind.Range) {
+          return;
+        }
+        let evenFocus = asEvenPathRange(this.focus.range);
         if (!evenFocus.anchor.length) {
           return;
         }
@@ -139,7 +156,10 @@ export class DocManager {
         }
         const lastFocusedPath = evenFocus.anchor;
         evenFocus = flipEvenPathRange(evenFocus);
-        this.focus = asUnevenPathRange(evenFocus);
+        this.focus = {
+          kind: FocusKind.Range,
+          range: asUnevenPathRange(evenFocus),
+        };
 
         const lastFocusedNode = nodeGetByPath(this.doc.root, lastFocusedPath);
         if (!lastFocusedNode) {
@@ -155,7 +175,10 @@ export class DocManager {
         };
         this.mode = Mode.InsertAfter;
       } else if (ev.key === "d") {
-        const evenFocus = asEvenPathRange(this.focus);
+        if (this.focus.kind !== FocusKind.Range) {
+          return;
+        }
+        let evenFocus = asEvenPathRange(this.focus.range);
         let forwardFocus =
           evenFocus.offset < 0 ? flipEvenPathRange(evenFocus) : evenFocus;
         if (evenFocus.anchor.length === 0) {
@@ -196,13 +219,16 @@ export class DocManager {
             };
           }),
         );
-        this.focus = asUnevenPathRange({
-          anchor:
-            newFocusIndex === undefined
-              ? forwardFocus.anchor.slice(0, -1)
-              : [...forwardFocus.anchor.slice(0, -1), newFocusIndex],
-          offset: 0,
-        });
+        this.focus = {
+          kind: FocusKind.Range,
+          range: asUnevenPathRange({
+            anchor:
+              newFocusIndex === undefined
+                ? forwardFocus.anchor.slice(0, -1)
+                : [...forwardFocus.anchor.slice(0, -1), newFocusIndex],
+            offset: 0,
+          }),
+        };
       } else if (ev.key === "l") {
         this.untilEvenFocusChanges(() => this.tryMoveThroughLeaves(1, false));
       } else if (ev.key === "L") {
@@ -218,18 +244,27 @@ export class DocManager {
       } else if (ev.key === "j") {
         this.tryMoveIntoList();
       } else if (ev.key === ";") {
-        this.focus = asUnevenPathRange({
-          anchor: getPathToTip(asEvenPathRange(this.focus)),
-          offset: 0,
-        });
+        if (this.focus.kind !== FocusKind.Range) {
+          return;
+        }
+        this.focus = {
+          kind: FocusKind.Range,
+          range: asUnevenPathRange({
+            anchor: getPathToTip(asEvenPathRange(this.focus.range)),
+            offset: 0,
+          }),
+        };
       } else if (ev.key === "o") {
         console.log({
           doc: this.doc,
           focus: this.focus,
-          tip: nodeGetByPath(
-            this.doc.root,
-            getPathToTip(asEvenPathRange(this.focus)),
-          ),
+          tip:
+            this.focus.kind === FocusKind.Range
+              ? nodeGetByPath(
+                  this.doc.root,
+                  getPathToTip(asEvenPathRange(this.focus.range)),
+                )
+              : undefined,
           insertState: this.insertState,
         });
       }
@@ -254,7 +289,13 @@ export class DocManager {
 
   onKeyDown = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal && ev.key === ";" && ev.altKey) {
-      this.focus = flipUnevenPathRange(this.focus);
+      if (this.focus.kind !== FocusKind.Range) {
+        return;
+      }
+      this.focus = {
+        kind: FocusKind.Range,
+        range: flipUnevenPathRange(this.focus.range),
+      };
       this.onUpdate();
     } else if (
       (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
@@ -327,10 +368,22 @@ export class DocManager {
                 initialPlaceholderInsertion.mapOldToWithoutAdjacent(p),
               ),
             );
-          this.focus = {
-            anchor: mapPath(this.focus.anchor),
-            tip: mapPath(this.focus.tip),
-          };
+          if (this.focus.kind === FocusKind.Range) {
+            this.focus = {
+              kind: FocusKind.Range,
+              range: {
+                anchor: mapPath(this.focus.range.anchor),
+                tip: mapPath(this.focus.range.tip),
+              },
+            };
+          } else if (this.focus.kind === FocusKind.Location) {
+            this.focus = {
+              kind: FocusKind.Location,
+              before: mapPath(this.focus.before),
+            };
+          } else {
+            return unreachable(this.focus);
+          }
         } catch (err) {
           console.warn("insertion would make doc invalid", err);
           return;
@@ -368,7 +421,10 @@ export class DocManager {
   };
 
   private tryMoveOutOfList() {
-    let evenFocus = asEvenPathRange(this.focus);
+    if (this.focus.kind !== FocusKind.Range) {
+      return;
+    }
+    let evenFocus = asEvenPathRange(this.focus.range);
     while (evenFocus.anchor.length >= 2) {
       evenFocus = {
         anchor: evenFocus.anchor.slice(0, -1),
@@ -379,14 +435,20 @@ export class DocManager {
         focusedNode?.kind === NodeKind.List &&
         !focusedNode.equivalentToContent
       ) {
-        this.focus = asUnevenPathRange(evenFocus);
+        this.focus = {
+          kind: FocusKind.Range,
+          range: asUnevenPathRange(evenFocus),
+        };
         return;
       }
     }
   }
 
   private tryMoveIntoList() {
-    const evenFocus = asEvenPathRange(this.focus);
+    if (this.focus.kind !== FocusKind.Range) {
+      return;
+    }
+    const evenFocus = asEvenPathRange(this.focus.range);
     if (evenFocus.offset !== 0) {
       return;
     }
@@ -395,14 +457,20 @@ export class DocManager {
     if (listNode?.kind !== NodeKind.List || !listNode.content.length) {
       return;
     }
-    this.focus = asUnevenPathRange({
-      anchor: [...listPath, 0],
-      offset: listNode.content.length - 1,
-    });
+    this.focus = {
+      kind: FocusKind.Range,
+      range: asUnevenPathRange({
+        anchor: [...listPath, 0],
+        offset: listNode.content.length - 1,
+      }),
+    };
   }
 
   private tryMoveToParent() {
-    let evenFocus = asEvenPathRange(this.focus);
+    if (this.focus.kind !== FocusKind.Range) {
+      return;
+    }
+    let evenFocus = asEvenPathRange(this.focus.range);
     while (evenFocus.anchor.length) {
       const parentPath = evenFocus.anchor.slice(0, -1);
       const parentNode = nodeGetByPath(this.doc.root, parentPath);
@@ -417,7 +485,10 @@ export class DocManager {
           anchor: [...parentPath, 0],
           offset: parentNode.content.length - 1,
         };
-        this.focus = asUnevenPathRange(evenFocus);
+        this.focus = {
+          kind: FocusKind.Range,
+          range: asUnevenPathRange(evenFocus),
+        };
         return;
       }
 
@@ -427,12 +498,16 @@ export class DocManager {
       };
     }
 
-    this.focus = asUnevenPathRange(evenFocus);
+    this.focus = { kind: FocusKind.Range, range: asUnevenPathRange(evenFocus) };
     return;
   }
 
   private tryMoveThroughLeaves(offset: -1 | 1, extend: boolean) {
-    let currentPath = [...this.focus.tip];
+    if (this.focus.kind !== FocusKind.Range) {
+      return;
+    }
+
+    let currentPath = [...this.focus.range.tip];
     while (true) {
       if (!currentPath.length) {
         return;
@@ -461,16 +536,19 @@ export class DocManager {
       currentPath = childPath;
     }
 
-    this.focus = extend
-      ? { anchor: this.focus.anchor, tip: currentPath }
-      : { anchor: currentPath, tip: currentPath };
+    this.focus = {
+      kind: FocusKind.Range,
+      range: extend
+        ? { anchor: this.focus.range.anchor, tip: currentPath }
+        : { anchor: currentPath, tip: currentPath },
+    };
   }
 
   private whileUnevenFocusChanges(cb: () => void) {
     let oldFocus = this.focus;
     while (true) {
       cb();
-      if (unevenPathRangesAreEqual(this.focus, oldFocus)) {
+      if (focusesAreEqual(this.focus, oldFocus)) {
         return;
       }
       oldFocus = this.focus;
@@ -481,14 +559,16 @@ export class DocManager {
     let oldFocus = this.focus;
     while (true) {
       cb();
-      if (unevenPathRangesAreEqual(this.focus, oldFocus)) {
+      if (focusesAreEqual(this.focus, oldFocus)) {
         // avoid infinite loop (if the uneven focus didn't change, it probably never will, so the even focus wont either)
         return;
       }
       if (
+        this.focus.kind !== FocusKind.Range ||
+        oldFocus.kind !== FocusKind.Range ||
         !evenPathRangesAreEqual(
-          asEvenPathRange(this.focus),
-          asEvenPathRange(oldFocus),
+          asEvenPathRange(this.focus.range),
+          asEvenPathRange(oldFocus.range),
         )
       ) {
         return;
@@ -547,7 +627,7 @@ export class DocManager {
     }
     this._onUpdate({
       doc,
-      focus: asEvenPathRange(this.focus),
+      focus: this.focus,
       mode: this.mode,
     });
   }
@@ -564,14 +644,30 @@ export class DocManager {
   }
 
   private fixFocus() {
-    this.focus = {
-      anchor: nodeTryGetDeepestByPath(this.doc.root, this.focus.anchor).path,
-      tip: nodeTryGetDeepestByPath(this.doc.root, this.focus.tip).path,
-    };
+    if (this.focus.kind === FocusKind.Range) {
+      this.focus = {
+        kind: FocusKind.Range,
+        range: {
+          anchor: nodeTryGetDeepestByPath(
+            this.doc.root,
+            this.focus.range.anchor,
+          ).path,
+          tip: nodeTryGetDeepestByPath(this.doc.root, this.focus.range.tip)
+            .path,
+        },
+      };
+    } else if (this.focus.kind === FocusKind.Location) {
+      // TODO it's not enough to use nodeTryGetDeepestByPath here because there might be no node at the before path (end of list)
+    } else {
+      return unreachable(this.focus);
+    }
   }
 
   private normalizeFocus() {
-    const evenFocus = asEvenPathRange(this.focus);
+    if (this.focus.kind !== FocusKind.Range) {
+      return;
+    }
+    const evenFocus = asEvenPathRange(this.focus.range);
     if (evenFocus.offset !== 0) {
       return;
     }
@@ -587,24 +683,34 @@ export class DocManager {
       return;
     }
     this.focus = {
-      anchor: [...evenFocus.anchor, 0],
-      tip: [...evenFocus.anchor, focusedNode.content.length - 1],
+      kind: FocusKind.Range,
+      range: {
+        anchor: [...evenFocus.anchor, 0],
+        tip: [...evenFocus.anchor, focusedNode.content.length - 1],
+      },
     };
   }
 
   private removeInvisibleNodes() {
+    if (this.focus.kind !== FocusKind.Range) {
+      // TODO FocusKind.Location probably needs support too
+      return;
+    }
     const anchorResult = withoutInvisibleNodes(this.doc, {
-      anchor: this.focus.anchor,
+      anchor: this.focus.range.anchor,
       offset: 0,
     });
     const tipResult = withoutInvisibleNodes(this.doc, {
-      anchor: this.focus.tip,
+      anchor: this.focus.range.tip,
       offset: 0,
     });
     this.doc = anchorResult.doc;
     this.focus = {
-      anchor: anchorResult.focus.anchor,
-      tip: tipResult.focus.anchor,
+      kind: FocusKind.Range,
+      range: {
+        anchor: anchorResult.focus.anchor,
+        tip: tipResult.focus.anchor,
+      },
     };
   }
 }

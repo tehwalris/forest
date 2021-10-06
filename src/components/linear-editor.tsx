@@ -7,9 +7,16 @@ import {
   initialDocManagerPublicState,
   Mode,
 } from "../logic/doc-manager";
-import { Doc, EvenPathRange, Node, NodeKind } from "../logic/interfaces";
+import {
+  Doc,
+  EvenPathRange,
+  FocusKind,
+  Node,
+  NodeKind,
+} from "../logic/interfaces";
 import { docFromAst } from "../logic/node-from-ts";
 import { astFromTypescriptFileContent } from "../logic/parse";
+import { asEvenPathRange } from "../logic/path-utils";
 
 const exampleFile = `
   export const handlers: {
@@ -142,7 +149,10 @@ function splitDocRenderRegions(
   return regions;
 }
 
-function renderDoc(doc: Doc, focus: EvenPathRange): React.ReactNode {
+function renderDoc(
+  doc: Doc,
+  focus: EvenPathRange | undefined,
+): React.ReactNode {
   const selectionsByChar = new Uint8Array(doc.text.length);
   setCharSelections({
     selectionsByChar,
@@ -225,9 +235,12 @@ export const LinearEditor = () => {
     };
   }, [docManager]);
 
+  const evenFocusRange =
+    focus.kind === FocusKind.Range ? asEvenPathRange(focus.range) : undefined;
+
   return (
     <div>
-      <div className={styles.doc}>{renderDoc(doc, focus)}</div>
+      <div className={styles.doc}>{renderDoc(doc, evenFocusRange)}</div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
       <pre>
         {JSON.stringify(
