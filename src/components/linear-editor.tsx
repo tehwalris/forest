@@ -1,4 +1,4 @@
-import { css } from "@emotion/css";
+import { css, keyframes } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useState } from "react";
 import {
@@ -42,6 +42,18 @@ const exampleFile = `
 
 const initialDoc = docFromAst(astFromTypescriptFileContent(exampleFile));
 
+const pulse = keyframes`
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+`;
+
 const styles = {
   doc: css`
     margin: 5px;
@@ -49,6 +61,21 @@ const styles = {
   modeLine: css`
     margin: 5px;
     margin-top: 15px;
+  `,
+  cursorSpan: css`
+    position: relative;
+    background: red;
+  `,
+  cursorDiv: css`
+    --thickness: 2px;
+    --overhang: 1px;
+    position: absolute;
+    background: black;
+    width: 2px;
+    height: calc(100% + 2 * var(--overhang));
+    top: calc(-1 * var(--overhang));
+    left: calc(var(--thickness) / 2);
+    animation: ${pulse} 1s ease infinite;
   `,
 };
 
@@ -212,7 +239,7 @@ function insertDocRenderCursor(lines: DocRenderLine[], beforePos: number) {
   }
 
   const cursorRegion: DocRenderRegion = {
-    text: "|",
+    text: "",
     selection: CharSelection.Cursor,
     pos: beforePos,
     end: beforePos,
@@ -289,8 +316,17 @@ function renderDoc({
             <span
               key={iRegion}
               style={{ background: backgroundsBySelection[region.selection] }}
+              className={
+                region.selection === CharSelection.Cursor
+                  ? styles.cursorSpan
+                  : undefined
+              }
             >
-              {region.text}
+              {region.selection === CharSelection.Cursor ? (
+                <div className={styles.cursorDiv} />
+              ) : (
+                region.text
+              )}
             </span>
           ))}
         </div>
