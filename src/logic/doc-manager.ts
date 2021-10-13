@@ -1,3 +1,11 @@
+import { checkInsertion } from "./check-insertion";
+import { docMapRoot, emptyDoc } from "./doc-utils";
+import {
+  normalizeFocusInOnce,
+  tryMoveThroughLeavesOnce,
+  untilEvenFocusChanges,
+  whileUnevenFocusChanges,
+} from "./focus";
 import {
   Doc,
   EvenPathRange,
@@ -6,20 +14,19 @@ import {
   Path,
   UnevenPathRange,
 } from "./interfaces";
+import { memoize } from "./memoize";
 import { docFromAst } from "./node-from-ts";
 import { astFromTypescriptFileContent } from "./parse";
 import {
   asEvenPathRange,
-  flipEvenPathRange,
   asUnevenPathRange,
-  getPathToTip,
+  flipEvenPathRange,
   flipUnevenPathRange,
-  unevenPathRangesAreEqual,
-  evenPathRangesAreEqual,
+  getPathToTip,
 } from "./path-utils";
 import {
-  getDocWithoutPlaceholdersNearCursor,
   getDocWithAllPlaceholders,
+  getDocWithoutPlaceholdersNearCursor,
 } from "./placeholders";
 import { printTsSourceFile } from "./print";
 import { getDocWithInsert } from "./text";
@@ -30,10 +37,7 @@ import {
   nodeVisitDeep,
 } from "./tree-utils/access";
 import { filterNodes } from "./tree-utils/filter";
-import { docMapRoot, emptyDoc } from "./doc-utils";
-import { checkInsertion } from "./check-insertion";
 import { withoutInvisibleNodes } from "./without-invisible";
-import { memoize } from "./memoize";
 
 export enum Mode {
   Normal,
@@ -76,6 +80,7 @@ export class DocManager {
   private getDocWithoutPlaceholdersNearCursor = memoize(
     getDocWithoutPlaceholdersNearCursor,
   );
+  private clipboard: Node | undefined;
 
   constructor(
     private doc: Doc,
@@ -204,13 +209,13 @@ export class DocManager {
           offset: 0,
         });
       } else if (ev.key === "l") {
-        this.untilEvenFocusChanges(() => this.tryMoveThroughLeaves(1, false));
+        this.tryMoveThroughLeaves(1, false);
       } else if (ev.key === "L") {
-        this.untilEvenFocusChanges(() => this.tryMoveThroughLeaves(1, true));
+        this.tryMoveThroughLeaves(1, true);
       } else if (ev.key === "h") {
-        this.untilEvenFocusChanges(() => this.tryMoveThroughLeaves(-1, false));
+        this.tryMoveThroughLeaves(-1, false);
       } else if (ev.key === "H") {
-        this.untilEvenFocusChanges(() => this.tryMoveThroughLeaves(-1, true));
+        this.tryMoveThroughLeaves(-1, true);
       } else if (ev.key === "k") {
         this.tryMoveOutOfList();
       } else if (ev.key === "K") {
@@ -222,6 +227,8 @@ export class DocManager {
           anchor: getPathToTip(asEvenPathRange(this.focus)),
           offset: 0,
         });
+      } else if (ev.key === "c") {
+        // TODO you were here
       } else if (ev.key === "o") {
         console.log({
           doc: this.doc,
@@ -432,69 +439,15 @@ export class DocManager {
   }
 
   private tryMoveThroughLeaves(offset: -1 | 1, extend: boolean) {
-    let currentPath = [...this.focus.tip];
-    while (true) {
-      if (!currentPath.length) {
-        return;
-      }
-      const siblingPath = [...currentPath];
-      siblingPath[siblingPath.length - 1] += offset;
-      if (nodeGetByPath(this.doc.root, siblingPath)) {
-        currentPath = siblingPath;
-        break;
-      }
-      currentPath.pop();
-    }
-
-    while (true) {
-      const currentNode = nodeGetByPath(this.doc.root, currentPath)!;
-      if (currentNode.kind !== NodeKind.List || !currentNode.content.length) {
-        break;
-      }
-      const childPath = [
-        ...currentPath,
-        offset === -1 ? currentNode.content.length - 1 : 0,
-      ];
-      if (!nodeGetByPath(this.doc.root, childPath)) {
-        break;
-      }
-      currentPath = childPath;
-    }
-
-    this.focus = extend
-      ? { anchor: this.focus.anchor, tip: currentPath }
-      : { anchor: currentPath, tip: currentPath };
+    this.focus = untilEvenFocusChanges(this.focus, (focus) =>
+      tryMoveThroughLeavesOnce(this.doc.root, focus, offset, extend),
+    );
   }
 
-  private whileUnevenFocusChanges(cb: () => void) {
-    let oldFocus = this.focus;
-    while (true) {
-      cb();
-      if (unevenPathRangesAreEqual(this.focus, oldFocus)) {
-        return;
-      }
-      oldFocus = this.focus;
-    }
-  }
-
-  private untilEvenFocusChanges(cb: () => void) {
-    let oldFocus = this.focus;
-    while (true) {
-      cb();
-      if (unevenPathRangesAreEqual(this.focus, oldFocus)) {
-        // avoid infinite loop (if the uneven focus didn't change, it probably never will, so the even focus wont either)
-        return;
-      }
-      if (
-        !evenPathRangesAreEqual(
-          asEvenPathRange(this.focus),
-          asEvenPathRange(oldFocus),
-        )
-      ) {
-        return;
-      }
-      oldFocus = this.focus;
-    }
+  private normalizeFocusIn() {
+    this.focus = whileUnevenFocusChanges(this.focus, (focus) =>
+      normalizeFocusInOnce(this.doc.root, focus),
+    );
   }
 
   private onUpdate() {
@@ -503,7 +456,7 @@ export class DocManager {
     if (this.mode === Mode.Normal && docChanged) {
       this.removeInvisibleNodes();
     }
-    this.whileUnevenFocusChanges(() => this.normalizeFocus());
+    this.normalizeFocusIn();
     if (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) {
       if (!this.insertState) {
         throw new Error("this.insertState was undefined in insert mode");
