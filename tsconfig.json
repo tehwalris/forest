@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "es6",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -21,11 +17,6 @@
     "types": ["jest"],
     "noFallthroughCasesInSwitch": true
   },
-  "exclude": [
-    "playground",
-    "tasks"
-  ],
-  "include": [
-    "src"
-  ],
+  "exclude": ["playground", "tasks"],
+  "include": ["src"]
 }

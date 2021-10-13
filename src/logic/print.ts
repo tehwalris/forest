@@ -1,6 +1,6 @@
-import { format as prettierFormat } from "prettier/standalone";
 import type { Options } from "prettier";
 import parserTypescript from "prettier/parser-typescript";
+import { format as prettierFormat } from "prettier/standalone";
 import ts from "typescript";
 import { astFromTypescriptFileContent } from "./parse";
 

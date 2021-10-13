@@ -1,11 +1,11 @@
 import { ListNode, NodeWithPath, Path } from "./interfaces";
 import { PathMapper } from "./path-mapper";
+import { pathsAreEqual } from "./path-utils";
+import { nodesAreEqualExceptRangesAndPlaceholders } from "./tree-utils/equal";
 import {
   flattenNodeAroundSplit,
   splitAtDeepestDelimiter,
 } from "./tree-utils/flatten";
-import { nodesAreEqualExceptRangesAndPlaceholders } from "./tree-utils/equal";
-import { pathsAreEqual } from "./path-utils";
 import { sliceTail } from "./util";
 
 export type CheckedInsertion =

@@ -1,4 +1,4 @@
-import { Node, ListNode } from "./interfaces";
+import { ListNode, Node } from "./interfaces";
 import { isSubarray } from "./util";
 
 export function assertNodeHasValidStructKeys(

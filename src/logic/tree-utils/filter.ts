@@ -1,5 +1,5 @@
-import { PathMapper } from "../path-mapper";
 import { ListNode, Node, NodeKind, Path } from "../interfaces";
+import { PathMapper } from "../path-mapper";
 
 export function filterNodes(
   node: ListNode,

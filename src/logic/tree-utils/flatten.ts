@@ -1,5 +1,5 @@
-import { prefixNodesWithPaths } from "../path-utils";
 import { ListNode, Node, NodeKind, NodeWithPath, Path } from "../interfaces";
+import { prefixNodesWithPaths } from "../path-utils";
 import { nodeGetByPath, nodeMapAtPath } from "../tree-utils/access";
 
 function flattenNode(node: Node): NodeWithPath[] {

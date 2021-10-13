@@ -2,8 +2,8 @@ import {
   Doc,
   InsertState,
   ListNode,
-  NodeKind,
   Node,
+  NodeKind,
   TextRange,
 } from "./interfaces";
 
