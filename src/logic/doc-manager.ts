@@ -19,6 +19,7 @@ import {
 import { memoize } from "./memoize";
 import { docFromAst } from "./node-from-ts";
 import { astFromTypescriptFileContent } from "./parse";
+import { acceptPasteReplace, acceptPasteRoot } from "./paste";
 import {
   asEvenPathRange,
   asUnevenPathRange,
@@ -35,6 +36,7 @@ import { getDocWithInsert } from "./text";
 import {
   nodeGetByPath,
   nodeMapAtPath,
+  nodeSetByPath,
   nodeTryGetDeepestByPath,
   nodeVisitDeep,
 } from "./tree-utils/access";
@@ -245,7 +247,43 @@ export class DocManager {
         }
         this.clipboard = nodeGetByPath(this.doc.root, evenFocus.anchor);
       } else if (ev.key === "p") {
-        console.warn("TODO would paste", this.clipboard);
+        if (!this.clipboard) {
+          return;
+        }
+        let evenFocus = asEvenPathRange(
+          whileUnevenFocusChanges(this.focus, (focus) =>
+            normalizeFocusOutOnce(this.doc.root, focus),
+          ),
+        );
+        if (evenFocus.offset < 0) {
+          evenFocus = flipEvenPathRange(evenFocus);
+        }
+        if (evenFocus.anchor.length) {
+          const parentPath = evenFocus.anchor.slice(0, -1);
+          const oldParentNode = nodeGetByPath(this.doc.root, parentPath);
+          if (oldParentNode?.kind !== NodeKind.List) {
+            throw new Error("expected parent to exist and be a list");
+          }
+          const firstIndex = evenFocus.anchor[evenFocus.anchor.length - 1];
+          const newParentNode = acceptPasteReplace({
+            node: oldParentNode,
+            firstIndex,
+            lastIndex: firstIndex + evenFocus.offset,
+            clipboard: this.clipboard,
+          });
+          if (!newParentNode) {
+            return;
+          }
+          this.doc = docMapRoot(this.doc, (root) =>
+            nodeSetByPath(root, parentPath, newParentNode),
+          );
+        } else {
+          const newRoot = acceptPasteRoot(this.clipboard);
+          if (!newRoot) {
+            return;
+          }
+          this.doc = { ...this.doc, root: newRoot };
+        }
       } else if (ev.key === "o") {
         const tipPath = getPathToTip(asEvenPathRange(this.focus));
         console.log({
