@@ -2,6 +2,7 @@ import { checkInsertion } from "./check-insertion";
 import { docMapRoot, emptyDoc } from "./doc-utils";
 import {
   normalizeFocusInOnce,
+  normalizeFocusOutOnce,
   tryMoveThroughLeavesOnce,
   untilEvenFocusChanges,
   whileUnevenFocusChanges,
@@ -10,6 +11,7 @@ import {
   Doc,
   EvenPathRange,
   InsertState,
+  Node,
   NodeKind,
   Path,
   UnevenPathRange,
@@ -228,15 +230,29 @@ export class DocManager {
           offset: 0,
         });
       } else if (ev.key === "c") {
-        // TODO you were here
+        const evenFocus = asEvenPathRange(
+          whileUnevenFocusChanges(this.focus, (focus) =>
+            normalizeFocusOutOnce(this.doc.root, focus),
+          ),
+        );
+        if (evenFocus.offset !== 0) {
+          console.warn(
+            "TODO copying partial lists is not supported yet",
+            this.focus,
+            evenFocus,
+          );
+          return;
+        }
+        this.clipboard = nodeGetByPath(this.doc.root, evenFocus.anchor);
+      } else if (ev.key === "p") {
+        console.warn("TODO would paste", this.clipboard);
       } else if (ev.key === "o") {
+        const tipPath = getPathToTip(asEvenPathRange(this.focus));
         console.log({
           doc: this.doc,
           focus: this.focus,
-          tip: nodeGetByPath(
-            this.doc.root,
-            getPathToTip(asEvenPathRange(this.focus)),
-          ),
+          tip: nodeGetByPath(this.doc.root, tipPath),
+          tipPath,
           insertState: this.insertState,
         });
       }

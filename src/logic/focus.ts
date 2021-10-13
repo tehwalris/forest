@@ -1,6 +1,12 @@
-import { ListNode, NodeKind, UnevenPathRange } from "./interfaces";
+import {
+  EvenPathRange,
+  ListNode,
+  NodeKind,
+  UnevenPathRange,
+} from "./interfaces";
 import {
   asEvenPathRange,
+  asUnevenPathRange,
   evenPathRangesAreEqual,
   unevenPathRangesAreEqual,
 } from "./path-utils";
@@ -29,6 +35,32 @@ export function normalizeFocusInOnce(
     anchor: [...evenFocus.anchor, 0],
     tip: [...evenFocus.anchor, focusedNode.content.length - 1],
   };
+}
+
+export function normalizeFocusOutOnce(
+  root: ListNode,
+  focus: UnevenPathRange,
+): UnevenPathRange {
+  const evenFocus = asEvenPathRange(focus);
+  if (!evenFocus.anchor.length) {
+    return focus;
+  }
+  const parentFocus: EvenPathRange = {
+    anchor: evenFocus.anchor.slice(0, -1),
+    offset: 0,
+  };
+  if (
+    evenPathRangesAreEqual(
+      asEvenPathRange(
+        normalizeFocusInOnce(root, asUnevenPathRange(parentFocus)),
+      ),
+      evenFocus,
+    )
+  ) {
+    return asUnevenPathRange(parentFocus);
+  } else {
+    return focus;
+  }
 }
 
 export function whileUnevenFocusChanges(
