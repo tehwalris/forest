@@ -1,7 +1,14 @@
-import { ListNode, Node } from "./interfaces";
+import { ListKind, ListNode, Node } from "./interfaces";
+import { matchesUnion } from "./legacy-templates/match";
+import { unions } from "./legacy-templates/templates";
+import { tsNodeFromNode } from "./ts-from-node";
 
 export function acceptPasteRoot(clipboard: Node): ListNode | undefined {
   return undefined;
+}
+
+export function canPasteIntoLooseExpression(clipboard: Node): boolean {
+  return matchesUnion(tsNodeFromNode(clipboard), unions.Expression);
 }
 
 export function acceptPasteReplace({
@@ -28,7 +35,21 @@ export function acceptPasteReplace({
     console.warn("TODO pasting over multiple items is not supported yet");
     return undefined;
   }
-  // TODO actually check if paste is valid
+
+  const canPaste = (function () {
+    switch (node.listKind) {
+      case ListKind.LooseExpression:
+        return canPasteIntoLooseExpression(clipboard);
+      default:
+        return false;
+    }
+  })();
+
+  if (!canPaste) {
+    console.warn("the requested paste was not explicitly allowed");
+    return undefined;
+  }
+
   const newContent = [...node.content];
   newContent.splice(firstIndex, lastIndex - firstIndex + 1, clipboard);
   return { ...node, content: newContent };
