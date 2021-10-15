@@ -1,3 +1,4 @@
+import * as ts from "typescript";
 import { ListKind, ListNode, Node } from "./interfaces";
 import { matchesUnion } from "./legacy-templates/match";
 import { unions } from "./legacy-templates/templates";
@@ -7,21 +8,31 @@ export function acceptPasteRoot(clipboard: Node): ListNode | undefined {
   return undefined;
 }
 
-export function canPasteIntoLooseExpression(clipboard: Node): boolean {
-  return matchesUnion(tsNodeFromNode(clipboard), unions.Expression);
-}
-
-export function acceptPasteReplace({
-  node,
-  firstIndex,
-  lastIndex,
-  clipboard,
-}: {
+interface PasteReplaceArgs {
   node: ListNode;
   firstIndex: number;
   lastIndex: number;
   clipboard: Node;
-}): ListNode | undefined {
+}
+
+export function canPasteIntoTightExpression({
+  clipboard,
+}: PasteReplaceArgs): boolean {
+  // TODO this is very restrictive, but other kinds of expressions can only appear on the left side of a TightExpression
+  return ts.isIdentifier(tsNodeFromNode(clipboard));
+}
+
+export function canPasteIntoLooseExpression({
+  clipboard,
+}: PasteReplaceArgs): boolean {
+  return matchesUnion(tsNodeFromNode(clipboard), unions.Expression);
+}
+
+export function acceptPasteReplace(
+  args: PasteReplaceArgs,
+): ListNode | undefined {
+  const { node, firstIndex, lastIndex, clipboard } = args;
+
   if (
     !(
       firstIndex >= 0 &&
@@ -38,8 +49,10 @@ export function acceptPasteReplace({
 
   const canPaste = (function () {
     switch (node.listKind) {
+      case ListKind.TightExpression:
+        return canPasteIntoTightExpression(args);
       case ListKind.LooseExpression:
-        return canPasteIntoLooseExpression(clipboard);
+        return canPasteIntoLooseExpression(args);
       default:
         return false;
     }
