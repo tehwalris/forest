@@ -1,5 +1,5 @@
 import * as ts from "typescript";
-import { ListKind, ListNode, Node } from "./interfaces";
+import { ListKind, ListNode, Node, NodeKind } from "./interfaces";
 import { matchesUnion } from "./legacy-templates/match";
 import { unions } from "./legacy-templates/templates";
 import { tsNodeFromNode } from "./ts-from-node";
@@ -15,14 +15,26 @@ interface PasteReplaceArgs {
   clipboard: Node;
 }
 
-export function canPasteIntoTightExpression({
+interface FlattenedPasteReplaceArgs extends PasteReplaceArgs {
+  clipboard: ListNode;
+}
+
+export function canPasteFlattenedIntoTightExpression({
+  firstIndex,
+  clipboard,
+}: FlattenedPasteReplaceArgs): boolean {
+  // TODO this is very restrictive, see canPasteNestedIntoTightExpression
+  return clipboard.listKind === ListKind.TightExpression && firstIndex === 0;
+}
+
+export function canPasteNestedIntoTightExpression({
   clipboard,
 }: PasteReplaceArgs): boolean {
   // TODO this is very restrictive, but other kinds of expressions can only appear on the left side of a TightExpression
   return ts.isIdentifier(tsNodeFromNode(clipboard));
 }
 
-export function canPasteIntoLooseExpression({
+export function canPasteNestedIntoLooseExpression({
   clipboard,
 }: PasteReplaceArgs): boolean {
   return matchesUnion(tsNodeFromNode(clipboard), unions.Expression);
@@ -47,23 +59,49 @@ export function acceptPasteReplace(
     return undefined;
   }
 
-  const canPaste = (function () {
+  const canPasteFlattened = (function () {
+    if (clipboard.kind !== NodeKind.List) {
+      return false;
+    }
+    const _args: FlattenedPasteReplaceArgs = { ...args, clipboard };
     switch (node.listKind) {
       case ListKind.TightExpression:
-        return canPasteIntoTightExpression(args);
-      case ListKind.LooseExpression:
-        return canPasteIntoLooseExpression(args);
+        return canPasteFlattenedIntoTightExpression(_args);
       default:
         return false;
     }
   })();
 
-  if (!canPaste) {
+  const canPasteNested = (function () {
+    switch (node.listKind) {
+      case ListKind.TightExpression:
+        return canPasteNestedIntoTightExpression(args);
+      case ListKind.LooseExpression:
+        return canPasteNestedIntoLooseExpression(args);
+      default:
+        return false;
+    }
+  })();
+
+  if (canPasteFlattened) {
+    if (clipboard.kind !== NodeKind.List) {
+      throw new Error(
+        "canPasteFlattened === true, but clipboard is not a list",
+      );
+    }
+    const newContent = [...node.content];
+    newContent.splice(
+      firstIndex,
+      lastIndex - firstIndex + 1,
+      ...clipboard.content,
+    );
+    return { ...node, content: newContent };
+  } else if (canPasteNested) {
+    const newContent = [...node.content];
+    newContent.splice(firstIndex, lastIndex - firstIndex + 1, clipboard);
+    return { ...node, content: newContent };
+  } else {
     console.warn("the requested paste was not explicitly allowed");
     return undefined;
   }
-
-  const newContent = [...node.content];
-  newContent.splice(firstIndex, lastIndex - firstIndex + 1, clipboard);
-  return { ...node, content: newContent };
 }
