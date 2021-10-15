@@ -7,14 +7,6 @@ const input = fs.readFileSync(
   "utf8",
 );
 
-const liveStringSupportedTypes = [
-  "Identifier",
-  "StringLiteral",
-  "NumericLiteral",
-  "TrueLiteral",
-  "FalseLiteral",
-];
-
 const {
   unions,
   plainTypes,
@@ -128,9 +120,6 @@ const {
         (union) => ({
           ...union,
           variants: resolveVariants(union),
-          liveStringVariants: resolveVariants(union).filter((v) =>
-            liveStringSupportedTypes.includes(v),
-          ),
         }),
         unions,
       );
@@ -150,12 +139,8 @@ import {
   OptionalStructSingleChild,
   RequiredStructListChild,
   OptionalStructListChild,
-} from "../template-nodes";
-import { enhancers, makeUnionMemberEnhancer } from "../enhancer";
-import { makeLiveStringHelper } from "../live-string";
-import {
-  FlagKind
-} from "../flags";
+  FlagKind,
+} from "./interfaces";
 
 // https://github.com/Microsoft/Typescript/issues/20875
 function isTypeOfWorkaround(node: ts.Node): node is ts.TypeOfExpression {
@@ -213,13 +198,6 @@ ${e.name}: {
       `
 ${e.name}: {
   name: "${e.name}",
-  ${
-    e.liveStringVariants.length
-      ? `liveStringHelper: makeLiveStringHelper(${JSON.stringify(
-          e.liveStringVariants,
-        )}),`
-      : ""
-  }
   getMembers: () => ({
     ${e.variants.map((v) => `${v}: plainTypes.${v},`).join("\n")}
   }),
@@ -231,11 +209,6 @@ ${e.name}: {
       `
 ${e.name}: {
   name: "${e.name}",
-  ${
-    liveStringSupportedTypes.includes(e.name)
-      ? `liveStringHelper: makeLiveStringHelper(["${e.name}"]),`
-      : ""
-  }
   getMembers: () => ({
     ${e.name}: plainTypes.${e.name}
   }),
@@ -243,15 +216,6 @@ ${e.name}: {
     `.trim(),
     ),
     "}",
-    "",
-    `
-for (const k of Object.keys(unions.DeclarationStatement.getMembers())) {
-  if (enhancers[k]) {
-    continue;
-  }
-  enhancers[k] = makeUnionMemberEnhancer(k);
-}
-`.trim(),
     "",
     ...stringTemplates.map(
       (e) => `
@@ -261,7 +225,6 @@ const ${e.name}: StringTemplate<
   match: plainTypes.${e.name}.match,
   load: built => built.text,
   build: ${e.build},
-  enhancer: enhancers["${e.name}"],
 };
 `,
     ),
@@ -283,7 +246,6 @@ const ${e.name}: ListTemplate<
   load: built => built.${e.childKey},
   build: ${e.build || `children => ts.create${e.name}(children)`},
   childUnion: unions.${e.childType},
-  enhancer: enhancers["${e.name}"],
 };
 `,
     ),
@@ -317,11 +279,7 @@ ${c.optional ? "Optional" : "Required"}Struct${
       ${c.key}: {
         value: ${c.load || `e.${c.key}`},
         union: unions.${c.union},
-        ${[
-          c.optional ? "optional: true" : "",
-          c.list ? "isList: true" : "",
-          c.list ? `enhancer: enhancers["${e.name}.${c.key}"]` : "",
-        ]
+        ${[c.optional ? "optional: true" : "", c.list ? "isList: true" : ""]
           .filter((v) => v)
           .join(",")}
       },
@@ -330,7 +288,6 @@ ${c.optional ? "Optional" : "Required"}Struct${
       .join("\n")}
   }),
   build: ${e.build},
-  enhancer: enhancers["${e.name}"]
 };
     `,
     ),
@@ -345,7 +302,6 @@ const ${e.name}: StructTemplate<
   flags: [],
   load: () => ({}),
   build: () => ts.createToken(ts.SyntaxKind.${e.name}),
-  enhancer: enhancers["${e.name}"]
 };
     `,
     ),
@@ -362,7 +318,6 @@ const ${e.name}: StructTemplate<
   flags: [],
   load: () => ({}),
   build: () => plainTypes.${e.name}.default,
-  enhancer: enhancers["${e.name}"]
 };
     `,
       ),
