@@ -81,6 +81,12 @@ export function canPasteNestedIntoObjectLiteralElement({
   }
 }
 
+export function canPasteNestedIntoTsObjectLiteralExpression({
+  clipboard,
+}: PasteReplaceArgs): boolean {
+  return ts.isObjectLiteralElementLike(tsNodeFromNode(clipboard));
+}
+
 export function acceptPasteReplace(
   args: PasteReplaceArgs,
 ): ListNode | undefined {
@@ -121,6 +127,14 @@ export function acceptPasteReplace(
         return canPasteNestedIntoLooseExpression(args);
       case ListKind.ObjectLiteralElement:
         return canPasteNestedIntoObjectLiteralElement(args);
+      case ListKind.TsNodeList:
+        switch (node.tsSyntaxKind) {
+          case ts.SyntaxKind.ObjectLiteralExpression:
+            return canPasteNestedIntoTsObjectLiteralExpression(args);
+          default: {
+            return false;
+          }
+        }
       default:
         return false;
     }
