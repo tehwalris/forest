@@ -40,6 +40,47 @@ export function canPasteNestedIntoLooseExpression({
   return matchesUnion(tsNodeFromNode(clipboard), unions.Expression);
 }
 
+export function canPasteNestedIntoObjectLiteralElement({
+  node,
+  firstIndex,
+  lastIndex,
+  clipboard,
+}: PasteReplaceArgs): boolean {
+  if (firstIndex !== lastIndex) {
+    return false;
+  }
+
+  switch (tsNodeFromNode(node).kind) {
+    case ts.SyntaxKind.PropertyAssignment: {
+      if (firstIndex === 0) {
+        return ts.isPropertyName(tsNodeFromNode(clipboard));
+      } else if (firstIndex === 1) {
+        return false;
+      } else if (firstIndex === 2) {
+        return matchesUnion(tsNodeFromNode(clipboard), unions.Expression);
+      } else {
+        throw new Error("invalid firstIndex");
+      }
+    }
+    case ts.SyntaxKind.ShorthandPropertyAssignment: {
+      if (firstIndex === 0) {
+        return ts.isIdentifier(tsNodeFromNode(clipboard));
+      } else {
+        throw new Error("invalid firstIndex");
+      }
+    }
+    case ts.SyntaxKind.SpreadAssignment: {
+      if (firstIndex === 0) {
+        return matchesUnion(tsNodeFromNode(clipboard), unions.Expression);
+      } else {
+        throw new Error("invalid firstIndex");
+      }
+    }
+    default:
+      return false;
+  }
+}
+
 export function acceptPasteReplace(
   args: PasteReplaceArgs,
 ): ListNode | undefined {
@@ -78,6 +119,8 @@ export function acceptPasteReplace(
         return canPasteNestedIntoTightExpression(args);
       case ListKind.LooseExpression:
         return canPasteNestedIntoLooseExpression(args);
+      case ListKind.ObjectLiteralElement:
+        return canPasteNestedIntoObjectLiteralElement(args);
       default:
         return false;
     }
