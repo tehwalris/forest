@@ -27,6 +27,15 @@ export function canPasteFlattenedIntoTightExpression({
   return clipboard.listKind === ListKind.TightExpression && firstIndex === 0;
 }
 
+export function canPasteFlattenedIntoTsObjectLiteralExpression({
+  clipboard,
+}: FlattenedPasteReplaceArgs): boolean {
+  return (
+    clipboard.listKind === ListKind.TsNodeList &&
+    clipboard.tsSyntaxKind === ts.SyntaxKind.ObjectLiteralExpression
+  );
+}
+
 export function canPasteNestedIntoTightExpression({
   clipboard,
 }: PasteReplaceArgs): boolean {
@@ -114,6 +123,14 @@ export function acceptPasteReplace(
     switch (node.listKind) {
       case ListKind.TightExpression:
         return canPasteFlattenedIntoTightExpression(_args);
+      case ListKind.TsNodeList:
+        switch (node.tsSyntaxKind) {
+          case ts.SyntaxKind.ObjectLiteralExpression:
+            return canPasteFlattenedIntoTsObjectLiteralExpression(_args);
+          default: {
+            return false;
+          }
+        }
       default:
         return false;
     }
