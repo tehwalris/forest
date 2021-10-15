@@ -37,7 +37,8 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "format": "prettier --write .",
-    "check-format": "prettier --check ."
+    "check-format": "prettier --check .",
+    "generate-templates": "node src/logic/legacy-templates/generate-templates.js && prettier --write src/logic/legacy-templates/templates.ts"
   },
   "eslintConfig": {
     "extends": "react-app"
