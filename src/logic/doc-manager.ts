@@ -237,15 +237,42 @@ export class DocManager {
             normalizeFocusOutOnce(this.doc.root, focus),
           ),
         );
-        if (evenFocus.offset !== 0) {
-          console.warn(
-            "TODO copying partial lists is not supported yet",
-            this.focus,
-            evenFocus,
+        if (evenFocus.offset === 0) {
+          this.clipboard = nodeGetByPath(this.doc.root, evenFocus.anchor);
+        } else {
+          if (!evenFocus.anchor.length) {
+            throw new Error("invalid focus");
+          }
+          const oldParent = nodeGetByPath(
+            this.doc.root,
+            evenFocus.anchor.slice(0, -1),
           );
-          return;
+          if (oldParent?.kind !== NodeKind.List) {
+            throw new Error("oldParent must be a list");
+          }
+          if (oldParent.structKeys) {
+            console.warn(
+              "can not copy from non-list node",
+              this.focus,
+              evenFocus,
+            );
+            return;
+          }
+          let selectedRange = [
+            evenFocus.anchor[evenFocus.anchor.length - 1],
+            evenFocus.anchor[evenFocus.anchor.length - 1] + evenFocus.offset,
+          ];
+          if (selectedRange[0] > selectedRange[1]) {
+            selectedRange = [selectedRange[1], selectedRange[0]];
+          }
+          this.clipboard = {
+            ...oldParent,
+            content: oldParent.content.slice(
+              selectedRange[0],
+              selectedRange[1] + 1,
+            ),
+          };
         }
-        this.clipboard = nodeGetByPath(this.doc.root, evenFocus.anchor);
       } else if (ev.key === "p") {
         if (!this.clipboard) {
           return;
