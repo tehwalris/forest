@@ -19,12 +19,22 @@ interface FlattenedPasteReplaceArgs extends PasteReplaceArgs {
   clipboard: ListNode;
 }
 
+interface NestedPasteReplaceArgs extends PasteReplaceArgs {
+  clipboardTs: ts.Node | undefined;
+}
+
 export function canPasteFlattenedIntoTightExpression({
   firstIndex,
   clipboard,
 }: FlattenedPasteReplaceArgs): boolean {
   // TODO this is very restrictive, see canPasteNestedIntoTightExpression
   return clipboard.listKind === ListKind.TightExpression && firstIndex === 0;
+}
+
+export function canPasteFlattenedIntoCallArguments({
+  clipboard,
+}: FlattenedPasteReplaceArgs): boolean {
+  return clipboard.listKind === ListKind.CallArguments;
 }
 
 export function canPasteFlattenedIntoTsObjectLiteralExpression({
@@ -37,50 +47,59 @@ export function canPasteFlattenedIntoTsObjectLiteralExpression({
 }
 
 export function canPasteNestedIntoTightExpression({
-  clipboard,
-}: PasteReplaceArgs): boolean {
+  clipboardTs,
+}: NestedPasteReplaceArgs): boolean {
   // TODO this is very restrictive, but other kinds of expressions can only appear on the left side of a TightExpression
-  return ts.isIdentifier(tsNodeFromNode(clipboard));
+  return !!clipboardTs && ts.isIdentifier(clipboardTs);
 }
 
 export function canPasteNestedIntoLooseExpression({
-  clipboard,
-}: PasteReplaceArgs): boolean {
-  return matchesUnion(tsNodeFromNode(clipboard), unions.Expression);
+  clipboardTs,
+}: NestedPasteReplaceArgs): boolean {
+  return !!clipboardTs && matchesUnion(clipboardTs, unions.Expression);
+}
+
+export function canPasteNestedIntoCallArguments({
+  clipboardTs,
+}: NestedPasteReplaceArgs): boolean {
+  return !!clipboardTs && matchesUnion(clipboardTs, unions.Expression);
 }
 
 export function canPasteNestedIntoObjectLiteralElement({
   node,
   firstIndex,
   lastIndex,
-  clipboard,
-}: PasteReplaceArgs): boolean {
+  clipboardTs,
+}: NestedPasteReplaceArgs): boolean {
   if (firstIndex !== lastIndex) {
+    return false;
+  }
+  if (!clipboardTs) {
     return false;
   }
 
   switch (tsNodeFromNode(node).kind) {
     case ts.SyntaxKind.PropertyAssignment: {
       if (firstIndex === 0) {
-        return ts.isPropertyName(tsNodeFromNode(clipboard));
+        return ts.isPropertyName(clipboardTs);
       } else if (firstIndex === 1) {
         return false;
       } else if (firstIndex === 2) {
-        return matchesUnion(tsNodeFromNode(clipboard), unions.Expression);
+        return matchesUnion(clipboardTs, unions.Expression);
       } else {
         throw new Error("invalid firstIndex");
       }
     }
     case ts.SyntaxKind.ShorthandPropertyAssignment: {
       if (firstIndex === 0) {
-        return ts.isIdentifier(tsNodeFromNode(clipboard));
+        return ts.isIdentifier(clipboardTs);
       } else {
         throw new Error("invalid firstIndex");
       }
     }
     case ts.SyntaxKind.SpreadAssignment: {
       if (firstIndex === 0) {
-        return matchesUnion(tsNodeFromNode(clipboard), unions.Expression);
+        return matchesUnion(clipboardTs, unions.Expression);
       } else {
         throw new Error("invalid firstIndex");
       }
@@ -91,9 +110,9 @@ export function canPasteNestedIntoObjectLiteralElement({
 }
 
 export function canPasteNestedIntoTsObjectLiteralExpression({
-  clipboard,
-}: PasteReplaceArgs): boolean {
-  return ts.isObjectLiteralElementLike(tsNodeFromNode(clipboard));
+  clipboardTs,
+}: NestedPasteReplaceArgs): boolean {
+  return !!clipboardTs && ts.isObjectLiteralElementLike(clipboardTs);
 }
 
 export function acceptPasteReplace(
@@ -115,6 +134,11 @@ export function acceptPasteReplace(
     return undefined;
   }
 
+  let clipboardTs: ts.Node | undefined;
+  try {
+    clipboardTs = tsNodeFromNode(clipboard);
+  } catch {}
+
   const canPasteFlattened = (function () {
     if (clipboard.kind !== NodeKind.List) {
       return false;
@@ -123,6 +147,8 @@ export function acceptPasteReplace(
     switch (node.listKind) {
       case ListKind.TightExpression:
         return canPasteFlattenedIntoTightExpression(_args);
+      case ListKind.CallArguments:
+        return canPasteFlattenedIntoCallArguments(_args);
       case ListKind.TsNodeList:
         switch (node.tsSyntaxKind) {
           case ts.SyntaxKind.ObjectLiteralExpression:
@@ -137,17 +163,20 @@ export function acceptPasteReplace(
   })();
 
   const canPasteNested = (function () {
+    const _args: NestedPasteReplaceArgs = { ...args, clipboardTs };
     switch (node.listKind) {
       case ListKind.TightExpression:
-        return canPasteNestedIntoTightExpression(args);
+        return canPasteNestedIntoTightExpression(_args);
       case ListKind.LooseExpression:
-        return canPasteNestedIntoLooseExpression(args);
+        return canPasteNestedIntoLooseExpression(_args);
+      case ListKind.CallArguments:
+        return canPasteNestedIntoCallArguments(_args);
       case ListKind.ObjectLiteralElement:
-        return canPasteNestedIntoObjectLiteralElement(args);
+        return canPasteNestedIntoObjectLiteralElement(_args);
       case ListKind.TsNodeList:
         switch (node.tsSyntaxKind) {
           case ts.SyntaxKind.ObjectLiteralExpression:
-            return canPasteNestedIntoTsObjectLiteralExpression(args);
+            return canPasteNestedIntoTsObjectLiteralExpression(_args);
           default: {
             return false;
           }
