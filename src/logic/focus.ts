@@ -8,6 +8,7 @@ import {
   asEvenPathRange,
   asUnevenPathRange,
   evenPathRangesAreEqual,
+  flipEvenPathRangeForward,
   unevenPathRangesAreEqual,
 } from "./path-utils";
 import { nodeGetByPath } from "./tree-utils/access";
@@ -51,10 +52,12 @@ export function normalizeFocusOutOnce(
   };
   if (
     evenPathRangesAreEqual(
-      asEvenPathRange(
-        normalizeFocusInOnce(root, asUnevenPathRange(parentFocus)),
+      flipEvenPathRangeForward(
+        asEvenPathRange(
+          normalizeFocusInOnce(root, asUnevenPathRange(parentFocus)),
+        ),
       ),
-      evenFocus,
+      flipEvenPathRangeForward(evenFocus),
     )
   ) {
     return asUnevenPathRange(parentFocus);

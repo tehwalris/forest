@@ -96,6 +96,12 @@ export function flipUnevenPathRange({
   return { anchor: tip, tip: anchor };
 }
 
+export function flipEvenPathRangeForward(
+  pathRange: EvenPathRange,
+): EvenPathRange {
+  return pathRange.offset >= 0 ? pathRange : flipEvenPathRange(pathRange);
+}
+
 export function getPathToTip(pathRange: EvenPathRange): Path {
   const path = [...pathRange.anchor];
   if (!path.length) {
