@@ -46,6 +46,15 @@ export function canPasteFlattenedIntoTsObjectLiteralExpression({
   );
 }
 
+export function canPasteFlattenedIntoTsBlock({
+  clipboard,
+}: FlattenedPasteReplaceArgs): boolean {
+  return (
+    clipboard.listKind === ListKind.TsNodeList &&
+    clipboard.tsSyntaxKind === ts.SyntaxKind.Block
+  );
+}
+
 export function canPasteNestedIntoTightExpression({
   clipboardTs,
 }: NestedPasteReplaceArgs): boolean {
@@ -115,6 +124,14 @@ export function canPasteNestedIntoTsObjectLiteralExpression({
   return !!clipboardTs && ts.isObjectLiteralElementLike(clipboardTs);
 }
 
+export function canPasteNestedIntoTsBlock({
+  clipboardTs,
+}: NestedPasteReplaceArgs): boolean {
+  return (
+    !!clipboardTs && matchesUnion<ts.Statement>(clipboardTs, unions.Statement)
+  );
+}
+
 export function acceptPasteReplace(
   args: PasteReplaceArgs,
 ): ListNode | undefined {
@@ -153,6 +170,8 @@ export function acceptPasteReplace(
         switch (node.tsSyntaxKind) {
           case ts.SyntaxKind.ObjectLiteralExpression:
             return canPasteFlattenedIntoTsObjectLiteralExpression(_args);
+          case ts.SyntaxKind.Block:
+            return canPasteFlattenedIntoTsBlock(_args);
           default: {
             return false;
           }
@@ -177,6 +196,8 @@ export function acceptPasteReplace(
         switch (node.tsSyntaxKind) {
           case ts.SyntaxKind.ObjectLiteralExpression:
             return canPasteNestedIntoTsObjectLiteralExpression(_args);
+          case ts.SyntaxKind.Block:
+            return canPasteNestedIntoTsBlock(_args);
           default: {
             return false;
           }
