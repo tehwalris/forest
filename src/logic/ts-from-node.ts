@@ -3,7 +3,6 @@ import { getBinaryOperatorPrecedence } from "./binary-operator";
 import { ListKind, Node, NodeKind } from "./interfaces";
 import { astFromTypescriptFileContent } from "./parse";
 import { getStructContent } from "./struct";
-import { onlyChildFromNode } from "./tree-utils/access";
 import {
   flagsForTsVarLetConst,
   isToken,
@@ -42,7 +41,8 @@ function tsIfStatementFromIfBranchNode(
     return tsNodeFromNode(content.statement) as ts.Statement;
   }
   return ts.createIf(
-    tsNodeFromNode(onlyChildFromNode(content.expression)) as ts.Expression,
+    (tsNodeFromNode(content.expression) as ts.ParenthesizedExpression)
+      .expression,
     tsNodeFromNode(content.statement) as ts.Statement,
     elseStatement,
   );

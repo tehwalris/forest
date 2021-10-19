@@ -306,7 +306,7 @@ function listNodeFromTsIfStatementBranch(
       listNodeFromDelimitedTsNodeArray(
         [ifStatement.expression],
         file,
-        ListKind.UnknownTsNodeArray,
+        ListKind.ParenthesizedExpression,
         ifStatement.expression.pos - 1,
         ifStatement.expression.end + 1,
       ),

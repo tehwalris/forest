@@ -68,6 +68,12 @@ export function canPasteNestedIntoLooseExpression({
   return !!clipboardTs && matchesUnion(clipboardTs, unions.Expression);
 }
 
+export function canPasteNestedIntoParenthesizedExpression({
+  clipboardTs,
+}: NestedPasteReplaceArgs): boolean {
+  return !!clipboardTs && matchesUnion(clipboardTs, unions.Expression);
+}
+
 export function canPasteNestedIntoCallArguments({
   clipboardTs,
 }: NestedPasteReplaceArgs): boolean {
@@ -188,6 +194,8 @@ export function acceptPasteReplace(
         return canPasteNestedIntoTightExpression(_args);
       case ListKind.LooseExpression:
         return canPasteNestedIntoLooseExpression(_args);
+      case ListKind.ParenthesizedExpression:
+        return canPasteNestedIntoParenthesizedExpression(_args);
       case ListKind.CallArguments:
         return canPasteNestedIntoCallArguments(_args);
       case ListKind.ObjectLiteralElement:
