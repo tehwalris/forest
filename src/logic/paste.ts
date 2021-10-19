@@ -46,12 +46,13 @@ export function canPasteFlattenedIntoTsObjectLiteralExpression({
   );
 }
 
-export function canPasteFlattenedIntoTsBlock({
+export function canPasteFlattenedIntoTsBlockOrFile({
   clipboard,
 }: FlattenedPasteReplaceArgs): boolean {
   return (
-    clipboard.listKind === ListKind.TsNodeList &&
-    clipboard.tsSyntaxKind === ts.SyntaxKind.Block
+    (clipboard.listKind === ListKind.TsNodeList &&
+      clipboard.tsSyntaxKind === ts.SyntaxKind.Block) ||
+    clipboard.listKind === ListKind.File
   );
 }
 
@@ -130,7 +131,7 @@ export function canPasteNestedIntoTsObjectLiteralExpression({
   return !!clipboardTs && ts.isObjectLiteralElementLike(clipboardTs);
 }
 
-export function canPasteNestedIntoTsBlock({
+export function canPasteNestedIntoTsBlockOrFile({
   clipboardTs,
 }: NestedPasteReplaceArgs): boolean {
   return (
@@ -177,11 +178,13 @@ export function acceptPasteReplace(
           case ts.SyntaxKind.ObjectLiteralExpression:
             return canPasteFlattenedIntoTsObjectLiteralExpression(_args);
           case ts.SyntaxKind.Block:
-            return canPasteFlattenedIntoTsBlock(_args);
+            return canPasteFlattenedIntoTsBlockOrFile(_args);
           default: {
             return false;
           }
         }
+      case ListKind.File:
+        return canPasteFlattenedIntoTsBlockOrFile(_args);
       default:
         return false;
     }
@@ -205,11 +208,13 @@ export function acceptPasteReplace(
           case ts.SyntaxKind.ObjectLiteralExpression:
             return canPasteNestedIntoTsObjectLiteralExpression(_args);
           case ts.SyntaxKind.Block:
-            return canPasteNestedIntoTsBlock(_args);
+            return canPasteNestedIntoTsBlockOrFile(_args);
           default: {
             return false;
           }
         }
+      case ListKind.File:
+        return canPasteNestedIntoTsBlockOrFile(_args);
       default:
         return false;
     }
