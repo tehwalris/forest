@@ -116,6 +116,23 @@ function listNodeFromNonDelimitedTsNodeArray(
   };
 }
 
+function listNodeFromTsExpressionStatement(
+  expressionStatement: ts.ExpressionStatement,
+  file: ts.SourceFile | undefined,
+): ListNode {
+  return {
+    kind: NodeKind.List,
+    listKind: ListKind.TsNodeStruct,
+    tsSyntaxKind: ts.SyntaxKind.ExpressionStatement,
+    delimiters: ["", ""],
+    structKeys: ["expression"],
+    content: [nodeFromTsNode(expressionStatement.expression, file)],
+    equivalentToContent: true,
+    pos: expressionStatement.pos,
+    end: expressionStatement.end,
+  };
+}
+
 function listNodeFromTsCallExpression(
   callExpression: ts.CallExpression,
   file: ts.SourceFile | undefined,
@@ -509,7 +526,7 @@ export function nodeFromTsNode(
   file: ts.SourceFile | undefined,
 ): Node {
   if (ts.isExpressionStatement(node)) {
-    return nodeFromTsNode(node.expression, file);
+    return listNodeFromTsExpressionStatement(node, file);
   } else if (ts.isCallExpression(node)) {
     return listNodeFromTsCallExpression(node, file);
   } else if (ts.isPropertyAccessExpression(node)) {

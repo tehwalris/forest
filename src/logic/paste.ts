@@ -224,6 +224,21 @@ export function acceptPasteReplace(
     const newContent = [...node.content];
     newContent.splice(firstIndex, lastIndex - firstIndex + 1, clipboard);
     return { ...node, content: newContent };
+  } else if (!!clipboardTs && matchesUnion(clipboardTs, unions.Expression)) {
+    return acceptPasteReplace({
+      ...args,
+      clipboard: {
+        kind: NodeKind.List,
+        listKind: ListKind.TsNodeStruct,
+        tsSyntaxKind: ts.SyntaxKind.ExpressionStatement,
+        delimiters: ["", ""],
+        structKeys: ["expression"],
+        content: [clipboard],
+        equivalentToContent: true,
+        pos: clipboard.pos,
+        end: clipboard.end,
+      },
+    });
   } else {
     console.warn("the requested paste was not explicitly allowed");
     return undefined;

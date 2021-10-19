@@ -212,6 +212,12 @@ export function tsNodeFromNode(node: Node): ts.Node {
       switch (node.tsSyntaxKind) {
         case undefined:
           throw new Error("TsNodeStruct with undefined tsSyntaxKind");
+        case ts.SyntaxKind.ExpressionStatement: {
+          const content = getStructContent(node, ["expression"], []);
+          return ts.createExpressionStatement(
+            tsNodeFromNode(content.expression) as ts.Expression,
+          );
+        }
         case ts.SyntaxKind.ArrowFunction: {
           const content = getStructContent(
             node,
