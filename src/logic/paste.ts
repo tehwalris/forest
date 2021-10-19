@@ -2,10 +2,24 @@ import * as ts from "typescript";
 import { ListKind, ListNode, Node, NodeKind } from "./interfaces";
 import { matchesUnion } from "./legacy-templates/match";
 import { unions } from "./legacy-templates/templates";
+import { nodeFromTsNode } from "./node-from-ts";
 import { tsNodeFromNode } from "./ts-from-node";
 
 export function acceptPasteRoot(clipboard: Node): ListNode | undefined {
-  return undefined;
+  return acceptPasteReplace({
+    clipboard,
+    firstIndex: 0,
+    lastIndex: 0,
+    node: {
+      kind: NodeKind.List,
+      listKind: ListKind.File,
+      delimiters: ["", ""],
+      content: [nodeFromTsNode(ts.createEmptyStatement(), undefined)],
+      equivalentToContent: true,
+      pos: 0,
+      end: 0,
+    },
+  });
 }
 
 interface PasteReplaceArgs {
