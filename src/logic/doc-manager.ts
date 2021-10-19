@@ -1,3 +1,4 @@
+import ts from "typescript";
 import { checkInsertion } from "./check-insertion";
 import { docMapRoot, emptyDoc } from "./doc-utils";
 import {
@@ -11,6 +12,7 @@ import {
   Doc,
   EvenPathRange,
   InsertState,
+  ListKind,
   Node,
   NodeKind,
   Path,
@@ -32,6 +34,7 @@ import {
   getDocWithoutPlaceholdersNearCursor,
 } from "./placeholders";
 import { printTsSourceFile } from "./print";
+import { getStructContent } from "./struct";
 import { getDocWithInsert } from "./text";
 import {
   nodeGetByPath,
@@ -272,6 +275,17 @@ export class DocManager {
               selectedRange[1] + 1,
             ),
           };
+        }
+        if (
+          this.clipboard?.kind === NodeKind.List &&
+          this.clipboard.listKind === ListKind.TsNodeStruct &&
+          this.clipboard.tsSyntaxKind === ts.SyntaxKind.ExpressionStatement
+        ) {
+          this.clipboard = getStructContent(
+            this.clipboard,
+            ["expression"],
+            [],
+          ).expression;
         }
       } else if (ev.key === "p") {
         if (!this.clipboard) {
