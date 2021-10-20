@@ -1,5 +1,7 @@
 import ts from "typescript";
 import { Doc, ListKind, ListNode, Node, NodeKind } from "./interfaces";
+import { StructChild, StructTemplate } from "./legacy-templates/interfaces";
+import { structTemplates } from "./legacy-templates/templates";
 import { createScanner } from "./parse";
 import { isTsVarLetConst } from "./ts-type-predicates";
 
@@ -521,6 +523,60 @@ function listNodeFromTsObjectLiteralElementLike(
   };
 }
 
+type UnknownStructTemplate = StructTemplate<
+  {
+    [key: string]: StructChild<ts.Node>;
+  },
+  ts.Node
+>;
+
+const allowedGenericNodeMatchers: ((node: ts.Node) => boolean)[] = [
+  ts.isConditionalExpression,
+];
+
+function tryMakeListNodeGeneric(
+  node: ts.Node,
+  file: ts.SourceFile | undefined,
+): ListNode | undefined {
+  if (!allowedGenericNodeMatchers.find((m) => m(node))) {
+    return undefined;
+  }
+
+  const structTemplate: UnknownStructTemplate | undefined =
+    structTemplates.find((t) => t.match(node)) as any;
+  if (!structTemplate) {
+    return undefined;
+  }
+
+  const children = structTemplate.load(node);
+
+  const structKeys: string[] = [];
+  const content: Node[] = [];
+
+  for (const k of structTemplate.children) {
+    const child = children[k];
+
+    if (child.isList || child.optional) {
+      throw new Error("unsupported StructChild");
+    }
+
+    structKeys.push(k);
+    content.push(nodeFromTsNode(child.value, file));
+  }
+
+  return {
+    kind: NodeKind.List,
+    listKind: ListKind.TsNodeStruct,
+    tsSyntaxKind: node.kind,
+    delimiters: ["", ""],
+    structKeys,
+    content,
+    equivalentToContent: true,
+    pos: node.pos,
+    end: node.end,
+  };
+}
+
 export function nodeFromTsNode(
   node: ts.Node,
   file: ts.SourceFile | undefined,
@@ -554,12 +610,14 @@ export function nodeFromTsNode(
   } else if (ts.isObjectLiteralElementLike(node)) {
     return listNodeFromTsObjectLiteralElementLike(node, file);
   } else {
-    return {
-      kind: NodeKind.Token,
-      pos: node.pos,
-      end: node.end,
-      tsNode: node,
-    };
+    return (
+      tryMakeListNodeGeneric(node, file) || {
+        kind: NodeKind.Token,
+        pos: node.pos,
+        end: node.end,
+        tsNode: node,
+      }
+    );
   }
 }
 

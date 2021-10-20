@@ -71,7 +71,7 @@ export interface OptionalStructListChild<T extends ts.Node>
   isList: true;
 }
 
-type StructChild<T extends ts.Node> =
+export type StructChild<T extends ts.Node> =
   | RequiredStructSingleChild<T>
   | OptionalStructSingleChild<T>
   | RequiredStructListChild<T>
