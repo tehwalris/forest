@@ -56,7 +56,7 @@ export function canPasteFlattenedIntoTsObjectLiteralExpression({
 }: FlattenedPasteReplaceArgs): boolean {
   return (
     clipboard.listKind === ListKind.TsNodeList &&
-    clipboard.tsSyntaxKind === ts.SyntaxKind.ObjectLiteralExpression
+    clipboard.tsNode?.kind === ts.SyntaxKind.ObjectLiteralExpression
   );
 }
 
@@ -65,7 +65,7 @@ export function canPasteFlattenedIntoTsBlockOrFile({
 }: FlattenedPasteReplaceArgs): boolean {
   return (
     (clipboard.listKind === ListKind.TsNodeList &&
-      clipboard.tsSyntaxKind === ts.SyntaxKind.Block) ||
+      clipboard.tsNode?.kind === ts.SyntaxKind.Block) ||
     clipboard.listKind === ListKind.File
   );
 }
@@ -188,7 +188,7 @@ export function acceptPasteReplace(
       case ListKind.CallArguments:
         return canPasteFlattenedIntoCallArguments(_args);
       case ListKind.TsNodeList:
-        switch (node.tsSyntaxKind) {
+        switch (node.tsNode?.kind) {
           case ts.SyntaxKind.ObjectLiteralExpression:
             return canPasteFlattenedIntoTsObjectLiteralExpression(_args);
           case ts.SyntaxKind.Block:
@@ -218,7 +218,7 @@ export function acceptPasteReplace(
       case ListKind.ObjectLiteralElement:
         return canPasteNestedIntoObjectLiteralElement(_args);
       case ListKind.TsNodeList:
-        switch (node.tsSyntaxKind) {
+        switch (node.tsNode?.kind) {
           case ts.SyntaxKind.ObjectLiteralExpression:
             return canPasteNestedIntoTsObjectLiteralExpression(_args);
           case ts.SyntaxKind.Block:
@@ -257,7 +257,7 @@ export function acceptPasteReplace(
       clipboard: {
         kind: NodeKind.List,
         listKind: ListKind.TsNodeStruct,
-        tsSyntaxKind: ts.SyntaxKind.ExpressionStatement,
+        tsNode: ts.createExpressionStatement(ts.createIdentifier("")),
         delimiters: ["", ""],
         structKeys: ["expression"],
         content: [clipboard],

@@ -279,7 +279,7 @@ export class DocManager {
         if (
           this.clipboard?.kind === NodeKind.List &&
           this.clipboard.listKind === ListKind.TsNodeStruct &&
-          this.clipboard.tsSyntaxKind === ts.SyntaxKind.ExpressionStatement
+          this.clipboard.tsNode?.kind === ts.SyntaxKind.ExpressionStatement
         ) {
           this.clipboard = getStructContent(
             this.clipboard,

@@ -357,7 +357,7 @@ function _makeNodeValidTs({
   } else if (
     node.kind === NodeKind.List &&
     node.listKind === ListKind.TsNodeStruct &&
-    node.tsSyntaxKind === ts.SyntaxKind.ArrowFunction
+    node.tsNode?.kind === ts.SyntaxKind.ArrowFunction
   ) {
     node = withDefaultContent(
       node,
@@ -373,7 +373,7 @@ function _makeNodeValidTs({
   } else if (
     node.kind === NodeKind.List &&
     node.listKind === ListKind.TsNodeList &&
-    node.tsSyntaxKind === ts.SyntaxKind.VariableDeclarationList
+    node.tsNode?.kind === ts.SyntaxKind.VariableDeclarationList
   ) {
     node = {
       ...node,
@@ -382,7 +382,7 @@ function _makeNodeValidTs({
   } else if (
     node.kind === NodeKind.List &&
     node.listKind === ListKind.TsNodeStruct &&
-    node.tsSyntaxKind === ts.SyntaxKind.VariableDeclaration
+    node.tsNode?.kind === ts.SyntaxKind.VariableDeclaration
   ) {
     node = withDefaultContent(
       node,

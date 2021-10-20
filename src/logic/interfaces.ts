@@ -40,7 +40,7 @@ export enum ListKind {
 export interface ListNode extends TextRange {
   kind: NodeKind.List;
   listKind: ListKind;
-  tsSyntaxKind?: ts.SyntaxKind;
+  tsNode?: ts.Node;
   structKeys?: string[];
   delimiters: [string, string];
   content: Node[];

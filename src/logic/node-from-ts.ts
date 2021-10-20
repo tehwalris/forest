@@ -128,7 +128,7 @@ function listNodeFromTsExpressionStatement(
   return {
     kind: NodeKind.List,
     listKind: ListKind.TsNodeStruct,
-    tsSyntaxKind: ts.SyntaxKind.ExpressionStatement,
+    tsNode: expressionStatement,
     delimiters: ["", ""],
     structKeys: ["expression"],
     content: [nodeFromTsNode(expressionStatement.expression, file)],
@@ -283,7 +283,7 @@ function listNodeFromTsArrowFunction(
   return {
     kind: NodeKind.List,
     listKind: ListKind.TsNodeStruct,
-    tsSyntaxKind: ts.SyntaxKind.ArrowFunction,
+    tsNode: arrowFunction,
     delimiters: ["", ""],
     structKeys,
     content,
@@ -368,7 +368,7 @@ function listNodeFromTsVariableStatement(
   return {
     kind: NodeKind.List,
     listKind: ListKind.TsNodeStruct,
-    tsSyntaxKind: ts.SyntaxKind.VariableStatement,
+    tsNode: variableStatement,
     delimiters: ["", ""],
     structKeys: ["declarationList"],
     content: [nodeFromTsNode(variableStatement.declarationList, file)],
@@ -387,7 +387,7 @@ function listNodeFromTsVariableDeclarationList(
     file,
     ListKind.TsNodeList,
   );
-  node.tsSyntaxKind = ts.SyntaxKind.VariableDeclarationList;
+  node.tsNode = variableDeclarationList;
 
   const firstToken = variableDeclarationList.getFirstToken(file);
   if (!firstToken || !isTsVarLetConst(firstToken)) {
@@ -421,7 +421,7 @@ function listNodeFromTsVariableDeclaration(
   return {
     kind: NodeKind.List,
     listKind: ListKind.TsNodeStruct,
-    tsSyntaxKind: ts.SyntaxKind.VariableDeclaration,
+    tsNode: variableDeclaration,
     delimiters: ["", ""],
     structKeys,
     content,
@@ -443,7 +443,7 @@ function listNodeFromTsBlock(
       block.pos + 1,
       block.end,
     ),
-    tsSyntaxKind: ts.SyntaxKind.Block,
+    tsNode: block,
   };
 }
 
@@ -459,7 +459,7 @@ function listNodeFromTsObjectLiteralExpression(
       objectLiteralExpression.pos,
       objectLiteralExpression.end,
     ),
-    tsSyntaxKind: ts.SyntaxKind.ObjectLiteralExpression,
+    tsNode: objectLiteralExpression,
   };
 }
 
@@ -475,7 +475,7 @@ function listNodeFromTsArrayLiteralExpression(
       arrayLiteralExpression.pos + 1,
       arrayLiteralExpression.end,
     ),
-    tsSyntaxKind: ts.SyntaxKind.ArrayLiteralExpression,
+    tsNode: arrayLiteralExpression,
   };
 }
 
@@ -559,7 +559,7 @@ function tryMakeListNodeGeneric(
   return {
     kind: NodeKind.List,
     listKind: ListKind.TsNodeStruct,
-    tsSyntaxKind: node.kind,
+    tsNode: node,
     delimiters: ["", ""],
     structKeys,
     content,

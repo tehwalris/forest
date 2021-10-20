@@ -1,6 +1,9 @@
 import ts from "typescript";
 import { getBinaryOperatorPrecedence } from "./binary-operator";
-import { allowedGenericNodeMatchers } from "./generic-node";
+import {
+  allowedGenericNodeMatchers,
+  UnknownStructTemplate,
+} from "./generic-node";
 import { ListKind, ListNode, Node, NodeKind } from "./interfaces";
 import { structTemplates } from "./legacy-templates/templates";
 import { astFromTypescriptFileContent } from "./parse";
@@ -50,16 +53,31 @@ function tsIfStatementFromIfBranchNode(
   );
 }
 
-function tryMakeTsNodeFromGenericTsNodeStruct(node: ListNode): ts.Node {
-  if (!allowedGenericNodeMatchers.find((m) => m(node))) {
+function tryMakeTsNodeFromGenericTsNodeStruct(
+  node: ListNode,
+): ts.Node | undefined {
+  const oldTsNode = node.tsNode;
+  if (!oldTsNode || !allowedGenericNodeMatchers.find((m) => m(oldTsNode))) {
     return undefined;
   }
 
   const structTemplate: UnknownStructTemplate | undefined =
-    structTemplates.find((t) => t.match(node)) as any;
+    structTemplates.find((t) => t.match(oldTsNode)) as any;
   if (!structTemplate) {
     return undefined;
   }
+
+  const content = getStructContent(node, [], structTemplate.children);
+
+  const children: {
+    [key: string]: ts.Node | ts.NodeArray<ts.Node> | undefined;
+  } = {};
+  for (const k of structTemplate.children) {
+    const temp = content[k];
+    children[k] = temp && tsNodeFromNode(temp);
+  }
+
+  return structTemplate.build(children, []);
 }
 
 export function tsNodeFromNode(node: Node): ts.Node {
@@ -223,7 +241,7 @@ export function tsNodeFromNode(node: Node): ts.Node {
     case ListKind.UnknownTsNodeArray:
       throw new Error("UnknownTsNodeArray should be handled by parent");
     case ListKind.TsNodeStruct:
-      switch (node.tsSyntaxKind) {
+      switch (node.tsNode?.kind) {
         case undefined:
           throw new Error("TsNodeStruct with undefined tsSyntaxKind");
         case ts.SyntaxKind.ExpressionStatement: {
@@ -279,16 +297,18 @@ export function tsNodeFromNode(node: Node): ts.Node {
         }
         default: {
           const result = tryMakeTsNodeFromGenericTsNodeStruct(node);
-
+          if (result) {
+            return result;
+          }
           throw new Error(
             `TsNodeStruct with unsupported tsSyntaxKind: ${
-              ts.SyntaxKind[node.tsSyntaxKind]
+              node.tsNode?.kind && ts.SyntaxKind[node.tsNode?.kind]
             }`,
           );
         }
       }
     case ListKind.TsNodeList:
-      switch (node.tsSyntaxKind) {
+      switch (node.tsNode?.kind) {
         case undefined:
           throw new Error("TsNodeList with undefined tsSyntaxKind");
         case ts.SyntaxKind.Block:
@@ -327,7 +347,7 @@ export function tsNodeFromNode(node: Node): ts.Node {
         default:
           throw new Error(
             `TsNodeList with unsupported tsSyntaxKind: ${
-              ts.SyntaxKind[node.tsSyntaxKind]
+              node.tsNode?.kind && ts.SyntaxKind[node.tsNode?.kind]
             }`,
           );
       }
