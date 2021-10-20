@@ -1,6 +1,9 @@
 import ts from "typescript";
+import {
+  allowedGenericNodeMatchers,
+  UnknownStructTemplate,
+} from "./generic-node";
 import { Doc, ListKind, ListNode, Node, NodeKind } from "./interfaces";
-import { StructChild, StructTemplate } from "./legacy-templates/interfaces";
 import { structTemplates } from "./legacy-templates/templates";
 import { createScanner } from "./parse";
 import { isTsVarLetConst } from "./ts-type-predicates";
@@ -522,17 +525,6 @@ function listNodeFromTsObjectLiteralElementLike(
     end: objectLiteralElementLike.end,
   };
 }
-
-type UnknownStructTemplate = StructTemplate<
-  {
-    [key: string]: StructChild<ts.Node>;
-  },
-  ts.Node
->;
-
-const allowedGenericNodeMatchers: ((node: ts.Node) => boolean)[] = [
-  ts.isConditionalExpression,
-];
 
 function tryMakeListNodeGeneric(
   node: ts.Node,

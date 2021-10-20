@@ -1,6 +1,8 @@
 import ts from "typescript";
 import { getBinaryOperatorPrecedence } from "./binary-operator";
-import { ListKind, Node, NodeKind } from "./interfaces";
+import { allowedGenericNodeMatchers } from "./generic-node";
+import { ListKind, ListNode, Node, NodeKind } from "./interfaces";
+import { structTemplates } from "./legacy-templates/templates";
 import { astFromTypescriptFileContent } from "./parse";
 import { getStructContent } from "./struct";
 import {
@@ -46,6 +48,18 @@ function tsIfStatementFromIfBranchNode(
     tsNodeFromNode(content.statement) as ts.Statement,
     elseStatement,
   );
+}
+
+function tryMakeTsNodeFromGenericTsNodeStruct(node: ListNode): ts.Node {
+  if (!allowedGenericNodeMatchers.find((m) => m(node))) {
+    return undefined;
+  }
+
+  const structTemplate: UnknownStructTemplate | undefined =
+    structTemplates.find((t) => t.match(node)) as any;
+  if (!structTemplate) {
+    return undefined;
+  }
 }
 
 export function tsNodeFromNode(node: Node): ts.Node {
@@ -263,12 +277,15 @@ export function tsNodeFromNode(node: Node): ts.Node {
               (tsNodeFromNode(content.initializer) as ts.Expression),
           );
         }
-        default:
+        default: {
+          const result = tryMakeTsNodeFromGenericTsNodeStruct(node);
+
           throw new Error(
             `TsNodeStruct with unsupported tsSyntaxKind: ${
               ts.SyntaxKind[node.tsSyntaxKind]
             }`,
           );
+        }
       }
     case ListKind.TsNodeList:
       switch (node.tsSyntaxKind) {
