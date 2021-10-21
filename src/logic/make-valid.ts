@@ -488,22 +488,6 @@ function _makeNodeValidTs({
     }
   } else if (
     node.kind === NodeKind.List &&
-    node.listKind === ListKind.TsNodeStruct &&
-    node.tsNode?.kind === ts.SyntaxKind.ArrowFunction
-  ) {
-    node = withDefaultContent(
-      node,
-      [
-        { key: "modifiers" },
-        { key: "typeParameters" },
-        { key: "parameters" },
-        { key: "equalsGreaterThanToken" },
-        { key: "body", node: makePlaceholderIdentifier() },
-      ],
-      mapChild,
-    );
-  } else if (
-    node.kind === NodeKind.List &&
     node.listKind === ListKind.TsNodeList &&
     node.tsNode?.kind === ts.SyntaxKind.VariableDeclarationList
   ) {

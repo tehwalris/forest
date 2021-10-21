@@ -246,27 +246,6 @@ export function tsNodeFromNode(node: Node): ts.Node {
             tsNodeFromNode(content.expression) as ts.Expression,
           );
         }
-        case ts.SyntaxKind.ArrowFunction: {
-          const content = getStructContent(
-            node,
-            ["parameters", "body"],
-            ["typeParameters", "modifiers"],
-          );
-          return ts.createArrowFunction(
-            content.modifiers &&
-              (tsNodeArrayFromNode(content.modifiers) as ts.Modifier[]),
-            content.typeParameters &&
-              (tsNodeArrayFromNode(
-                content.typeParameters,
-              ) as ts.TypeParameterDeclaration[]),
-            tsNodeArrayFromNode(
-              content.parameters,
-            ) as ts.ParameterDeclaration[],
-            undefined,
-            undefined,
-            tsNodeFromNode(content.body) as ts.ConciseBody,
-          );
-        }
         case ts.SyntaxKind.VariableStatement: {
           const content = getStructContent(node, ["declarationList"], []);
           return ts.createVariableStatement(

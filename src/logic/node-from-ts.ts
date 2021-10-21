@@ -209,64 +209,6 @@ function listNodeFromTsParenthesizedExpression(
   };
 }
 
-function listNodeFromTsArrowFunction(
-  arrowFunction: ts.ArrowFunction,
-  file: ts.SourceFile | undefined,
-): ListNode {
-  const structKeys: string[] = [];
-  const content: Node[] = [];
-
-  if (arrowFunction.modifiers?.length) {
-    structKeys.push("modifiers");
-    content.push(
-      listNodeFromNonDelimitedTsNodeArray(
-        arrowFunction.modifiers,
-        file,
-        ListKind.UnknownTsNodeArray,
-      ),
-    );
-  }
-
-  if (arrowFunction.typeParameters?.length) {
-    structKeys.push("typeParameters");
-    content.push(
-      listNodeFromDelimitedTsNodeArray(
-        arrowFunction.typeParameters,
-        file,
-        ListKind.UnknownTsNodeArray,
-        arrowFunction.typeParameters.pos - 1,
-        arrowFunction.typeParameters.end + 1,
-      ),
-    );
-  }
-
-  structKeys.push("parameters");
-  content.push(
-    listNodeFromDelimitedTsNodeArray(
-      arrowFunction.parameters,
-      file,
-      ListKind.UnknownTsNodeArray,
-      arrowFunction.parameters.pos - 1,
-      arrowFunction.parameters.end + 1,
-    ),
-  );
-
-  structKeys.push("body");
-  content.push(nodeFromTsNode(arrowFunction.body, file));
-
-  return {
-    kind: NodeKind.List,
-    listKind: ListKind.TsNodeStruct,
-    tsNode: arrowFunction,
-    delimiters: ["", ""],
-    structKeys,
-    content,
-    equivalentToContent: true,
-    pos: arrowFunction.pos,
-    end: arrowFunction.end,
-  };
-}
-
 function listNodeFromTsIfStatementBranch(
   ifStatement: ts.IfStatement,
   file: ts.SourceFile | undefined,
@@ -554,8 +496,6 @@ export function nodeFromTsNode(
     return listNodeFromTsBinaryExpression(node, file);
   } else if (ts.isParenthesizedExpression(node)) {
     return listNodeFromTsParenthesizedExpression(node, file);
-  } else if (ts.isArrowFunction(node)) {
-    return listNodeFromTsArrowFunction(node, file);
   } else if (ts.isIfStatement(node)) {
     return listNodeFromTsIfStatement(node, file);
   } else if (ts.isVariableStatement(node)) {
