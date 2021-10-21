@@ -1,11 +1,23 @@
 import { last } from "ramda";
 import ts, { isDotDotDotToken } from "typescript";
+import {
+  allowedGenericNodeMatchers,
+  UnknownStructTemplate,
+} from "./generic-node";
 import { ListKind, ListNode, Node, NodeKind, Path } from "./interfaces";
+import { Union } from "./legacy-templates/interfaces";
+import { matchesUnion } from "./legacy-templates/match";
+import { structTemplates } from "./legacy-templates/templates";
 import { nodeFromTsNode } from "./node-from-ts";
 import { PathMapper } from "./path-mapper";
 import { pathsAreEqual } from "./path-utils";
-import { assertNodeHasValidStructKeys, withDefaultContent } from "./struct";
+import {
+  assertNodeHasValidStructKeys,
+  getStructContent,
+  withDefaultContent,
+} from "./struct";
 import { onlyChildFromNode } from "./tree-utils/access";
+import { tsNodeFromNode } from "./ts-from-node";
 import {
   isToken,
   isTsBinaryOperatorToken,
@@ -43,6 +55,17 @@ function makePlaceholderIdentifier(): Node {
     ...nodeFromTsNode(ts.createIdentifier("placeholder"), undefined),
     isPlaceholder: true,
   };
+}
+
+function makePlaceholderForUnion(union: Union<ts.Node>): Node {
+  const placeholders = [makePlaceholderIdentifier()];
+  const matchingPlaceholder = placeholders.find((p) =>
+    matchesUnion(tsNodeFromNode(p), union),
+  );
+  if (!matchingPlaceholder) {
+    throw new Error(`can not make placeholder for union ${union.name}`);
+  }
+  return matchingPlaceholder;
 }
 
 function isEmptyListNode(node: Node): node is ListNode & { content: [] } {
@@ -328,6 +351,56 @@ function makeObjectLiteralElementValidTs(
   }
 }
 
+function tryMakeGenericStructNodeValidTs(
+  oldNode: ListNode,
+  mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
+): ListNode | undefined {
+  const oldTsNode = oldNode.tsNode;
+  if (!oldTsNode || !allowedGenericNodeMatchers.find((m) => m(oldTsNode))) {
+    return undefined;
+  }
+
+  const structTemplate: UnknownStructTemplate | undefined =
+    structTemplates.find((t) => t.match(oldTsNode)) as any;
+  if (!structTemplate) {
+    return undefined;
+  }
+
+  const oldContent = getStructContent(oldNode, [], structTemplate.children);
+  const templateChildren = structTemplate.load(oldTsNode);
+
+  const newNode: ListNode & { structKeys: string[] } = {
+    ...oldNode,
+    content: [],
+    structKeys: [],
+  };
+
+  for (const k of structTemplate.children) {
+    const templateChild = templateChildren[k];
+    const newIndex = newNode.content.length;
+    if (oldContent[k]) {
+      newNode.content.push(
+        mapChild({
+          node: oldContent[k]!,
+          oldIndex: oldNode.structKeys!.indexOf(k),
+          newIndex,
+        }),
+      );
+      newNode.structKeys.push(k);
+    } else if (!templateChild.optional) {
+      newNode.content.push(
+        mapChild({
+          node: makePlaceholderForUnion(templateChild.union),
+          newIndex,
+        }),
+      );
+      newNode.structKeys.push(k);
+    }
+  }
+
+  return newNode;
+}
+
 interface ExtraInfo {
   couldBeElseBranch?: boolean;
 }
@@ -499,7 +572,7 @@ function _makeNodeValidTs({
   ) {
     node = makeObjectLiteralElementValidTs(node, mapChild);
   } else if (node.kind === NodeKind.List) {
-    node = {
+    node = tryMakeGenericStructNodeValidTs(node, mapChild) || {
       ...node,
       content: node.content.map((c, i) =>
         mapChild({ node: c, oldIndex: i, newIndex: i }),
