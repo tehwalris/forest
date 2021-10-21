@@ -43,9 +43,29 @@ const styles = {
 };
 
 enum CharSelection {
-  None = 0,
   Normal = 1,
   Tip = 2,
+  Placeholder = 4,
+}
+const numCharSelections = Object.entries(CharSelection).length / 2;
+for (let i = 0; i < numCharSelections; i++) {
+  if (!CharSelection[1 << i]) {
+    throw new Error("CharSelection is invalid");
+  }
+}
+
+function fillBitwiseOr(
+  data: Uint8Array,
+  value: number,
+  pos: number,
+  end: number,
+) {
+  if (value === 0) {
+    return;
+  }
+  for (let i = pos; i < end; i++) {
+    data[i] |= value;
+  }
 }
 
 function setCharSelections({
@@ -73,13 +93,14 @@ function setCharSelections({
     }
   }
 
+  let fillValue = 0;
   if (focused) {
-    selectionsByChar.fill(
-      isTipOfFocus ? CharSelection.Tip : CharSelection.Normal,
-      node.pos,
-      node.end,
-    );
+    fillValue |= isTipOfFocus ? CharSelection.Tip : CharSelection.Normal;
   }
+  if (node.isPlaceholder) {
+    fillValue |= CharSelection.Placeholder;
+  }
+  fillBitwiseOr(selectionsByChar, fillValue, node.pos, node.end);
 
   if (node.kind === NodeKind.List) {
     for (const [i, c] of node.content.entries()) {
@@ -142,6 +163,21 @@ function splitDocRenderRegions(
   return regions;
 }
 
+function getStyleForSelection(selection: CharSelection): React.CSSProperties {
+  const stylesBySelection: { [K in CharSelection]: React.CSSProperties } = {
+    [CharSelection.Normal]: { background: "rgba(11, 83, 255, 0.15)" },
+    [CharSelection.Tip]: { background: "rgba(11, 83, 255, 0.37)" },
+    [CharSelection.Placeholder]: { color: "#888" },
+  };
+  const style: React.CSSProperties = {};
+  for (let i = 0; i < numCharSelections; i++) {
+    if (selection & (1 << i)) {
+      Object.assign(style, stylesBySelection[(1 << i) as CharSelection]);
+    }
+  }
+  return style;
+}
+
 function renderDoc(doc: Doc, focus: EvenPathRange): React.ReactNode {
   const selectionsByChar = new Uint8Array(doc.text.length);
   setCharSelections({
@@ -169,22 +205,13 @@ function renderDoc(doc: Doc, focus: EvenPathRange): React.ReactNode {
     lines.pop();
   }
 
-  const backgroundsBySelection: { [K in CharSelection]: string | undefined } = {
-    [CharSelection.None]: undefined,
-    [CharSelection.Normal]: "rgba(11, 83, 255, 0.15)",
-    [CharSelection.Tip]: "rgba(11, 83, 255, 0.37)",
-  };
-
   return (
     <div style={{ whiteSpace: "pre" }}>
       {lines.map((line, iLine) => (
         <div key={iLine}>
           {!line.regions.length && <br />}
           {line.regions.map((region, iRegion) => (
-            <span
-              key={iRegion}
-              style={{ background: backgroundsBySelection[region.selection] }}
-            >
+            <span key={iRegion} style={getStyleForSelection(region.selection)}>
               {region.text}
             </span>
           ))}
