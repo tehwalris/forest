@@ -56,7 +56,7 @@ export interface WithInsertedContentMapArgs {
   node: Node;
 }
 
-function insertIntoContent(
+function reinsertPlaceholdersIntoContent(
   oldContent: Node[],
   shouldInsert: (
     newLeft: Node | undefined,
@@ -82,16 +82,33 @@ function insertIntoContent(
 
   let oldIndex = 0;
   while (true) {
+    let oldIndexExcludingPlaceholders = oldIndex;
+    while (
+      oldIndexExcludingPlaceholders < oldContent.length &&
+      oldContent[oldIndexExcludingPlaceholders].isPlaceholder
+    ) {
+      oldIndexExcludingPlaceholders++;
+    }
     const oldNode =
-      oldIndex < oldContent.length ? oldContent[oldIndex] : undefined;
+      oldIndexExcludingPlaceholders < oldContent.length
+        ? oldContent[oldIndexExcludingPlaceholders]
+        : undefined;
+
     const newNode = shouldInsert(last(newContent), oldNode);
-    if (newNode) {
+    if (newNode && oldIndex === oldIndexExcludingPlaceholders) {
+      // insert before non-placeholder node
       mapAndPush({ node: newNode });
+    } else if (newNode) {
+      // replace placeholder node
+      mapAndPush({ node: newNode, oldIndex });
+      oldIndex++;
     } else if (!oldNode) {
+      // consumed all nodes except trailing placeholders
       break;
     } else {
+      // consume and output old node
       mapAndPush({ node: oldNode, oldIndex });
-      oldIndex++;
+      oldIndex = oldIndexExcludingPlaceholders + 1;
     }
   }
 
@@ -100,43 +117,46 @@ function insertIntoContent(
 
 function makeLooseExpressionValidTs(
   oldContent: Node[],
-  mapChild: (args: { node: Node; oldIndex: number; newIndex: number }) => Node,
+  mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
 ): Node[] {
-  let wantOperator = false;
-  const newContent: Node[] = [];
-  const remainingOldContent = [...oldContent];
-  while (remainingOldContent.length || !wantOperator) {
-    const nextOldNode = remainingOldContent[0];
-    const nextIsOperator =
-      nextOldNode?.kind === NodeKind.Token &&
-      isTsBinaryOperatorToken(nextOldNode.tsNode);
-    if (nextOldNode && nextIsOperator === wantOperator) {
-      newContent.push(
-        mapChild({
-          node: nextOldNode,
-          oldIndex: oldContent.length - remainingOldContent.length,
-          newIndex: newContent.length,
-        }),
-      );
-      remainingOldContent.shift();
-    } else if (wantOperator) {
-      newContent.push({
-        ...nodeFromTsNode(ts.createToken(ts.SyntaxKind.PlusToken), undefined),
-        isPlaceholder: true,
-      });
-    } else {
-      newContent.push(makePlaceholderIdentifier());
-    }
-    wantOperator = !wantOperator;
-  }
-  return newContent;
+  return reinsertPlaceholdersIntoContent(
+    oldContent,
+    (newLeft, oldRight) => {
+      if (
+        newLeft === undefined &&
+        oldRight !== undefined &&
+        isToken(oldRight, isTsBinaryOperatorToken)
+      ) {
+        return makePlaceholderIdentifier();
+      } else if (
+        newLeft !== undefined &&
+        isToken(newLeft, isTsBinaryOperatorToken) &&
+        oldRight === undefined
+      ) {
+        return makePlaceholderIdentifier();
+      } else if (
+        newLeft !== undefined &&
+        !isToken(newLeft, isTsBinaryOperatorToken) &&
+        oldRight !== undefined &&
+        !isToken(oldRight, isTsBinaryOperatorToken)
+      ) {
+        return {
+          ...nodeFromTsNode(ts.createToken(ts.SyntaxKind.PlusToken), undefined),
+          isPlaceholder: true,
+        };
+      } else {
+        return undefined;
+      }
+    },
+    mapChild,
+  );
 }
 
 function makeTightExpressionValidTs(
   oldContent: Node[],
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
 ): Node[] {
-  return insertIntoContent(
+  return reinsertPlaceholdersIntoContent(
     oldContent,
     (newLeft, oldRight) => {
       if (
@@ -165,7 +185,7 @@ function makeVariableDeclarationListValidTs(
   oldContent: Node[],
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
 ): Node[] {
-  return insertIntoContent(
+  return reinsertPlaceholdersIntoContent(
     oldContent,
     (newLeft, oldRight) => {
       if (
@@ -204,7 +224,7 @@ function makePropertyAssignmentValidTs(
   oldContent: Node[],
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
 ): Node[] {
-  return insertIntoContent(
+  return reinsertPlaceholdersIntoContent(
     oldContent,
     (newLeft, oldRight) => {
       if (
@@ -238,7 +258,7 @@ function makeSpreadAssignmentValidTs(
   oldContent: Node[],
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
 ): Node[] {
-  return insertIntoContent(
+  return reinsertPlaceholdersIntoContent(
     oldContent,
     (newLeft, oldRight) => {
       if (
@@ -287,9 +307,12 @@ function _makeNodeValidTs({
   newPath: Path;
   extraInfo: ExtraInfo;
 }): Node {
-  function extractOnlyChild(node: ListNode): Node {
+  function extractOnlyNonPlaceholderChild(node: ListNode): Node {
     return _makeNodeValidTs({
-      node: onlyChildFromNode(node),
+      node: onlyChildFromNode({
+        ...node,
+        content: node.content.filter((c) => !c.isPlaceholder),
+      }),
       pathMapper,
       oldPath: [...oldPath, 0],
       newPath: [...newPath],
@@ -328,11 +351,8 @@ function _makeNodeValidTs({
     node.kind === NodeKind.List &&
     node.listKind === ListKind.TightExpression
   ) {
-    if (
-      node.content.length === 1 &&
-      makeTightExpressionValidTs(node.content, (e) => e.node).length === 1
-    ) {
-      node = extractOnlyChild(node);
+    if (makeTightExpressionValidTs(node.content, (e) => e.node).length === 1) {
+      node = extractOnlyNonPlaceholderChild(node);
     } else {
       node = {
         ...node,
@@ -343,11 +363,8 @@ function _makeNodeValidTs({
     node.kind === NodeKind.List &&
     node.listKind === ListKind.LooseExpression
   ) {
-    if (
-      node.content.length === 1 &&
-      makeLooseExpressionValidTs(node.content, (e) => e.node).length === 1
-    ) {
-      node = extractOnlyChild(node);
+    if (makeLooseExpressionValidTs(node.content, (e) => e.node).length === 1) {
+      node = extractOnlyNonPlaceholderChild(node);
     } else {
       node = {
         ...node,
