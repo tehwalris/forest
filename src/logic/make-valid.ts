@@ -136,6 +136,13 @@ function makeLooseExpressionValidTs(
         return makePlaceholderIdentifier();
       } else if (
         newLeft !== undefined &&
+        isToken(newLeft, isTsBinaryOperatorToken) &&
+        oldRight !== undefined &&
+        isToken(oldRight, isTsBinaryOperatorToken)
+      ) {
+        return makePlaceholderIdentifier();
+      } else if (
+        newLeft !== undefined &&
         !isToken(newLeft, isTsBinaryOperatorToken) &&
         oldRight !== undefined &&
         !isToken(oldRight, isTsBinaryOperatorToken)
