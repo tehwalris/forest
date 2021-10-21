@@ -614,28 +614,6 @@ export class DocManager {
     };
   }
 
-  private normalizeFocus() {
-    const evenFocus = asEvenPathRange(this.focus);
-    if (evenFocus.offset !== 0) {
-      return;
-    }
-    const focusedNode = nodeGetByPath(this.doc.root, evenFocus.anchor);
-    if (!focusedNode) {
-      throw new Error("invalid focus");
-    }
-    if (
-      focusedNode.kind !== NodeKind.List ||
-      !focusedNode.equivalentToContent ||
-      !focusedNode.content.length
-    ) {
-      return;
-    }
-    this.focus = {
-      anchor: [...evenFocus.anchor, 0],
-      tip: [...evenFocus.anchor, focusedNode.content.length - 1],
-    };
-  }
-
   private removeInvisibleNodes() {
     const anchorResult = withoutInvisibleNodes(this.doc, {
       anchor: this.focus.anchor,
