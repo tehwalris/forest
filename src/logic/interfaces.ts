@@ -17,10 +17,13 @@ export enum NodeKind {
 
 export type Node = TokenNode | ListNode;
 
-export interface TokenNode extends TextRange {
+interface BaseNode extends TextRange {
+  isPlaceholder?: boolean;
+}
+
+export interface TokenNode extends BaseNode {
   kind: NodeKind.Token;
   tsNode: ts.Node;
-  isPlaceholder?: boolean;
 }
 
 export enum ListKind {
@@ -37,7 +40,7 @@ export enum ListKind {
   File,
 }
 
-export interface ListNode extends TextRange {
+export interface ListNode extends BaseNode {
   kind: NodeKind.List;
   listKind: ListKind;
   tsNode?: ts.Node;
@@ -45,7 +48,6 @@ export interface ListNode extends TextRange {
   delimiters: [string, string];
   content: Node[];
   equivalentToContent: boolean;
-  isPlaceholder?: boolean;
 }
 
 export type Path = number[];

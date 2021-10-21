@@ -602,10 +602,6 @@ export class DocManager {
 
   private updateDocText() {
     this.doc = getDocWithAllPlaceholders(this.doc).doc;
-    this.doc = {
-      ...this.doc,
-      root: filterNodes(this.doc.root, (node) => !node.isPlaceholder).node,
-    };
     // HACK makeNodeValidTs makes replaces some single item lists by their only item.
     // This is the easiest way to make the focus valid again, even though it's not very clean.
     this.fixFocus();

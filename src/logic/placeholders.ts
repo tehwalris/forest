@@ -91,33 +91,23 @@ export function getDocWithoutPlaceholdersNearCursor(
   mapOldToWithoutAdjacent: (path: Path) => Path;
   cursorBeforePos: number;
 } {
-  const placeholderAddition = getDocWithAllPlaceholders(doc);
-
   // TODO ignore whitespace
   const isAdjacentToCursor = (range: TextRange) =>
     range.pos === cursorBeforePos || range.end === cursorBeforePos;
   const shouldKeepNode = (node: Node) =>
     !node.isPlaceholder || !isAdjacentToCursor(node);
-  const placeholderRemoval = filterNodes(
-    placeholderAddition.doc.root,
-    shouldKeepNode,
-  );
+  const placeholderRemoval = filterNodes(doc.root, shouldKeepNode);
   const removedPlaceholders: Node[] = [];
-  nodeVisitDeep(placeholderAddition.doc.root, (node) => {
+  nodeVisitDeep(doc.root, (node) => {
     if (!shouldKeepNode(node)) {
       removedPlaceholders.push(node);
     }
   });
 
-  const textDeletion = getTextWithDeletions(
-    placeholderAddition.doc.text,
-    removedPlaceholders,
-  );
+  const textDeletion = getTextWithDeletions(doc.text, removedPlaceholders);
 
   const mapOldToWithoutAdjacent = (oldPath: Path) =>
-    placeholderRemoval.pathMapper.mapRough(
-      placeholderAddition.pathMapper.mapRough(oldPath),
-    );
+    placeholderRemoval.pathMapper.mapRough(oldPath);
 
   return {
     doc: {
