@@ -5,7 +5,6 @@ import {
 } from "./generic-node";
 import { Doc, ListKind, ListNode, Node, NodeKind } from "./interfaces";
 import { structTemplates } from "./legacy-templates/templates";
-import { createScanner } from "./parse";
 import { isTsVarLetConst } from "./ts-type-predicates";
 
 function shouldFlattenWithListKind<K extends ListKind>(
@@ -32,28 +31,6 @@ function flattenLeftIfListKind(
 
 function flattenIfListKind(listKind: ListKind, node: Node): Node[] {
   return shouldFlattenWithListKind(listKind, node) ? node.content : [node];
-}
-
-function getToken<K extends ts.SyntaxKind>(
-  file: ts.SourceFile | undefined,
-  pos: number,
-  expectedKind: K,
-): ts.Token<K> {
-  if (!file) {
-    throw new Error("file is required to create scanner");
-  }
-  const scanner = createScanner(file.text);
-  scanner.setTextPos(pos);
-  const actualKind = scanner.scan();
-  if (actualKind !== expectedKind) {
-    throw new Error(
-      `want ${ts.SyntaxKind[expectedKind]}, got ${ts.SyntaxKind[actualKind]}`,
-    );
-  }
-  return ts.setTextRange(ts.createToken(expectedKind), {
-    pos,
-    end: scanner.getTextPos(),
-  });
 }
 
 function listNodeFromDelimitedTsNodeArray(
@@ -485,21 +462,21 @@ function listNodeFromTsObjectLiteralElementLike(
 
   if (ts.isPropertyAssignment(objectLiteralElementLike)) {
     content.push(nodeFromTsNode(objectLiteralElementLike.name, file));
-    structKeys.push("name")
+    structKeys.push("name");
     content.push(nodeFromTsNode(objectLiteralElementLike.initializer, file));
-    structKeys.push("initializer")
+    structKeys.push("initializer");
   } else if (ts.isShorthandPropertyAssignment(objectLiteralElementLike)) {
     content.push(nodeFromTsNode(objectLiteralElementLike.name, file));
-    structKeys.push("name")
+    structKeys.push("name");
   } else if (ts.isSpreadAssignment(objectLiteralElementLike)) {
     const dotDotDotToken = objectLiteralElementLike.getFirstToken(file);
     if (!dotDotDotToken || !ts.isDotDotDotToken(dotDotDotToken)) {
       throw new Error("expected dotDotDotToken");
     }
     content.push(nodeFromTsNode(dotDotDotToken, file));
-    structKeys.push("dotDotDotToken")
+    structKeys.push("dotDotDotToken");
     content.push(nodeFromTsNode(objectLiteralElementLike.expression, file));
-    structKeys.push("expression")
+    structKeys.push("expression");
   } else {
     throw new Error(
       `this specific subtype of ObjectLiteralElementLike (${
