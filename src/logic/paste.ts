@@ -186,6 +186,10 @@ function canPasteNestedIntoGenericTsNode({
     throw new Error("firstIndex does not point to a valid structKey");
   }
 
+  if (templateChildren[structKey].isList) {
+    return false;
+  }
+
   return matchesUnion(clipboardTs, templateChildren[structKey].union);
 }
 
