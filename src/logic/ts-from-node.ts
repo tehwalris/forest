@@ -12,7 +12,6 @@ import {
   flagsForTsVarLetConst,
   isToken,
   isTsBinaryOperatorToken,
-  isTsColonToken,
   isTsQuestionDotToken,
   isTsVarLetConst,
 } from "./ts-type-predicates";
@@ -206,17 +205,14 @@ export function tsNodeFromNode(node: Node): ts.Node {
 
       switch (syntaxKind) {
         case ts.SyntaxKind.PropertyAssignment: {
-          if (node.content.length !== 3) {
+          if (node.content.length !== 2) {
             throw new Error(
-              `want length 3 for PropertyAssignment, but got ${node.content.length}`,
+              `want length 2 for PropertyAssignment, but got ${node.content.length}`,
             );
-          }
-          if (!isToken(node.content[1], isTsColonToken)) {
-            throw new Error("expected node.content[1] to be ColonToken");
           }
           return ts.createPropertyAssignment(
             tsNodeFromNode(node.content[0]) as ts.PropertyName,
-            tsNodeFromNode(node.content[2]) as ts.Expression,
+            tsNodeFromNode(node.content[1]) as ts.Expression,
           );
         }
         case ts.SyntaxKind.ShorthandPropertyAssignment: {
@@ -253,7 +249,7 @@ export function tsNodeFromNode(node: Node): ts.Node {
         case ts.SyntaxKind.ArrowFunction: {
           const content = getStructContent(
             node,
-            ["parameters", "equalsGreaterThanToken", "body"],
+            ["parameters", "body"],
             ["typeParameters", "modifiers"],
           );
           return ts.createArrowFunction(
@@ -267,9 +263,7 @@ export function tsNodeFromNode(node: Node): ts.Node {
               content.parameters,
             ) as ts.ParameterDeclaration[],
             undefined,
-            tsNodeFromNode(
-              content.equalsGreaterThanToken,
-            ) as ts.EqualsGreaterThanToken,
+            undefined,
             tsNodeFromNode(content.body) as ts.ConciseBody,
           );
         }

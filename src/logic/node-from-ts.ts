@@ -274,9 +274,6 @@ function listNodeFromTsArrowFunction(
     ),
   );
 
-  structKeys.push("equalsGreaterThanToken");
-  content.push(nodeFromTsNode(arrowFunction.equalsGreaterThanToken, file));
-
   structKeys.push("body");
   content.push(nodeFromTsNode(arrowFunction.body, file));
 
@@ -484,29 +481,25 @@ function listNodeFromTsObjectLiteralElementLike(
   file: ts.SourceFile | undefined,
 ): ListNode {
   const content: Node[] = [];
+  const structKeys: string[] = [];
 
   if (ts.isPropertyAssignment(objectLiteralElementLike)) {
     content.push(nodeFromTsNode(objectLiteralElementLike.name, file));
-    content.push(
-      nodeFromTsNode(
-        getToken(
-          file,
-          objectLiteralElementLike.name.end,
-          ts.SyntaxKind.ColonToken,
-        ),
-        file,
-      ),
-    );
+    structKeys.push("name")
     content.push(nodeFromTsNode(objectLiteralElementLike.initializer, file));
+    structKeys.push("initializer")
   } else if (ts.isShorthandPropertyAssignment(objectLiteralElementLike)) {
     content.push(nodeFromTsNode(objectLiteralElementLike.name, file));
+    structKeys.push("name")
   } else if (ts.isSpreadAssignment(objectLiteralElementLike)) {
     const dotDotDotToken = objectLiteralElementLike.getFirstToken(file);
     if (!dotDotDotToken || !ts.isDotDotDotToken(dotDotDotToken)) {
       throw new Error("expected dotDotDotToken");
     }
     content.push(nodeFromTsNode(dotDotDotToken, file));
+    structKeys.push("dotDotDotToken")
     content.push(nodeFromTsNode(objectLiteralElementLike.expression, file));
+    structKeys.push("expression")
   } else {
     throw new Error(
       `this specific subtype of ObjectLiteralElementLike (${
@@ -520,6 +513,7 @@ function listNodeFromTsObjectLiteralElementLike(
     listKind: ListKind.ObjectLiteralElement,
     delimiters: ["", ""],
     content,
+    structKeys,
     equivalentToContent: true,
     pos: objectLiteralElementLike.pos,
     end: objectLiteralElementLike.end,

@@ -9,7 +9,6 @@ import { onlyChildFromNode } from "./tree-utils/access";
 import {
   isToken,
   isTsBinaryOperatorToken,
-  isTsColonToken,
   isTsQuestionDotToken,
   isTsVarLetConst,
 } from "./ts-type-predicates";
@@ -229,29 +228,32 @@ function makeVariableDeclarationListValidTs(
 
 function makePropertyAssignmentValidTs(
   oldContent: Node[],
+  oldStructKeys: string[] | undefined,
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
 ): Node[] {
-  return reinsertPlaceholdersIntoContent(
-    oldContent,
-    (newLeft, oldRight) => {
-      if (
-        newLeft === undefined &&
-        oldRight !== undefined &&
-        isToken(oldRight, isTsColonToken)
-      ) {
-        return makePlaceholderIdentifier();
-      }
-      if (
-        newLeft !== undefined &&
-        isToken(newLeft, isTsColonToken) &&
-        oldRight === undefined
-      ) {
-        return makePlaceholderIdentifier();
-      }
-      return undefined;
-    },
-    mapChild,
-  );
+  if (!oldStructKeys || oldStructKeys.length !== oldContent.length) {
+    throw new Error("structKeys is missing or has wrong length");
+  }
+
+  if (
+    oldStructKeys.length === 2 &&
+    oldStructKeys[0] === "name" &&
+    oldStructKeys[1] === "initializer"
+  ) {
+    return oldContent;
+  } else if (oldStructKeys.length === 1 && oldStructKeys[0] === "name") {
+    const newContent = [oldContent[0], makePlaceholderIdentifier()];
+    mapChild({ node: newContent[0], oldIndex: 0, newIndex: 0 });
+    mapChild({ node: newContent[1], newIndex: 1 });
+    return newContent;
+  } else if (oldStructKeys.length === 1 && oldStructKeys[0] === "initializer") {
+    const newContent = [makePlaceholderIdentifier(), oldContent[0]];
+    mapChild({ node: newContent[0], newIndex: 0 });
+    mapChild({ node: newContent[1], oldIndex: 0, newIndex: 1 });
+    return newContent;
+  } else {
+    throw new Error("unsupported structKeys");
+  }
 }
 
 function makeShorthandPropertyAssignmentValidTs(
@@ -282,18 +284,45 @@ function makeSpreadAssignmentValidTs(
 }
 
 function makeObjectLiteralElementValidTs(
-  oldContent: Node[],
+  oldNode: ListNode,
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
-): Node[] {
-  if (oldContent.length < 1) {
+): ListNode {
+  if (oldNode.content.length < 1) {
     throw new Error("ObjectLiteralElement must have at least 1 child");
   }
-  if (isToken(oldContent[0], ts.isDotDotDotToken)) {
-    return makeSpreadAssignmentValidTs(oldContent, mapChild);
-  } else if (oldContent.length === 1) {
-    return makeShorthandPropertyAssignmentValidTs(oldContent, mapChild);
+
+  const oldContentWithoutPlaceholders = oldNode.content.filter(
+    (c) => !c.isPlaceholder,
+  );
+
+  if (isToken(oldNode.content[0], ts.isDotDotDotToken)) {
+    return {
+      ...oldNode,
+      content: makeSpreadAssignmentValidTs(oldNode.content, mapChild),
+      structKeys: ["dotDotDotToken", "expression"],
+    };
+  } else if (
+    oldContentWithoutPlaceholders.length === 1 &&
+    isToken(oldContentWithoutPlaceholders[0], ts.isIdentifier)
+  ) {
+    return {
+      ...oldNode,
+      content: makeShorthandPropertyAssignmentValidTs(
+        oldContentWithoutPlaceholders,
+        mapChild,
+      ),
+      structKeys: ["name"],
+    };
   } else {
-    return makePropertyAssignmentValidTs(oldContent, mapChild);
+    return {
+      ...oldNode,
+      content: makePropertyAssignmentValidTs(
+        oldNode.content,
+        oldNode.structKeys,
+        mapChild,
+      ),
+      structKeys: ["name", "initializer"],
+    };
   }
 }
 
@@ -462,10 +491,7 @@ function _makeNodeValidTs({
     node.kind === NodeKind.List &&
     node.listKind === ListKind.ObjectLiteralElement
   ) {
-    node = {
-      ...node,
-      content: makeObjectLiteralElementValidTs(node.content, mapChild),
-    };
+    node = makeObjectLiteralElementValidTs(node, mapChild);
   } else if (node.kind === NodeKind.List) {
     node = {
       ...node,
