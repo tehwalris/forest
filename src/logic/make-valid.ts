@@ -240,17 +240,19 @@ function makePropertyAssignmentValidTs(
     oldStructKeys[0] === "name" &&
     oldStructKeys[1] === "initializer"
   ) {
-    return oldContent;
+    return oldContent.map((c, i) =>
+      mapChild({ node: c, oldIndex: i, newIndex: i }),
+    );
   } else if (oldStructKeys.length === 1 && oldStructKeys[0] === "name") {
-    const newContent = [oldContent[0], makePlaceholderIdentifier()];
-    mapChild({ node: newContent[0], oldIndex: 0, newIndex: 0 });
-    mapChild({ node: newContent[1], newIndex: 1 });
-    return newContent;
+    return [
+      mapChild({ node: oldContent[0], oldIndex: 0, newIndex: 0 }),
+      mapChild({ node: makePlaceholderIdentifier(), newIndex: 1 }),
+    ];
   } else if (oldStructKeys.length === 1 && oldStructKeys[0] === "initializer") {
-    const newContent = [makePlaceholderIdentifier(), oldContent[0]];
-    mapChild({ node: newContent[0], newIndex: 0 });
-    mapChild({ node: newContent[1], oldIndex: 0, newIndex: 1 });
-    return newContent;
+    return [
+      mapChild({ node: makePlaceholderIdentifier(), newIndex: 0 }),
+      mapChild({ node: oldContent[0], oldIndex: 0, newIndex: 1 }),
+    ];
   } else {
     throw new Error("unsupported structKeys");
   }
@@ -344,13 +346,17 @@ function _makeNodeValidTs({
   extraInfo: ExtraInfo;
 }): Node {
   function extractOnlyNonPlaceholderChild(node: ListNode): Node {
+    const i = node.content.findIndex((c) => !c.isPlaceholder);
+    if (i === -1) {
+      throw new Error("there is no non-placeholder child");
+    }
     return _makeNodeValidTs({
       node: onlyChildFromNode({
         ...node,
-        content: node.content.filter((c) => !c.isPlaceholder),
+        content: [node.content[i]],
       }),
       pathMapper,
-      oldPath: [...oldPath, 0],
+      oldPath: [...oldPath, i],
       newPath: [...newPath],
       extraInfo: {},
     });
