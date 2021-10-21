@@ -113,8 +113,6 @@ export function canPasteNestedIntoObjectLiteralElement({
       if (firstIndex === 0) {
         return ts.isPropertyName(clipboardTs);
       } else if (firstIndex === 1) {
-        return false;
-      } else if (firstIndex === 2) {
         return matchesUnion(clipboardTs, unions.Expression);
       } else {
         throw new Error("invalid firstIndex");
