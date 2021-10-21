@@ -588,10 +588,6 @@ export class DocManager {
         beforePos: result.cursorBeforePos,
         text: this.insertState.text,
       });
-      doc = {
-        ...doc,
-        root: filterNodes(doc.root, (node) => !node.isPlaceholder).node,
-      };
     }
     this._onUpdate({
       doc,
