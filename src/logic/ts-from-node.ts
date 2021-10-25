@@ -260,12 +260,6 @@ export function tsNodeFromNode(node: Node): ts.Node {
       switch (node.tsNode?.kind) {
         case undefined:
           throw new Error("TsNodeStruct with undefined tsSyntaxKind");
-        case ts.SyntaxKind.ExpressionStatement: {
-          const content = getStructContent(node, ["expression"], []);
-          return ts.createExpressionStatement(
-            tsNodeFromNode(content.expression) as ts.Expression,
-          );
-        }
         default: {
           const result = tryMakeTsNodeFromGenericTsNodeStruct(node);
           if (result) {
