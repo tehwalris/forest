@@ -448,6 +448,19 @@ describe("DocManager", () => {
       expectedText: "({animal: 'walrus'})",
       skip: true,
     },
+    {
+      label: "add and remove export from type alias declaration",
+      initialText: "type X = Y",
+      events: [
+        ...eventsFromKeys("iexport "),
+        evEscape,
+        ...eventsFromKeys("K"),
+        evAltSemi,
+        evSemi,
+        ...eventsFromKeys("d"),
+      ],
+      expectedText: "type X = Y",
+    },
   ];
 
   for (const c of cases) {
