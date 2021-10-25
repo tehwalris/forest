@@ -7,19 +7,26 @@ import {
   TextRange,
 } from "./interfaces";
 
+export function duplicateMapPosCb(
+  cb: (pos: number) => number,
+): (pos: number, end: number) => [number, number] {
+  return (pos, end) => [cb(pos), cb(end)];
+}
+
 export function mapNodeTextRanges(
   node: ListNode,
-  cb: (pos: number) => number,
+  cb: (pos: number, end: number) => [number, number],
 ): ListNode;
 export function mapNodeTextRanges(
   node: Node,
-  cb: (pos: number) => number,
+  cb: (pos: number, end: number) => [number, number],
 ): Node;
 export function mapNodeTextRanges(
   node: Node,
-  cb: (pos: number) => number,
+  cb: (pos: number, end: number) => [number, number],
 ): Node {
-  node = { ...node, pos: cb(node.pos), end: cb(node.end) };
+  const [pos, end] = cb(node.pos, node.end);
+  node = { ...node, pos, end };
   if (node.kind === NodeKind.List) {
     node.content = node.content.map((c) => mapNodeTextRanges(c, cb));
   }
@@ -37,8 +44,11 @@ export function getDocWithInsert(
   insertState: Pick<InsertState, "beforePos" | "text">,
 ): Doc {
   return {
-    root: mapNodeTextRanges(doc.root, (pos) =>
-      pos >= insertState.beforePos ? pos + insertState.text.length : pos,
+    root: mapNodeTextRanges(
+      doc.root,
+      duplicateMapPosCb((pos) =>
+        pos >= insertState.beforePos ? pos + insertState.text.length : pos,
+      ),
     ),
     text:
       doc.text.slice(0, insertState.beforePos) +

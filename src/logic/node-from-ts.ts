@@ -5,6 +5,7 @@ import {
 } from "./generic-node";
 import { Doc, ListKind, ListNode, Node, NodeKind } from "./interfaces";
 import { structTemplates } from "./legacy-templates/templates";
+import { mapNodeTextRanges } from "./text";
 import { isTsVarLetConst } from "./ts-type-predicates";
 
 function shouldFlattenWithListKind<K extends ListKind>(
@@ -624,17 +625,33 @@ export function nodeFromTsNode(
   }
 }
 
+function trimRanges(rootNode: ListNode, file: ts.SourceFile): ListNode {
+  const cb = (pos: number, end: number): [number, number] => {
+    while (pos <= end && pos < file.text.length && file.text[pos].match(/\s/)) {
+      pos++;
+    }
+    while (end >= pos && end > 0 && file.text[end - 1].match(/\s/)) {
+      end--;
+    }
+    return [pos, end];
+  };
+  return mapNodeTextRanges(rootNode, cb);
+}
+
 export function docFromAst(file: ts.SourceFile): Doc {
   return {
-    root: {
-      kind: NodeKind.List,
-      listKind: ListKind.File,
-      delimiters: ["", ""],
-      content: file.statements.map((s) => nodeFromTsNode(s, file)),
-      equivalentToContent: true,
-      pos: file.pos,
-      end: file.end,
-    },
+    root: trimRanges(
+      {
+        kind: NodeKind.List,
+        listKind: ListKind.File,
+        delimiters: ["", ""],
+        content: file.statements.map((s) => nodeFromTsNode(s, file)),
+        equivalentToContent: true,
+        pos: file.pos,
+        end: file.end,
+      },
+      file,
+    ),
     text: file.text,
   };
 }

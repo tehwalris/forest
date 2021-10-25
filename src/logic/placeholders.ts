@@ -5,7 +5,11 @@ import { docFromAst } from "./node-from-ts";
 import { astFromTypescriptFileContent } from "./parse";
 import { PathMapper } from "./path-mapper";
 import { printTsSourceFile } from "./print";
-import { getTextWithDeletions, mapNodeTextRanges } from "./text";
+import {
+  duplicateMapPosCb,
+  getTextWithDeletions,
+  mapNodeTextRanges,
+} from "./text";
 import { nodeVisitDeep } from "./tree-utils/access";
 import { nodesAreEqualExceptRangesAndPlaceholders } from "./tree-utils/equal";
 import { filterNodes } from "./tree-utils/filter";
@@ -111,7 +115,10 @@ export function getDocWithoutPlaceholdersNearCursor(
 
   return {
     doc: {
-      root: mapNodeTextRanges(placeholderRemoval.node, textDeletion.mapPos),
+      root: mapNodeTextRanges(
+        placeholderRemoval.node,
+        duplicateMapPosCb(textDeletion.mapPos),
+      ),
       text: textDeletion.text,
     },
     mapOldToWithoutAdjacent,

@@ -140,16 +140,6 @@ export class DocManager {
           beforePath: firstFocusedPath,
           text: "",
         };
-        if (
-          this.insertState.beforePos < this.doc.text.length &&
-          this.doc.text[this.insertState.beforePos] === "\n"
-        ) {
-          // Don't place cursor at the end of the line above the focused node.
-          // That makes the insertion hard to read and prevents inserting things
-          // like "return" before an expression, since that is terminated by a
-          // newline.
-          this.insertState.beforePos++;
-        }
         this.mode = Mode.InsertBefore;
       } else if (ev.key === "a") {
         let evenFocus = asEvenPathRange(this.focus);
