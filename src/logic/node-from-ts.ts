@@ -525,6 +525,11 @@ function tryMakeListNodeGeneric(
   const structKeys: string[] = [];
   const content: Node[] = [];
 
+  for (const [i, modifierNode] of (node.modifiers || []).entries()) {
+    structKeys.push(`modifiers[${i}]`);
+    content.push(nodeFromTsNode(modifierNode, file));
+  }
+
   for (const k of structTemplate.children) {
     const child = children[k];
 

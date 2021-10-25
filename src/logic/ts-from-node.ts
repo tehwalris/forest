@@ -6,6 +6,7 @@ import {
 } from "./generic-node";
 import { ListKind, ListNode, Node, NodeKind } from "./interfaces";
 import { structTemplates } from "./legacy-templates/templates";
+import { isModifierKey } from "./modifier";
 import { astFromTypescriptFileContent } from "./parse";
 import { getStructContent } from "./struct";
 import {
@@ -66,7 +67,16 @@ function tryMakeTsNodeFromGenericTsNodeStruct(
     return undefined;
   }
 
-  const content = getStructContent(node, [], structTemplate.children);
+  const modifierKeys = (node.structKeys || []).filter((k) => isModifierKey(k));
+  const content = getStructContent(
+    node,
+    [],
+    [...structTemplate.children, ...modifierKeys],
+  );
+
+  const modifiers: ts.Modifier[] = modifierKeys.map(
+    (k) => tsNodeFromNode(content[k]!) as ts.Modifier,
+  );
 
   const children: {
     [key: string]: ts.Node | ts.NodeArray<ts.Node> | undefined;
@@ -86,7 +96,7 @@ function tryMakeTsNodeFromGenericTsNodeStruct(
     }
   }
 
-  return structTemplate.build(children, []);
+  return structTemplate.build(children, modifiers);
 }
 
 export function tsNodeFromNode(node: Node): ts.Node {

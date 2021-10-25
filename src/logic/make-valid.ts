@@ -8,6 +8,7 @@ import { ListKind, ListNode, Node, NodeKind, Path } from "./interfaces";
 import { Union } from "./legacy-templates/interfaces";
 import { matchesUnion } from "./legacy-templates/match";
 import { structTemplates } from "./legacy-templates/templates";
+import { isModifierKey } from "./modifier";
 import { nodeFromTsNode } from "./node-from-ts";
 import { PathMapper } from "./path-mapper";
 import { pathsAreEqual } from "./path-utils";
@@ -366,7 +367,14 @@ function tryMakeGenericStructNodeValidTs(
     return undefined;
   }
 
-  const oldContent = getStructContent(oldNode, [], structTemplate.children);
+  const modifierKeys = (oldNode.structKeys || []).filter((k) =>
+    isModifierKey(k),
+  );
+  const oldContent = getStructContent(
+    oldNode,
+    [],
+    [...structTemplate.children, ...modifierKeys],
+  );
   const templateChildren = structTemplate.load(oldTsNode);
 
   const newNode: ListNode & { structKeys: string[] } = {
@@ -374,6 +382,18 @@ function tryMakeGenericStructNodeValidTs(
     content: [],
     structKeys: [],
   };
+
+  for (const k of modifierKeys) {
+    const newIndex = newNode.content.length;
+    newNode.content.push(
+      mapChild({
+        node: oldContent[k]!,
+        oldIndex: oldNode.structKeys!.indexOf(k),
+        newIndex,
+      }),
+    );
+    newNode.structKeys.push(k);
+  }
 
   for (const k of structTemplate.children) {
     const templateChild = templateChildren[k];
