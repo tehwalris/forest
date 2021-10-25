@@ -12,7 +12,11 @@ import { isModifierKey } from "./modifier";
 import { nodeFromTsNode } from "./node-from-ts";
 import { PathMapper } from "./path-mapper";
 import { pathsAreEqual } from "./path-utils";
-import { assertNodeHasValidStructKeys, getStructContent } from "./struct";
+import {
+  assertNodeHasValidStructKeys,
+  getStructContent,
+  withDefaultContent,
+} from "./struct";
 import { onlyChildFromNode } from "./tree-utils/access";
 import { tsNodeFromNode } from "./ts-from-node";
 import {
@@ -286,6 +290,43 @@ function makeReturnStatementValidTs(
     };
   } else {
     throw new Error("unsupported structKeys");
+  }
+}
+
+function makeThrowStatementValidTs(
+  oldNode: ListNode,
+  mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
+): Node {
+  if (
+    oldNode.structKeys?.length === 1 &&
+    oldNode.structKeys[0] === "expression"
+  ) {
+    const expressionStatementNode = nodeFromTsNode(
+      ts.factory.createExpressionStatement(ts.factory.createIdentifier("")),
+      undefined,
+    );
+    if (
+      expressionStatementNode.kind !== NodeKind.List ||
+      expressionStatementNode.structKeys?.length !== 1 ||
+      expressionStatementNode.structKeys[0] !== "expression"
+    ) {
+      throw new Error("expressionStatementNode has unexpected structure");
+    }
+    return {
+      ...expressionStatementNode,
+      content: [
+        mapChild({ node: oldNode.content[0], oldIndex: 0, newIndex: 0 }),
+      ],
+    };
+  } else {
+    return withDefaultContent(
+      oldNode,
+      [
+        { key: "throwKeyword" },
+        { key: "expression", node: makePlaceholderIdentifier() },
+      ],
+      mapChild,
+    );
   }
 }
 
@@ -563,6 +604,12 @@ function _makeNodeValidTs({
     node.tsNode?.kind === ts.SyntaxKind.ReturnStatement
   ) {
     node = makeReturnStatementValidTs(node, mapChild);
+  } else if (
+    node.kind === NodeKind.List &&
+    node.listKind === ListKind.TsNodeStruct &&
+    node.tsNode?.kind === ts.SyntaxKind.ThrowStatement
+  ) {
+    node = makeThrowStatementValidTs(node, mapChild);
   } else if (
     node.kind === NodeKind.List &&
     node.listKind === ListKind.IfBranches

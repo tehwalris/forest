@@ -269,6 +269,17 @@ export function tsNodeFromNode(node: Node): ts.Node {
               (tsNodeFromNode(content.expression) as ts.Expression),
           );
         }
+        case ts.SyntaxKind.ThrowStatement: {
+          const content = getStructContent(
+            node,
+            ["throwKeyword", "expression"],
+            [],
+          );
+          return ts.factory.createThrowStatement(
+            content.expression &&
+              (tsNodeFromNode(content.expression) as ts.Expression),
+          );
+        }
         case undefined:
           throw new Error("TsNodeStruct with undefined tsSyntaxKind");
         default: {
