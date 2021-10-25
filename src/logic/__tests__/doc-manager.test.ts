@@ -413,7 +413,6 @@ describe("DocManager", () => {
         evEscape,
       ],
       expectedText: "g(); return f()",
-      skip: true,
     },
     {
       label:
