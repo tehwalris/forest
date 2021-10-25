@@ -422,6 +422,32 @@ describe("DocManager", () => {
       expectedText: "({animal: 'walrus'})",
       skip: true,
     },
+    {
+      label: "change expression of throw statement",
+      initialText: "throw new Error('test')",
+      events: [
+        evSemi,
+        ...eventsFromKeys("d"),
+        ...eventsFromKeys("a'walrus'"),
+        evEscape,
+      ],
+      expectedText: "throw 'walrus'",
+    },
+    {
+      label:
+        "convert throw statement into expression statement and back (basic)",
+      initialText: "throw new Error('test')",
+      events: [evAltSemi, evSemi, ...eventsFromKeys("dithrow "), evEscape],
+      expectedText: "throw new Error('test')",
+    },
+    {
+      label:
+        "convert throw statement into expression statement (requires parens)",
+      initialText: "throw {animal: 'walrus'}",
+      events: [evAltSemi, evSemi, ...eventsFromKeys("d")],
+      expectedText: "({animal: 'walrus'})",
+      skip: true,
+    },
   ];
 
   for (const c of cases) {
