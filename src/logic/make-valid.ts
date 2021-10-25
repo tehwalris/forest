@@ -59,7 +59,16 @@ function makePlaceholderIdentifier(): Node {
 }
 
 function makePlaceholderForUnion(union: Union<ts.Node>): Node {
-  const placeholders = [makePlaceholderIdentifier()];
+  const placeholders: Node[] = [
+    makePlaceholderIdentifier(),
+    {
+      ...nodeFromTsNode(
+        ts.factory.createTypeReferenceNode("placeholder"),
+        undefined,
+      ),
+      isPlaceholder: true,
+    },
+  ];
   const matchingPlaceholder = placeholders.find((p) =>
     matchesUnion(tsNodeFromNode(p), union),
   );
