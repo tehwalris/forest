@@ -72,8 +72,18 @@ function tryMakeTsNodeFromGenericTsNodeStruct(
     [key: string]: ts.Node | ts.NodeArray<ts.Node> | undefined;
   } = {};
   for (const k of structTemplate.children) {
-    const temp = content[k];
-    children[k] = temp && tsNodeFromNode(temp);
+    const childNode = content[k];
+    if (
+      childNode &&
+      childNode.kind === NodeKind.List &&
+      childNode.listKind === ListKind.UnknownTsNodeArray
+    ) {
+      children[k] = ts.factory.createNodeArray(
+        childNode.content.map((c) => tsNodeFromNode(c)),
+      );
+    } else if (childNode) {
+      children[k] = tsNodeFromNode(childNode);
+    }
   }
 
   return structTemplate.build(children, []);

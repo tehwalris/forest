@@ -388,6 +388,9 @@ function tryMakeGenericStructNodeValidTs(
       );
       newNode.structKeys.push(k);
     } else if (!templateChild.optional) {
+      if (templateChild.isList) {
+        throw new Error("can not make placeholder for list child");
+      }
       newNode.content.push(
         mapChild({
           node: makePlaceholderForUnion(templateChild.union),
