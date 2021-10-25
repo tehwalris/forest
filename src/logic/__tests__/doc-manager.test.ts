@@ -383,6 +383,31 @@ describe("DocManager", () => {
       ],
       expectedText: "const x = () => { y(); z() }",
     },
+    {
+      label: "change expression of return statement",
+      initialText: "return a",
+      events: [
+        evSemi,
+        ...eventsFromKeys("d"),
+        ...eventsFromKeys("a b"),
+        evEscape,
+      ],
+      expectedText: "return b",
+    },
+    {
+      label: "convert return statement into expression statement",
+      initialText: "return f()",
+      events: [evAltSemi, evSemi, ...eventsFromKeys("d")],
+      expectedText: "f()",
+    },
+    {
+      label:
+        "convert return statement into expression statement (requires parens)",
+      initialText: "return {animal: 'walrus'}",
+      events: [evAltSemi, evSemi, ...eventsFromKeys("d")],
+      expectedText: "({animal: 'walrus'})",
+      skip: true,
+    },
   ];
 
   for (const c of cases) {

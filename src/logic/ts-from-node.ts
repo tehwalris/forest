@@ -258,6 +258,17 @@ export function tsNodeFromNode(node: Node): ts.Node {
       throw new Error("UnknownTsNodeArray should be handled by parent");
     case ListKind.TsNodeStruct:
       switch (node.tsNode?.kind) {
+        case ts.SyntaxKind.ReturnStatement: {
+          const content = getStructContent(
+            node,
+            ["returnKeyword"],
+            ["expression"],
+          );
+          return ts.factory.createReturnStatement(
+            content.expression &&
+              (tsNodeFromNode(content.expression) as ts.Expression),
+          );
+        }
         case undefined:
           throw new Error("TsNodeStruct with undefined tsSyntaxKind");
         default: {

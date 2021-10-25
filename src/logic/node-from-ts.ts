@@ -327,6 +327,38 @@ function listNodeFromTsIfStatement(
   };
 }
 
+function listNodeFromTsReturnStatement(
+  returnStatement: ts.ReturnStatement,
+  file: ts.SourceFile | undefined,
+): ListNode {
+  const content: Node[] = [];
+  const structKeys: string[] = [];
+
+  const firstToken = returnStatement.getFirstToken(file);
+  if (!firstToken || firstToken.kind !== ts.SyntaxKind.ReturnKeyword) {
+    throw new Error("missing or unsupported firstToken");
+  }
+  content.push(nodeFromTsNode(firstToken, file));
+  structKeys.push("returnKeyword");
+
+  if (returnStatement.expression) {
+    content.push(nodeFromTsNode(returnStatement.expression, file));
+    structKeys.push("expression");
+  }
+
+  return {
+    kind: NodeKind.List,
+    listKind: ListKind.TsNodeStruct,
+    tsNode: returnStatement,
+    delimiters: ["", ""],
+    content,
+    structKeys,
+    equivalentToContent: true,
+    pos: returnStatement.pos,
+    end: returnStatement.end,
+  };
+}
+
 function listNodeFromTsVariableDeclarationList(
   variableDeclarationList: ts.VariableDeclarationList,
   file: ts.SourceFile | undefined,
@@ -515,6 +547,8 @@ export function nodeFromTsNode(
     return listNodeFromTsParenthesizedExpression(node, file);
   } else if (ts.isIfStatement(node)) {
     return listNodeFromTsIfStatement(node, file);
+  } else if (ts.isReturnStatement(node)) {
+    return listNodeFromTsReturnStatement(node, file);
   } else if (ts.isVariableDeclarationList(node)) {
     return listNodeFromTsVariableDeclarationList(node, file);
   } else if (ts.isBlock(node)) {
