@@ -70,7 +70,7 @@ function tryMakeTsNodeFromGenericTsNodeStruct(
   const modifierKeys = (node.structKeys || []).filter((k) => isModifierKey(k));
   const content = getStructContent(
     node,
-    [],
+    structTemplate.keyword ? ["keyword"] : [],
     [...structTemplate.children, ...modifierKeys],
   );
 

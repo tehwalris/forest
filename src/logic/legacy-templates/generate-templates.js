@@ -76,7 +76,7 @@ const {
             R.tail,
             R.map(R.juxt([R.head, R.pipe(R.tail, R.join(" "))])),
             R.fromPairs,
-            R.omit(["R", "O", "RL", "OL", "flags"]),
+            R.omit(["R", "O", "RL", "OL", "flags", "keyword"]),
           ),
           R.pipe(
             R.tail,
@@ -96,6 +96,21 @@ const {
             R.filter(R.pipe(R.head, R.equals("flags"))),
             R.chain(R.tail),
             (x) => ({ flags: x }),
+          ),
+          R.pipe(
+            R.tail,
+            R.filter(R.pipe(R.head, R.equals("keyword"))),
+            R.chain(R.tail),
+            (keywordList) => {
+              if (keywordList.length === 0) {
+                return undefined;
+              } else if (keywordList.length === 1) {
+                return keywordList[0];
+              } else {
+                throw new Error("multiple keywords are not supported");
+              }
+            },
+            (x) => ({ keyword: x }),
           ),
         ]),
         R.mergeAll,
@@ -272,6 +287,7 @@ ${c.optional ? "Optional" : "Required"}Struct${
   match: plainTypes.${e.name}.match,
   children: [${e.children.map((c) => `"${c.key}"`).join(",")}],
   flags: [${e.flags.map((v) => `"${v}"`).join(", ")}] as FlagKind[],
+  ${e.keyword ? `keyword: ts.SyntaxKind.${e.keyword},` : ""}
   load: e => ({
     ${e.children
       .map((c) =>

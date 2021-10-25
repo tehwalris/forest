@@ -638,6 +638,7 @@ TypeAliasDeclaration
   OL typeParameters TypeParameterDeclaration
   R type TypeNode
   flags export ambient
+  keyword TypeKeyword
   build ({name, typeParameters, type}, modifiers) => ts.createTypeAliasDeclaration(undefined, modifiers, name, typeParameters, type)
 EnumDeclaration
   R name Identifier

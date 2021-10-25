@@ -89,5 +89,6 @@ export interface StructTemplate<
     modifiers: ts.Modifier[],
   ) => B;
   flags: FlagKind[];
+  keyword?: ts.KeywordSyntaxKind;
   children: string[];
 }

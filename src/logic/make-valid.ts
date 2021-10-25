@@ -461,7 +461,7 @@ function tryMakeGenericStructNodeValidTs(
   );
   const oldContent = getStructContent(
     oldNode,
-    [],
+    structTemplate.keyword ? ["keyword"] : [],
     [...structTemplate.children, ...modifierKeys],
   );
   const templateChildren = structTemplate.load(oldTsNode);
@@ -482,6 +482,11 @@ function tryMakeGenericStructNodeValidTs(
       }),
     );
     newNode.structKeys.push(k);
+  }
+
+  if (oldContent.keyword) {
+    newNode.content.push(oldContent.keyword);
+    newNode.structKeys.push("keyword");
   }
 
   for (const k of structTemplate.children) {

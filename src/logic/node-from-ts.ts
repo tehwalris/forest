@@ -527,6 +527,27 @@ function tryMakeListNodeGeneric(
     content.push(nodeFromTsNode(modifierNode, file));
   }
 
+  if (structTemplate.keyword) {
+    if (file) {
+      const keywordToken = node
+        .getChildren(file)
+        .find((c) => c.kind === structTemplate.keyword);
+      if (!keywordToken) {
+        throw new Error("missing keyword");
+      }
+      content.push(nodeFromTsNode(keywordToken, file));
+      structKeys.push("keyword");
+    } else {
+      content.push(
+        nodeFromTsNode(
+          ts.factory.createToken(structTemplate.keyword),
+          undefined,
+        ),
+      );
+      structKeys.push("keyword");
+    }
+  }
+
   for (const k of structTemplate.children) {
     const child = children[k];
 
