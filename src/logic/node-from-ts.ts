@@ -1,4 +1,4 @@
-import ts from "typescript";
+import ts, { TextRange } from "typescript";
 import {
   allowedGenericNodeMatchers,
   UnknownStructTemplate,
@@ -31,6 +31,73 @@ function flattenLeftIfListKind(
 
 function flattenIfListKind(listKind: ListKind, node: Node): Node[] {
   return shouldFlattenWithListKind(listKind, node) ? node.content : [node];
+}
+
+function listNodeFromAutoTsNodeArray(
+  nodeArray: ts.NodeArray<ts.Node>,
+  parent: ts.Node,
+  file: ts.SourceFile | undefined,
+  listKind: ListKind,
+): ListNode {
+  if (!file) {
+    throw new Error("listNodeFromAutoTsNodeArray requires file");
+  }
+
+  const childrenOfParent = parent.getChildren(file);
+  // HACK The relevant child (nodeArray) returned by parent.getChildren() is not
+  // reference equal to nodeArray which is passed as our argument. Use text
+  // ranges to find this child instead.
+  const childIndex = childrenOfParent.findIndex(
+    (c) => c.pos === nodeArray.pos && c.end === nodeArray.end,
+  );
+  if (childIndex === -1) {
+    throw new Error("nodeArray not found in parent.getChildren()");
+  }
+
+  const delimitedRange: TextRange = { pos: nodeArray.pos, end: nodeArray.end };
+  let isDelimited = false;
+  if (
+    (!nodeArray.length &&
+      file.text.slice(nodeArray.pos, nodeArray.end).trim()) ||
+    (nodeArray.length &&
+      file.text.slice(nodeArray.pos, nodeArray[0].pos).trim())
+  ) {
+    isDelimited = true;
+  } else if (childIndex > 0 && childIndex + 1 < childrenOfParent.length) {
+    const surroundingChildren = [
+      childrenOfParent[childIndex - 1],
+      childrenOfParent[childIndex + 1],
+    ] as const;
+    const allowedDelimiters: [ts.SyntaxKind, ts.SyntaxKind][] = [
+      [ts.SyntaxKind.OpenParenToken, ts.SyntaxKind.CloseParenToken],
+      [ts.SyntaxKind.OpenBraceToken, ts.SyntaxKind.CloseBraceToken],
+      [ts.SyntaxKind.OpenBracketToken, ts.SyntaxKind.CloseBracketToken],
+      [ts.SyntaxKind.LessThanToken, ts.SyntaxKind.GreaterThanToken],
+    ];
+    if (
+      allowedDelimiters.some(
+        (d) =>
+          d[0] === surroundingChildren[0].kind &&
+          d[1] === surroundingChildren[1].kind,
+      )
+    ) {
+      isDelimited = true;
+      delimitedRange.pos = surroundingChildren[0].pos;
+      delimitedRange.end = surroundingChildren[1].end;
+    }
+  }
+
+  if (isDelimited) {
+    return listNodeFromDelimitedTsNodeArray(
+      nodeArray,
+      file,
+      listKind,
+      delimitedRange.pos,
+      delimitedRange.end,
+    );
+  } else {
+    return listNodeFromNonDelimitedTsNodeArray(nodeArray, file, listKind);
+  }
 }
 
 function listNodeFromDelimitedTsNodeArray(
@@ -461,12 +528,24 @@ function tryMakeListNodeGeneric(
   for (const k of structTemplate.children) {
     const child = children[k];
 
-    if (child.isList || child.optional) {
-      throw new Error("unsupported StructChild");
+    if (child.optional && child.value === undefined) {
+      continue;
     }
 
-    structKeys.push(k);
-    content.push(nodeFromTsNode(child.value, file));
+    if (child.isList) {
+      structKeys.push(k);
+      content.push(
+        listNodeFromAutoTsNodeArray(
+          child.value!,
+          node,
+          file,
+          ListKind.UnknownTsNodeArray,
+        ),
+      );
+    } else {
+      structKeys.push(k);
+      content.push(nodeFromTsNode(child.value!, file));
+    }
   }
 
   return {
