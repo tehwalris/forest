@@ -632,6 +632,7 @@ InterfaceDeclaration
   OL heritageClauses HeritageClause
   RL members TypeElement
   flags export default ambient
+  keyword InterfaceKeyword
   build ({name, typeParameters, heritageClauses, members}, modifiers) => ts.createInterfaceDeclaration(undefined, modifiers, name, typeParameters, heritageClauses, members)
 TypeAliasDeclaration
   R name Identifier
