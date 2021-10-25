@@ -395,10 +395,25 @@ describe("DocManager", () => {
       expectedText: "return b",
     },
     {
-      label: "convert return statement into expression statement",
+      label:
+        "convert return statement into expression statement and back (basic)",
       initialText: "return f()",
-      events: [evAltSemi, evSemi, ...eventsFromKeys("d")],
-      expectedText: "f()",
+      events: [evAltSemi, evSemi, ...eventsFromKeys("direturn "), evEscape],
+      expectedText: "return f()",
+    },
+    {
+      label:
+        "convert return statement into expression statement and back (after other statement)",
+      initialText: "g(); return f()",
+      events: [
+        evSemi,
+        evAltSemi,
+        evSemi,
+        ...eventsFromKeys("direturn "),
+        evEscape,
+      ],
+      expectedText: "g(); return f()",
+      skip: true,
     },
     {
       label:
