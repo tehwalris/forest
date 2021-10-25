@@ -17,6 +17,12 @@ export const allowedGenericNodeMatchers: ((node: ts.Node) => boolean)[] = [
   ts.isForOfStatement,
   ts.isForInStatement,
   ts.isParameter,
+  ts.isTypeParameterDeclaration,
   ts.isTypeAliasDeclaration,
   ts.isInterfaceDeclaration,
+  ts.isCallSignatureDeclaration,
+  ts.isConstructSignatureDeclaration,
+  ts.isPropertySignature,
+  ts.isMethodSignature,
+  ts.isIndexSignatureDeclaration,
 ];
