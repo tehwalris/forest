@@ -11,4 +11,5 @@ export type UnknownStructTemplate = StructTemplate<
 export const allowedGenericNodeMatchers: ((node: ts.Node) => boolean)[] = [
   ts.isConditionalExpression,
   ts.isArrowFunction,
+  ts.isVariableStatement,
 ];

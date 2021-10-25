@@ -266,15 +266,6 @@ export function tsNodeFromNode(node: Node): ts.Node {
             tsNodeFromNode(content.expression) as ts.Expression,
           );
         }
-        case ts.SyntaxKind.VariableStatement: {
-          const content = getStructContent(node, ["declarationList"], []);
-          return ts.createVariableStatement(
-            undefined,
-            tsNodeFromNode(
-              content.declarationList,
-            ) as ts.VariableDeclarationList,
-          );
-        }
         case ts.SyntaxKind.VariableDeclaration: {
           const content = getStructContent(
             node,

@@ -344,23 +344,6 @@ function listNodeFromTsIfStatement(
   };
 }
 
-function listNodeFromTsVariableStatement(
-  variableStatement: ts.VariableStatement,
-  file: ts.SourceFile | undefined,
-): ListNode {
-  return {
-    kind: NodeKind.List,
-    listKind: ListKind.TsNodeStruct,
-    tsNode: variableStatement,
-    delimiters: ["", ""],
-    structKeys: ["declarationList"],
-    content: [nodeFromTsNode(variableStatement.declarationList, file)],
-    equivalentToContent: true,
-    pos: variableStatement.pos,
-    end: variableStatement.end,
-  };
-}
-
 function listNodeFromTsVariableDeclarationList(
   variableDeclarationList: ts.VariableDeclarationList,
   file: ts.SourceFile | undefined,
@@ -582,8 +565,6 @@ export function nodeFromTsNode(
     return listNodeFromTsParenthesizedExpression(node, file);
   } else if (ts.isIfStatement(node)) {
     return listNodeFromTsIfStatement(node, file);
-  } else if (ts.isVariableStatement(node)) {
-    return listNodeFromTsVariableStatement(node, file);
   } else if (ts.isVariableDeclarationList(node)) {
     return listNodeFromTsVariableDeclarationList(node, file);
   } else if (ts.isVariableDeclaration(node)) {
