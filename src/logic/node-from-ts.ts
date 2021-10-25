@@ -337,6 +337,8 @@ function listNodeFromTsVariableDeclarationList(
     ListKind.TsNodeList,
   );
   node.tsNode = variableDeclarationList;
+  node.pos = variableDeclarationList.pos;
+  node.end = variableDeclarationList.end;
 
   const firstToken = variableDeclarationList.getFirstToken(file);
   if (!firstToken || !isTsVarLetConst(firstToken)) {
