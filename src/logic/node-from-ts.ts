@@ -364,39 +364,6 @@ function listNodeFromTsVariableDeclarationList(
   return node;
 }
 
-function listNodeFromTsVariableDeclaration(
-  variableDeclaration: ts.VariableDeclaration,
-  file: ts.SourceFile | undefined,
-): ListNode {
-  const structKeys: string[] = [];
-  const content: Node[] = [];
-
-  structKeys.push("name");
-  content.push(nodeFromTsNode(variableDeclaration.name, file));
-
-  if (variableDeclaration.type) {
-    structKeys.push("type");
-    content.push(nodeFromTsNode(variableDeclaration.type, file));
-  }
-
-  if (variableDeclaration.initializer) {
-    structKeys.push("initializer");
-    content.push(nodeFromTsNode(variableDeclaration.initializer, file));
-  }
-
-  return {
-    kind: NodeKind.List,
-    listKind: ListKind.TsNodeStruct,
-    tsNode: variableDeclaration,
-    delimiters: ["", ""],
-    structKeys,
-    content,
-    equivalentToContent: true,
-    pos: variableDeclaration.pos,
-    end: variableDeclaration.end,
-  };
-}
-
 function listNodeFromTsBlock(
   block: ts.Block,
   file: ts.SourceFile | undefined,
@@ -567,8 +534,6 @@ export function nodeFromTsNode(
     return listNodeFromTsIfStatement(node, file);
   } else if (ts.isVariableDeclarationList(node)) {
     return listNodeFromTsVariableDeclarationList(node, file);
-  } else if (ts.isVariableDeclaration(node)) {
-    return listNodeFromTsVariableDeclaration(node, file);
   } else if (ts.isBlock(node)) {
     return listNodeFromTsBlock(node, file);
   } else if (ts.isObjectLiteralExpression(node)) {

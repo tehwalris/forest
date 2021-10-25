@@ -12,4 +12,5 @@ export const allowedGenericNodeMatchers: ((node: ts.Node) => boolean)[] = [
   ts.isConditionalExpression,
   ts.isArrowFunction,
   ts.isVariableStatement,
+  ts.isVariableDeclaration,
 ];

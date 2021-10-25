@@ -12,11 +12,7 @@ import { isModifierKey } from "./modifier";
 import { nodeFromTsNode } from "./node-from-ts";
 import { PathMapper } from "./path-mapper";
 import { pathsAreEqual } from "./path-utils";
-import {
-  assertNodeHasValidStructKeys,
-  getStructContent,
-  withDefaultContent,
-} from "./struct";
+import { assertNodeHasValidStructKeys, getStructContent } from "./struct";
 import { onlyChildFromNode } from "./tree-utils/access";
 import { tsNodeFromNode } from "./ts-from-node";
 import {
@@ -518,20 +514,6 @@ function _makeNodeValidTs({
       ...node,
       content: makeVariableDeclarationListValidTs(node.content, mapChild),
     };
-  } else if (
-    node.kind === NodeKind.List &&
-    node.listKind === ListKind.TsNodeStruct &&
-    node.tsNode?.kind === ts.SyntaxKind.VariableDeclaration
-  ) {
-    node = withDefaultContent(
-      node,
-      [
-        { key: "name", node: makePlaceholderIdentifier() },
-        { key: "type" },
-        { key: "initializer" },
-      ],
-      mapChild,
-    );
   } else if (
     node.kind === NodeKind.List &&
     node.listKind === ListKind.IfBranches

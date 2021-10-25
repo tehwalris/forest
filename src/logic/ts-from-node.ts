@@ -266,19 +266,6 @@ export function tsNodeFromNode(node: Node): ts.Node {
             tsNodeFromNode(content.expression) as ts.Expression,
           );
         }
-        case ts.SyntaxKind.VariableDeclaration: {
-          const content = getStructContent(
-            node,
-            ["name"],
-            ["type", "initializer"],
-          );
-          return ts.createVariableDeclaration(
-            tsNodeFromNode(content.name) as ts.BindingName,
-            content.type && (tsNodeFromNode(content.type) as ts.TypeNode),
-            content.initializer &&
-              (tsNodeFromNode(content.initializer) as ts.Expression),
-          );
-        }
         default: {
           const result = tryMakeTsNodeFromGenericTsNodeStruct(node);
           if (result) {
