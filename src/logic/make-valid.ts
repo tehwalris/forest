@@ -5,10 +5,10 @@ import {
   UnknownStructTemplate,
 } from "./generic-node";
 import { ListKind, ListNode, Node, NodeKind, Path } from "./interfaces";
-import { Union } from "./legacy-templates/interfaces";
+import { StructChild, Union } from "./legacy-templates/interfaces";
 import { matchesUnion } from "./legacy-templates/match";
 import { structTemplates } from "./legacy-templates/templates";
-import { isModifierKey } from "./modifier";
+import { getModifierSyntaxKinds, isModifierKey } from "./modifier";
 import { nodeFromTsNode } from "./node-from-ts";
 import { PathMapper } from "./path-mapper";
 import { pathsAreEqual } from "./path-utils";
@@ -444,6 +444,9 @@ function makeObjectLiteralElementValidTs(
 function tryMakeGenericStructNodeValidTs(
   oldNode: ListNode,
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
+  overrideTemplateChildren?: (old: { [key: string]: StructChild<ts.Node> }) => {
+    [key: string]: StructChild<ts.Node>;
+  },
 ): ListNode | undefined {
   const oldTsNode = oldNode.tsNode;
   if (!oldTsNode || !allowedGenericNodeMatchers.find((m) => m(oldTsNode))) {
@@ -464,7 +467,10 @@ function tryMakeGenericStructNodeValidTs(
     structTemplate.keyword ? ["keyword"] : [],
     [...structTemplate.children, ...modifierKeys],
   );
-  const templateChildren = structTemplate.load(oldTsNode);
+  let templateChildren = structTemplate.load(oldTsNode);
+  if (overrideTemplateChildren) {
+    templateChildren = overrideTemplateChildren(templateChildren);
+  }
 
   const newNode: ListNode & { structKeys: string[] } = {
     ...oldNode,
@@ -624,6 +630,37 @@ function _makeNodeValidTs({
     node.tsNode?.kind === ts.SyntaxKind.ThrowStatement
   ) {
     node = makeThrowStatementValidTs(node, mapChild);
+  } else if (
+    node.kind === NodeKind.List &&
+    node.listKind === ListKind.TsNodeStruct &&
+    node.tsNode?.kind === ts.SyntaxKind.FunctionDeclaration
+  ) {
+    const modifierSyntaxKinds = getModifierSyntaxKinds(node);
+    const hasDefaultExport =
+      modifierSyntaxKinds.includes(ts.SyntaxKind.ExportKeyword) &&
+      modifierSyntaxKinds.includes(ts.SyntaxKind.DefaultKeyword);
+
+    const genericNode = tryMakeGenericStructNodeValidTs(
+      node,
+      mapChild,
+      (oldTemplateChildren): typeof oldTemplateChildren => {
+        if (hasDefaultExport) {
+          return oldTemplateChildren;
+        }
+        return {
+          ...oldTemplateChildren,
+          name: {
+            ...(oldTemplateChildren.name as any),
+            optional: false,
+          } as StructChild<ts.Node>,
+        };
+      },
+    );
+
+    if (!genericNode) {
+      throw new Error("expected generic support for FunctionDeclaration");
+    }
+    node = genericNode;
   } else if (
     node.kind === NodeKind.List &&
     node.listKind === ListKind.IfBranches

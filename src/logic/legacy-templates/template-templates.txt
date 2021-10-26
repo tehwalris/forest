@@ -370,6 +370,7 @@ FunctionDeclaration
   O type TypeNode
   O body FunctionBody
   flags export default ambient async
+  keyword FunctionKeyword
   build ({asteriskToken, name, parameters, typeParameters, type, body}, modifiers) => ts.createFunctionDeclaration(undefined, modifiers, asteriskToken, name, typeParameters, parameters, type, body)
 FunctionExpression
   O asteriskToken AsteriskToken
