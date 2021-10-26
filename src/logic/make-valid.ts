@@ -23,6 +23,7 @@ import {
   isToken,
   isTsBinaryOperatorToken,
   isTsExclamationToken,
+  isTsPostfixUnaryOperatorToken,
   isTsQuestionDotToken,
   isTsVarLetConst,
 } from "./ts-type-predicates";
@@ -205,7 +206,8 @@ function makeTightExpressionValidTs(
         ((oldRight.kind === NodeKind.List &&
           oldRight.listKind === ListKind.CallArguments) ||
           isToken(oldRight, isTsQuestionDotToken) ||
-          isToken(oldRight, isTsExclamationToken))
+          isToken(oldRight, isTsExclamationToken) ||
+          isToken(oldRight, isTsPostfixUnaryOperatorToken))
       ) {
         return makePlaceholderIdentifier();
       }

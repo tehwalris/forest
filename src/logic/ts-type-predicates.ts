@@ -1,5 +1,7 @@
 import ts from "typescript";
 import { Node, NodeKind, TokenNode } from "./interfaces";
+import { matchesUnion } from "./legacy-templates/match";
+import { unions } from "./legacy-templates/templates";
 import { unreachable } from "./util";
 
 export function isToken<T extends ts.Node>(
@@ -23,6 +25,15 @@ export function isTsExclamationToken(
   node: ts.Node,
 ): node is ts.ExclamationToken {
   return ts.isToken(node) && node.kind === ts.SyntaxKind.ExclamationToken;
+}
+
+export function isTsPostfixUnaryOperatorToken(
+  node: ts.Node,
+): node is ts.Token<ts.PostfixUnaryOperator> {
+  return matchesUnion<ts.Token<ts.PostfixUnaryOperator>>(
+    node,
+    unions.PostfixUnaryOperator,
+  );
 }
 
 export function isTsBinaryOperatorToken(

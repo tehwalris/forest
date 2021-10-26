@@ -14,6 +14,7 @@ import {
   isToken,
   isTsBinaryOperatorToken,
   isTsExclamationToken,
+  isTsPostfixUnaryOperatorToken,
   isTsQuestionDotToken,
   isTsVarLetConst,
 } from "./ts-type-predicates";
@@ -138,6 +139,11 @@ export function tsNodeFromNode(node: Node): ts.Node {
       } else if (isToken(lastChild, isTsExclamationToken)) {
         return ts.factory.createNonNullExpression(
           tsNodeFromNode(restNode) as ts.Expression,
+        );
+      } else if (isToken(lastChild, isTsPostfixUnaryOperatorToken)) {
+        return ts.factory.createPostfixUnaryExpression(
+          tsNodeFromNode(restNode) as ts.Expression,
+          (tsNodeFromNode(lastChild) as ts.Token<ts.PostfixUnaryOperator>).kind,
         );
       } else if (lastChild.kind === NodeKind.List) {
         throw new Error("child list has unsupported ListKind");
