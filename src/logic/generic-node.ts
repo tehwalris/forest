@@ -25,4 +25,5 @@ export const allowedGenericNodeMatchers: ((node: ts.Node) => boolean)[] = [
   ts.isPropertySignature,
   ts.isMethodSignature,
   ts.isIndexSignatureDeclaration,
+  ts.isAsExpression,
 ];
