@@ -181,12 +181,11 @@ function listNodeFromTsCallExpression(
         ...(callExpression.questionDotToken
           ? [nodeFromTsNode(callExpression.questionDotToken, file)]
           : []),
-        listNodeFromDelimitedTsNodeArray(
+        listNodeFromAutoTsNodeArray(
           callExpression.arguments,
+          callExpression,
           file,
           ListKind.CallArguments,
-          callExpression.arguments.pos - 1,
-          callExpression.end,
         ),
       ],
     ),
@@ -453,7 +452,7 @@ function listNodeFromTsArrayLiteralExpression(
       arrayLiteralExpression.elements,
       file,
       ListKind.TsNodeList,
-      arrayLiteralExpression.pos + 1,
+      arrayLiteralExpression.pos,
       arrayLiteralExpression.end,
     ),
     tsNode: arrayLiteralExpression,

@@ -125,6 +125,7 @@ describe("DocManager", () => {
     makeRoundTripTest("const x = { x: y, y: z }"),
     makeRoundTripTest("const x = [abc, 123, (x) => y]"),
     makeRoundTripTest("interface X extends A, B {}"),
+    makeRoundTripTest("f([])"),
     {
       label: "delete everything",
       initialText: 'console.log("walrus")',
