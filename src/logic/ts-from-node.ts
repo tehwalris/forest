@@ -14,7 +14,8 @@ import {
   isToken,
   isTsBinaryOperatorToken,
   isTsExclamationToken,
-  isTsPostfixUnaryOperatorToken,
+  isTsPostfixUnaryOperatorTokenWithExpectedParent,
+  isTsPrefixUnaryOperatorTokenWithExpectedParent,
   isTsQuestionDotToken,
   isTsVarLetConst,
 } from "./ts-type-predicates";
@@ -127,6 +128,17 @@ export function tsNodeFromNode(node: Node): ts.Node {
       };
 
       if (
+        isToken(node.content[0], isTsPrefixUnaryOperatorTokenWithExpectedParent)
+      ) {
+        return ts.factory.createPrefixUnaryExpression(
+          (tsNodeFromNode(node.content[0]) as ts.Token<ts.PrefixUnaryOperator>)
+            .kind,
+          tsNodeFromNode({
+            ...node,
+            content: node.content.slice(1),
+          }) as ts.Expression,
+        );
+      } else if (
         lastChild.kind === NodeKind.List &&
         lastChild.listKind === ListKind.CallArguments
       ) {
@@ -140,7 +152,9 @@ export function tsNodeFromNode(node: Node): ts.Node {
         return ts.factory.createNonNullExpression(
           tsNodeFromNode(restNode) as ts.Expression,
         );
-      } else if (isToken(lastChild, isTsPostfixUnaryOperatorToken)) {
+      } else if (
+        isToken(lastChild, isTsPostfixUnaryOperatorTokenWithExpectedParent)
+      ) {
         return ts.factory.createPostfixUnaryExpression(
           tsNodeFromNode(restNode) as ts.Expression,
           (tsNodeFromNode(lastChild) as ts.Token<ts.PostfixUnaryOperator>).kind,

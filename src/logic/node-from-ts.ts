@@ -30,6 +30,17 @@ function flattenLeftIfListKind(
   return [left, ...right];
 }
 
+function flattenRightIfListKind(
+  listKind: ListKind,
+  left: Node[],
+  right: Node,
+): Node[] {
+  if (shouldFlattenWithListKind(listKind, right)) {
+    return [...left, ...right.content];
+  }
+  return [...left, right];
+}
+
 function flattenIfListKind(listKind: ListKind, node: Node): Node[] {
   return shouldFlattenWithListKind(listKind, node) ? node.content : [node];
 }
@@ -239,6 +250,29 @@ function listNodeFromTsNonNullExpression(
     equivalentToContent: true,
     pos: nonNullExpression.pos,
     end: nonNullExpression.end,
+  };
+}
+
+function listNodeFromTsPrefixUnaryExpression(
+  prefixUnaryExpression: ts.PrefixUnaryExpression,
+  file: ts.SourceFile | undefined,
+): ListNode {
+  const operatorToken = prefixUnaryExpression.getFirstToken(file);
+  if (operatorToken?.kind !== prefixUnaryExpression.operator) {
+    throw new Error("could not get operatorToken from prefixUnaryExpression");
+  }
+  return {
+    kind: NodeKind.List,
+    listKind: ListKind.TightExpression,
+    delimiters: ["", ""],
+    content: flattenRightIfListKind(
+      ListKind.TightExpression,
+      [nodeFromTsNode(operatorToken, file)],
+      nodeFromTsNode(prefixUnaryExpression.operand, file),
+    ),
+    equivalentToContent: true,
+    pos: prefixUnaryExpression.pos,
+    end: prefixUnaryExpression.end,
   };
 }
 
@@ -640,6 +674,8 @@ export function nodeFromTsNode(
     return listNodeFromTsPropertyAccessExpression(node, file);
   } else if (ts.isNonNullExpression(node)) {
     return listNodeFromTsNonNullExpression(node, file);
+  } else if (ts.isPrefixUnaryExpression(node)) {
+    return listNodeFromTsPrefixUnaryExpression(node, file);
   } else if (ts.isPostfixUnaryExpression(node)) {
     return listNodeFromTsPostfixUnaryExpression(node, file);
   } else if (ts.isBinaryExpression(node)) {

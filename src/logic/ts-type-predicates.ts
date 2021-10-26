@@ -27,12 +27,43 @@ export function isTsExclamationToken(
   return ts.isToken(node) && node.kind === ts.SyntaxKind.ExclamationToken;
 }
 
-export function isTsPostfixUnaryOperatorToken(
+function isTsPrefixUnaryOperatorToken(
+  node: ts.Node,
+): node is ts.Token<ts.PrefixUnaryOperator> {
+  return matchesUnion<ts.Token<ts.PrefixUnaryOperator>>(
+    node,
+    unions.PrefixUnaryOperator,
+  );
+}
+
+export function isTsPrefixUnaryOperatorTokenWithExpectedParent(
+  node: ts.Node,
+): node is ts.Token<ts.PrefixUnaryOperator> & {
+  parent: ts.PrefixUnaryExpression;
+} {
+  return (
+    isTsPrefixUnaryOperatorToken(node) &&
+    node.parent?.kind === ts.SyntaxKind.PrefixUnaryExpression
+  );
+}
+
+function isTsPostfixUnaryOperatorToken(
   node: ts.Node,
 ): node is ts.Token<ts.PostfixUnaryOperator> {
   return matchesUnion<ts.Token<ts.PostfixUnaryOperator>>(
     node,
     unions.PostfixUnaryOperator,
+  );
+}
+
+export function isTsPostfixUnaryOperatorTokenWithExpectedParent(
+  node: ts.Node,
+): node is ts.Token<ts.PostfixUnaryOperator> & {
+  parent: ts.PostfixUnaryExpression;
+} {
+  return (
+    isTsPostfixUnaryOperatorToken(node) &&
+    node.parent?.kind === ts.SyntaxKind.PostfixUnaryExpression
   );
 }
 

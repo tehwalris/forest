@@ -23,7 +23,8 @@ import {
   isToken,
   isTsBinaryOperatorToken,
   isTsExclamationToken,
-  isTsPostfixUnaryOperatorToken,
+  isTsPostfixUnaryOperatorTokenWithExpectedParent,
+  isTsPrefixUnaryOperatorTokenWithExpectedParent,
   isTsQuestionDotToken,
   isTsVarLetConst,
 } from "./ts-type-predicates";
@@ -194,11 +195,11 @@ function makeLooseExpressionValidTs(
 }
 
 function makeTightExpressionValidTs(
-  oldContent: Node[],
+  oldNode: ListNode,
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
 ): Node[] {
   return reinsertPlaceholdersIntoContent(
-    oldContent,
+    oldNode.content,
     (newLeft, oldRight) => {
       if (
         newLeft === undefined &&
@@ -206,14 +207,19 @@ function makeTightExpressionValidTs(
         ((oldRight.kind === NodeKind.List &&
           oldRight.listKind === ListKind.CallArguments) ||
           isToken(oldRight, isTsQuestionDotToken) ||
-          isToken(oldRight, isTsExclamationToken) ||
-          isToken(oldRight, isTsPostfixUnaryOperatorToken))
+          (isToken(oldRight, isTsExclamationToken) &&
+            !isToken(
+              oldRight,
+              isTsPrefixUnaryOperatorTokenWithExpectedParent,
+            )) ||
+          isToken(oldRight, isTsPostfixUnaryOperatorTokenWithExpectedParent))
       ) {
         return makePlaceholderIdentifier();
       }
       if (
         newLeft !== undefined &&
-        isToken(newLeft, isTsQuestionDotToken) &&
+        (isToken(newLeft, isTsQuestionDotToken) ||
+          isToken(newLeft, isTsPrefixUnaryOperatorTokenWithExpectedParent)) &&
         (oldRight === undefined || isToken(oldRight, isTsQuestionDotToken))
       ) {
         return makePlaceholderIdentifier();
@@ -593,12 +599,12 @@ function _makeNodeValidTs({
     node.kind === NodeKind.List &&
     node.listKind === ListKind.TightExpression
   ) {
-    if (makeTightExpressionValidTs(node.content, (e) => e.node).length === 1) {
+    if (makeTightExpressionValidTs(node, (e) => e.node).length === 1) {
       node = extractOnlyNonPlaceholderChild(node);
     } else {
       node = {
         ...node,
-        content: makeTightExpressionValidTs(node.content, mapChild),
+        content: makeTightExpressionValidTs(node, mapChild),
       };
     }
   } else if (
