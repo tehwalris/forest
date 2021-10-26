@@ -219,6 +219,29 @@ function listNodeFromTsPropertyAccessExpression(
   };
 }
 
+function listNodeFromTsNonNullExpression(
+  nonNullExpression: ts.NonNullExpression,
+  file: ts.SourceFile | undefined,
+): ListNode {
+  const exclamationToken = nonNullExpression.getLastToken(file);
+  if (exclamationToken?.kind !== ts.SyntaxKind.ExclamationToken) {
+    throw new Error("could not get exclamationToken from nonNullExpression");
+  }
+  return {
+    kind: NodeKind.List,
+    listKind: ListKind.TightExpression,
+    delimiters: ["", ""],
+    content: flattenLeftIfListKind(
+      ListKind.TightExpression,
+      nodeFromTsNode(nonNullExpression.expression, file),
+      [nodeFromTsNode(exclamationToken, file)],
+    ),
+    equivalentToContent: true,
+    pos: nonNullExpression.pos,
+    end: nonNullExpression.end,
+  };
+}
+
 function listNodeFromTsBinaryExpression(
   binaryExpression: ts.BinaryExpression,
   file: ts.SourceFile | undefined,
@@ -592,6 +615,8 @@ export function nodeFromTsNode(
     return listNodeFromTsCallExpression(node, file);
   } else if (ts.isPropertyAccessExpression(node)) {
     return listNodeFromTsPropertyAccessExpression(node, file);
+  } else if (ts.isNonNullExpression(node)) {
+    return listNodeFromTsNonNullExpression(node, file);
   } else if (ts.isBinaryExpression(node)) {
     return listNodeFromTsBinaryExpression(node, file);
   } else if (ts.isParenthesizedExpression(node)) {

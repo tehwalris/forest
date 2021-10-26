@@ -19,6 +19,12 @@ export function isTsColonToken(node: ts.Node): node is ts.ColonToken {
   return ts.isToken(node) && node.kind === ts.SyntaxKind.ColonToken;
 }
 
+export function isTsExclamationToken(
+  node: ts.Node,
+): node is ts.ExclamationToken {
+  return ts.isToken(node) && node.kind === ts.SyntaxKind.ExclamationToken;
+}
+
 export function isTsBinaryOperatorToken(
   node: ts.Node,
 ): node is ts.BinaryOperatorToken {

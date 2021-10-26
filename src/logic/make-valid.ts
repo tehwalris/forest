@@ -22,6 +22,7 @@ import { tsNodeFromNode } from "./ts-from-node";
 import {
   isToken,
   isTsBinaryOperatorToken,
+  isTsExclamationToken,
   isTsQuestionDotToken,
   isTsVarLetConst,
 } from "./ts-type-predicates";
@@ -203,7 +204,8 @@ function makeTightExpressionValidTs(
         oldRight !== undefined &&
         ((oldRight.kind === NodeKind.List &&
           oldRight.listKind === ListKind.CallArguments) ||
-          isToken(oldRight, isTsQuestionDotToken))
+          isToken(oldRight, isTsQuestionDotToken) ||
+          isToken(oldRight, isTsExclamationToken))
       ) {
         return makePlaceholderIdentifier();
       }

@@ -13,6 +13,7 @@ import {
   flagsForTsVarLetConst,
   isToken,
   isTsBinaryOperatorToken,
+  isTsExclamationToken,
   isTsQuestionDotToken,
   isTsVarLetConst,
 } from "./ts-type-predicates";
@@ -133,6 +134,10 @@ export function tsNodeFromNode(node: Node): ts.Node {
           questionDotToken,
           [],
           lastChild.content.map((c) => tsNodeFromNode(c) as ts.Expression),
+        );
+      } else if (isToken(lastChild, isTsExclamationToken)) {
+        return ts.factory.createNonNullExpression(
+          tsNodeFromNode(restNode) as ts.Expression,
         );
       } else if (lastChild.kind === NodeKind.List) {
         throw new Error("child list has unsupported ListKind");
