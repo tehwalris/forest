@@ -1,0 +1,48 @@
+# Editing tasks
+
+- `add-call-to-middle-of-chain`
+  - support: good
+- `add-condition-to-property`
+  - support: good
+- `add-condition-to-statement`
+  - support: ok
+  - note: paste is a bit annoying
+- `add-statement-to-method`
+  - support: good
+- `add-switch-case`
+  - support: none
+  - note: switch statement not supported
+- `add-to-middle-of-type-literal`
+  - support: none
+  - note: TypeLiteralNode not supported
+- `append-interface-field`
+  - support: ok
+  - note: can't copy-paste interface field
+- `append-object-property`
+  - support: good
+- `change-type-parameters`
+  - support: none
+  - note: ClassDeclaration and TypeReferenceNode not supported
+- `change-value-prefix`
+  - support: none
+  - note: can't edit strings
+- `extend-if-condition`
+  - support: none
+  - note: crashes when pasting `ev.key === "Escape"` over `x` in `!(x || y)`
+- `extract-part-of-if-condition`
+  - support: ok
+- `prepend-to-conditional`
+  - support: ok
+- `rename-related-declarations`
+  - support: none
+- `rename-wrap-object-properties`
+  - support: none
+  - note: you can regroup them, but not rename them all together
+- `simplify-conditional`
+  - support: ok
+- `wrap-action`
+  - support: ok
+- `wrap-arrow-function`
+  - support: ok
+- `wrap-object-properties`
+  - support: ok
