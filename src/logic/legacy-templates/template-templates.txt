@@ -415,8 +415,8 @@ PropertyAccessExpression
 ElementAccessExpression
   R expression LeftHandSideExpression
   O questionDotToken QuestionDotToken
-  O argumentExpression Expression
-  build ({expression, questionDotToken, argumentExpression}) => { if (!argumentExpression) { throw new Error('argumentExpression is required') } return ts.createElementAccessChain(expression, questionDotToken, argumentExpression) }
+  R argumentExpression Expression
+  build ({expression, questionDotToken, argumentExpression}) => ts.createElementAccessChain(expression, questionDotToken, argumentExpression)
 ImportDeclaration
   O importClause ImportClause
   R moduleSpecifier Expression

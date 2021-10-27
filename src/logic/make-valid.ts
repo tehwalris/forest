@@ -206,6 +206,8 @@ function makeTightExpressionValidTs(
         oldRight !== undefined &&
         ((oldRight.kind === NodeKind.List &&
           oldRight.listKind === ListKind.CallArguments) ||
+          (oldRight.kind === NodeKind.List &&
+            oldRight.listKind === ListKind.ElementAccessExpressionArgument) ||
           isToken(oldRight, isTsQuestionDotToken) ||
           (isToken(oldRight, isTsExclamationToken) &&
             !isToken(
@@ -619,6 +621,21 @@ function _makeNodeValidTs({
         content: makeLooseExpressionValidTs(node.content, mapChild),
       };
     }
+  } else if (
+    node.kind === NodeKind.List &&
+    node.listKind === ListKind.ElementAccessExpressionArgument
+  ) {
+    node = {
+      ...node,
+      content: reinsertPlaceholdersIntoContent(
+        node.content,
+        (newLeft, oldRight) =>
+          newLeft === undefined && oldRight === undefined
+            ? makePlaceholderIdentifier()
+            : undefined,
+        mapChild,
+      ),
+    };
   } else if (
     node.kind === NodeKind.List &&
     node.listKind === ListKind.TsNodeList &&

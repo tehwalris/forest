@@ -148,6 +148,15 @@ export function tsNodeFromNode(node: Node): ts.Node {
           [],
           lastChild.content.map((c) => tsNodeFromNode(c) as ts.Expression),
         );
+      } else if (
+        lastChild.kind === NodeKind.List &&
+        lastChild.listKind === ListKind.ElementAccessExpressionArgument
+      ) {
+        return ts.factory.createElementAccessChain(
+          tsNodeFromNode(restNode) as ts.Expression,
+          questionDotToken,
+          tsNodeFromNode(lastChild) as ts.Expression,
+        );
       } else if (isToken(lastChild, isTsExclamationToken)) {
         return ts.factory.createNonNullExpression(
           tsNodeFromNode(restNode) as ts.Expression,
@@ -212,8 +221,11 @@ export function tsNodeFromNode(node: Node): ts.Node {
       );
     }
     case ListKind.ParenthesizedExpression:
+    case ListKind.ElementAccessExpressionArgument:
       if (node.content.length !== 1) {
-        throw new Error("ParenthesizedExpression must have exactly 1 child");
+        throw new Error(
+          "ParenthesizedExpression or BracketedExpression must have exactly 1 child",
+        );
       }
       return ts.createParen(tsNodeFromNode(node.content[0]) as ts.Expression);
     case ListKind.CallArguments:

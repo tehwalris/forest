@@ -30,6 +30,7 @@ export enum ListKind {
   TightExpression,
   LooseExpression,
   ParenthesizedExpression,
+  ElementAccessExpressionArgument,
   CallArguments,
   IfBranches,
   IfBranch,

@@ -74,11 +74,12 @@ describe("DocManager", () => {
     makeRoundTripTest('console.log("walrus")'),
     makeRoundTripTest("f(async <T>(x: T, y) => x + y)"),
     makeRoundTripTest('f(): string => "abc"'),
-    makeRoundTripTest("f(g(x), y).foo.bar().baz"),
+    makeRoundTripTest("f(g(x), y).foo[123].bar().baz"),
     makeRoundTripTest("a!.b"),
     makeRoundTripTest("a.b!"),
     makeRoundTripTest("a?.b"),
     makeRoundTripTest("a?.()"),
+    makeRoundTripTest("a?.[123]"),
     makeRoundTripTest(`
       if (1 === 0) {
         throw new Error("unreachable");

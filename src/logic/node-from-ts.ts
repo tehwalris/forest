@@ -45,6 +45,56 @@ function flattenIfListKind(listKind: ListKind, node: Node): Node[] {
   return shouldFlattenWithListKind(listKind, node) ? node.content : [node];
 }
 
+function tryExpandRangeBySurroundingDelimiters(
+  oldRange: ts.TextRange,
+  parent: ts.Node,
+  file: ts.SourceFile | undefined,
+): ts.TextRange | undefined {
+  if (!file) {
+    return undefined;
+  }
+
+  const childrenOfParent = parent.getChildren(file);
+  // HACK The relevant child (nodeArray) returned by parent.getChildren() is not
+  // reference equal to nodeArray which is passed as our argument. Use text
+  // ranges to find this child instead.
+  const childIndex = childrenOfParent.findIndex(
+    (c) => c.pos === oldRange.pos && c.end === oldRange.end,
+  );
+  if (childIndex === -1) {
+    throw new Error(
+      "range does not correspond to any child in parent.getChildren()",
+    );
+  }
+
+  if (childIndex > 0 && childIndex + 1 < childrenOfParent.length) {
+    const surroundingChildren = [
+      childrenOfParent[childIndex - 1],
+      childrenOfParent[childIndex + 1],
+    ] as const;
+    const allowedDelimiters: [ts.SyntaxKind, ts.SyntaxKind][] = [
+      [ts.SyntaxKind.OpenParenToken, ts.SyntaxKind.CloseParenToken],
+      [ts.SyntaxKind.OpenBraceToken, ts.SyntaxKind.CloseBraceToken],
+      [ts.SyntaxKind.OpenBracketToken, ts.SyntaxKind.CloseBracketToken],
+      [ts.SyntaxKind.LessThanToken, ts.SyntaxKind.GreaterThanToken],
+    ];
+    if (
+      allowedDelimiters.some(
+        (d) =>
+          d[0] === surroundingChildren[0].kind &&
+          d[1] === surroundingChildren[1].kind,
+      )
+    ) {
+      return {
+        pos: surroundingChildren[0].pos,
+        end: surroundingChildren[1].end,
+      };
+    }
+  }
+
+  return undefined;
+}
+
 function listNodeFromAutoTsNodeArray(
   nodeArray: ts.NodeArray<ts.Node>,
   parent: ts.Node,
@@ -66,40 +116,24 @@ function listNodeFromAutoTsNodeArray(
     throw new Error("nodeArray not found in parent.getChildren()");
   }
 
-  const delimitedRange: TextRange = { pos: nodeArray.pos, end: nodeArray.end };
-  let isDelimited = false;
+  const oldRange: TextRange = { pos: nodeArray.pos, end: nodeArray.end };
+  let delimitedRange: TextRange | undefined;
   if (
     (!nodeArray.length &&
       file.text.slice(nodeArray.pos, nodeArray.end).trim()) ||
     (nodeArray.length &&
       file.text.slice(nodeArray.pos, nodeArray[0].pos).trim())
   ) {
-    isDelimited = true;
-  } else if (childIndex > 0 && childIndex + 1 < childrenOfParent.length) {
-    const surroundingChildren = [
-      childrenOfParent[childIndex - 1],
-      childrenOfParent[childIndex + 1],
-    ] as const;
-    const allowedDelimiters: [ts.SyntaxKind, ts.SyntaxKind][] = [
-      [ts.SyntaxKind.OpenParenToken, ts.SyntaxKind.CloseParenToken],
-      [ts.SyntaxKind.OpenBraceToken, ts.SyntaxKind.CloseBraceToken],
-      [ts.SyntaxKind.OpenBracketToken, ts.SyntaxKind.CloseBracketToken],
-      [ts.SyntaxKind.LessThanToken, ts.SyntaxKind.GreaterThanToken],
-    ];
-    if (
-      allowedDelimiters.some(
-        (d) =>
-          d[0] === surroundingChildren[0].kind &&
-          d[1] === surroundingChildren[1].kind,
-      )
-    ) {
-      isDelimited = true;
-      delimitedRange.pos = surroundingChildren[0].pos;
-      delimitedRange.end = surroundingChildren[1].end;
-    }
+    delimitedRange = oldRange;
+  } else {
+    delimitedRange = tryExpandRangeBySurroundingDelimiters(
+      oldRange,
+      parent,
+      file,
+    );
   }
 
-  if (isDelimited) {
+  if (delimitedRange) {
     return listNodeFromDelimitedTsNodeArray(
       nodeArray,
       file,
@@ -227,6 +261,50 @@ function listNodeFromTsPropertyAccessExpression(
     equivalentToContent: true,
     pos: propertyAccessExpression.pos,
     end: propertyAccessExpression.end,
+  };
+}
+
+function listNodeFromTsElementAccessExpression(
+  elementAccessExpression: ts.ElementAccessExpression,
+  file: ts.SourceFile | undefined,
+): ListNode {
+  let bracketRange = tryExpandRangeBySurroundingDelimiters(
+    elementAccessExpression.argumentExpression,
+    elementAccessExpression,
+    file,
+  );
+  if (file && !bracketRange) {
+    throw new Error("could not expand range around argumentExpression");
+  }
+  bracketRange = bracketRange || elementAccessExpression.argumentExpression;
+
+  return {
+    kind: NodeKind.List,
+    listKind: ListKind.TightExpression,
+    delimiters: ["", ""],
+    content: flattenLeftIfListKind(
+      ListKind.TightExpression,
+      nodeFromTsNode(elementAccessExpression.expression, file),
+      [
+        ...(elementAccessExpression.questionDotToken
+          ? [nodeFromTsNode(elementAccessExpression.questionDotToken, file)]
+          : []),
+        {
+          kind: NodeKind.List,
+          listKind: ListKind.ElementAccessExpressionArgument,
+          delimiters: ["", ""],
+          content: [
+            nodeFromTsNode(elementAccessExpression.argumentExpression, file),
+          ],
+          equivalentToContent: false,
+          pos: bracketRange.pos,
+          end: bracketRange.end,
+        },
+      ],
+    ),
+    equivalentToContent: true,
+    pos: elementAccessExpression.pos,
+    end: elementAccessExpression.end,
   };
 }
 
@@ -672,6 +750,8 @@ export function nodeFromTsNode(
     return listNodeFromTsCallExpression(node, file);
   } else if (ts.isPropertyAccessExpression(node)) {
     return listNodeFromTsPropertyAccessExpression(node, file);
+  } else if (ts.isElementAccessExpression(node)) {
+    return listNodeFromTsElementAccessExpression(node, file);
   } else if (ts.isNonNullExpression(node)) {
     return listNodeFromTsNonNullExpression(node, file);
   } else if (ts.isPrefixUnaryExpression(node)) {
