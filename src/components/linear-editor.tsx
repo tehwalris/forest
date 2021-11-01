@@ -260,6 +260,11 @@ export const LinearEditor = ({ initialDoc }: Props) => {
         onKeyUp={(ev) => docManager.onKeyUp(ev.nativeEvent)}
       >
         {renderDoc(doc, focus)}
+        {!doc.text.trim() && (
+          <div style={{ opacity: 0.5, userSelect: "none" }}>
+            (empty document)
+          </div>
+        )}
       </div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
       <pre>
