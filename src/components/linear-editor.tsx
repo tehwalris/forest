@@ -1,6 +1,6 @@
 import { css } from "@emotion/css";
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DocManager,
   DocManagerPublicState,
@@ -16,6 +16,14 @@ interface Props {
 const styles = {
   doc: css`
     margin: 5px;
+
+    &:focus {
+      outline: 1px dotted black;
+    }
+
+    &:not(:focus) {
+      filter: grayscale(1);
+    }
   `,
   modeLine: css`
     margin: 5px;
@@ -203,6 +211,18 @@ function renderDoc(doc: Doc, focus: EvenPathRange): React.ReactNode {
 }
 
 export const LinearEditor = ({ initialDoc }: Props) => {
+  const focusedCodeDivRef = useRef<HTMLDivElement | null>(null);
+  const codeDivRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (
+      codeDivRef.current &&
+      codeDivRef.current !== focusedCodeDivRef.current
+    ) {
+      codeDivRef.current.focus();
+      focusedCodeDivRef.current = codeDivRef.current;
+    }
+  });
+
   const [{ doc, focus, mode }, setPublicState] =
     useState<DocManagerPublicState>(initialDocManagerPublicState);
   const [docManager, setDocManager] = useState(
@@ -214,6 +234,9 @@ export const LinearEditor = ({ initialDoc }: Props) => {
       if (newDocManager.initialDoc === oldDocManager.initialDoc) {
         (newDocManager as any).doc = (oldDocManager as any).doc;
         (newDocManager as any).history = (oldDocManager as any).history;
+      } else if (codeDivRef.current) {
+        codeDivRef.current.focus();
+        focusedCodeDivRef.current = codeDivRef.current;
       }
       return newDocManager;
     });
@@ -240,7 +263,9 @@ export const LinearEditor = ({ initialDoc }: Props) => {
 
   return (
     <div>
-      <div className={styles.doc}>{renderDoc(doc, focus)}</div>
+      <div ref={codeDivRef} className={styles.doc} tabIndex={0}>
+        {renderDoc(doc, focus)}
+      </div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
       <pre>
         {JSON.stringify(
