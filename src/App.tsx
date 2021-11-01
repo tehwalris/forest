@@ -1,9 +1,11 @@
+import { css } from "@emotion/css";
 import { sortBy } from "ramda";
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { LinearEditor } from "./components/linear-editor";
 import { docFromAst } from "./logic/node-from-ts";
 import { astFromTypescriptFileContent } from "./logic/parse";
+import { prettyPrintTsString } from "./logic/print";
 import { configureRemoteFs } from "./logic/tasks/fs";
 import { Task } from "./logic/tasks/interfaces";
 import { loadTasks } from "./logic/tasks/load";
@@ -27,6 +29,22 @@ const exampleFileText = `
       }),
   };
 `;
+
+const styles = {
+  splitView: css`
+    display: flex;
+    flex-direction: row;
+    & > div {
+      width: 50%;
+      overflow: auto hidden;
+    }
+  `,
+  afterDoc: css`
+    margin: 5px;
+    white-space: pre;
+    opacity: 0.5;
+  `,
+};
 
 export const App = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -59,6 +77,18 @@ export const App = () => {
     }
   }, [selectedTask]);
 
+  const prettySelectedTaskContentAfter = useMemo(() => {
+    if (!selectedTask) {
+      return undefined;
+    }
+    try {
+      return prettyPrintTsString(selectedTask.contentAfter);
+    } catch (err) {
+      console.warn("failed to pretty print selectedTask.contentAfter", err);
+      return selectedTask.contentAfter;
+    }
+  }, [selectedTask]);
+
   return (
     <>
       <select
@@ -74,7 +104,10 @@ export const App = () => {
           </option>
         ))}
       </select>
-      <LinearEditor initialDoc={initialDoc} />
+      <div className={styles.splitView}>
+        <LinearEditor initialDoc={initialDoc} />
+        <div className={styles.afterDoc}>{prettySelectedTaskContentAfter}</div>
+      </div>
     </>
   );
 };

@@ -33,7 +33,7 @@ import {
   getDocWithAllPlaceholders,
   getDocWithoutPlaceholdersNearCursor,
 } from "./placeholders";
-import { printTsSourceFile } from "./print";
+import { prettyPrintTsSourceFile } from "./print";
 import { getStructContent } from "./struct";
 import { getDocWithInsert } from "./text";
 import {
@@ -384,7 +384,7 @@ export class DocManager {
 
           const docWithInsert = docFromAst(
             astFromTypescriptFileContent(
-              printTsSourceFile(
+              prettyPrintTsSourceFile(
                 astFromTypescriptFileContent(
                   getDocWithInsert(initialPlaceholderInsertion.doc, {
                     text: this.insertState.text,

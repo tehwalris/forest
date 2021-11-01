@@ -11,9 +11,18 @@ const PRETTIER_OPTIONS: Options = {
   plugins: [parserTypescript],
 };
 
-export function printTsSourceFile(file: ts.SourceFile): string {
-  const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
+function createPrinter() {
+  return ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
+}
+
+export function prettyPrintTsSourceFile(file: ts.SourceFile): string {
+  const printer = createPrinter();
   const unformattedText = printer.printNode(ts.EmitHint.SourceFile, file, file);
+  return prettyPrintTsString(unformattedText);
+}
+
+export function prettyPrintTsString(unformattedText: string): string {
+  const printer = createPrinter();
 
   const formattedText = prettierFormat(unformattedText, PRETTIER_OPTIONS);
 

@@ -4,7 +4,7 @@ import { makeNodeValidTs } from "./make-valid";
 import { docFromAst } from "./node-from-ts";
 import { astFromTypescriptFileContent } from "./parse";
 import { PathMapper } from "./path-mapper";
-import { printTsSourceFile } from "./print";
+import { prettyPrintTsSourceFile } from "./print";
 import {
   duplicateMapPosCb,
   getTextWithDeletions,
@@ -69,7 +69,7 @@ export function getDocWithAllPlaceholders(docWithoutPlaceholders: Doc): {
   const placeholderAddition = makeNodeValidTs(docWithoutPlaceholders.root);
   const validRoot = placeholderAddition.node;
   const sourceFile = tsNodeFromNode(validRoot) as ts.SourceFile;
-  const text = printTsSourceFile(sourceFile);
+  const text = prettyPrintTsSourceFile(sourceFile);
   const parsedDoc = docFromAst(astFromTypescriptFileContent(text));
   if (!nodesAreEqualExceptRangesAndPlaceholders(validRoot, parsedDoc.root)) {
     console.warn("update would change tree");

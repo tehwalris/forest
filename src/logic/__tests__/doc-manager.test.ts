@@ -7,11 +7,11 @@ import {
 import { Doc } from "../interfaces";
 import { docFromAst } from "../node-from-ts";
 import { astFromTypescriptFileContent } from "../parse";
-import { printTsSourceFile } from "../print";
+import { prettyPrintTsSourceFile } from "../print";
 
 function asPrettyDoc(uglyText: string): Doc {
   const uglyAst = astFromTypescriptFileContent(uglyText);
-  const prettyText = printTsSourceFile(uglyAst);
+  const prettyText = prettyPrintTsSourceFile(uglyAst);
   return docFromAst(astFromTypescriptFileContent(prettyText));
 }
 
