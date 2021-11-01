@@ -249,21 +249,16 @@ export const LinearEditor = ({ initialDoc }: Props) => {
     };
   }, [docManager]);
 
-  useEffect(() => {
-    const options: EventListenerOptions = { capture: true };
-    document.addEventListener("keypress", docManager.onKeyPress, options);
-    document.addEventListener("keydown", docManager.onKeyDown, options);
-    document.addEventListener("keyup", docManager.onKeyUp, options);
-    return () => {
-      document.removeEventListener("keypress", docManager.onKeyPress, options);
-      document.removeEventListener("keydown", docManager.onKeyDown, options);
-      document.removeEventListener("keyup", docManager.onKeyUp, options);
-    };
-  }, [docManager]);
-
   return (
     <div>
-      <div ref={codeDivRef} className={styles.doc} tabIndex={0}>
+      <div
+        ref={codeDivRef}
+        className={styles.doc}
+        tabIndex={0}
+        onKeyPress={(ev) => docManager.onKeyPress(ev.nativeEvent)}
+        onKeyDown={(ev) => docManager.onKeyDown(ev.nativeEvent)}
+        onKeyUp={(ev) => docManager.onKeyUp(ev.nativeEvent)}
+      >
         {renderDoc(doc, focus)}
       </div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
