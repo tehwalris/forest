@@ -382,16 +382,24 @@ export class DocManager {
               this.insertState.beforePos,
             );
 
+          const astWithInsertBeforeFormatting = astFromTypescriptFileContent(
+            getDocWithInsert(initialPlaceholderInsertion.doc, {
+              text: this.insertState.text,
+              beforePos: initialPlaceholderInsertion.cursorBeforePos,
+            }).text,
+          );
+          if (astWithInsertBeforeFormatting.parseDiagnostics.length) {
+            console.warn(
+              "file has syntax errors",
+              astWithInsertBeforeFormatting.parseDiagnostics,
+              astWithInsertBeforeFormatting.text,
+            );
+            return;
+          }
+
           const docWithInsert = docFromAst(
             astFromTypescriptFileContent(
-              prettyPrintTsSourceFile(
-                astFromTypescriptFileContent(
-                  getDocWithInsert(initialPlaceholderInsertion.doc, {
-                    text: this.insertState.text,
-                    beforePos: initialPlaceholderInsertion.cursorBeforePos,
-                  }).text,
-                ),
-              ),
+              prettyPrintTsSourceFile(astWithInsertBeforeFormatting),
             ),
           );
 
