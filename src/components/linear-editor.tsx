@@ -8,29 +8,10 @@ import {
   Mode,
 } from "../logic/doc-manager";
 import { Doc, EvenPathRange, Node, NodeKind } from "../logic/interfaces";
-import { docFromAst } from "../logic/node-from-ts";
-import { astFromTypescriptFileContent } from "../logic/parse";
 
-const exampleFile = `
-  export const handlers: {
-    [key: string]: (() => void) | undefined;
-  } = {
-    Enter: node.actions.setVariant
-      ? tryAction("setVariant", (n) => n.id, true)
-      : tryAction("setFromString"),
-    "ctrl-d": tryDeleteChild,
-    "ctrl-c": () => copyNode(node),
-    "ctrl-p": copiedNode && tryAction("replace", (n) => n.id),
-    "ctrl-f": editFlags,
-    "ctrl-4": () =>
-      setMarks({
-        ...marks,
-        TODO: idPathFromParentIndexEntry(parentIndexEntry),
-      }),
-  };
-`;
-
-const initialDoc = docFromAst(astFromTypescriptFileContent(exampleFile));
+interface Props {
+  initialDoc: Doc;
+}
 
 const styles = {
   doc: css`
@@ -221,7 +202,7 @@ function renderDoc(doc: Doc, focus: EvenPathRange): React.ReactNode {
   );
 }
 
-export const LinearEditor = () => {
+export const LinearEditor = ({ initialDoc }: Props) => {
   const [{ doc, focus, mode }, setPublicState] =
     useState<DocManagerPublicState>(initialDocManagerPublicState);
   const [docManager, setDocManager] = useState(
@@ -230,14 +211,19 @@ export const LinearEditor = () => {
   useEffect(() => {
     setDocManager((oldDocManager) => {
       const newDocManager = new DocManager(initialDoc, setPublicState);
-      (newDocManager as any).doc = (oldDocManager as any).doc;
-      (newDocManager as any).history = (oldDocManager as any).history;
+      if (newDocManager.initialDoc === oldDocManager.initialDoc) {
+        (newDocManager as any).doc = (oldDocManager as any).doc;
+        (newDocManager as any).history = (oldDocManager as any).history;
+      }
       return newDocManager;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [DocManager]);
+  }, [DocManager, initialDoc]);
   useEffect(() => {
     docManager.forceUpdate();
+    return () => {
+      docManager.disableUpdates();
+    };
   }, [docManager]);
 
   useEffect(() => {

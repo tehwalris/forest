@@ -72,6 +72,7 @@ export interface MinimalKeyboardEvent {
 }
 
 export class DocManager {
+  public readonly initialDoc: Doc;
   private focus: UnevenPathRange = { anchor: [], tip: [] };
   private parentFocuses: EvenPathRange[] = [];
   private history: {
@@ -92,7 +93,9 @@ export class DocManager {
   constructor(
     private doc: Doc,
     private _onUpdate: (publicState: DocManagerPublicState) => void,
-  ) {}
+  ) {
+    this.initialDoc = doc;
+  }
 
   forceUpdate() {
     if (this.mode !== Mode.Normal) {
@@ -100,6 +103,10 @@ export class DocManager {
     }
     this.onUpdate();
     this.history = [];
+  }
+
+  disableUpdates() {
+    this._onUpdate = () => {};
   }
 
   onKeyPress = (ev: MinimalKeyboardEvent) => {
