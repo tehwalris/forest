@@ -7,6 +7,7 @@ import { astFromTypescriptFileContent } from "./logic/parse";
 import { configureRemoteFs } from "./logic/tasks/fs";
 import { Task } from "./logic/tasks/interfaces";
 import { loadTasks } from "./logic/tasks/load";
+import { isCreationTask } from "./logic/tasks/util";
 
 const exampleFileText = `
   export const handlers: {
@@ -33,7 +34,9 @@ export const App = () => {
     (async () => {
       const fs = await configureRemoteFs();
       const tasks = await loadTasks(fs);
-      setTasks(sortBy((t) => t.name, tasks));
+      setTasks(
+        sortBy((t) => `${isCreationTask(t) ? "2" : "1"}:${t.name}`, tasks),
+      );
     })().catch((err) => console.error("failed to load tasks", err));
   }, []);
 
@@ -67,7 +70,7 @@ export const App = () => {
         </option>
         {tasks.map((t) => (
           <option key={t.name} value={t.name}>
-            {t.name}
+            {isCreationTask(t) ? "c" : "e"}:{t.name}
           </option>
         ))}
       </select>
