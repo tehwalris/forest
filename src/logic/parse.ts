@@ -13,7 +13,7 @@ export function assertSourceFileHasDiagnostics(
   file: ts.SourceFile,
 ): asserts file is SourceFileWithDiagnostics {
   if (!(file as any).parseDiagnostics) {
-    throw new Error("ts.SourceFile has not parseDiagnostics property");
+    throw new Error("ts.SourceFile has no parseDiagnostics property");
   }
 }
 
