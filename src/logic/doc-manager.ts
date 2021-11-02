@@ -374,7 +374,6 @@ export class DocManager {
       }
 
       if (this.history.length > 1) {
-        // TODO remove placeholders next to cursor during insert
         try {
           const initialPlaceholderInsertion =
             getDocWithoutPlaceholdersNearCursor(

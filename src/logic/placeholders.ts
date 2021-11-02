@@ -95,9 +95,22 @@ export function getDocWithoutPlaceholdersNearCursor(
   mapOldToWithoutAdjacent: (path: Path) => Path;
   cursorBeforePos: number;
 } {
-  // TODO you were here: ignore whitespace
+  const cursorWhitespacePos = ((pos: number) => {
+    while (pos > 0 && pos < doc.text.length && doc.text[pos - 1].match(/\s/)) {
+      pos--;
+    }
+    return pos;
+  })(cursorBeforePos);
+  const cursorWhitespaceEnd = ((end: number) => {
+    while (end >= 0 && end + 1 < doc.text.length && doc.text[end].match(/\s/)) {
+      end++;
+    }
+    return end;
+  })(cursorBeforePos);
   const isAdjacentToCursor = (range: TextRange) =>
-    range.pos === cursorBeforePos || range.end === cursorBeforePos;
+    (range.pos >= cursorWhitespacePos && range.pos <= cursorWhitespaceEnd) ||
+    (range.end >= cursorWhitespacePos && range.end <= cursorWhitespaceEnd);
+
   const shouldKeepNode = (node: Node) =>
     !node.isPlaceholder || !isAdjacentToCursor(node);
   const placeholderRemoval = filterNodes(doc.root, shouldKeepNode);
