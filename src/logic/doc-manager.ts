@@ -438,16 +438,21 @@ export class DocManager {
           );
 
           this.doc = { ...docWithInsert, root: placeholderRemoval.node };
-          const mapPath = (p: Path) =>
-            placeholderRemoval.pathMapper.mapRough(
-              checkedInsertion.pathMapper.mapRough(
-                initialPlaceholderInsertion.mapOldToWithoutAdjacent(p),
-              ),
-            );
-          this.focus = {
-            anchor: mapPath(this.focus.anchor),
-            tip: mapPath(this.focus.tip),
-          };
+
+          if (checkedInsertion.insertedRange) {
+            this.focus = checkedInsertion.insertedRange;
+          } else {
+            const mapPath = (p: Path) =>
+              placeholderRemoval.pathMapper.mapRough(
+                checkedInsertion.pathMapper.mapRough(
+                  initialPlaceholderInsertion.mapOldToWithoutAdjacent(p),
+                ),
+              );
+            this.focus = {
+              anchor: mapPath(this.focus.anchor),
+              tip: mapPath(this.focus.tip),
+            };
+          }
         } catch (err) {
           console.warn("insertion would make doc invalid", err);
           return;

@@ -1,4 +1,4 @@
-import { ListNode, NodeWithPath, Path } from "./interfaces";
+import { ListNode, NodeWithPath, Path, UnevenPathRange } from "./interfaces";
 import { PathMapper } from "./path-mapper";
 import { pathsAreEqual } from "./path-utils";
 import { nodesAreEqualExceptRangesAndPlaceholders } from "./tree-utils/equal";
@@ -15,6 +15,7 @@ export type CheckedInsertion =
   | {
       valid: true;
       pathMapper: PathMapper;
+      insertedRange?: UnevenPathRange;
     };
 
 export function checkInsertion(
@@ -83,6 +84,21 @@ export function checkInsertion(
     return { valid: false };
   }
 
+  const flatInserted = [
+    ...flatNew.before.slice(flatOld.before.length),
+    ...flatNew.after.slice(0, flatNew.after.length - flatOld.after.length),
+  ];
+  let insertedRange: UnevenPathRange | undefined;
+  if (flatInserted.length) {
+    insertedRange = {
+      anchor: [...delimiterSplitNew.pathToList, ...flatInserted[0].path],
+      tip: [
+        ...delimiterSplitNew.pathToList,
+        ...flatInserted[flatInserted.length - 1].path,
+      ],
+    };
+  }
+
   const pathMapper = new PathMapper(delimiterSplitOld.pathToList);
   for (const [i, oldEntry] of flatOld.before.entries()) {
     pathMapper.record({ old: oldEntry.path, new: flatNewBeforeCommon[i].path });
@@ -91,5 +107,5 @@ export function checkInsertion(
     pathMapper.record({ old: oldEntry.path, new: flatNewAfterCommon[i].path });
   }
 
-  return { valid: true, pathMapper };
+  return { valid: true, pathMapper, insertedRange };
 }
