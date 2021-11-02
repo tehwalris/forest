@@ -250,11 +250,6 @@ export class DocManager {
         this.tryMoveToParent();
       } else if (ev.key === "j") {
         this.tryMoveIntoList();
-      } else if (ev.key === ";") {
-        this.focus = asUnevenPathRange({
-          anchor: getPathToTip(asEvenPathRange(this.focus)),
-          offset: 0,
-        });
       } else if (ev.key === "c") {
         const evenFocus = asEvenPathRange(
           whileUnevenFocusChanges(this.focus, (focus) =>
@@ -413,10 +408,7 @@ export class DocManager {
   };
 
   onKeyDown = (ev: MinimalKeyboardEvent) => {
-    if (this.mode === Mode.Normal && ev.key === ";" && hasAltLike(ev)) {
-      this.focus = flipUnevenPathRange(this.focus);
-      this.onUpdate();
-    } else if (
+    if (
       this.mode === Mode.Normal &&
       ev.key.toLowerCase() === "h" &&
       hasAltLike(ev)
