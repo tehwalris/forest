@@ -228,11 +228,15 @@ export class DocManager {
       } else if (ev.key === "l") {
         this.tryMoveThroughLeaves(1, false);
       } else if (ev.key === "L") {
+        this.flipFocusForward();
         this.tryMoveThroughLeaves(1, true);
+        this.flipFocusBackward();
       } else if (ev.key === "h") {
         this.tryMoveThroughLeaves(-1, false);
       } else if (ev.key === "H") {
+        this.flipFocusBackward();
         this.tryMoveThroughLeaves(-1, true);
+        this.flipFocusForward();
       } else if (ev.key === "k") {
         this.tryMoveOutOfList();
       } else if (ev.key === "K") {
@@ -504,7 +508,7 @@ export class DocManager {
 
             finalStuff();
             // HACK this has to happen after onUpdate (which is in finalStuff), because that clears focusHistory
-            this.focusHistory.push(mappedOldFocus)
+            this.focusHistory.push(mappedOldFocus);
             return;
           }
         } catch (err) {
@@ -689,6 +693,18 @@ export class DocManager {
       anchor: nodeTryGetDeepestByPath(this.doc.root, this.focus.anchor).path,
       tip: nodeTryGetDeepestByPath(this.doc.root, this.focus.tip).path,
     };
+  }
+
+  private flipFocusForward() {
+    if (asEvenPathRange(this.focus).offset < 0) {
+      this.focus = flipUnevenPathRange(this.focus);
+    }
+  }
+
+  private flipFocusBackward() {
+    if (asEvenPathRange(this.focus).offset > 0) {
+      this.focus = flipUnevenPathRange(this.focus);
+    }
   }
 
   private removeInvisibleNodes() {
