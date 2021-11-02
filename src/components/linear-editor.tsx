@@ -267,6 +267,15 @@ export const LinearEditor = ({ initialDoc }: Props) => {
         )}
       </div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
+      <pre>
+        {JSON.stringify(
+          {
+            focus,
+          },
+          null,
+          2,
+        )}
+      </pre>
     </div>
   );
 };
