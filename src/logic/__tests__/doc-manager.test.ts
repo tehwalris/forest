@@ -467,6 +467,20 @@ describe("DocManager", () => {
       ],
       expectedText: "type X = Y",
     },
+    {
+      label:
+        "paste ExpressionStatement into Expression location (one of multiple statements)",
+      initialText: "f(x); g(x)",
+      events: [evSemi, ...eventsFromKeys("c"), evSemi, ...eventsFromKeys("jp")],
+      expectedText: "f(x); g(g(x))",
+    },
+    {
+      label:
+        "paste ExpressionStatement into Expression location (at root of file)",
+      initialText: "f(x)",
+      events: [...eventsFromKeys("c"), evSemi, ...eventsFromKeys("jp")],
+      expectedText: "f(f(x))",
+    },
   ];
 
   for (const c of cases) {

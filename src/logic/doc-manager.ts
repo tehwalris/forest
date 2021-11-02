@@ -285,6 +285,13 @@ export class DocManager {
         }
         if (
           this.clipboard?.kind === NodeKind.List &&
+          this.clipboard.listKind === ListKind.File &&
+          this.clipboard.content.length === 1
+        ) {
+          this.clipboard = this.clipboard.content[0];
+        }
+        if (
+          this.clipboard?.kind === NodeKind.List &&
           this.clipboard.listKind === ListKind.TsNodeStruct &&
           this.clipboard.tsNode?.kind === ts.SyntaxKind.ExpressionStatement
         ) {
