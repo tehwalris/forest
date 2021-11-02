@@ -409,6 +409,15 @@ export class DocManager {
       (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
       ev.key === "Escape"
     ) {
+      const finalStuff = () => {
+        this.mode = Mode.Normal;
+        this.insertHistory = [];
+        this.parentFocuses = [];
+        this.insertState = undefined;
+        this.removeInvisibleNodes();
+        this.onUpdate();
+      };
+
       if (!this.insertState) {
         throw new Error("this.insertState was undefined in insert mode");
       }
@@ -478,19 +487,25 @@ export class DocManager {
 
           this.doc = { ...docWithInsert, root: placeholderRemoval.node };
 
+          const mapPath = (p: Path) =>
+            placeholderRemoval.pathMapper.mapRough(
+              checkedInsertion.pathMapper.mapRough(
+                initialPlaceholderInsertion.mapOldToWithoutAdjacent(p),
+              ),
+            );
+          const mappedOldFocus = {
+            anchor: mapPath(this.focus.anchor),
+            tip: mapPath(this.focus.tip),
+          };
+          this.focus = mappedOldFocus;
+
           if (checkedInsertion.insertedRange) {
             this.focus = checkedInsertion.insertedRange;
-          } else {
-            const mapPath = (p: Path) =>
-              placeholderRemoval.pathMapper.mapRough(
-                checkedInsertion.pathMapper.mapRough(
-                  initialPlaceholderInsertion.mapOldToWithoutAdjacent(p),
-                ),
-              );
-            this.focus = {
-              anchor: mapPath(this.focus.anchor),
-              tip: mapPath(this.focus.tip),
-            };
+
+            finalStuff();
+            // HACK this has to happen after onUpdate (which is in finalStuff), because that clears focusHistory
+            this.focusHistory.push(mappedOldFocus)
+            return;
           }
         } catch (err) {
           console.warn("insertion would make doc invalid", err);
@@ -498,12 +513,7 @@ export class DocManager {
         }
       }
 
-      this.mode = Mode.Normal;
-      this.insertHistory = [];
-      this.parentFocuses = [];
-      this.insertState = undefined;
-      this.removeInvisibleNodes();
-      this.onUpdate();
+      finalStuff();
     } else if (
       (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
       ev.key === "Backspace"
