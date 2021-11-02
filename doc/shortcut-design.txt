@@ -153,8 +153,37 @@
     - go to top of file: (no fixed shortcut)
       - press k until it does nothing anymore
     - go to nearest parent which is an array literal: shift-j [
-    - reduce selection to first item: alt-h d
-    - reduce selection to last item: alt-l d
+    - reduce selection to first item: alt-h
+    - reduce selection to last item: alt-l
+    - add argument to function call with no arguments: shift-j ( j a
+    - append argument to function call with some arguments: shift-j ( j a
+    - get to arguments of call within arrow function: alt-l shift-j ( j
+- alternative 6
+  - shortcuts
+    - d: delete
+    - c: copy selection
+    - p: replace selection with paste buffer
+    - i/a: insert before/after selection
+    - h/l: left/right between leaves
+    - shift-h/shift-l: add leaves from left/right until selection expands
+    - alt-h/alt-l: reduce selection to left/right item (enter delimited list first if necessary)
+    - j: enter first delimited list in selection
+    - shift-j <delimiter>: reduce selection to first delimited list with specific delimiter
+    + shift-j j: reduce selection to the contents of the first delimited list
+    + shift-j k: reduce selection to the the first delimited list
+    - k: select nearest parent
+    - shift-k <delimiter>: select nearest parent which is a delimited list with specific delimiter
+    + shift-k k: select nearest parent which is a delimited list
+    + shift-k j: select the contents of the nearest parent which is a delimited list
+    - alt-semicolon: flip selection
+  - combos
+    - delete first in current delimited list: shift-k j/k alt-h d
+    - delete last in current delimited list: shift-k j/k alt-l d
+    - go to top of file: (no fixed shortcut)
+      - press k until it does nothing anymore
+    - go to nearest parent which is an array literal: shift-j [
+    - reduce selection to first item: alt-h
+    - reduce selection to last item: alt-l
     - add argument to function call with no arguments: shift-j ( j a
     - append argument to function call with some arguments: shift-j ( j a
     - get to arguments of call within arrow function: alt-l shift-j ( j
