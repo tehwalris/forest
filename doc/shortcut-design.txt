@@ -1,0 +1,31 @@
+- current
+  - shortcuts
+    - d: delete
+    - c: copy selection
+    - p: replace selection with paste buffer
+    - i/a: insert before/after selection
+    - enter: insert into empty delimited list
+    - h/l: left/right between leaves
+    - shift-h/shift-l: add leaves from left/right until selection expands
+    - j: enter delimited list (only when selection is exactly delimited list)
+    - k: select nearest parent which is a delimited list
+    - shift-k: select nearest parent which is not a delimited list
+    - semicolon: reduce selection to tip
+    - alt-semicolon: flip selection
+  - combos
+    - delete first in current delimited list: k j alt-semicolon semicolon d
+    - delete last in current delimited list: k j semicolon d
+    - go to top of file: (no fixed shortcut)
+      - press k until it does nothing anymore
+      - press shift-k until it does nothing anymore
+    - go to nearest parent which is an array literal: (no fixed shortcut)
+      - press k until an array literal is selected
+    - reduce selection to first item: (no fixed shortcut)
+      - press alt-semicolon if selection is facing the wrong way
+      - press semicolon
+    - reduce selection to last item: (no fixed shortcut)
+      - press alt-semicolon if selection is facing the wrong way
+      - press semicolon
+    - add argument to function call with no arguments: semicolon enter
+    - append argument to function call with some arguments: semicolon j a
+    - get to arguments of call within arrow function: semicolon semicolon j
