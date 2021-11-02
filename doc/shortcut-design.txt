@@ -230,6 +230,7 @@
     - <closing delimiter>: select nearest parent which is a delimited list with specific delimiter
     - shift-k: select nearest parent which is a delimited list
     + z: undo selection change
+    + shift-z: redo selection change
   - combos
     - delete first in current delimited list: shift-k alt-h d
     - delete last in current delimited list: shift-k alt-l d
