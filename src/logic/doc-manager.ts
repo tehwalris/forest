@@ -232,13 +232,13 @@ export class DocManager {
               : [...forwardFocus.anchor.slice(0, -1), newFocusIndex],
           offset: 0,
         });
-      } else if (ev.key === "l") {
+      } else if (ev.key === "l" && !hasAltLike(ev)) {
         this.tryMoveThroughLeaves(1, false);
       } else if (ev.key === "L") {
         this.flipFocusForward();
         this.tryMoveThroughLeaves(1, true);
         this.flipFocusBackward();
-      } else if (ev.key === "h") {
+      } else if (ev.key === "h" && !hasAltLike(ev)) {
         this.tryMoveThroughLeaves(-1, false);
       } else if (ev.key === "H") {
         this.flipFocusBackward();
@@ -415,6 +415,28 @@ export class DocManager {
   onKeyDown = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal && ev.key === ";" && hasAltLike(ev)) {
       this.focus = flipUnevenPathRange(this.focus);
+      this.onUpdate();
+    } else if (
+      this.mode === Mode.Normal &&
+      ev.key.toLowerCase() === "h" &&
+      hasAltLike(ev)
+    ) {
+      ev.preventDefault?.();
+      this.focus = asUnevenPathRange({
+        anchor: this.getFocusSkippingDelimitedLists().anchor,
+        offset: 0,
+      });
+      this.onUpdate();
+    } else if (
+      this.mode === Mode.Normal &&
+      ev.key.toLowerCase() === "l" &&
+      hasAltLike(ev)
+    ) {
+      ev.preventDefault?.();
+      this.focus = asUnevenPathRange({
+        anchor: getPathToTip(this.getFocusSkippingDelimitedLists()),
+        offset: 0,
+      });
       this.onUpdate();
     } else if (
       (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
@@ -611,6 +633,27 @@ export class DocManager {
 
     this.focus = asUnevenPathRange(evenFocus);
     return;
+  }
+
+  private getFocusSkippingDelimitedLists(): EvenPathRange {
+    let evenFocus = asEvenPathRange(this.focus);
+    if (evenFocus.offset < 0) {
+      evenFocus = flipEvenPathRange(evenFocus);
+    }
+    while (!evenFocus.offset) {
+      const focusedNode = nodeGetByPath(this.doc.root, evenFocus.anchor);
+      if (!focusedNode) {
+        throw new Error("invalid focus");
+      }
+      if (focusedNode.kind !== NodeKind.List) {
+        break;
+      }
+      evenFocus = {
+        anchor: [...evenFocus.anchor, 0],
+        offset: focusedNode.content.length - 1,
+      };
+    }
+    return evenFocus;
   }
 
   private tryMoveThroughLeaves(offset: -1 | 1, extend: boolean) {
