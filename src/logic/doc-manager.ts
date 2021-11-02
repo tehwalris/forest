@@ -68,8 +68,15 @@ export const initialDocManagerPublicState: DocManagerPublicState = {
 export interface MinimalKeyboardEvent {
   key: string;
   altKey?: boolean;
+  metaKey?: boolean;
   preventDefault?: () => void;
   stopPropagation?: () => void;
+}
+
+function hasAltLike(
+  ev: MinimalKeyboardEvent,
+): ev is MinimalKeyboardEvent & ({ altKey: true } | { metaKey: true }) {
+  return !!ev.altKey || !!ev.metaKey;
 }
 
 export class DocManager {
@@ -406,7 +413,7 @@ export class DocManager {
   };
 
   onKeyDown = (ev: MinimalKeyboardEvent) => {
-    if (this.mode === Mode.Normal && ev.key === ";" && ev.altKey) {
+    if (this.mode === Mode.Normal && ev.key === ";" && hasAltLike(ev)) {
       this.focus = flipUnevenPathRange(this.focus);
       this.onUpdate();
     } else if (

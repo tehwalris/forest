@@ -242,3 +242,19 @@
     - add argument to function call with no arguments: ( a
     - append argument to function call with some arguments: ( a
     - get to arguments of call within arrow function: alt-l (
+
+    x d: delete
+    x c: copy selection
+    x p: replace selection with paste buffer
+    x i/a: insert before/after selection
+    x h/l: left/right between leaves
+    x shift-h/shift-l: add leaves from the left/right to selection until it expands
+    - alt-h/alt-l: reduce selection to left/right item (enter delimited list first if necessary)
+    - j: enter first delimited list in selection
+    - <opening delimiter>: reduce selection to contents of first delimited list with specific delimiter (creates placeholder if necessary)
+    - shift-j: reduce selection to contents of first delimited list (creates placeholder if necessary)
+    - k: select nearest parent
+    - <closing delimiter>: select nearest parent which is a delimited list with specific delimiter
+    - shift-k: select nearest parent which is a delimited list
+    x z: undo selection change
+    x shift-z: redo selection change
