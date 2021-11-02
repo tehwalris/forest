@@ -25,6 +25,7 @@ import { acceptPasteReplace, acceptPasteRoot } from "./paste";
 import {
   asEvenPathRange,
   asUnevenPathRange,
+  evenPathRangesAreEqual,
   flipEvenPathRange,
   flipUnevenPathRange,
   getPathToTip,
@@ -75,12 +76,14 @@ export class DocManager {
   public readonly initialDoc: Doc;
   private focus: UnevenPathRange = { anchor: [], tip: [] };
   private parentFocuses: EvenPathRange[] = [];
-  private history: {
+  private insertHistory: {
     doc: Doc;
     focus: UnevenPathRange;
     parentFocuses: EvenPathRange[];
     insertState: InsertState;
   }[] = [];
+  private focusHistory: UnevenPathRange[] = [];
+  private focusRedoHistory: UnevenPathRange[] = [];
   private mode = Mode.Normal;
   private lastMode = this.mode;
   private lastDoc = emptyDoc;
@@ -102,7 +105,7 @@ export class DocManager {
       throw new Error("forceUpdate can only be called in normal mode");
     }
     this.onUpdate();
-    this.history = [];
+    this.insertHistory = [];
   }
 
   disableUpdates() {
@@ -348,6 +351,36 @@ export class DocManager {
           tipPath,
           insertState: this.insertState,
         });
+      } else if (ev.key === "z") {
+        while (this.focusHistory.length) {
+          const oldFocus = this.focusHistory.pop()!;
+          if (
+            evenPathRangesAreEqual(
+              asEvenPathRange(oldFocus),
+              asEvenPathRange(this.focus),
+            )
+          ) {
+            continue;
+          }
+          this.focusRedoHistory.push(this.focus);
+          this.focus = oldFocus;
+          break;
+        }
+      } else if (ev.key === "Z") {
+        while (this.focusRedoHistory.length) {
+          const oldFocus = this.focusRedoHistory.pop()!;
+          if (
+            evenPathRangesAreEqual(
+              asEvenPathRange(oldFocus),
+              asEvenPathRange(this.focus),
+            )
+          ) {
+            continue;
+          }
+          this.focusHistory.push(this.focus);
+          this.focus = oldFocus;
+          break;
+        }
       }
     } else if (
       this.mode === Mode.InsertBefore ||
@@ -380,7 +413,7 @@ export class DocManager {
         throw new Error("this.insertState was undefined in insert mode");
       }
 
-      if (this.history.length > 1) {
+      if (this.insertHistory.length > 1) {
         try {
           const initialPlaceholderInsertion =
             getDocWithoutPlaceholdersNearCursor(
@@ -466,7 +499,7 @@ export class DocManager {
       }
 
       this.mode = Mode.Normal;
-      this.history = [];
+      this.insertHistory = [];
       this.parentFocuses = [];
       this.insertState = undefined;
       this.removeInvisibleNodes();
@@ -475,11 +508,11 @@ export class DocManager {
       (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
       ev.key === "Backspace"
     ) {
-      if (this.history.length < 2) {
+      if (this.insertHistory.length < 2) {
         return;
       }
-      this.history.pop();
-      const old = this.history.pop()!;
+      this.insertHistory.pop();
+      const old = this.insertHistory.pop()!;
       this.doc = old.doc;
       this.focus = old.focus;
       this.parentFocuses = old.parentFocuses;
@@ -583,9 +616,9 @@ export class DocManager {
         throw new Error("this.insertState was undefined in insert mode");
       }
       if (this.lastMode !== this.mode) {
-        this.history = [];
+        this.insertHistory = [];
       }
-      this.history.push({
+      this.insertHistory.push({
         doc: this.doc,
         focus: this.focus,
         parentFocuses: [...this.parentFocuses],
@@ -596,6 +629,18 @@ export class DocManager {
 
     if (docChanged) {
       this.updateDocText();
+      this.focusHistory = [];
+      this.focusRedoHistory = [];
+    }
+
+    if (
+      !this.focusHistory.length ||
+      !evenPathRangesAreEqual(
+        asEvenPathRange(this.focusHistory[this.focusHistory.length - 1]),
+        asEvenPathRange(this.focus),
+      )
+    ) {
+      this.focusHistory.push(this.focus);
     }
 
     this.reportUpdate();
