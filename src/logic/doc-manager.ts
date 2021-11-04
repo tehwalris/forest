@@ -266,7 +266,7 @@ export class DocManager {
         const nonDelimitedParentFocus = this.focus;
         this.focus = oldFocus;
 
-        this.tryMoveOutOfList();
+        this.tryMoveOutOfList(() => true);
         const delimitedParentFocus = this.focus;
         this.focus = oldFocus;
 
@@ -277,9 +277,13 @@ export class DocManager {
             : delimitedParentFocus;
         this.focus = deeperFocus;
       } else if (ev.key === "K") {
-        this.tryMoveOutOfList();
+        this.tryMoveOutOfList(() => true);
+      } else if ([")", "]", "}", ">"].includes(ev.key)) {
+        this.tryMoveOutOfList((node) => node.delimiters[1] === ev.key);
       } else if (ev.key === "j") {
         this.tryMoveIntoList(() => true);
+      } else if (["(", "[", "{", "<"].includes(ev.key)) {
+        this.tryMoveIntoList((node) => node.delimiters[0] === ev.key);
       } else if (ev.key === " ") {
         ev.preventDefault?.();
         if (this.enableReduceToTip) {
@@ -612,7 +616,7 @@ export class DocManager {
     }
   };
 
-  private tryMoveOutOfList() {
+  private tryMoveOutOfList(isMatch: (node: ListNode) => boolean) {
     let evenFocus = asEvenPathRange(this.focus);
     while (evenFocus.anchor.length >= 2) {
       evenFocus = {
@@ -622,7 +626,8 @@ export class DocManager {
       const focusedNode = nodeGetByPath(this.doc.root, evenFocus.anchor);
       if (
         focusedNode?.kind === NodeKind.List &&
-        !focusedNode.equivalentToContent
+        !focusedNode.equivalentToContent &&
+        isMatch(focusedNode)
       ) {
         this.focus = asUnevenPathRange(evenFocus);
         return;
