@@ -481,6 +481,15 @@ describe("DocManager", () => {
       events: [...eventsFromKeys("c"), evSemi, ...eventsFromKeys("jp")],
       expectedText: "f(f(x))",
     },
+    {
+      label: "delete value of property that is named with a reserved word",
+      initialText: `const shortcuts = { delete: "space d" };`,
+      events: [
+        /* TODO */
+      ],
+      expectedText: `const shortcuts = { delete: placeholder };`,
+      skip: true,
+    },
   ];
 
   for (const c of cases) {
