@@ -81,18 +81,25 @@ function hasAltLike(
   return !!ev.altKey || !!ev.metaKey;
 }
 
+interface InsertHistoryEntry {
+  doc: Doc;
+  focus: UnevenPathRange;
+  parentFocuses: EvenPathRange[];
+  insertState: InsertState;
+}
+
+interface FocusHistoryEntry {
+  focus: UnevenPathRange;
+  enableReduceToTip: boolean;
+}
+
 export class DocManager {
   public readonly initialDoc: Doc;
   private focus: UnevenPathRange = { anchor: [], tip: [] };
   private parentFocuses: EvenPathRange[] = [];
-  private insertHistory: {
-    doc: Doc;
-    focus: UnevenPathRange;
-    parentFocuses: EvenPathRange[];
-    insertState: InsertState;
-  }[] = [];
-  private focusHistory: UnevenPathRange[] = [];
-  private focusRedoHistory: UnevenPathRange[] = [];
+  private insertHistory: InsertHistoryEntry[] = [];
+  private focusHistory: FocusHistoryEntry[] = [];
+  private focusRedoHistory: FocusHistoryEntry[] = [];
   private mode = Mode.Normal;
   private lastMode = this.mode;
   private lastDoc = emptyDoc;
@@ -372,32 +379,40 @@ export class DocManager {
         });
       } else if (ev.key === "z") {
         while (this.focusHistory.length) {
-          const oldFocus = this.focusHistory.pop()!;
+          const historyEntry = this.focusHistory.pop()!;
           if (
             evenPathRangesAreEqual(
-              asEvenPathRange(oldFocus),
+              asEvenPathRange(historyEntry.focus),
               asEvenPathRange(this.focus),
             )
           ) {
             continue;
           }
-          this.focusRedoHistory.push(this.focus);
-          this.focus = oldFocus;
+          this.focusRedoHistory.push({
+            focus: this.focus,
+            enableReduceToTip: this.enableReduceToTip,
+          });
+          this.focus = historyEntry.focus;
+          this.nextEnableReduceToTip = historyEntry.enableReduceToTip;
           break;
         }
       } else if (ev.key === "Z") {
         while (this.focusRedoHistory.length) {
-          const oldFocus = this.focusRedoHistory.pop()!;
+          const historyEntry = this.focusRedoHistory.pop()!;
           if (
             evenPathRangesAreEqual(
-              asEvenPathRange(oldFocus),
+              asEvenPathRange(historyEntry.focus),
               asEvenPathRange(this.focus),
             )
           ) {
             continue;
           }
-          this.focusHistory.push(this.focus);
-          this.focus = oldFocus;
+          this.focusHistory.push({
+            focus: this.focus,
+            enableReduceToTip: this.enableReduceToTip,
+          });
+          this.focus = historyEntry.focus;
+          this.nextEnableReduceToTip = historyEntry.enableReduceToTip;
           break;
         }
       }
@@ -542,7 +557,10 @@ export class DocManager {
 
             finalStuff();
             // HACK this has to happen after onUpdate (which is in finalStuff), because that clears focusHistory
-            this.focusHistory.push(mappedOldFocus);
+            this.focusHistory.push({
+              focus: mappedOldFocus,
+              enableReduceToTip: this.enableReduceToTip,
+            });
             return;
           }
         } catch (err) {
@@ -705,11 +723,14 @@ export class DocManager {
     if (
       !this.focusHistory.length ||
       !evenPathRangesAreEqual(
-        asEvenPathRange(this.focusHistory[this.focusHistory.length - 1]),
+        asEvenPathRange(this.focusHistory[this.focusHistory.length - 1].focus),
         asEvenPathRange(this.focus),
       )
     ) {
-      this.focusHistory.push(this.focus);
+      this.focusHistory.push({
+        focus: this.focus,
+        enableReduceToTip: this.enableReduceToTip,
+      });
     }
 
     if (this.nextEnableReduceToTip || this.focus !== this.lastFocus) {
