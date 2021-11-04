@@ -826,7 +826,10 @@ export class DocManager {
     if (this.mode === Mode.Normal && docChanged) {
       this.removeInvisibleNodes();
     }
+
+    this.focus = asUnevenPathRange(asEvenPathRange(this.focus));
     this.normalizeFocusIn();
+
     if (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) {
       if (!this.insertState) {
         throw new Error("this.insertState was undefined in insert mode");
