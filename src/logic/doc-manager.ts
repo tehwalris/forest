@@ -74,6 +74,7 @@ export interface MinimalKeyboardEvent {
   key: string;
   altKey?: boolean;
   metaKey?: boolean;
+  ctrlKey?: boolean;
   preventDefault?: () => void;
   stopPropagation?: () => void;
 }
@@ -205,13 +206,13 @@ export class DocManager {
         });
       } else if (ev.key === "l" && !hasAltLike(ev)) {
         this.tryMoveThroughLeaves(1, false);
-      } else if (ev.key === "L") {
+      } else if (ev.key === "L" && !ev.ctrlKey) {
         this.flipFocusForward();
         this.tryMoveThroughLeaves(1, true);
         this.nextEnableReduceToTip = true;
       } else if (ev.key === "h" && !hasAltLike(ev)) {
         this.tryMoveThroughLeaves(-1, false);
-      } else if (ev.key === "H") {
+      } else if (ev.key === "H" && !ev.ctrlKey) {
         this.flipFocusBackward();
         this.tryMoveThroughLeaves(-1, true);
         this.nextEnableReduceToTip = true;
@@ -465,6 +466,14 @@ export class DocManager {
         });
         this.onUpdate();
       }
+    } else if (this.mode === Mode.Normal && ev.key === "H" && ev.ctrlKey) {
+      ev.preventDefault?.();
+      if (asEvenPathRange(this.focus).offset !== 0) {
+        this.flipFocusForward();
+        this.tryMoveThroughLeaves(-1, true);
+        this.nextEnableReduceToTip = true;
+      }
+      this.onUpdate();
     } else if (
       this.mode === Mode.Normal &&
       ev.key.toLowerCase() === "l" &&
@@ -478,6 +487,14 @@ export class DocManager {
         });
         this.onUpdate();
       }
+    } else if (this.mode === Mode.Normal && ev.key === "L" && ev.ctrlKey) {
+      ev.preventDefault?.();
+      if (asEvenPathRange(this.focus).offset !== 0) {
+        this.flipFocusBackward();
+        this.tryMoveThroughLeaves(1, true);
+        this.nextEnableReduceToTip = true;
+      }
+      this.onUpdate();
     } else if (
       (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
       ev.key === "Escape"
