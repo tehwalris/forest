@@ -237,19 +237,23 @@ export class DocManager {
       } else if (ev.key === "L") {
         this.flipFocusForward();
         this.tryMoveThroughLeaves(1, true);
-        this.flipFocusBackward();
       } else if (ev.key === "h" && !hasAltLike(ev)) {
         this.tryMoveThroughLeaves(-1, false);
       } else if (ev.key === "H") {
         this.flipFocusBackward();
         this.tryMoveThroughLeaves(-1, true);
-        this.flipFocusForward();
       } else if (ev.key === "k") {
         this.tryMoveOutOfList();
       } else if (ev.key === "K") {
         this.tryMoveToParent();
       } else if (ev.key === "j") {
         this.tryMoveIntoList();
+      } else if (ev.key === " ") {
+        ev.preventDefault?.();
+        this.focus = asUnevenPathRange({
+          anchor: getPathToTip(asEvenPathRange(this.focus)),
+          offset: 0,
+        });
       } else if (ev.key === "c") {
         const evenFocus = asEvenPathRange(
           whileUnevenFocusChanges(this.focus, (focus) =>

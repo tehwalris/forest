@@ -250,7 +250,8 @@
     x h/l: left/right between leaves
     x shift-h/shift-l: add leaves from the left/right to selection until it expands
     - ctrl-shift-h/ctrl-shift-l: remove leaves from the left/right of the selection until it shrinks
-    - alt-h/alt-l: reduce selection to left/right item (enter delimited list first if necessary)
+    x space: reduce selection to tip
+    x alt-h/alt-l: reduce selection to left/right item (enter delimited list first if necessary)
     - j: enter first delimited list in selection
     - <opening delimiter>: reduce selection to contents of first delimited list with specific delimiter (creates placeholder if necessary)
     - shift-j: reduce selection to contents of first delimited list (creates placeholder if necessary)
