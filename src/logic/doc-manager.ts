@@ -136,69 +136,25 @@ export class DocManager {
 
   onKeyPress = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal) {
-      if (ev.key === "Enter") {
-        const evenFocus = asEvenPathRange(this.focus);
-        if (evenFocus.offset !== 0) {
-          return;
+      if (ev.key === "i") {
+        if (this.isFocusOnEmptyListContent()) {
+          this.tryMoveOutOfList(() => true);
+          this.tryInsertIntoEmptyList();
+        } else {
+          this.tryInsertBefore();
         }
-        const focusedNode = nodeGetByPath(this.doc.root, evenFocus.anchor);
-        if (focusedNode?.kind !== NodeKind.List || focusedNode.content.length) {
-          return;
-        }
-        this.insertState = {
-          beforePos: focusedNode.pos + focusedNode.delimiters[0].length,
-          beforePath: [...evenFocus.anchor, 0],
-          text: "",
-        };
-        this.mode = Mode.InsertAfter;
-      } else if (ev.key === "i") {
-        let evenFocus = asEvenPathRange(this.focus);
-        if (!evenFocus.anchor.length) {
-          return;
-        }
-        if (evenFocus.offset < 0) {
-          evenFocus = flipEvenPathRange(evenFocus);
-        }
-        const firstFocusedPath = evenFocus.anchor;
-        evenFocus = flipEvenPathRange(evenFocus);
-        this.focus = asUnevenPathRange(evenFocus);
-
-        const firstFocusedNode = nodeGetByPath(this.doc.root, firstFocusedPath);
-        if (!firstFocusedNode) {
-          throw new Error("invalid focus");
-        }
-        this.insertState = {
-          beforePos: firstFocusedNode.pos,
-          beforePath: firstFocusedPath,
-          text: "",
-        };
-        this.mode = Mode.InsertBefore;
       } else if (ev.key === "a") {
-        let evenFocus = asEvenPathRange(this.focus);
-        if (!evenFocus.anchor.length) {
+        if (this.isFocusOnEmptyListContent()) {
+          this.tryMoveOutOfList(() => true);
+          this.tryInsertIntoEmptyList();
+        } else {
+          this.tryInsertAfter();
+        }
+      } else if (ev.key === "d") {
+        if (this.isFocusOnEmptyListContent()) {
           return;
         }
-        if (evenFocus.offset > 0) {
-          evenFocus = flipEvenPathRange(evenFocus);
-        }
-        const lastFocusedPath = evenFocus.anchor;
-        evenFocus = flipEvenPathRange(evenFocus);
-        this.focus = asUnevenPathRange(evenFocus);
 
-        const lastFocusedNode = nodeGetByPath(this.doc.root, lastFocusedPath);
-        if (!lastFocusedNode) {
-          throw new Error("invalid focus");
-        }
-        this.insertState = {
-          beforePos: lastFocusedNode.end,
-          beforePath: [
-            ...lastFocusedPath.slice(0, -1),
-            lastFocusedPath[lastFocusedPath.length - 1] + 1,
-          ],
-          text: "",
-        };
-        this.mode = Mode.InsertAfter;
-      } else if (ev.key === "d") {
         const evenFocus = asEvenPathRange(this.focus);
         let forwardFocus =
           evenFocus.offset < 0 ? flipEvenPathRange(evenFocus) : evenFocus;
@@ -260,6 +216,12 @@ export class DocManager {
         this.tryMoveThroughLeaves(-1, true);
         this.nextEnableReduceToTip = true;
       } else if (ev.key === "k") {
+        if (this.isFocusOnEmptyListContent()) {
+          this.tryMoveOutOfList(() => true);
+          this.onUpdate();
+          return;
+        }
+
         const oldFocus = this.focus;
 
         this.tryMoveToParent();
@@ -307,6 +269,10 @@ export class DocManager {
           });
         }
       } else if (ev.key === "c") {
+        if (this.isFocusOnEmptyListContent()) {
+          return;
+        }
+
         const evenFocus = asEvenPathRange(
           whileUnevenFocusChanges(this.focus, (focus) =>
             normalizeFocusOutOnce(this.doc.root, focus),
@@ -380,9 +346,23 @@ export class DocManager {
         }
         if (evenFocus.anchor.length) {
           const parentPath = evenFocus.anchor.slice(0, -1);
-          const oldParentNode = nodeGetByPath(this.doc.root, parentPath);
+          let oldParentNode = nodeGetByPath(this.doc.root, parentPath);
           if (oldParentNode?.kind !== NodeKind.List) {
             throw new Error("expected parent to exist and be a list");
+          }
+          if (this.isFocusOnEmptyListContent()) {
+            oldParentNode = {
+              ...oldParentNode,
+              content: [
+                {
+                  kind: NodeKind.Token,
+                  pos: -1,
+                  end: -1,
+                  isPlaceholder: true,
+                  tsNode: ts.factory.createIdentifier("placeholder"),
+                },
+              ],
+            };
           }
           const firstIndex = evenFocus.anchor[evenFocus.anchor.length - 1];
           const newParentNode = acceptPasteReplace({
@@ -478,22 +458,26 @@ export class DocManager {
       hasAltLike(ev)
     ) {
       ev.preventDefault?.();
-      this.focus = asUnevenPathRange({
-        anchor: this.getFocusSkippingDelimitedLists().anchor,
-        offset: 0,
-      });
-      this.onUpdate();
+      if (!this.isFocusOnEmptyListContent()) {
+        this.focus = asUnevenPathRange({
+          anchor: this.getFocusSkippingDelimitedLists().anchor,
+          offset: 0,
+        });
+        this.onUpdate();
+      }
     } else if (
       this.mode === Mode.Normal &&
       ev.key.toLowerCase() === "l" &&
       hasAltLike(ev)
     ) {
       ev.preventDefault?.();
-      this.focus = asUnevenPathRange({
-        anchor: getPathToTip(this.getFocusSkippingDelimitedLists()),
-        offset: 0,
-      });
-      this.onUpdate();
+      if (!this.isFocusOnEmptyListContent()) {
+        this.focus = asUnevenPathRange({
+          anchor: getPathToTip(this.getFocusSkippingDelimitedLists()),
+          offset: 0,
+        });
+        this.onUpdate();
+      }
     } else if (
       (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
       ev.key === "Escape"
@@ -675,13 +659,9 @@ export class DocManager {
     if (listNode?.kind !== NodeKind.List) {
       throw new Error("unreachable");
     }
-    if (!listNode.content.length) {
-      // TODO allow entering empty lists
-      return;
-    }
     this.focus = asUnevenPathRange({
       anchor: [...listPath, 0],
-      offset: listNode.content.length - 1,
+      offset: Math.max(0, listNode.content.length - 1),
     });
   }
 
@@ -743,9 +723,101 @@ export class DocManager {
   }
 
   private normalizeFocusIn() {
+    if (this.isFocusOnEmptyListContent()) {
+      return;
+    }
     this.focus = whileUnevenFocusChanges(this.focus, (focus) =>
       normalizeFocusInOnce(this.doc.root, focus),
     );
+  }
+
+  private isFocusOnEmptyListContent(): boolean {
+    const evenFocus = asEvenPathRange(this.focus);
+
+    if (!evenFocus.anchor.length) {
+      return false;
+    }
+    const parentNode = nodeGetByPath(
+      this.doc.root,
+      evenFocus.anchor.slice(0, -1),
+    );
+    if (!parentNode) {
+      throw new Error("invalid focus");
+    }
+    return (
+      parentNode.kind === NodeKind.List &&
+      !parentNode.content.length &&
+      evenFocus.anchor[evenFocus.anchor.length - 1] === 0 &&
+      evenFocus.offset === 0
+    );
+  }
+
+  private tryInsertIntoEmptyList() {
+    const evenFocus = asEvenPathRange(this.focus);
+    if (evenFocus.offset !== 0) {
+      return;
+    }
+    const focusedNode = nodeGetByPath(this.doc.root, evenFocus.anchor);
+    if (focusedNode?.kind !== NodeKind.List || focusedNode.content.length) {
+      return;
+    }
+    this.insertState = {
+      beforePos: focusedNode.pos + focusedNode.delimiters[0].length,
+      beforePath: [...evenFocus.anchor, 0],
+      text: "",
+    };
+    this.mode = Mode.InsertAfter;
+  }
+
+  private tryInsertBefore() {
+    let evenFocus = asEvenPathRange(this.focus);
+    if (!evenFocus.anchor.length) {
+      return;
+    }
+    if (evenFocus.offset < 0) {
+      evenFocus = flipEvenPathRange(evenFocus);
+    }
+    const firstFocusedPath = evenFocus.anchor;
+    evenFocus = flipEvenPathRange(evenFocus);
+    this.focus = asUnevenPathRange(evenFocus);
+
+    const firstFocusedNode = nodeGetByPath(this.doc.root, firstFocusedPath);
+    if (!firstFocusedNode) {
+      throw new Error("invalid focus");
+    }
+    this.insertState = {
+      beforePos: firstFocusedNode.pos,
+      beforePath: firstFocusedPath,
+      text: "",
+    };
+    this.mode = Mode.InsertBefore;
+  }
+
+  private tryInsertAfter() {
+    let evenFocus = asEvenPathRange(this.focus);
+    if (!evenFocus.anchor.length) {
+      return;
+    }
+    if (evenFocus.offset > 0) {
+      evenFocus = flipEvenPathRange(evenFocus);
+    }
+    const lastFocusedPath = evenFocus.anchor;
+    evenFocus = flipEvenPathRange(evenFocus);
+    this.focus = asUnevenPathRange(evenFocus);
+
+    const lastFocusedNode = nodeGetByPath(this.doc.root, lastFocusedPath);
+    if (!lastFocusedNode) {
+      throw new Error("invalid focus");
+    }
+    this.insertState = {
+      beforePos: lastFocusedNode.end,
+      beforePath: [
+        ...lastFocusedPath.slice(0, -1),
+        lastFocusedPath[lastFocusedPath.length - 1] + 1,
+      ],
+      text: "",
+    };
+    this.mode = Mode.InsertAfter;
   }
 
   private onUpdate() {
