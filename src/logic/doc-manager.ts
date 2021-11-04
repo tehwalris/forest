@@ -270,12 +270,26 @@ export class DocManager {
         const delimitedParentFocus = this.focus;
         this.focus = oldFocus;
 
-        const deeperFocus =
+        const choiceBoolean =
           asEvenPathRange(nonDelimitedParentFocus).anchor.length >
-          asEvenPathRange(delimitedParentFocus).anchor.length
-            ? nonDelimitedParentFocus
-            : delimitedParentFocus;
-        this.focus = deeperFocus;
+          asEvenPathRange(delimitedParentFocus).anchor.length;
+        const chosenFocus = choiceBoolean
+          ? nonDelimitedParentFocus
+          : delimitedParentFocus;
+        const nonChosenFocus = choiceBoolean
+          ? delimitedParentFocus
+          : nonDelimitedParentFocus;
+
+        this.focus = chosenFocus;
+        this.normalizeFocusIn();
+        if (
+          evenPathRangesAreEqual(
+            flipEvenPathRangeForward(asEvenPathRange(this.focus)),
+            flipEvenPathRangeForward(asEvenPathRange(oldFocus)),
+          )
+        ) {
+          this.focus = nonChosenFocus;
+        }
       } else if (ev.key === "K") {
         this.tryMoveOutOfList(() => true);
       } else if ([")", "]", "}", ">"].includes(ev.key)) {
