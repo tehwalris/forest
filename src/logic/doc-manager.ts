@@ -27,6 +27,7 @@ import {
   asUnevenPathRange,
   evenPathRangesAreEqual,
   flipEvenPathRange,
+  flipEvenPathRangeForward,
   flipUnevenPathRange,
   getPathToTip,
 } from "./path-utils";
@@ -733,10 +734,19 @@ export class DocManager {
       });
     }
 
-    if (this.nextEnableReduceToTip || this.focus !== this.lastFocus) {
+    if (
+      this.nextEnableReduceToTip &&
+      (!evenPathRangesAreEqual(
+        flipEvenPathRangeForward(asEvenPathRange(this.focus)),
+        flipEvenPathRangeForward(asEvenPathRange(this.lastFocus)),
+      ) ||
+        this.enableReduceToTip)
+    ) {
       this.enableReduceToTip = this.nextEnableReduceToTip;
-      this.nextEnableReduceToTip = false;
+    } else {
+      this.enableReduceToTip = false;
     }
+    this.nextEnableReduceToTip = false;
     this.lastFocus = this.focus;
 
     this.lastDoc = this.doc;
