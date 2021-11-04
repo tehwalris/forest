@@ -258,9 +258,24 @@ export class DocManager {
         this.tryMoveThroughLeaves(-1, true);
         this.nextEnableReduceToTip = true;
       } else if (ev.key === "k") {
-        this.tryMoveOutOfList();
-      } else if (ev.key === "K") {
+        const oldFocus = this.focus;
+
         this.tryMoveToParent();
+        const nonDelimitedParentFocus = this.focus;
+        this.focus = oldFocus;
+
+        this.tryMoveOutOfList();
+        const delimitedParentFocus = this.focus;
+        this.focus = oldFocus;
+
+        const deeperFocus =
+          asEvenPathRange(nonDelimitedParentFocus).anchor.length >
+          asEvenPathRange(delimitedParentFocus).anchor.length
+            ? nonDelimitedParentFocus
+            : delimitedParentFocus;
+        this.focus = deeperFocus;
+      } else if (ev.key === "K") {
+        this.tryMoveOutOfList();
       } else if (ev.key === "j") {
         this.tryMoveIntoList();
       } else if (ev.key === " ") {

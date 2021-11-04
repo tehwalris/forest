@@ -247,7 +247,7 @@
     x c: copy selection
     x p: replace selection with paste buffer
     x i/a: insert before/after selection
-    x h/l: left/right between leaves
+    - h/l: left/right between leaves (TODO: start outside of expanded selection, no matter where tip actually is)
     x shift-h/shift-l: add leaves from the left/right to selection until it expands
     - ctrl-shift-h/ctrl-shift-l: remove leaves from the left/right of the selection until it shrinks
     x space: reduce selection to tip
