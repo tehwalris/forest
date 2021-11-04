@@ -13,6 +13,7 @@ import {
   EvenPathRange,
   InsertState,
   ListKind,
+  ListNode,
   Node,
   NodeKind,
   Path,
@@ -44,6 +45,7 @@ import {
   nodeSetByPath,
   nodeTryGetDeepestByPath,
   nodeVisitDeep,
+  nodeVisitDeepInRange,
 } from "./tree-utils/access";
 import { filterNodes } from "./tree-utils/filter";
 import { withoutInvisibleNodes } from "./without-invisible";
@@ -277,7 +279,7 @@ export class DocManager {
       } else if (ev.key === "K") {
         this.tryMoveOutOfList();
       } else if (ev.key === "j") {
-        this.tryMoveIntoList();
+        this.tryMoveIntoList(() => true);
       } else if (ev.key === " ") {
         ev.preventDefault?.();
         if (this.enableReduceToTip) {
@@ -628,14 +630,34 @@ export class DocManager {
     }
   }
 
-  private tryMoveIntoList() {
-    const evenFocus = asEvenPathRange(this.focus);
-    if (evenFocus.offset !== 0) {
+  private tryMoveIntoList(isMatch: (node: ListNode) => boolean) {
+    let listPath: Path | undefined;
+    nodeVisitDeepInRange(
+      this.doc.root,
+      asEvenPathRange(this.focus),
+      (node, path) => {
+        if (listPath) {
+          return;
+        }
+        if (
+          node.kind === NodeKind.List &&
+          !node.equivalentToContent &&
+          isMatch(node)
+        ) {
+          listPath = path;
+        }
+      },
+    );
+    if (!listPath) {
       return;
     }
-    const listPath = evenFocus.anchor;
+
     const listNode = nodeGetByPath(this.doc.root, listPath);
-    if (listNode?.kind !== NodeKind.List || !listNode.content.length) {
+    if (listNode?.kind !== NodeKind.List) {
+      throw new Error("unreachable");
+    }
+    if (!listNode.content.length) {
+      // TODO allow entering empty lists
       return;
     }
     this.focus = asUnevenPathRange({
