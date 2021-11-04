@@ -1,4 +1,4 @@
-- current
+- v1
   - shortcuts
     - d: delete
     - c: copy selection
@@ -242,20 +242,32 @@
     - add argument to function call with no arguments: ( a
     - append argument to function call with some arguments: ( a
     - get to arguments of call within arrow function: alt-l (
-
-    x d: delete
-    x c: copy selection
-    x p: replace selection with paste buffer
-    x i/a: insert before/after selection
-    x h/l: left/right between leaves (start outside of expanded selection, no matter where tip actually is)
-    x shift-h/shift-l: add leaves from the left/right to selection until it expands
+- v2
+  - shortcuts
+    - d: delete
+    - c: copy selection
+    - p: replace selection with paste buffer
+    - i/a: insert before/after selection
+    - h/l: left/right between leaves (start outside of expanded selection, no matter where tip actually is)
+    - shift-h/shift-l: add leaves from the left/right to selection until it expands
     - ctrl-shift-h/ctrl-shift-l: remove leaves from the left/right of the selection until it shrinks
-    x space: reduce selection to tip
-    x alt-h/alt-l: reduce selection to left/right item (enter delimited list first if necessary)
-    x j: enter first delimited list in selection 
-    x <opening delimiter>: enter first delimited list in selection with specific delimiter 
-    x k: select nearest parent
-    x <closing delimiter>: select nearest parent which is a delimited list with specific delimiter
-    x shift-k: select nearest parent which is a delimited list
-    x z: undo selection change
-    x shift-z: redo selection change
+    - space: reduce selection to tip
+    - alt-h/alt-l: reduce selection to left/right item (enter delimited list first if necessary)
+    - j: enter first delimited list in selection 
+    - <opening delimiter>: enter first delimited list in selection with specific delimiter 
+    - k: select nearest parent
+    - <closing delimiter>: select nearest parent which is a delimited list with specific delimiter
+    - shift-k: select nearest parent which is a delimited list
+    - z: undo selection change
+    - shift-z: redo selection change
+  - combos
+    - delete first in current delimited list: shift-k alt-h d
+    - delete last in current delimited list: shift-k alt-l d
+    - go to top of file: (no fixed shortcut)
+      - press k until it does nothing anymore
+    - go to nearest parent which is an array literal: ]
+    - reduce selection to first item: alt-h
+    - reduce selection to last item: alt-l
+    - add argument to function call with no arguments: ( a
+    - append argument to function call with some arguments: ( a
+    - get to arguments of call within arrow function: alt-l (
