@@ -152,10 +152,17 @@ function splitDocRenderRegions(
   return regions;
 }
 
-function getStyleForSelection(selection: CharSelection): React.CSSProperties {
+function getStyleForSelection(
+  selection: CharSelection,
+  enableReduceToTip: boolean,
+): React.CSSProperties {
+  if (!enableReduceToTip && selection & CharSelection.Tip) {
+    selection = (selection & ~CharSelection.Tip) | CharSelection.Normal;
+  }
+
   const stylesBySelection: { [K in CharSelection]: React.CSSProperties } = {
-    [CharSelection.Normal]: { background: "rgba(11, 83, 255, 0.15)" },
-    [CharSelection.Tip]: { background: "rgba(11, 83, 255, 0.37)" },
+    [CharSelection.Normal]: { background: "rgba(11, 83, 255, 0.37)" },
+    [CharSelection.Tip]: { background: "rgba(120, 83, 150, 0.37)" },
     [CharSelection.Placeholder]: { color: "#888" },
   };
   const style: React.CSSProperties = {};
@@ -167,7 +174,11 @@ function getStyleForSelection(selection: CharSelection): React.CSSProperties {
   return style;
 }
 
-function renderDoc(doc: Doc, focus: EvenPathRange): React.ReactNode {
+function renderDoc(
+  doc: Doc,
+  focus: EvenPathRange,
+  enableReduceToTip: boolean,
+): React.ReactNode {
   const selectionsByChar = new Uint8Array(doc.text.length);
   setCharSelections({
     selectionsByChar,
@@ -200,7 +211,10 @@ function renderDoc(doc: Doc, focus: EvenPathRange): React.ReactNode {
         <div key={iLine}>
           {!line.regions.length && <br />}
           {line.regions.map((region, iRegion) => (
-            <span key={iRegion} style={getStyleForSelection(region.selection)}>
+            <span
+              key={iRegion}
+              style={getStyleForSelection(region.selection, enableReduceToTip)}
+            >
               {region.text}
             </span>
           ))}
@@ -223,7 +237,7 @@ export const LinearEditor = ({ initialDoc }: Props) => {
     }
   });
 
-  const [{ doc, focus, mode }, setPublicState] =
+  const [{ doc, focus, mode, enableReduceToTip }, setPublicState] =
     useState<DocManagerPublicState>(initialDocManagerPublicState);
   const [docManager, setDocManager] = useState(
     new DocManager(initialDoc, setPublicState),
@@ -259,7 +273,7 @@ export const LinearEditor = ({ initialDoc }: Props) => {
         onKeyDown={(ev) => docManager.onKeyDown(ev.nativeEvent)}
         onKeyUp={(ev) => docManager.onKeyUp(ev.nativeEvent)}
       >
-        {renderDoc(doc, focus)}
+        {renderDoc(doc, focus, enableReduceToTip)}
         {!doc.text.trim() && (
           <div style={{ opacity: 0.5, userSelect: "none" }}>
             (empty document)

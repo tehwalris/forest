@@ -57,12 +57,14 @@ export interface DocManagerPublicState {
   doc: Doc;
   focus: EvenPathRange;
   mode: Mode;
+  enableReduceToTip: boolean;
 }
 
 export const initialDocManagerPublicState: DocManagerPublicState = {
   doc: emptyDoc,
   focus: { anchor: [], offset: 0 },
   mode: Mode.Normal,
+  enableReduceToTip: false,
 };
 
 export interface MinimalKeyboardEvent {
@@ -94,7 +96,10 @@ export class DocManager {
   private mode = Mode.Normal;
   private lastMode = this.mode;
   private lastDoc = emptyDoc;
+  private lastFocus = this.focus;
   private insertState: InsertState | undefined;
+  private enableReduceToTip = false;
+  private nextEnableReduceToTip = false;
   private getDocWithoutPlaceholdersNearCursor = memoize(
     getDocWithoutPlaceholdersNearCursor,
   );
@@ -237,11 +242,13 @@ export class DocManager {
       } else if (ev.key === "L") {
         this.flipFocusForward();
         this.tryMoveThroughLeaves(1, true);
+        this.nextEnableReduceToTip = true;
       } else if (ev.key === "h" && !hasAltLike(ev)) {
         this.tryMoveThroughLeaves(-1, false);
       } else if (ev.key === "H") {
         this.flipFocusBackward();
         this.tryMoveThroughLeaves(-1, true);
+        this.nextEnableReduceToTip = true;
       } else if (ev.key === "k") {
         this.tryMoveOutOfList();
       } else if (ev.key === "K") {
@@ -250,10 +257,12 @@ export class DocManager {
         this.tryMoveIntoList();
       } else if (ev.key === " ") {
         ev.preventDefault?.();
-        this.focus = asUnevenPathRange({
-          anchor: getPathToTip(asEvenPathRange(this.focus)),
-          offset: 0,
-        });
+        if (this.enableReduceToTip) {
+          this.focus = asUnevenPathRange({
+            anchor: getPathToTip(asEvenPathRange(this.focus)),
+            offset: 0,
+          });
+        }
       } else if (ev.key === "c") {
         const evenFocus = asEvenPathRange(
           whileUnevenFocusChanges(this.focus, (focus) =>
@@ -703,9 +712,15 @@ export class DocManager {
       this.focusHistory.push(this.focus);
     }
 
-    this.reportUpdate();
+    if (this.nextEnableReduceToTip || this.focus !== this.lastFocus) {
+      this.enableReduceToTip = this.nextEnableReduceToTip;
+      this.nextEnableReduceToTip = false;
+    }
+    this.lastFocus = this.focus;
 
     this.lastDoc = this.doc;
+
+    this.reportUpdate();
   }
 
   private reportUpdate() {
@@ -724,6 +739,7 @@ export class DocManager {
       doc,
       focus: asEvenPathRange(this.focus),
       mode: this.mode,
+      enableReduceToTip: this.enableReduceToTip,
     });
   }
 
