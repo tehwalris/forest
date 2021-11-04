@@ -252,11 +252,10 @@
     - ctrl-shift-h/ctrl-shift-l: remove leaves from the left/right of the selection until it shrinks
     x space: reduce selection to tip
     x alt-h/alt-l: reduce selection to left/right item (enter delimited list first if necessary)
-    - j: enter first delimited list in selection
-    - <opening delimiter>: reduce selection to contents of first delimited list with specific delimiter (creates placeholder if necessary)
-    - shift-j: reduce selection to contents of first delimited list (creates placeholder if necessary)
-    - k: select nearest parent
+    - j: enter first delimited list in selection (creates placeholder if necessary)
+    - <opening delimiter>: enter first delimited list in selection with specific delimiter (creates placeholder if necessary)
+    x k: select nearest parent
     - <closing delimiter>: select nearest parent which is a delimited list with specific delimiter
-    - shift-k: select nearest parent which is a delimited list
+    x shift-k: select nearest parent which is a delimited list
     x z: undo selection change
     x shift-z: redo selection change
