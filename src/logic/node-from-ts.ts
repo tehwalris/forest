@@ -426,6 +426,12 @@ function listNodeFromTsIfStatementBranch(
   if (!ifToken) {
     throw new Error("could not get first token of if statement");
   }
+  const delimitedExpressionRange: ts.TextRange =
+    tryExpandRangeBySurroundingDelimiters(
+      ifStatement.expression,
+      ifStatement,
+      file,
+    ) || ifStatement.expression;
   return {
     kind: NodeKind.List,
     listKind: ListKind.IfBranch,
@@ -437,8 +443,8 @@ function listNodeFromTsIfStatementBranch(
         [ifStatement.expression],
         file,
         ListKind.ParenthesizedExpression,
-        ifStatement.expression.pos - 1,
-        ifStatement.expression.end + 1,
+        delimitedExpressionRange.pos,
+        delimitedExpressionRange.end,
       ),
       nodeFromTsNode(ifStatement.thenStatement, file),
     ],
