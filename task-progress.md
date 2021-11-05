@@ -12,8 +12,7 @@
   - support: none
   - note: switch statement not supported
 - `add-to-middle-of-type-literal`
-  - support: ok
-  - note: TypeReferenceNode not supported
+  - support: good
 - `append-interface-field`
   - support: good
 - `append-object-property`
