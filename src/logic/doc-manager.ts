@@ -517,11 +517,14 @@ export class DocManager {
     ) {
       ev.preventDefault?.();
       if (!this.isFocusOnEmptyListContent()) {
-        this.focus = asUnevenPathRange({
-          anchor: this.getFocusSkippingDelimitedLists().anchor,
-          offset: 0,
-        });
-        this.onUpdate();
+        const target = this.getFocusSkippingDelimitedLists().anchor;
+        if (nodeGetByPath(this.doc.root, target)) {
+          this.focus = asUnevenPathRange({
+            anchor: target,
+            offset: 0,
+          });
+          this.onUpdate();
+        }
       }
     } else if (this.mode === Mode.Normal && ev.key === "H" && ev.ctrlKey) {
       ev.preventDefault?.();
@@ -538,11 +541,14 @@ export class DocManager {
     ) {
       ev.preventDefault?.();
       if (!this.isFocusOnEmptyListContent()) {
-        this.focus = asUnevenPathRange({
-          anchor: getPathToTip(this.getFocusSkippingDelimitedLists()),
-          offset: 0,
-        });
-        this.onUpdate();
+        const target = getPathToTip(this.getFocusSkippingDelimitedLists());
+        if (nodeGetByPath(this.doc.root, target)) {
+          this.focus = asUnevenPathRange({
+            anchor: target,
+            offset: 0,
+          });
+          this.onUpdate();
+        }
       }
     } else if (this.mode === Mode.Normal && ev.key === "L" && ev.ctrlKey) {
       ev.preventDefault?.();
