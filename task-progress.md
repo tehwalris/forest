@@ -15,8 +15,7 @@
   - support: none
   - note: TypeLiteralNode not supported
 - `append-interface-field`
-  - support: ok
-  - note: can't copy-paste interface field
+  - support: good
 - `append-object-property`
   - support: good
 - `change-type-parameters`
