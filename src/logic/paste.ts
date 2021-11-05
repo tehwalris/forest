@@ -46,7 +46,7 @@ interface NestedPasteReplaceArgs extends PasteReplaceArgs {
   clipboardTs: ts.Node | undefined;
 }
 
-export function canPasteFlattenedIntoTightExpression({
+function canPasteFlattenedIntoTightExpression({
   firstIndex,
   clipboard,
 }: FlattenedPasteReplaceArgs): boolean {
@@ -54,13 +54,13 @@ export function canPasteFlattenedIntoTightExpression({
   return clipboard.listKind === ListKind.TightExpression && firstIndex === 0;
 }
 
-export function canPasteFlattenedIntoCallArguments({
+function canPasteFlattenedIntoCallArguments({
   clipboard,
 }: FlattenedPasteReplaceArgs): boolean {
   return clipboard.listKind === ListKind.CallArguments;
 }
 
-export function canPasteFlattenedIntoGenericTsNodeChildList({
+function canPasteFlattenedIntoGenericTsNodeChildList({
   parent,
   node,
   clipboard,
@@ -84,16 +84,7 @@ export function canPasteFlattenedIntoGenericTsNodeChildList({
   });
 }
 
-export function canPasteFlattenedIntoTsObjectLiteralExpression({
-  clipboard,
-}: FlattenedPasteReplaceArgs): boolean {
-  return (
-    clipboard.listKind === ListKind.TsNodeList &&
-    clipboard.tsNode?.kind === ts.SyntaxKind.ObjectLiteralExpression
-  );
-}
-
-export function canPasteFlattenedIntoTsBlockOrFile({
+function canPasteFlattenedIntoTsBlockOrFile({
   clipboard,
 }: FlattenedPasteReplaceArgs): boolean {
   return (
@@ -103,32 +94,32 @@ export function canPasteFlattenedIntoTsBlockOrFile({
   );
 }
 
-export function canPasteNestedIntoTightExpression({
+function canPasteNestedIntoTightExpression({
   clipboardTs,
 }: NestedPasteReplaceArgs): boolean {
   // TODO this is very restrictive, but other kinds of expressions can only appear on the left side of a TightExpression
   return !!clipboardTs && ts.isIdentifier(clipboardTs);
 }
 
-export function canPasteNestedIntoLooseExpression({
+function canPasteNestedIntoLooseExpression({
   clipboardTs,
 }: NestedPasteReplaceArgs): boolean {
   return !!clipboardTs && matchesUnion(clipboardTs, unions.Expression);
 }
 
-export function canPasteNestedIntoParenthesizedExpression({
+function canPasteNestedIntoParenthesizedExpression({
   clipboardTs,
 }: NestedPasteReplaceArgs): boolean {
   return !!clipboardTs && matchesUnion(clipboardTs, unions.Expression);
 }
 
-export function canPasteNestedIntoCallArguments({
+function canPasteNestedIntoCallArguments({
   clipboardTs,
 }: NestedPasteReplaceArgs): boolean {
   return !!clipboardTs && matchesUnion(clipboardTs, unions.Expression);
 }
 
-export function canPasteNestedIntoObjectLiteralElement({
+function canPasteNestedIntoObjectLiteralElement({
   node,
   firstIndex,
   lastIndex,
@@ -170,7 +161,7 @@ export function canPasteNestedIntoObjectLiteralElement({
   }
 }
 
-export function canPasteNestedIntoTsBlockOrFile({
+function canPasteNestedIntoTsBlockOrFile({
   clipboardTs,
 }: NestedPasteReplaceArgs): boolean {
   return (
