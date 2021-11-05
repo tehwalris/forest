@@ -293,7 +293,7 @@ function listNodeFromTsElementAccessExpression(
         {
           kind: NodeKind.List,
           listKind: ListKind.ElementAccessExpressionArgument,
-          delimiters: ["", ""],
+          delimiters: ["[", "]"],
           content: [
             nodeFromTsNode(elementAccessExpression.argumentExpression, file),
           ],
