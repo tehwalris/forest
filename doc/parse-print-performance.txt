@@ -1,0 +1,14 @@
+- current parse and print calls on insert
+  - ts parse
+  - ts print
+  - prettier parse
+  - prettier print
+  - ts parse
+  - ts print
+  - ts parse
+  - ts print
+  - prettier parse
+  - prettier print
+  - ts parse
+  - ts print
+  - ts parse
