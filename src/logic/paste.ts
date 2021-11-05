@@ -15,9 +15,9 @@ import {
 import { nodeFromTsNode } from "./node-from-ts";
 import { tsNodeFromNode } from "./ts-from-node";
 
-export function acceptPasteRoot(clipboard: Node): ListNode | undefined {
+export function acceptPasteRoot(clipboard: Clipboard): ListNode | undefined {
   return acceptPasteReplace({
-    clipboard,
+    clipboard: clipboard.node,
     firstIndex: 0,
     lastIndex: 0,
     node: {
@@ -29,7 +29,13 @@ export function acceptPasteRoot(clipboard: Node): ListNode | undefined {
       pos: 0,
       end: 0,
     },
+    isPartialCopy: clipboard.isPartialCopy,
   });
+}
+
+export interface Clipboard {
+  node: Node;
+  isPartialCopy: boolean;
 }
 
 export interface PasteReplaceArgs {
@@ -41,6 +47,7 @@ export interface PasteReplaceArgs {
   firstIndex: number;
   lastIndex: number;
   clipboard: Node;
+  isPartialCopy: boolean;
 }
 
 interface FlattenedPasteReplaceArgs extends PasteReplaceArgs {
@@ -85,6 +92,7 @@ function canPasteFlattenedIntoGenericTsNodeChildList({
       clipboardTs: clipboardChildTs,
       firstIndex: 0,
       lastIndex: 0,
+      isPartialCopy: false,
     });
   });
 }
@@ -113,6 +121,7 @@ function canPasteFlattenedIntoGenericTsNodeList({
       clipboardTs: clipboardChildTs,
       firstIndex: 0,
       lastIndex: 0,
+      isPartialCopy: false,
     });
   });
 }
@@ -298,7 +307,7 @@ function canPasteNestedIntoGenericTsNodeList({
 export function acceptPasteReplace(
   args: PasteReplaceArgs,
 ): ListNode | undefined {
-  const { node, firstIndex, lastIndex, clipboard } = args;
+  const { node, firstIndex, lastIndex, clipboard, isPartialCopy } = args;
 
   if (
     !(
@@ -320,7 +329,10 @@ export function acceptPasteReplace(
   } catch {}
 
   const canPasteFlattened = (function () {
-    if (clipboard.kind !== NodeKind.List) {
+    if (
+      clipboard.kind !== NodeKind.List ||
+      (!clipboard.equivalentToContent && !isPartialCopy)
+    ) {
       return false;
     }
     const _args: FlattenedPasteReplaceArgs = { ...args, clipboard };

@@ -14,7 +14,6 @@ import {
   InsertState,
   ListKind,
   ListNode,
-  Node,
   NodeKind,
   Path,
   UnevenPathRange,
@@ -22,7 +21,12 @@ import {
 import { memoize } from "./memoize";
 import { docFromAst } from "./node-from-ts";
 import { astFromTypescriptFileContent } from "./parse";
-import { acceptPasteReplace, acceptPasteRoot, PasteReplaceArgs } from "./paste";
+import {
+  acceptPasteReplace,
+  acceptPasteRoot,
+  Clipboard,
+  PasteReplaceArgs,
+} from "./paste";
 import {
   asEvenPathRange,
   asUnevenPathRange,
@@ -114,7 +118,7 @@ export class DocManager {
   private getDocWithoutPlaceholdersNearCursor = memoize(
     getDocWithoutPlaceholdersNearCursor,
   );
-  private clipboard: Node | undefined;
+  private clipboard: Clipboard | undefined;
 
   constructor(
     private doc: Doc,
@@ -282,7 +286,8 @@ export class DocManager {
           ),
         );
         if (evenFocus.offset === 0) {
-          this.clipboard = nodeGetByPath(this.doc.root, evenFocus.anchor);
+          const node = nodeGetByPath(this.doc.root, evenFocus.anchor);
+          this.clipboard = node && { node: node, isPartialCopy: false };
         } else {
           if (!evenFocus.anchor.length) {
             throw new Error("invalid focus");
@@ -310,30 +315,36 @@ export class DocManager {
             selectedRange = [selectedRange[1], selectedRange[0]];
           }
           this.clipboard = {
-            ...oldParent,
-            content: oldParent.content.slice(
-              selectedRange[0],
-              selectedRange[1] + 1,
-            ),
+            node: {
+              ...oldParent,
+              content: oldParent.content.slice(
+                selectedRange[0],
+                selectedRange[1] + 1,
+              ),
+            },
+            isPartialCopy: true,
           };
         }
         if (
-          this.clipboard?.kind === NodeKind.List &&
-          this.clipboard.listKind === ListKind.File &&
-          this.clipboard.content.length === 1
+          this.clipboard?.node.kind === NodeKind.List &&
+          this.clipboard.node.listKind === ListKind.File &&
+          this.clipboard.node.content.length === 1
         ) {
-          this.clipboard = this.clipboard.content[0];
+          this.clipboard = {
+            node: this.clipboard.node.content[0],
+            isPartialCopy: false,
+          };
         }
         if (
-          this.clipboard?.kind === NodeKind.List &&
-          this.clipboard.listKind === ListKind.TsNodeStruct &&
-          this.clipboard.tsNode?.kind === ts.SyntaxKind.ExpressionStatement
+          this.clipboard?.node.kind === NodeKind.List &&
+          this.clipboard.node.listKind === ListKind.TsNodeStruct &&
+          this.clipboard.node.tsNode?.kind === ts.SyntaxKind.ExpressionStatement
         ) {
-          this.clipboard = getStructContent(
-            this.clipboard,
-            ["expression"],
-            [],
-          ).expression;
+          this.clipboard = {
+            node: getStructContent(this.clipboard.node, ["expression"], [])
+              .expression,
+            isPartialCopy: false,
+          };
         }
       } else if (ev.key === "p") {
         if (!this.clipboard) {
@@ -391,7 +402,8 @@ export class DocManager {
             parent: grandparentInfo,
             firstIndex,
             lastIndex: firstIndex + evenFocus.offset,
-            clipboard: this.clipboard,
+            clipboard: this.clipboard.node,
+            isPartialCopy: this.clipboard.isPartialCopy,
           });
           if (!newParentNode) {
             return;
