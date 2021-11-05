@@ -205,12 +205,14 @@ export class DocManager {
           offset: 0,
         });
       } else if (ev.key === "l" && !hasAltLike(ev)) {
+        this.flipFocusForward();
         this.tryMoveThroughLeaves(1, false);
       } else if (ev.key === "L" && !ev.ctrlKey) {
         this.flipFocusForward();
         this.tryMoveThroughLeaves(1, true);
         this.nextEnableReduceToTip = true;
       } else if (ev.key === "h" && !hasAltLike(ev)) {
+        this.flipFocusBackward();
         this.tryMoveThroughLeaves(-1, false);
       } else if (ev.key === "H" && !ev.ctrlKey) {
         this.flipFocusBackward();
