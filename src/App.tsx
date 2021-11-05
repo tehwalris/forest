@@ -66,7 +66,10 @@ export const App = () => {
 
   const [initialDocText, setInitialDocText] = useState(exampleFileText);
   const initialDoc = useMemo(
-    () => docFromAst(astFromTypescriptFileContent(initialDocText)),
+    () =>
+      docFromAst(
+        astFromTypescriptFileContent(prettyPrintTsString(initialDocText)),
+      ),
     [initialDocText],
   );
 
