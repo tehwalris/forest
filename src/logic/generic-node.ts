@@ -1,5 +1,9 @@
 import ts from "typescript";
-import { StructChild, StructTemplate } from "./legacy-templates/interfaces";
+import {
+  ListTemplate,
+  StructChild,
+  StructTemplate,
+} from "./legacy-templates/interfaces";
 
 export type UnknownStructTemplate = StructTemplate<
   {
@@ -7,6 +11,8 @@ export type UnknownStructTemplate = StructTemplate<
   },
   ts.Node
 >;
+
+export type UnknownListTemplate = ListTemplate<ts.Node, ts.Node>;
 
 export const allowedGenericNodeMatchers: ((node: ts.Node) => boolean)[] = [
   ts.isConditionalExpression,
@@ -28,4 +34,5 @@ export const allowedGenericNodeMatchers: ((node: ts.Node) => boolean)[] = [
   ts.isAsExpression,
   ts.isFunctionDeclaration,
   ts.isFunctionTypeNode,
+  ts.isTypeLiteralNode,
 ];

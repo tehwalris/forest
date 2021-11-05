@@ -2,10 +2,11 @@ import ts from "typescript";
 import { getBinaryOperatorPrecedence } from "./binary-operator";
 import {
   allowedGenericNodeMatchers,
+  UnknownListTemplate,
   UnknownStructTemplate,
 } from "./generic-node";
 import { ListKind, ListNode, Node, NodeKind } from "./interfaces";
-import { structTemplates } from "./legacy-templates/templates";
+import { listTemplates, structTemplates } from "./legacy-templates/templates";
 import { isModifierKey } from "./modifier";
 import { astFromTypescriptFileContent } from "./parse";
 import { getStructContent } from "./struct";
@@ -100,6 +101,27 @@ function tryMakeTsNodeFromGenericTsNodeStruct(
   }
 
   return structTemplate.build(children, modifiers);
+}
+
+function tryMakeTsNodeFromGenericTsNodeList(
+  node: ListNode,
+): ts.Node | undefined {
+  const oldTsNode = node.tsNode;
+  if (!oldTsNode || !allowedGenericNodeMatchers.find((m) => m(oldTsNode))) {
+    return undefined;
+  }
+
+  const listTemplate: UnknownListTemplate | undefined = listTemplates.find(
+    (t) => t.match(oldTsNode),
+  ) as any;
+  if (!listTemplate) {
+    return undefined;
+  }
+
+  return listTemplate.build(
+    node.content.map((c) => tsNodeFromNode(c)),
+    [],
+  );
 }
 
 export function tsNodeFromNode(node: Node): ts.Node {
@@ -369,6 +391,10 @@ export function tsNodeFromNode(node: Node): ts.Node {
           );
         }
         default:
+          const result = tryMakeTsNodeFromGenericTsNodeList(node);
+          if (result) {
+            return result;
+          }
           throw new Error(
             `TsNodeList with unsupported tsSyntaxKind: ${
               node.tsNode?.kind && ts.SyntaxKind[node.tsNode?.kind]

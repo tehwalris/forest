@@ -1,10 +1,11 @@
 import ts, { TextRange } from "typescript";
 import {
   allowedGenericNodeMatchers,
+  UnknownListTemplate,
   UnknownStructTemplate,
 } from "./generic-node";
 import { Doc, ListKind, ListNode, Node, NodeKind } from "./interfaces";
-import { structTemplates } from "./legacy-templates/templates";
+import { listTemplates, structTemplates } from "./legacy-templates/templates";
 import { mapNodeTextRanges } from "./text";
 import { isTsVarLetConst } from "./ts-type-predicates";
 
@@ -671,10 +672,23 @@ function tryMakeListNodeGeneric(
 
   const structTemplate: UnknownStructTemplate | undefined =
     structTemplates.find((t) => t.match(node)) as any;
-  if (!structTemplate) {
+  const listTemplate: UnknownListTemplate | undefined = listTemplates.find(
+    (t) => t.match(node),
+  ) as any;
+  if (structTemplate) {
+    return tryMakeListNodeGenericStruct(node, file, structTemplate);
+  } else if (listTemplate) {
+    return tryMakeListNodeGenericList(node, file, listTemplate);
+  } else {
     return undefined;
   }
+}
 
+function tryMakeListNodeGenericStruct(
+  node: ts.Node,
+  file: ts.SourceFile | undefined,
+  structTemplate: UnknownStructTemplate,
+): ListNode | undefined {
   const children = structTemplate.load(node);
 
   const structKeys: string[] = [];
@@ -739,6 +753,18 @@ function tryMakeListNodeGeneric(
     equivalentToContent: true,
     pos: node.pos,
     end: node.end,
+  };
+}
+
+function tryMakeListNodeGenericList(
+  node: ts.Node,
+  file: ts.SourceFile | undefined,
+  listTemplate: UnknownListTemplate,
+): ListNode | undefined {
+  const children = listTemplate.load(node);
+  return {
+    ...listNodeFromAutoTsNodeArray(children, node, file, ListKind.TsNodeList),
+    tsNode: node,
   };
 }
 
