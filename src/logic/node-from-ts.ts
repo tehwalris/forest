@@ -586,38 +586,6 @@ function listNodeFromTsBlock(
   };
 }
 
-function listNodeFromTsObjectLiteralExpression(
-  objectLiteralExpression: ts.ObjectLiteralExpression,
-  file: ts.SourceFile | undefined,
-): ListNode {
-  return {
-    ...listNodeFromDelimitedTsNodeArray(
-      objectLiteralExpression.properties,
-      file,
-      ListKind.TsNodeList,
-      objectLiteralExpression.pos,
-      objectLiteralExpression.end,
-    ),
-    tsNode: objectLiteralExpression,
-  };
-}
-
-function listNodeFromTsArrayLiteralExpression(
-  arrayLiteralExpression: ts.ArrayLiteralExpression,
-  file: ts.SourceFile | undefined,
-): ListNode {
-  return {
-    ...listNodeFromDelimitedTsNodeArray(
-      arrayLiteralExpression.elements,
-      file,
-      ListKind.TsNodeList,
-      arrayLiteralExpression.pos,
-      arrayLiteralExpression.end,
-    ),
-    tsNode: arrayLiteralExpression,
-  };
-}
-
 function listNodeFromTsObjectLiteralElementLike(
   objectLiteralElementLike: ts.ObjectLiteralElementLike,
   file: ts.SourceFile | undefined,
@@ -798,10 +766,6 @@ export function nodeFromTsNode(
     return listNodeFromTsVariableDeclarationList(node, file);
   } else if (ts.isBlock(node)) {
     return listNodeFromTsBlock(node, file);
-  } else if (ts.isObjectLiteralExpression(node)) {
-    return listNodeFromTsObjectLiteralExpression(node, file);
-  } else if (ts.isArrayLiteralExpression(node)) {
-    return listNodeFromTsArrayLiteralExpression(node, file);
   } else if (ts.isObjectLiteralElementLike(node)) {
     return listNodeFromTsObjectLiteralElementLike(node, file);
   } else {
