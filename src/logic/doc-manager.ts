@@ -127,6 +127,29 @@ export class DocManager {
     this.initialDoc = doc;
   }
 
+  private static copyDocManagerFields(source: DocManager, target: DocManager) {
+    for (const [k, v] of Object.entries(source)) {
+      if (typeof v === "function") {
+        continue;
+      }
+      if (Array.isArray(v)) {
+        (target as any)[k] = [...v];
+      } else {
+        (target as any)[k] = v;
+      }
+    }
+  }
+
+  clone(): DocManager {
+    const other = new DocManager(this.initialDoc, this.onUpdate);
+    DocManager.copyDocManagerFields(this, other);
+    return other;
+  }
+
+  fillFromOther(other: DocManager) {
+    DocManager.copyDocManagerFields(other, this);
+  }
+
   forceUpdate() {
     if (this.mode !== Mode.Normal) {
       throw new Error("forceUpdate can only be called in normal mode");

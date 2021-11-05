@@ -224,6 +224,24 @@ function renderDoc(
   );
 }
 
+function wrapThrowRestore<A extends any[]>(
+  docManager: DocManager,
+  f: (...args: A) => void,
+): (...args: A) => void {
+  return (...args) => {
+    const backup = docManager.clone();
+    try {
+      f(...args);
+    } catch (err) {
+      console.error(err);
+      docManager.fillFromOther(backup);
+      alert(
+        "Your command crashed the editor. Restored to the state before the crash. See developer console for stacktrace.",
+      );
+    }
+  };
+}
+
 export const LinearEditor = ({ initialDoc }: Props) => {
   const focusedCodeDivRef = useRef<HTMLDivElement | null>(null);
   const codeDivRef = useRef<HTMLDivElement>(null);
@@ -269,9 +287,15 @@ export const LinearEditor = ({ initialDoc }: Props) => {
         ref={codeDivRef}
         className={styles.doc}
         tabIndex={0}
-        onKeyPress={(ev) => docManager.onKeyPress(ev.nativeEvent)}
-        onKeyDown={(ev) => docManager.onKeyDown(ev.nativeEvent)}
-        onKeyUp={(ev) => docManager.onKeyUp(ev.nativeEvent)}
+        onKeyPress={wrapThrowRestore(docManager, (ev) =>
+          docManager.onKeyPress(ev.nativeEvent),
+        )}
+        onKeyDown={wrapThrowRestore(docManager, (ev) =>
+          docManager.onKeyDown(ev.nativeEvent),
+        )}
+        onKeyUp={wrapThrowRestore(docManager, (ev) =>
+          docManager.onKeyUp(ev.nativeEvent),
+        )}
       >
         {renderDoc(doc, focus, enableReduceToTip)}
         {!doc.text.trim() && (
