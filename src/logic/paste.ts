@@ -60,6 +60,30 @@ export function canPasteFlattenedIntoCallArguments({
   return clipboard.listKind === ListKind.CallArguments;
 }
 
+export function canPasteFlattenedIntoGenericTsNodeChildList({
+  parent,
+  node,
+  clipboard,
+}: FlattenedPasteReplaceArgs): boolean {
+  if (clipboard.listKind !== ListKind.UnknownTsNodeArray) {
+    return false;
+  }
+  return clipboard.content.every((clipboardChild) => {
+    let clipboardChildTs: ts.Node | undefined;
+    try {
+      clipboardChildTs = tsNodeFromNode(clipboardChild);
+    } catch {}
+    return canPasteNestedIntoGenericTsNodeChildList({
+      parent,
+      node,
+      clipboard: clipboardChild,
+      clipboardTs: clipboardChildTs,
+      firstIndex: 0,
+      lastIndex: 0,
+    });
+  });
+}
+
 export function canPasteFlattenedIntoTsObjectLiteralExpression({
   clipboard,
 }: FlattenedPasteReplaceArgs): boolean {
@@ -254,6 +278,8 @@ export function acceptPasteReplace(
         return canPasteFlattenedIntoTightExpression(_args);
       case ListKind.CallArguments:
         return canPasteFlattenedIntoCallArguments(_args);
+      case ListKind.UnknownTsNodeArray:
+        return canPasteFlattenedIntoGenericTsNodeChildList(_args);
       case ListKind.TsNodeList:
         switch (node.tsNode?.kind) {
           case ts.SyntaxKind.ObjectLiteralExpression:
