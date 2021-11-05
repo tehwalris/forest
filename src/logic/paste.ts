@@ -89,6 +89,34 @@ function canPasteFlattenedIntoGenericTsNodeChildList({
   });
 }
 
+function canPasteFlattenedIntoGenericTsNodeList({
+  node,
+  clipboard,
+}: FlattenedPasteReplaceArgs): boolean {
+  if (
+    node.listKind === ListKind.TsNodeList &&
+    clipboard.listKind === ListKind.TsNodeList &&
+    node.tsNode &&
+    clipboard.tsNode &&
+    node.tsNode.kind === clipboard.tsNode.kind
+  ) {
+    return true;
+  }
+  return clipboard.content.every((clipboardChild) => {
+    let clipboardChildTs: ts.Node | undefined;
+    try {
+      clipboardChildTs = tsNodeFromNode(clipboardChild);
+    } catch {}
+    return canPasteNestedIntoGenericTsNodeList({
+      node,
+      clipboard: clipboardChild,
+      clipboardTs: clipboardChildTs,
+      firstIndex: 0,
+      lastIndex: 0,
+    });
+  });
+}
+
 function canPasteFlattenedIntoTsBlockOrFile({
   clipboard,
 }: FlattenedPasteReplaceArgs): boolean {
@@ -308,7 +336,7 @@ export function acceptPasteReplace(
           case ts.SyntaxKind.Block:
             return canPasteFlattenedIntoTsBlockOrFile(_args);
           default: {
-            return false;
+            return canPasteFlattenedIntoGenericTsNodeList(_args);
           }
         }
       case ListKind.File:
