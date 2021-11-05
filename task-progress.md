@@ -5,8 +5,7 @@
 - `add-condition-to-property`
   - support: good
 - `add-condition-to-statement`
-  - support: ok
-  - note: paste is a bit annoying
+  - support: good
 - `add-statement-to-method`
   - support: good
 - `add-switch-case`
