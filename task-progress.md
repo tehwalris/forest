@@ -25,7 +25,7 @@
   - support: none
   - note: can't edit strings
 - `extend-if-condition`
-  - support: none
+  - support: good
 - `extract-part-of-if-condition`
   - support: ok
 - `prepend-to-conditional`
