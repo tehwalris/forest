@@ -66,6 +66,12 @@ function canPasteFlattenedIntoTightExpression({
   return clipboard.listKind === ListKind.TightExpression && firstIndex === 0;
 }
 
+function canPasteFlattenedIntoLooseExpression({
+  clipboard,
+}: FlattenedPasteReplaceArgs): boolean {
+  return clipboard.listKind === ListKind.LooseExpression;
+}
+
 function canPasteFlattenedIntoCallArguments({
   clipboard,
 }: FlattenedPasteReplaceArgs): boolean {
@@ -339,6 +345,8 @@ export function acceptPasteReplace(
     switch (node.listKind) {
       case ListKind.TightExpression:
         return canPasteFlattenedIntoTightExpression(_args);
+      case ListKind.LooseExpression:
+        return canPasteFlattenedIntoLooseExpression(_args);
       case ListKind.CallArguments:
         return canPasteFlattenedIntoCallArguments(_args);
       case ListKind.UnknownTsNodeArray:

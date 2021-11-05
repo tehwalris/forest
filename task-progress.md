@@ -26,7 +26,6 @@
   - note: can't edit strings
 - `extend-if-condition`
   - support: none
-  - note: crashes when pasting `ev.key === "Escape"` over `x` in `!(x || y)`
 - `extract-part-of-if-condition`
   - support: ok
 - `prepend-to-conditional`
