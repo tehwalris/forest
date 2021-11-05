@@ -1,12 +1,17 @@
 import * as ts from "typescript";
 import {
   allowedGenericNodeMatchers,
+  UnknownListTemplate,
   UnknownStructTemplate,
 } from "./generic-node";
 import { ListKind, ListNode, Node, NodeKind } from "./interfaces";
 import { StructChild } from "./legacy-templates/interfaces";
 import { matchesUnion } from "./legacy-templates/match";
-import { structTemplates, unions } from "./legacy-templates/templates";
+import {
+  listTemplates,
+  structTemplates,
+  unions,
+} from "./legacy-templates/templates";
 import { nodeFromTsNode } from "./node-from-ts";
 import { tsNodeFromNode } from "./ts-from-node";
 
@@ -73,7 +78,7 @@ function canPasteFlattenedIntoGenericTsNodeChildList({
     try {
       clipboardChildTs = tsNodeFromNode(clipboardChild);
     } catch {}
-    return canPasteNestedIntoGenericTsNodeChildList({
+    return canPasteNestedIntoGenericTsNodeStructChildList({
       parent,
       node,
       clipboard: clipboardChild,
@@ -169,7 +174,7 @@ function canPasteNestedIntoTsBlockOrFile({
   );
 }
 
-function tryGetTemplateChildForGenericTsNode(
+function tryGetTemplateChildForGenericTsNodeStruct(
   node: ListNode,
   childIndex: number,
 ): StructChild<ts.Node> | undefined {
@@ -194,7 +199,21 @@ function tryGetTemplateChildForGenericTsNode(
   return templateChildren[structKey];
 }
 
-function canPasteNestedIntoGenericTsNode({
+function tryGetTemplateForGenericTsNodeList(
+  node: ListNode,
+): UnknownListTemplate | undefined {
+  const oldTsNode = node.tsNode;
+  if (!oldTsNode || !allowedGenericNodeMatchers.find((m) => m(oldTsNode))) {
+    return undefined;
+  }
+
+  const listTemplate: UnknownListTemplate | undefined = listTemplates.find(
+    (t) => t.match(oldTsNode),
+  ) as any;
+  return listTemplate;
+}
+
+function canPasteNestedIntoGenericTsNodeStruct({
   node,
   firstIndex,
   lastIndex,
@@ -203,14 +222,17 @@ function canPasteNestedIntoGenericTsNode({
   if (firstIndex !== lastIndex || !clipboardTs) {
     return false;
   }
-  const templateChild = tryGetTemplateChildForGenericTsNode(node, firstIndex);
+  const templateChild = tryGetTemplateChildForGenericTsNodeStruct(
+    node,
+    firstIndex,
+  );
   if (!templateChild || templateChild.isList) {
     return false;
   }
   return matchesUnion(clipboardTs, templateChild.union);
 }
 
-function canPasteNestedIntoGenericTsNodeChildList({
+function canPasteNestedIntoGenericTsNodeStructChildList({
   parent,
   firstIndex,
   lastIndex,
@@ -219,7 +241,7 @@ function canPasteNestedIntoGenericTsNodeChildList({
   if (firstIndex !== lastIndex || !clipboardTs || !parent) {
     return false;
   }
-  const templateChild = tryGetTemplateChildForGenericTsNode(
+  const templateChild = tryGetTemplateChildForGenericTsNodeStruct(
     parent.node,
     parent.childIndex,
   );
@@ -227,6 +249,22 @@ function canPasteNestedIntoGenericTsNodeChildList({
     return false;
   }
   return matchesUnion(clipboardTs, templateChild.union);
+}
+
+function canPasteNestedIntoGenericTsNodeList({
+  node,
+  firstIndex,
+  lastIndex,
+  clipboardTs,
+}: NestedPasteReplaceArgs): boolean {
+  if (firstIndex !== lastIndex || !clipboardTs) {
+    return false;
+  }
+  const listTemplate = tryGetTemplateForGenericTsNodeList(node);
+  if (!listTemplate) {
+    return false;
+  }
+  return matchesUnion(clipboardTs, listTemplate.childUnion);
 }
 
 export function acceptPasteReplace(
@@ -294,15 +332,15 @@ export function acceptPasteReplace(
       case ListKind.ObjectLiteralElement:
         return canPasteNestedIntoObjectLiteralElement(_args);
       case ListKind.UnknownTsNodeArray:
-        return canPasteNestedIntoGenericTsNodeChildList(_args);
+        return canPasteNestedIntoGenericTsNodeStructChildList(_args);
       case ListKind.TsNodeStruct:
-        return canPasteNestedIntoGenericTsNode(_args);
+        return canPasteNestedIntoGenericTsNodeStruct(_args);
       case ListKind.TsNodeList:
         switch (node.tsNode?.kind) {
           case ts.SyntaxKind.Block:
             return canPasteNestedIntoTsBlockOrFile(_args);
           default: {
-            return false;
+            return canPasteNestedIntoGenericTsNodeList(_args);
           }
         }
       case ListKind.File:
