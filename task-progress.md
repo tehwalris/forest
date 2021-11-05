@@ -26,19 +26,20 @@
 - `extend-if-condition`
   - support: good
 - `extract-part-of-if-condition`
-  - support: ok
+  - support: good
 - `prepend-to-conditional`
-  - support: ok
+  - support: good
 - `rename-related-declarations`
   - support: none
 - `rename-wrap-object-properties`
   - support: none
   - note: you can regroup them, but not rename them all together
 - `simplify-conditional`
-  - support: ok
+  - support: good
 - `wrap-action`
   - support: ok
+  - note: live reformatting and paste during insert mode would be nice
 - `wrap-arrow-function`
-  - support: ok
+  - support: good
 - `wrap-object-properties`
-  - support: ok
+  - support: good
