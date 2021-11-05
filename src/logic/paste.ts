@@ -4,6 +4,7 @@ import {
   UnknownStructTemplate,
 } from "./generic-node";
 import { ListKind, ListNode, Node, NodeKind } from "./interfaces";
+import { StructChild } from "./legacy-templates/interfaces";
 import { matchesUnion } from "./legacy-templates/match";
 import { structTemplates, unions } from "./legacy-templates/templates";
 import { nodeFromTsNode } from "./node-from-ts";
@@ -26,8 +27,12 @@ export function acceptPasteRoot(clipboard: Node): ListNode | undefined {
   });
 }
 
-interface PasteReplaceArgs {
+export interface PasteReplaceArgs {
   node: ListNode;
+  parent?: {
+    node: ListNode;
+    childIndex: number;
+  };
   firstIndex: number;
   lastIndex: number;
   clipboard: Node;
@@ -155,42 +160,64 @@ export function canPasteNestedIntoTsBlockOrFile({
   );
 }
 
+function tryGetTemplateChildForGenericTsNode(
+  node: ListNode,
+  childIndex: number,
+): StructChild<ts.Node> | undefined {
+  const oldTsNode = node.tsNode;
+  if (!oldTsNode || !allowedGenericNodeMatchers.find((m) => m(oldTsNode))) {
+    return undefined;
+  }
+
+  const structTemplate: UnknownStructTemplate | undefined =
+    structTemplates.find((t) => t.match(oldTsNode)) as any;
+  if (!structTemplate) {
+    return undefined;
+  }
+
+  const templateChildren = structTemplate.load(oldTsNode);
+
+  const structKey = node.structKeys?.[childIndex];
+  if (!structKey) {
+    throw new Error("childIndex does not point to a valid structKey");
+  }
+
+  return templateChildren[structKey];
+}
+
 function canPasteNestedIntoGenericTsNode({
   node,
   firstIndex,
   lastIndex,
   clipboardTs,
 }: NestedPasteReplaceArgs): boolean {
-  if (firstIndex !== lastIndex) {
+  if (firstIndex !== lastIndex || !clipboardTs) {
     return false;
   }
-  if (!clipboardTs) {
+  const templateChild = tryGetTemplateChildForGenericTsNode(node, firstIndex);
+  if (!templateChild || templateChild.isList) {
     return false;
   }
+  return matchesUnion(clipboardTs, templateChild.union);
+}
 
-  const oldTsNode = node.tsNode;
-  if (!oldTsNode || !allowedGenericNodeMatchers.find((m) => m(oldTsNode))) {
+function canPasteNestedIntoGenericTsNodeChildList({
+  parent,
+  firstIndex,
+  lastIndex,
+  clipboardTs,
+}: NestedPasteReplaceArgs): boolean {
+  if (firstIndex !== lastIndex || !clipboardTs || !parent) {
     return false;
   }
-
-  const structTemplate: UnknownStructTemplate | undefined =
-    structTemplates.find((t) => t.match(oldTsNode)) as any;
-  if (!structTemplate) {
+  const templateChild = tryGetTemplateChildForGenericTsNode(
+    parent.node,
+    parent.childIndex,
+  );
+  if (!templateChild || !templateChild.isList) {
     return false;
   }
-
-  const templateChildren = structTemplate.load(oldTsNode);
-
-  const structKey = node.structKeys?.[firstIndex];
-  if (!structKey) {
-    throw new Error("firstIndex does not point to a valid structKey");
-  }
-
-  if (templateChildren[structKey].isList) {
-    return false;
-  }
-
-  return matchesUnion(clipboardTs, templateChildren[structKey].union);
+  return matchesUnion(clipboardTs, templateChild.union);
 }
 
 export function acceptPasteReplace(
@@ -257,6 +284,8 @@ export function acceptPasteReplace(
         return canPasteNestedIntoCallArguments(_args);
       case ListKind.ObjectLiteralElement:
         return canPasteNestedIntoObjectLiteralElement(_args);
+      case ListKind.UnknownTsNodeArray:
+        return canPasteNestedIntoGenericTsNodeChildList(_args);
       case ListKind.TsNodeStruct:
         return canPasteNestedIntoGenericTsNode(_args);
       case ListKind.TsNodeList:

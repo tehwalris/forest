@@ -22,7 +22,7 @@ import {
 import { memoize } from "./memoize";
 import { docFromAst } from "./node-from-ts";
 import { astFromTypescriptFileContent } from "./parse";
-import { acceptPasteReplace, acceptPasteRoot } from "./paste";
+import { acceptPasteReplace, acceptPasteRoot, PasteReplaceArgs } from "./paste";
 import {
   asEvenPathRange,
   asUnevenPathRange,
@@ -353,6 +353,7 @@ export class DocManager {
           if (oldParentNode?.kind !== NodeKind.List) {
             throw new Error("expected parent to exist and be a list");
           }
+
           if (this.isFocusOnEmptyListContent()) {
             oldParentNode = {
               ...oldParentNode,
@@ -367,9 +368,27 @@ export class DocManager {
               ],
             };
           }
+
+          let grandparentInfo: PasteReplaceArgs["parent"];
+          if (evenFocus.anchor.length >= 2) {
+            const grandparentPath = evenFocus.anchor.slice(0, -2);
+            const oldGrandparentNode = nodeGetByPath(
+              this.doc.root,
+              grandparentPath,
+            );
+            if (oldGrandparentNode?.kind !== NodeKind.List) {
+              throw new Error("expected grandparent to exist and be a list");
+            }
+            grandparentInfo = {
+              node: oldGrandparentNode,
+              childIndex: parentPath[parentPath.length - 1],
+            };
+          }
+
           const firstIndex = evenFocus.anchor[evenFocus.anchor.length - 1];
           const newParentNode = acceptPasteReplace({
             node: oldParentNode,
+            parent: grandparentInfo,
             firstIndex,
             lastIndex: firstIndex + evenFocus.offset,
             clipboard: this.clipboard,
@@ -377,6 +396,7 @@ export class DocManager {
           if (!newParentNode) {
             return;
           }
+
           this.doc = docMapRoot(this.doc, (root) =>
             nodeSetByPath(root, parentPath, newParentNode),
           );
