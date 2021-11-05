@@ -10,7 +10,7 @@
   - support: good
 - `add-switch-case`
   - support: none
-  - note: switch statement not supported
+  - note: switch statement is not supported
 - `add-to-middle-of-type-literal`
   - support: good
 - `append-interface-field`
@@ -19,7 +19,7 @@
   - support: good
 - `change-type-parameters`
   - support: none
-  - note: ClassDeclaration and TypeReferenceNode not supported
+  - note: ClassDeclaration is not supported
 - `change-value-prefix`
   - support: none
   - note: can't edit strings
