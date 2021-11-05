@@ -9,8 +9,13 @@ import {
   taskNameFromPath,
 } from "./util";
 
+const browseTaskPaths = [
+  "src/logic/doc-manager.ts",
+  "src/logic/node-from-ts.ts",
+];
+
 export async function loadTasks(fs: Fs): Promise<Task[]> {
-  const taskPaths: string[] = [];
+  const taskPaths: string[] = [...browseTaskPaths];
   for (const subdirName of ["creation", "editing"]) {
     const subdirPath = path.join("./tasks", subdirName);
     for (const taskFilename of await promisify(fs.readdir)(subdirPath)) {
@@ -30,6 +35,9 @@ export async function loadTasks(fs: Fs): Promise<Task[]> {
       let contentBefore = "";
       if (isExplicitAfterPath(afterPath)) {
         contentBefore = await loadText(beforePathFromAfterPath(afterPath));
+      }
+      if (browseTaskPaths.includes(afterPath)) {
+        contentBefore = contentAfter;
       }
       return {
         name: taskNameFromPath(afterPath),

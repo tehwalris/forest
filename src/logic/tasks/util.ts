@@ -5,6 +5,10 @@ export function isCreationTask(task: Task): task is CreationTask {
   return task.contentBefore === "";
 }
 
+export function isBrowseTask(task: Task): boolean {
+  return task.contentBefore === task.contentAfter;
+}
+
 export function isExplicitBeforePath(p: string): boolean {
   return !!p.match(/\.before\.tsx?$/);
 }
