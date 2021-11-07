@@ -324,10 +324,6 @@ export function acceptPasteReplace(
   ) {
     throw new Error("invalid indices");
   }
-  if (firstIndex !== lastIndex) {
-    console.warn("TODO pasting over multiple items is not supported yet");
-    return undefined;
-  }
 
   let clipboardTs: ts.Node | undefined;
   try {
