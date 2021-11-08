@@ -92,7 +92,6 @@ function hasAltLike(
 interface InsertHistoryEntry {
   doc: Doc;
   focus: UnevenPathRange;
-  parentFocuses: EvenPathRange[];
   insertState: InsertState;
 }
 
@@ -104,7 +103,6 @@ interface FocusHistoryEntry {
 export class DocManager {
   public readonly initialDoc: Doc;
   private focus: UnevenPathRange = { anchor: [], tip: [] };
-  private parentFocuses: EvenPathRange[] = [];
   private insertHistory: InsertHistoryEntry[] = [];
   private focusHistory: FocusHistoryEntry[] = [];
   private focusRedoHistory: FocusHistoryEntry[] = [];
@@ -569,7 +567,6 @@ export class DocManager {
       const finalStuff = () => {
         this.mode = Mode.Normal;
         this.insertHistory = [];
-        this.parentFocuses = [];
         this.insertState = undefined;
         this.removeInvisibleNodes();
         this.onUpdate();
@@ -685,7 +682,6 @@ export class DocManager {
       const old = this.insertHistory.pop()!;
       this.doc = old.doc;
       this.focus = old.focus;
-      this.parentFocuses = old.parentFocuses;
       this.insertState = old.insertState;
       this.onUpdate();
     }
@@ -924,7 +920,6 @@ export class DocManager {
       this.insertHistory.push({
         doc: this.doc,
         focus: this.focus,
-        parentFocuses: [...this.parentFocuses],
         insertState: this.insertState,
       });
     }
