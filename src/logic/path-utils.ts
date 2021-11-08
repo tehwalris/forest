@@ -29,6 +29,16 @@ export function evenPathRangesAreEqual(
   );
 }
 
+export function evenPathRangesAreEqualIgnoringDirection(
+  a: EvenPathRange,
+  b: EvenPathRange,
+): boolean {
+  return evenPathRangesAreEqual(
+    flipEvenPathRangeForward(a),
+    flipEvenPathRangeForward(b),
+  );
+}
+
 export function unevenPathRangesAreEqual(
   a: UnevenPathRange,
   b: UnevenPathRange,
@@ -100,6 +110,12 @@ export function flipEvenPathRangeForward(
   pathRange: EvenPathRange,
 ): EvenPathRange {
   return pathRange.offset >= 0 ? pathRange : flipEvenPathRange(pathRange);
+}
+
+export function flipEvenPathRangeBackward(
+  pathRange: EvenPathRange,
+): EvenPathRange {
+  return flipEvenPathRange(flipEvenPathRangeForward(pathRange));
 }
 
 export function getPathToTip(pathRange: EvenPathRange): Path {
