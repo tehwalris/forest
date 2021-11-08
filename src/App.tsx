@@ -98,25 +98,38 @@ export const App = () => {
     }
   }, [selectedTask]);
 
+  const [showTargetView, setShowTargetView] = useState(false);
+
   return (
     <>
-      <select
-        value={selectedTask?.name || ""}
-        onChange={(ev) => setSelectedTaskName(ev.target.value)}
-      >
-        <option key="" value="">
-          -
-        </option>
-        {tasks.map((t) => (
-          <option key={t.name} value={t.name}>
-            {isBrowseTask(t) ? "b" : isCreationTask(t) ? "c" : "e"}:{t.name}
+      <div>
+        <select
+          value={selectedTask?.name || ""}
+          onChange={(ev) => setSelectedTaskName(ev.target.value)}
+        >
+          <option key="" value="">
+            -
           </option>
-        ))}
-      </select>
-      <div className={styles.splitView}>
-        <LinearEditor initialDoc={initialDoc} />
-        <div className={styles.afterDoc}>{prettySelectedTaskContentAfter}</div>
+          {tasks.map((t) => (
+            <option key={t.name} value={t.name}>
+              {isBrowseTask(t) ? "b" : isCreationTask(t) ? "c" : "e"}:{t.name}
+            </option>
+          ))}
+        </select>
+        <button onClick={() => setShowTargetView((v) => !v)}>
+          Toggle target view
+        </button>
       </div>
+      {showTargetView ? (
+        <div className={styles.splitView}>
+          <LinearEditor initialDoc={initialDoc} />
+          <div className={styles.afterDoc}>
+            {prettySelectedTaskContentAfter}
+          </div>
+        </div>
+      ) : (
+        <LinearEditor initialDoc={initialDoc} />
+      )}
     </>
   );
 };
