@@ -165,14 +165,18 @@ export class DocManager {
   onKeyPress = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal) {
       if (ev.key === "i") {
-        if (this.isFocusOnEmptyListContent()) {
+        if (!asEvenPathRange(this.focus).anchor.length) {
+          this.tryInsertIntoEmptyList();
+        } else if (this.isFocusOnEmptyListContent()) {
           this.tryMoveOutOfList(() => true);
           this.tryInsertIntoEmptyList();
         } else {
           this.tryInsertBefore();
         }
       } else if (ev.key === "a") {
-        if (this.isFocusOnEmptyListContent()) {
+        if (!asEvenPathRange(this.focus).anchor.length) {
+          this.tryInsertIntoEmptyList();
+        } else if (this.isFocusOnEmptyListContent()) {
           this.tryMoveOutOfList(() => true);
           this.tryInsertIntoEmptyList();
         } else {
