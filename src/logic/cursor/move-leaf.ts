@@ -4,17 +4,24 @@ import {
   asEvenPathRange,
   asUnevenPathRange,
   evenPathRangesAreEqualIgnoringDirection,
+  flipEvenPathRange,
   flipEvenPathRangeBackward,
   flipEvenPathRangeForward,
 } from "../path-utils";
 import { nodeGetByPath } from "../tree-utils/access";
 import { Cursor } from "./interfaces";
 
+export enum CursorMoveLeafMode {
+  Move,
+  ExtendSelection,
+  ShrinkSelection,
+}
+
 interface CursorMoveLeafArgs {
   root: ListNode;
   cursor: Cursor;
   direction: -1 | 1;
-  extend: boolean;
+  mode: CursorMoveLeafMode;
 }
 
 interface CursorMoveLeafResult {
@@ -26,19 +33,31 @@ export function cursorMoveLeaf({
   root,
   cursor: oldCursor,
   direction,
-  extend,
+  mode,
 }: CursorMoveLeafArgs): CursorMoveLeafResult {
   let focus = oldCursor.focus;
+
+  if (mode === CursorMoveLeafMode.ShrinkSelection && focus.offset === 0) {
+    return { cursor: oldCursor, didMove: false };
+  }
 
   if (direction === 1) {
     focus = flipEvenPathRangeForward(focus);
   } else {
     focus = flipEvenPathRangeBackward(focus);
   }
+  if (mode === CursorMoveLeafMode.ShrinkSelection) {
+    focus = flipEvenPathRange(focus);
+  }
 
   focus = asEvenPathRange(
     untilEvenFocusChanges(asUnevenPathRange(focus), (focus) =>
-      tryMoveThroughLeavesOnce(root, focus, direction, extend),
+      tryMoveThroughLeavesOnce(
+        root,
+        focus,
+        direction,
+        mode !== CursorMoveLeafMode.Move,
+      ),
     ),
   );
   focus = asEvenPathRange(normalizeFocusIn(root, asUnevenPathRange(focus)));

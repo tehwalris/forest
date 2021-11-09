@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { checkInsertion } from "./check-insertion";
 import { Cursor } from "./cursor/interfaces";
-import { cursorMoveLeaf } from "./cursor/move-leaf";
+import { cursorMoveLeaf, CursorMoveLeafMode } from "./cursor/move-leaf";
 import { docMapRoot, emptyDoc } from "./doc-utils";
 import {
   isFocusOnEmptyListContent,
@@ -241,7 +241,7 @@ export class DocManager {
           root: this.doc.root,
           cursor: this.getCursor(),
           direction: 1,
-          extend: false,
+          mode: CursorMoveLeafMode.Move,
         });
         this.setFromCursor(result.cursor);
       } else if (ev.key === "L" && !ev.ctrlKey) {
@@ -249,7 +249,7 @@ export class DocManager {
           root: this.doc.root,
           cursor: this.getCursor(),
           direction: 1,
-          extend: true,
+          mode: CursorMoveLeafMode.ExtendSelection,
         });
         this.setFromCursor(result.cursor);
         this.nextEnableReduceToTip = true;
@@ -258,7 +258,7 @@ export class DocManager {
           root: this.doc.root,
           cursor: this.getCursor(),
           direction: -1,
-          extend: false,
+          mode: CursorMoveLeafMode.Move,
         });
         this.setFromCursor(result.cursor);
       } else if (ev.key === "H" && !ev.ctrlKey) {
@@ -266,7 +266,7 @@ export class DocManager {
           root: this.doc.root,
           cursor: this.getCursor(),
           direction: -1,
-          extend: true,
+          mode: CursorMoveLeafMode.ExtendSelection,
         });
         this.setFromCursor(result.cursor);
         this.nextEnableReduceToTip = true;
@@ -552,9 +552,14 @@ export class DocManager {
       }
     } else if (this.mode === Mode.Normal && ev.key === "H" && ev.ctrlKey) {
       ev.preventDefault?.();
-      if (asEvenPathRange(this.focus).offset !== 0) {
-        this.flipFocusForward();
-        this.tryMoveThroughLeaves(-1, true);
+      const result = cursorMoveLeaf({
+        root: this.doc.root,
+        cursor: this.getCursor(),
+        direction: -1,
+        mode: CursorMoveLeafMode.ShrinkSelection,
+      });
+      if (result.didMove) {
+        this.setFromCursor(result.cursor);
         this.nextEnableReduceToTip = true;
       }
       this.onUpdate();
