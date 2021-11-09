@@ -7,8 +7,6 @@ import {
   isFocusOnEmptyListContent,
   normalizeFocusIn,
   normalizeFocusOutOnce,
-  tryMoveThroughLeavesOnce,
-  untilEvenFocusChanges,
   whileUnevenFocusChanges,
 } from "./focus";
 import {
@@ -826,12 +824,6 @@ export class DocManager {
       };
     }
     return evenFocus;
-  }
-
-  private tryMoveThroughLeaves(offset: -1 | 1, extend: boolean) {
-    this.focus = untilEvenFocusChanges(this.focus, (focus) =>
-      tryMoveThroughLeavesOnce(this.doc.root, focus, offset, extend),
-    );
   }
 
   private isFocusOnEmptyListContent(): boolean {

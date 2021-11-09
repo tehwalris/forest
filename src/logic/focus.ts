@@ -115,46 +115,6 @@ export function untilEvenFocusChanges(
   }
 }
 
-export function tryMoveThroughLeavesOnce(
-  root: ListNode,
-  focus: UnevenPathRange,
-  offset: -1 | 1,
-  extend: boolean,
-): UnevenPathRange {
-  let currentPath = [...focus.tip];
-  while (true) {
-    if (!currentPath.length) {
-      return focus;
-    }
-    const siblingPath = [...currentPath];
-    siblingPath[siblingPath.length - 1] += offset;
-    if (nodeGetByPath(root, siblingPath)) {
-      currentPath = siblingPath;
-      break;
-    }
-    currentPath.pop();
-  }
-
-  while (true) {
-    const currentNode = nodeGetByPath(root, currentPath)!;
-    if (currentNode.kind !== NodeKind.List || !currentNode.content.length) {
-      break;
-    }
-    const childPath = [
-      ...currentPath,
-      offset === -1 ? currentNode.content.length - 1 : 0,
-    ];
-    if (!nodeGetByPath(root, childPath)) {
-      break;
-    }
-    currentPath = childPath;
-  }
-
-  return extend
-    ? { anchor: focus.anchor, tip: currentPath }
-    : { anchor: currentPath, tip: currentPath };
-}
-
 export function isFocusOnEmptyListContent(
   root: ListNode,
   focus: EvenPathRange,
