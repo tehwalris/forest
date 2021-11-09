@@ -1,5 +1,3 @@
-import ts from "typescript";
-import { checkInsertion } from "./check-insertion";
 import { cursorCopy } from "./cursor/copy";
 import { Cursor } from "./cursor/interfaces";
 import {
@@ -11,52 +9,23 @@ import {
   cursorReduceSelection,
   CursorReduceSelectionSide,
 } from "./cursor/reduce-selection";
-import { docMapRoot, emptyDoc } from "./doc-utils";
-import {
-  isFocusOnEmptyListContent,
-  normalizeFocusIn,
-  normalizeFocusOutOnce,
-  whileUnevenFocusChanges,
-} from "./focus";
-import {
-  Doc,
-  EvenPathRange,
-  InsertState,
-  NodeKind,
-  Path,
-  UnevenPathRange,
-} from "./interfaces";
+import { emptyDoc } from "./doc-utils";
+import { normalizeFocusIn } from "./focus";
+import { Doc, EvenPathRange, InsertState, UnevenPathRange } from "./interfaces";
 import { memoize } from "./memoize";
-import { docFromAst } from "./node-from-ts";
-import { astFromTypescriptFileContent } from "./parse";
-import {
-  acceptPasteReplace,
-  acceptPasteRoot,
-  Clipboard,
-  PasteReplaceArgs,
-} from "./paste";
+import { Clipboard } from "./paste";
 import {
   asEvenPathRange,
   asUnevenPathRange,
   evenPathRangesAreEqual,
-  flipEvenPathRange,
   flipEvenPathRangeForward,
-  getPathToTip,
 } from "./path-utils";
 import {
   getDocWithAllPlaceholders,
   getDocWithoutPlaceholdersNearCursor,
 } from "./placeholders";
-import { prettyPrintTsSourceFile } from "./print";
 import { getDocWithInsert } from "./text";
-import {
-  nodeGetByPath,
-  nodeMapAtPath,
-  nodeSetByPath,
-  nodeTryGetDeepestByPath,
-  nodeVisitDeep,
-} from "./tree-utils/access";
-import { filterNodes } from "./tree-utils/filter";
+import { nodeTryGetDeepestByPath } from "./tree-utils/access";
 import { withoutInvisibleNodes } from "./without-invisible";
 
 export enum Mode {
@@ -167,90 +136,7 @@ export class DocManager {
 
   onKeyPress = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal) {
-      if (ev.key === "i") {
-        if (!asEvenPathRange(this.focus).anchor.length) {
-          this.tryInsertIntoEmptyList();
-        } else if (this.isFocusOnEmptyListContent()) {
-          const result = cursorMoveInOut({
-            root: this.doc.root,
-            cursor: this.getCursor(),
-            direction: CursorMoveInOutDirection.Out,
-            bigStep: true,
-          });
-          this.setFromCursor(result.cursor);
-          this.tryInsertIntoEmptyList();
-        } else {
-          this.tryInsertBefore();
-        }
-      } else if (ev.key === "a") {
-        if (!asEvenPathRange(this.focus).anchor.length) {
-          this.tryInsertIntoEmptyList();
-        } else if (this.isFocusOnEmptyListContent()) {
-          const result = cursorMoveInOut({
-            root: this.doc.root,
-            cursor: this.getCursor(),
-            direction: CursorMoveInOutDirection.Out,
-            bigStep: true,
-          });
-          this.setFromCursor(result.cursor);
-          this.tryInsertIntoEmptyList();
-        } else {
-          this.tryInsertAfter();
-        }
-      } else if (ev.key === "d") {
-        if (this.isFocusOnEmptyListContent()) {
-          return;
-        }
-
-        const evenFocus = asEvenPathRange(this.focus);
-        let forwardFocus =
-          evenFocus.offset < 0 ? flipEvenPathRange(evenFocus) : evenFocus;
-        if (evenFocus.anchor.length === 0) {
-          if (!this.doc.root.content.length) {
-            return;
-          }
-          forwardFocus = {
-            anchor: [0],
-            offset: this.doc.root.content.length - 1,
-          };
-        }
-        let newFocusIndex: number | undefined;
-        this.doc = docMapRoot(
-          this.doc,
-          nodeMapAtPath(forwardFocus.anchor.slice(0, -1), (oldListNode) => {
-            if (oldListNode?.kind !== NodeKind.List) {
-              throw new Error("oldListNode is not a list");
-            }
-            const deleteFrom =
-              forwardFocus.anchor[forwardFocus.anchor.length - 1];
-            const deleteCount = forwardFocus.offset + 1;
-            if (deleteFrom + deleteCount < oldListNode.content.length) {
-              newFocusIndex = deleteFrom;
-            } else if (deleteFrom > 0) {
-              newFocusIndex = deleteFrom - 1;
-            }
-
-            const newContent = [...oldListNode.content];
-            const newStructKeys = oldListNode.structKeys && [
-              ...oldListNode.structKeys,
-            ];
-            newContent.splice(deleteFrom, deleteCount);
-            newStructKeys?.splice(deleteFrom, deleteCount);
-            return {
-              ...oldListNode,
-              content: newContent,
-              structKeys: newStructKeys,
-            };
-          }),
-        );
-        this.focus = asUnevenPathRange({
-          anchor:
-            newFocusIndex === undefined
-              ? forwardFocus.anchor.slice(0, -1)
-              : [...forwardFocus.anchor.slice(0, -1), newFocusIndex],
-          offset: 0,
-        });
-      } else if (ev.key === "l" && !hasAltLike(ev)) {
+      if (ev.key === "l" && !hasAltLike(ev)) {
         const result = cursorMoveLeaf({
           root: this.doc.root,
           cursor: this.getCursor(),
@@ -338,140 +224,6 @@ export class DocManager {
           cursor: this.getCursor(),
         });
         this.setFromCursor(result.cursor);
-      } else if (ev.key === "p") {
-        if (!this.clipboard) {
-          return;
-        }
-        let evenFocus = asEvenPathRange(
-          whileUnevenFocusChanges(this.focus, (focus) =>
-            normalizeFocusOutOnce(this.doc.root, focus),
-          ),
-        );
-        if (evenFocus.offset < 0) {
-          evenFocus = flipEvenPathRange(evenFocus);
-        }
-        if (evenFocus.anchor.length) {
-          const parentPath = evenFocus.anchor.slice(0, -1);
-          let oldParentNode = nodeGetByPath(this.doc.root, parentPath);
-          if (oldParentNode?.kind !== NodeKind.List) {
-            throw new Error("expected parent to exist and be a list");
-          }
-
-          if (this.isFocusOnEmptyListContent()) {
-            oldParentNode = {
-              ...oldParentNode,
-              content: [
-                {
-                  kind: NodeKind.Token,
-                  pos: -1,
-                  end: -1,
-                  isPlaceholder: true,
-                  tsNode: ts.factory.createIdentifier("placeholder"),
-                },
-              ],
-            };
-          }
-
-          let grandparentInfo: PasteReplaceArgs["parent"];
-          if (evenFocus.anchor.length >= 2) {
-            const grandparentPath = evenFocus.anchor.slice(0, -2);
-            const oldGrandparentNode = nodeGetByPath(
-              this.doc.root,
-              grandparentPath,
-            );
-            if (oldGrandparentNode?.kind !== NodeKind.List) {
-              throw new Error("expected grandparent to exist and be a list");
-            }
-            grandparentInfo = {
-              node: oldGrandparentNode,
-              childIndex: parentPath[parentPath.length - 1],
-            };
-          }
-
-          const firstIndex = evenFocus.anchor[evenFocus.anchor.length - 1];
-          const newParentNode = acceptPasteReplace({
-            node: oldParentNode,
-            parent: grandparentInfo,
-            firstIndex,
-            lastIndex: firstIndex + evenFocus.offset,
-            clipboard: this.clipboard.node,
-            isPartialCopy: this.clipboard.isPartialCopy,
-          });
-          if (!newParentNode) {
-            return;
-          }
-
-          this.doc = docMapRoot(this.doc, (root) =>
-            nodeSetByPath(root, parentPath, newParentNode),
-          );
-        } else {
-          const newRoot = acceptPasteRoot(this.clipboard);
-          if (!newRoot) {
-            return;
-          }
-          this.doc = { ...this.doc, root: newRoot };
-        }
-      } else if (ev.key === "o") {
-        const tipPath = getPathToTip(asEvenPathRange(this.focus));
-        console.log({
-          doc: this.doc,
-          focus: this.focus,
-          tip: nodeGetByPath(this.doc.root, tipPath),
-          tipPath,
-          insertState: this.insertState,
-        });
-      } else if (ev.key === "z") {
-        while (this.focusHistory.length) {
-          const historyEntry = this.focusHistory.pop()!;
-          if (
-            evenPathRangesAreEqual(
-              asEvenPathRange(historyEntry.focus),
-              asEvenPathRange(this.focus),
-            )
-          ) {
-            continue;
-          }
-          this.focusRedoHistory.push({
-            focus: this.focus,
-            enableReduceToTip: this.enableReduceToTip,
-          });
-          this.focus = historyEntry.focus;
-          this.nextEnableReduceToTip = historyEntry.enableReduceToTip;
-          break;
-        }
-      } else if (ev.key === "Z") {
-        while (this.focusRedoHistory.length) {
-          const historyEntry = this.focusRedoHistory.pop()!;
-          if (
-            evenPathRangesAreEqual(
-              asEvenPathRange(historyEntry.focus),
-              asEvenPathRange(this.focus),
-            )
-          ) {
-            continue;
-          }
-          this.focusHistory.push({
-            focus: this.focus,
-            enableReduceToTip: this.enableReduceToTip,
-          });
-          this.focus = historyEntry.focus;
-          this.nextEnableReduceToTip = historyEntry.enableReduceToTip;
-          break;
-        }
-      }
-    } else if (
-      this.mode === Mode.InsertBefore ||
-      this.mode === Mode.InsertAfter
-    ) {
-      if (!this.insertState) {
-        throw new Error("this.insertState was undefined in insert mode");
-      }
-      if (ev.key.length === 1) {
-        ev.preventDefault?.();
-        this.insertState = {
-          ...this.insertState,
-          text: this.insertState.text + ev.key,
-        };
       }
     }
 
@@ -535,117 +287,6 @@ export class DocManager {
       this.onUpdate();
     } else if (
       (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
-      ev.key === "Escape"
-    ) {
-      const finalStuff = () => {
-        this.mode = Mode.Normal;
-        this.insertHistory = [];
-        this.insertState = undefined;
-        this.removeInvisibleNodes();
-        this.onUpdate();
-      };
-
-      if (!this.insertState) {
-        throw new Error("this.insertState was undefined in insert mode");
-      }
-
-      if (this.insertHistory.length > 1) {
-        try {
-          const initialPlaceholderInsertion =
-            getDocWithoutPlaceholdersNearCursor(
-              this.doc,
-              this.insertState.beforePos,
-            );
-
-          const astWithInsertBeforeFormatting = astFromTypescriptFileContent(
-            getDocWithInsert(initialPlaceholderInsertion.doc, {
-              text: this.insertState.text,
-              beforePos: initialPlaceholderInsertion.cursorBeforePos,
-            }).text,
-          );
-          if (astWithInsertBeforeFormatting.parseDiagnostics.length) {
-            console.warn(
-              "file has syntax errors",
-              astWithInsertBeforeFormatting.parseDiagnostics,
-              astWithInsertBeforeFormatting.text,
-            );
-            return;
-          }
-
-          const docWithInsert = docFromAst(
-            astFromTypescriptFileContent(
-              prettyPrintTsSourceFile(astWithInsertBeforeFormatting),
-            ),
-          );
-
-          const checkedInsertion = checkInsertion(
-            initialPlaceholderInsertion.doc.root,
-            docWithInsert.root,
-            initialPlaceholderInsertion.mapOldToWithoutAdjacent(
-              this.insertState.beforePath,
-            ),
-          );
-          if (!checkedInsertion.valid) {
-            throw new Error("checkedInsertion is not valid");
-          }
-
-          nodeVisitDeep(
-            initialPlaceholderInsertion.doc.root,
-            (oldNode, oldPath) => {
-              if (!oldNode.isPlaceholder) {
-                return;
-              }
-              const newNode = nodeGetByPath(
-                docWithInsert.root,
-                checkedInsertion.pathMapper.mapRough(oldPath),
-              );
-              if (!newNode) {
-                throw new Error("placeholder not found in new tree");
-              }
-              // HACK mutating docWithInsert
-              newNode.isPlaceholder = true;
-            },
-          );
-
-          const placeholderRemoval = filterNodes(
-            docWithInsert.root,
-            (node) => !node.isPlaceholder,
-          );
-
-          this.doc = { ...docWithInsert, root: placeholderRemoval.node };
-
-          const mapPath = (p: Path) =>
-            placeholderRemoval.pathMapper.mapRough(
-              checkedInsertion.pathMapper.mapRough(
-                initialPlaceholderInsertion.mapOldToWithoutAdjacent(p),
-              ),
-            );
-          const mappedOldFocus = {
-            anchor: mapPath(this.focus.anchor),
-            tip: mapPath(this.focus.tip),
-          };
-          this.focus = mappedOldFocus;
-
-          if (checkedInsertion.insertedRange) {
-            this.focus = checkedInsertion.insertedRange;
-
-            finalStuff();
-            // HACK this has to happen after onUpdate (which is in finalStuff), because that clears focusHistory
-            this.focusHistory.push({
-              focus: mappedOldFocus,
-              enableReduceToTip: this.enableReduceToTip,
-            });
-            return;
-          }
-        } catch (err) {
-          console.warn("insertion would make doc invalid", err);
-          return;
-        }
-      }
-
-      finalStuff();
-    } else if (
-      (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
       ev.key === "Backspace"
     ) {
       if (this.insertHistory.length < 2) {
@@ -666,81 +307,6 @@ export class DocManager {
       ev.preventDefault?.();
     }
   };
-
-  private isFocusOnEmptyListContent(): boolean {
-    return isFocusOnEmptyListContent(
-      this.doc.root,
-      asEvenPathRange(this.focus),
-    );
-  }
-
-  private tryInsertIntoEmptyList() {
-    const evenFocus = asEvenPathRange(this.focus);
-    if (evenFocus.offset !== 0) {
-      return;
-    }
-    const focusedNode = nodeGetByPath(this.doc.root, evenFocus.anchor);
-    if (focusedNode?.kind !== NodeKind.List || focusedNode.content.length) {
-      return;
-    }
-    this.insertState = {
-      beforePos: focusedNode.pos + focusedNode.delimiters[0].length,
-      beforePath: [...evenFocus.anchor, 0],
-      text: "",
-    };
-    this.mode = Mode.InsertAfter;
-  }
-
-  private tryInsertBefore() {
-    let evenFocus = asEvenPathRange(this.focus);
-    if (!evenFocus.anchor.length) {
-      return;
-    }
-    if (evenFocus.offset < 0) {
-      evenFocus = flipEvenPathRange(evenFocus);
-    }
-    const firstFocusedPath = evenFocus.anchor;
-    evenFocus = flipEvenPathRange(evenFocus);
-    this.focus = asUnevenPathRange(evenFocus);
-
-    const firstFocusedNode = nodeGetByPath(this.doc.root, firstFocusedPath);
-    if (!firstFocusedNode) {
-      throw new Error("invalid focus");
-    }
-    this.insertState = {
-      beforePos: firstFocusedNode.pos,
-      beforePath: firstFocusedPath,
-      text: "",
-    };
-    this.mode = Mode.InsertBefore;
-  }
-
-  private tryInsertAfter() {
-    let evenFocus = asEvenPathRange(this.focus);
-    if (!evenFocus.anchor.length) {
-      return;
-    }
-    if (evenFocus.offset > 0) {
-      evenFocus = flipEvenPathRange(evenFocus);
-    }
-    const lastFocusedPath = evenFocus.anchor;
-    evenFocus = flipEvenPathRange(evenFocus);
-    this.focus = asUnevenPathRange(evenFocus);
-
-    const lastFocusedNode = nodeGetByPath(this.doc.root, lastFocusedPath);
-    if (!lastFocusedNode) {
-      throw new Error("invalid focus");
-    }
-    this.insertState = {
-      beforePos: lastFocusedNode.end,
-      beforePath: [
-        ...lastFocusedPath.slice(0, -1),
-        lastFocusedPath[lastFocusedPath.length - 1] + 1,
-      ],
-      text: "",
-    };
-    this.mode = Mode.InsertAfter;
-  }
 
   private getCursor(): Cursor {
     return {
