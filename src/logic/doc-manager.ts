@@ -813,6 +813,7 @@ export class DocManager {
     return {
       focus: asEvenPathRange(this.focus),
       enableReduceToTip: this.enableReduceToTip,
+      clipboard: this.clipboard,
     };
   }
 

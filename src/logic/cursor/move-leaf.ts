@@ -10,6 +10,7 @@ import {
 } from "../path-utils";
 import { nodeGetByPath } from "../tree-utils/access";
 import { Cursor } from "./interfaces";
+import { adjustPostActionCursor } from "./post-action";
 
 export enum CursorMoveLeafMode {
   Move,
@@ -38,7 +39,7 @@ export function cursorMoveLeaf({
   let focus = oldCursor.focus;
 
   if (mode === CursorMoveLeafMode.ShrinkSelection && focus.offset === 0) {
-    return { cursor: { focus, enableReduceToTip: false }, didMove: false };
+    return { cursor: adjustPostActionCursor(oldCursor), didMove: false };
   }
 
   if (direction === 1) {
@@ -68,7 +69,7 @@ export function cursorMoveLeaf({
   );
   return {
     cursor: {
-      focus,
+      ...adjustPostActionCursor({ ...oldCursor, focus }),
       enableReduceToTip: didMove && mode !== CursorMoveLeafMode.Move,
     },
     didMove,

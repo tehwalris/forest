@@ -10,6 +10,7 @@ import {
 import { nodeGetByPath } from "../tree-utils/access";
 import { unreachable } from "../util";
 import { Cursor } from "./interfaces";
+import { adjustPostActionCursor } from "./post-action";
 
 export enum CursorReduceSelectionSide {
   First,
@@ -39,7 +40,7 @@ export function cursorReduceSelection({
     isFocusOnEmptyListContent(root, oldCursor.focus)
   ) {
     return {
-      cursor: { focus: oldCursor.focus, enableReduceToTip: false },
+      cursor: adjustPostActionCursor({ ...oldCursor, focus: oldCursor.focus }),
       didReduce: false,
     };
   }
@@ -63,7 +64,7 @@ export function cursorReduceSelection({
 
   if (!nodeGetByPath(root, target)) {
     return {
-      cursor: { focus: oldCursor.focus, enableReduceToTip: false },
+      cursor: adjustPostActionCursor({ ...oldCursor, focus: oldCursor.focus }),
       didReduce: false,
     };
   }
@@ -72,7 +73,7 @@ export function cursorReduceSelection({
   focus = asEvenPathRange(normalizeFocusIn(root, asUnevenPathRange(focus)));
 
   return {
-    cursor: { focus, enableReduceToTip: false },
+    cursor: adjustPostActionCursor({ ...oldCursor, focus }),
     didReduce: !evenPathRangesAreEqualIgnoringDirection(focus, oldCursor.focus),
   };
 }

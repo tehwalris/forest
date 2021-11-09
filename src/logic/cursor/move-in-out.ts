@@ -8,6 +8,7 @@ import {
 import { nodeGetByPath, nodeVisitDeepInRange } from "../tree-utils/access";
 import { unreachable } from "../util";
 import { Cursor } from "./interfaces";
+import { adjustPostActionCursor } from "./post-action";
 
 export enum CursorMoveInOutDirection {
   In,
@@ -63,12 +64,12 @@ export function cursorMoveInOut({
   }
 
   if (!focus) {
-    return {
-      cursor: { focus: oldCursor.focus, enableReduceToTip: false },
-      didMove: false,
-    };
+    return { cursor: adjustPostActionCursor(oldCursor), didMove: false };
   }
-  return { cursor: { focus, enableReduceToTip: false }, didMove: true };
+  return {
+    cursor: adjustPostActionCursor({ ...oldCursor, focus }),
+    didMove: !evenPathRangesAreEqualIgnoringDirection(focus, oldCursor.focus),
+  };
 }
 
 function cursorMoveOutSmall({
@@ -78,7 +79,10 @@ function cursorMoveOutSmall({
   const wrapResult = (
     focus: EvenPathRange | undefined,
   ): CursorMoveInOutResult => ({
-    cursor: { focus: focus || oldCursor.focus, enableReduceToTip: false },
+    cursor: adjustPostActionCursor({
+      ...oldCursor,
+      focus: focus || oldCursor.focus,
+    }),
     didMove:
       !!focus &&
       !evenPathRangesAreEqualIgnoringDirection(focus, oldCursor.focus),
