@@ -2,6 +2,10 @@ import ts from "typescript";
 import { checkInsertion } from "./check-insertion";
 import { Cursor } from "./cursor/interfaces";
 import { cursorMoveLeaf, CursorMoveLeafMode } from "./cursor/move-leaf";
+import {
+  cursorReduceSelection,
+  CursorReduceSelectionSide,
+} from "./cursor/reduce-selection";
 import { docMapRoot, emptyDoc } from "./doc-utils";
 import {
   isFocusOnEmptyListContent,
@@ -312,12 +316,12 @@ export class DocManager {
         this.tryMoveIntoList((node) => node.delimiters[0] === ev.key);
       } else if (ev.key === " ") {
         ev.preventDefault?.();
-        if (this.enableReduceToTip) {
-          this.focus = asUnevenPathRange({
-            anchor: getPathToTip(asEvenPathRange(this.focus)),
-            offset: 0,
-          });
-        }
+        const result = cursorReduceSelection({
+          root: this.doc.root,
+          cursor: this.getCursor(),
+          side: CursorReduceSelectionSide.JustExtended,
+        });
+        this.setFromCursor(result.cursor);
       } else if (ev.key === "c") {
         if (this.isFocusOnEmptyListContent()) {
           return;
@@ -536,15 +540,14 @@ export class DocManager {
       hasAltLike(ev)
     ) {
       ev.preventDefault?.();
-      if (!this.isFocusOnEmptyListContent()) {
-        const target = this.getFocusSkippingDelimitedLists().anchor;
-        if (nodeGetByPath(this.doc.root, target)) {
-          this.focus = asUnevenPathRange({
-            anchor: target,
-            offset: 0,
-          });
-          this.onUpdate();
-        }
+      const result = cursorReduceSelection({
+        root: this.doc.root,
+        cursor: this.getCursor(),
+        side: CursorReduceSelectionSide.First,
+      });
+      if (result.didReduce) {
+        this.setFromCursor(result.cursor);
+        this.onUpdate();
       }
     } else if (this.mode === Mode.Normal && ev.key === "H" && ev.ctrlKey) {
       ev.preventDefault?.();
@@ -564,15 +567,14 @@ export class DocManager {
       hasAltLike(ev)
     ) {
       ev.preventDefault?.();
-      if (!this.isFocusOnEmptyListContent()) {
-        const target = getPathToTip(this.getFocusSkippingDelimitedLists());
-        if (nodeGetByPath(this.doc.root, target)) {
-          this.focus = asUnevenPathRange({
-            anchor: target,
-            offset: 0,
-          });
-          this.onUpdate();
-        }
+      const result = cursorReduceSelection({
+        root: this.doc.root,
+        cursor: this.getCursor(),
+        side: CursorReduceSelectionSide.Last,
+      });
+      if (result.didReduce) {
+        this.setFromCursor(result.cursor);
+        this.onUpdate();
       }
     } else if (this.mode === Mode.Normal && ev.key === "L" && ev.ctrlKey) {
       ev.preventDefault?.();
