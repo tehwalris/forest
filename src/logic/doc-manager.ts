@@ -1,5 +1,6 @@
 import ts from "typescript";
 import { checkInsertion } from "./check-insertion";
+import { cursorCopy } from "./cursor/copy";
 import { Cursor } from "./cursor/interfaces";
 import {
   cursorMoveInOut,
@@ -21,7 +22,6 @@ import {
   Doc,
   EvenPathRange,
   InsertState,
-  ListKind,
   NodeKind,
   Path,
   UnevenPathRange,
@@ -49,7 +49,6 @@ import {
   getDocWithoutPlaceholdersNearCursor,
 } from "./placeholders";
 import { prettyPrintTsSourceFile } from "./print";
-import { getStructContent } from "./struct";
 import { getDocWithInsert } from "./text";
 import {
   nodeGetByPath,
@@ -335,76 +334,11 @@ export class DocManager {
         });
         this.setFromCursor(result.cursor);
       } else if (ev.key === "c") {
-        if (this.isFocusOnEmptyListContent()) {
-          return;
-        }
-
-        const evenFocus = asEvenPathRange(
-          whileUnevenFocusChanges(this.focus, (focus) =>
-            normalizeFocusOutOnce(this.doc.root, focus),
-          ),
-        );
-        if (evenFocus.offset === 0) {
-          const node = nodeGetByPath(this.doc.root, evenFocus.anchor);
-          this.clipboard = node && { node: node, isPartialCopy: false };
-        } else {
-          if (!evenFocus.anchor.length) {
-            throw new Error("invalid focus");
-          }
-          const oldParent = nodeGetByPath(
-            this.doc.root,
-            evenFocus.anchor.slice(0, -1),
-          );
-          if (oldParent?.kind !== NodeKind.List) {
-            throw new Error("oldParent must be a list");
-          }
-          if (oldParent.structKeys) {
-            console.warn(
-              "can not copy from non-list node",
-              this.focus,
-              evenFocus,
-            );
-            return;
-          }
-          let selectedRange = [
-            evenFocus.anchor[evenFocus.anchor.length - 1],
-            evenFocus.anchor[evenFocus.anchor.length - 1] + evenFocus.offset,
-          ];
-          if (selectedRange[0] > selectedRange[1]) {
-            selectedRange = [selectedRange[1], selectedRange[0]];
-          }
-          this.clipboard = {
-            node: {
-              ...oldParent,
-              content: oldParent.content.slice(
-                selectedRange[0],
-                selectedRange[1] + 1,
-              ),
-            },
-            isPartialCopy: true,
-          };
-        }
-        if (
-          this.clipboard?.node.kind === NodeKind.List &&
-          this.clipboard.node.listKind === ListKind.File &&
-          this.clipboard.node.content.length === 1
-        ) {
-          this.clipboard = {
-            node: this.clipboard.node.content[0],
-            isPartialCopy: false,
-          };
-        }
-        if (
-          this.clipboard?.node.kind === NodeKind.List &&
-          this.clipboard.node.listKind === ListKind.TsNodeStruct &&
-          this.clipboard.node.tsNode?.kind === ts.SyntaxKind.ExpressionStatement
-        ) {
-          this.clipboard = {
-            node: getStructContent(this.clipboard.node, ["expression"], [])
-              .expression,
-            isPartialCopy: false,
-          };
-        }
+        const result = cursorCopy({
+          root: this.doc.root,
+          cursor: this.getCursor(),
+        });
+        this.setFromCursor(result.cursor);
       } else if (ev.key === "p") {
         if (!this.clipboard) {
           return;
@@ -820,6 +754,7 @@ export class DocManager {
   private setFromCursor(cursor: Cursor) {
     this.focus = asUnevenPathRange(cursor.focus);
     this.nextEnableReduceToTip = cursor.enableReduceToTip;
+    this.clipboard = cursor.clipboard;
   }
 
   private onUpdate() {
