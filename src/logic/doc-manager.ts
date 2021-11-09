@@ -80,6 +80,7 @@ interface FocusHistoryEntry {
 
 export class DocManager {
   public readonly initialDoc: Doc;
+  private cursors: Cursor[] = [initialCursor];
   private focus: UnevenPathRange = { anchor: [], tip: [] };
   private insertHistory: InsertHistoryEntry[] = [];
   private focusHistory: FocusHistoryEntry[] = [];
@@ -141,93 +142,115 @@ export class DocManager {
   onKeyPress = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal) {
       if (ev.key === "l" && !hasAltLike(ev)) {
-        const result = cursorMoveLeaf({
-          root: this.doc.root,
-          cursor: this.getCursor(),
-          direction: 1,
-          mode: CursorMoveLeafMode.Move,
-        });
-        this.setFromCursor(result.cursor);
+        this.cursors = this.cursors.map(
+          (cursor) =>
+            cursorMoveLeaf({
+              root: this.doc.root,
+              cursor: cursor,
+              direction: 1,
+              mode: CursorMoveLeafMode.Move,
+            }).cursor,
+        );
       } else if (ev.key === "L" && !ev.ctrlKey) {
-        const result = cursorMoveLeaf({
-          root: this.doc.root,
-          cursor: this.getCursor(),
-          direction: 1,
-          mode: CursorMoveLeafMode.ExtendSelection,
-        });
-        this.setFromCursor(result.cursor);
+        this.cursors = this.cursors.map(
+          (cursor) =>
+            cursorMoveLeaf({
+              root: this.doc.root,
+              cursor: cursor,
+              direction: 1,
+              mode: CursorMoveLeafMode.ExtendSelection,
+            }).cursor,
+        );
       } else if (ev.key === "h" && !hasAltLike(ev)) {
-        const result = cursorMoveLeaf({
-          root: this.doc.root,
-          cursor: this.getCursor(),
-          direction: -1,
-          mode: CursorMoveLeafMode.Move,
-        });
-        this.setFromCursor(result.cursor);
+        this.cursors = this.cursors.map(
+          (cursor) =>
+            cursorMoveLeaf({
+              root: this.doc.root,
+              cursor: cursor,
+              direction: -1,
+              mode: CursorMoveLeafMode.Move,
+            }).cursor,
+        );
       } else if (ev.key === "H" && !ev.ctrlKey) {
-        const result = cursorMoveLeaf({
-          root: this.doc.root,
-          cursor: this.getCursor(),
-          direction: -1,
-          mode: CursorMoveLeafMode.ExtendSelection,
-        });
-        this.setFromCursor(result.cursor);
+        this.cursors = this.cursors.map(
+          (cursor) =>
+            cursorMoveLeaf({
+              root: this.doc.root,
+              cursor: cursor,
+              direction: -1,
+              mode: CursorMoveLeafMode.ExtendSelection,
+            }).cursor,
+        );
       } else if (ev.key === "k") {
-        const result = cursorMoveInOut({
-          root: this.doc.root,
-          cursor: this.getCursor(),
-          direction: CursorMoveInOutDirection.Out,
-          bigStep: false,
-        });
-        this.setFromCursor(result.cursor);
+        this.cursors = this.cursors.map(
+          (cursor) =>
+            cursorMoveInOut({
+              root: this.doc.root,
+              cursor: cursor,
+              direction: CursorMoveInOutDirection.Out,
+              bigStep: false,
+            }).cursor,
+        );
       } else if (ev.key === "K") {
-        const result = cursorMoveInOut({
-          root: this.doc.root,
-          cursor: this.getCursor(),
-          direction: CursorMoveInOutDirection.Out,
-          bigStep: true,
-        });
-        this.setFromCursor(result.cursor);
+        this.cursors = this.cursors.map(
+          (cursor) =>
+            cursorMoveInOut({
+              root: this.doc.root,
+              cursor: cursor,
+              direction: CursorMoveInOutDirection.Out,
+              bigStep: true,
+            }).cursor,
+        );
       } else if ([")", "]", "}", ">"].includes(ev.key)) {
-        const result = cursorMoveInOut({
-          root: this.doc.root,
-          cursor: this.getCursor(),
-          direction: CursorMoveInOutDirection.Out,
-          bigStep: true,
-          delimiter: ev.key,
-        });
-        this.setFromCursor(result.cursor);
+        this.cursors = this.cursors.map(
+          (cursor) =>
+            cursorMoveInOut({
+              root: this.doc.root,
+              cursor: cursor,
+              direction: CursorMoveInOutDirection.Out,
+              bigStep: true,
+              delimiter: ev.key,
+            }).cursor,
+        );
       } else if (ev.key === "j") {
-        const result = cursorMoveInOut({
-          root: this.doc.root,
-          cursor: this.getCursor(),
-          direction: CursorMoveInOutDirection.In,
-          bigStep: true,
-        });
-        this.setFromCursor(result.cursor);
+        this.cursors = this.cursors.map(
+          (cursor) =>
+            cursorMoveInOut({
+              root: this.doc.root,
+              cursor: cursor,
+              direction: CursorMoveInOutDirection.In,
+              bigStep: true,
+            }).cursor,
+        );
       } else if (["(", "[", "{", "<"].includes(ev.key)) {
-        const result = cursorMoveInOut({
-          root: this.doc.root,
-          cursor: this.getCursor(),
-          direction: CursorMoveInOutDirection.In,
-          bigStep: true,
-          delimiter: ev.key,
-        });
-        this.setFromCursor(result.cursor);
+        this.cursors = this.cursors.map(
+          (cursor) =>
+            cursorMoveInOut({
+              root: this.doc.root,
+              cursor: cursor,
+              direction: CursorMoveInOutDirection.In,
+              bigStep: true,
+              delimiter: ev.key,
+            }).cursor,
+        );
       } else if (ev.key === " ") {
         ev.preventDefault?.();
-        const result = cursorReduceSelection({
-          root: this.doc.root,
-          cursor: this.getCursor(),
-          side: CursorReduceSelectionSide.JustExtended,
-        });
-        this.setFromCursor(result.cursor);
+        this.cursors = this.cursors.map(
+          (cursor) =>
+            cursorReduceSelection({
+              root: this.doc.root,
+              cursor: cursor,
+              side: CursorReduceSelectionSide.JustExtended,
+            }).cursor,
+        );
       } else if (ev.key === "c") {
-        const result = cursorCopy({
-          root: this.doc.root,
-          cursor: this.getCursor(),
-        });
-        this.setFromCursor(result.cursor);
+        this.cursors = this.cursors.map(
+          (cursor) =>
+            cursorCopy({
+              root: this.doc.root,
+              cursor: cursor,
+            }).cursor,
+        );
       }
     }
 
@@ -241,26 +264,26 @@ export class DocManager {
       hasAltLike(ev)
     ) {
       ev.preventDefault?.();
-      const result = cursorReduceSelection({
-        root: this.doc.root,
-        cursor: this.getCursor(),
-        side: CursorReduceSelectionSide.First,
-      });
-      if (result.didReduce) {
-        this.setFromCursor(result.cursor);
-        this.onUpdate();
-      }
+      this.cursors = this.cursors.map(
+        (cursor) =>
+          cursorReduceSelection({
+            root: this.doc.root,
+            cursor: cursor,
+            side: CursorReduceSelectionSide.First,
+          }).cursor,
+      );
+      this.onUpdate();
     } else if (this.mode === Mode.Normal && ev.key === "H" && ev.ctrlKey) {
       ev.preventDefault?.();
-      const result = cursorMoveLeaf({
-        root: this.doc.root,
-        cursor: this.getCursor(),
-        direction: -1,
-        mode: CursorMoveLeafMode.ShrinkSelection,
-      });
-      if (result.didMove) {
-        this.setFromCursor(result.cursor);
-      }
+      this.cursors = this.cursors.map(
+        (cursor) =>
+          cursorMoveLeaf({
+            root: this.doc.root,
+            cursor: cursor,
+            direction: -1,
+            mode: CursorMoveLeafMode.ShrinkSelection,
+          }).cursor,
+      );
       this.onUpdate();
     } else if (
       this.mode === Mode.Normal &&
@@ -268,26 +291,26 @@ export class DocManager {
       hasAltLike(ev)
     ) {
       ev.preventDefault?.();
-      const result = cursorReduceSelection({
-        root: this.doc.root,
-        cursor: this.getCursor(),
-        side: CursorReduceSelectionSide.Last,
-      });
-      if (result.didReduce) {
-        this.setFromCursor(result.cursor);
-        this.onUpdate();
-      }
+      this.cursors = this.cursors.map(
+        (cursor) =>
+          cursorReduceSelection({
+            root: this.doc.root,
+            cursor: cursor,
+            side: CursorReduceSelectionSide.Last,
+          }).cursor,
+      );
+      this.onUpdate();
     } else if (this.mode === Mode.Normal && ev.key === "L" && ev.ctrlKey) {
       ev.preventDefault?.();
-      const result = cursorMoveLeaf({
-        root: this.doc.root,
-        cursor: this.getCursor(),
-        direction: 1,
-        mode: CursorMoveLeafMode.ShrinkSelection,
-      });
-      if (result.didMove) {
-        this.setFromCursor(result.cursor);
-      }
+      this.cursors = this.cursors.map(
+        (cursor) =>
+          cursorMoveLeaf({
+            root: this.doc.root,
+            cursor: cursor,
+            direction: 1,
+            mode: CursorMoveLeafMode.ShrinkSelection,
+          }).cursor,
+      );
       this.onUpdate();
     } else if (
       (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
@@ -311,20 +334,6 @@ export class DocManager {
       ev.preventDefault?.();
     }
   };
-
-  private getCursor(): Cursor {
-    return {
-      focus: asEvenPathRange(this.focus),
-      enableReduceToTip: this.enableReduceToTip,
-      clipboard: this.clipboard,
-    };
-  }
-
-  private setFromCursor(cursor: Cursor) {
-    this.focus = asUnevenPathRange(cursor.focus);
-    this.nextEnableReduceToTip = cursor.enableReduceToTip;
-    this.clipboard = cursor.clipboard;
-  }
 
   private onUpdate() {
     const docChanged = this.doc !== this.lastDoc;
@@ -407,7 +416,7 @@ export class DocManager {
     this._onUpdate({
       doc,
       mode: this.mode,
-      cursors: [this.getCursor()],
+      cursors: this.cursors,
     });
   }
 
