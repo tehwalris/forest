@@ -1,4 +1,10 @@
+import { isFocusOnEmptyListContent, normalizeFocusIn } from "../focus";
 import { EvenPathRange, ListNode, NodeKind, Path } from "../interfaces";
+import {
+  asEvenPathRange,
+  asUnevenPathRange,
+  evenPathRangesAreEqualIgnoringDirection,
+} from "../path-utils";
 import { nodeGetByPath, nodeVisitDeepInRange } from "../tree-utils/access";
 import { unreachable } from "../util";
 import { Cursor } from "./interfaces";
@@ -66,13 +72,49 @@ export function cursorMoveInOut({
 }
 
 function cursorMoveOutSmall({
+  root,
   cursor: oldCursor,
 }: Pick<CursorMoveInOutArgs, "root" | "cursor">): CursorMoveInOutResult {
-  // TODO
-  return {
-    cursor: { focus: oldCursor.focus, enableReduceToTip: false },
-    didMove: false,
-  };
+  const wrapResult = (
+    focus: EvenPathRange | undefined,
+  ): CursorMoveInOutResult => ({
+    cursor: { focus: focus || oldCursor.focus, enableReduceToTip: false },
+    didMove:
+      !!focus &&
+      !evenPathRangesAreEqualIgnoringDirection(focus, oldCursor.focus),
+  });
+
+  if (isFocusOnEmptyListContent(root, oldCursor.focus)) {
+    return wrapResult(tryMoveOutOfList(root, oldCursor.focus, () => true));
+  }
+
+  const nonDelimitedParentFocus = tryMoveToParent(root, oldCursor.focus);
+  const delimitedParentFocus = tryMoveOutOfList(
+    root,
+    oldCursor.focus,
+    () => true,
+  );
+
+  if (!nonDelimitedParentFocus || !delimitedParentFocus) {
+    return wrapResult(nonDelimitedParentFocus || delimitedParentFocus);
+  }
+
+  const choiceBoolean =
+    nonDelimitedParentFocus.anchor.length > delimitedParentFocus.anchor.length;
+  const chosenFocus = choiceBoolean
+    ? nonDelimitedParentFocus
+    : delimitedParentFocus;
+  const nonChosenFocus = choiceBoolean
+    ? delimitedParentFocus
+    : nonDelimitedParentFocus;
+
+  let focus = asEvenPathRange(
+    normalizeFocusIn(root, asUnevenPathRange(chosenFocus)),
+  );
+  if (!wrapResult(focus).didMove) {
+    focus = nonChosenFocus;
+  }
+  return wrapResult(focus);
 }
 
 function tryMoveIntoList(
@@ -125,6 +167,34 @@ function tryMoveOutOfList(
     ) {
       return focus;
     }
+  }
+  return undefined;
+}
+
+function tryMoveToParent(
+  root: ListNode,
+  focus: EvenPathRange,
+): EvenPathRange | undefined {
+  while (focus.anchor.length) {
+    const parentPath = focus.anchor.slice(0, -1);
+    const parentNode = nodeGetByPath(root, parentPath);
+    if (parentNode?.kind !== NodeKind.List) {
+      throw new Error("parentNode is not a list");
+    }
+
+    const wholeParentSelected =
+      Math.abs(focus.offset) + 1 === parentNode.content.length;
+    if (!wholeParentSelected) {
+      return {
+        anchor: [...parentPath, 0],
+        offset: parentNode.content.length - 1,
+      };
+    }
+
+    focus = {
+      anchor: parentPath,
+      offset: 0,
+    };
   }
   return undefined;
 }

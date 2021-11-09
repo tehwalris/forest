@@ -275,41 +275,13 @@ export class DocManager {
         });
         this.setFromCursor(result.cursor);
       } else if (ev.key === "k") {
-        if (this.isFocusOnEmptyListContent()) {
-          this.tryMoveOutOfList(() => true);
-          this.onUpdate();
-          return;
-        }
-
-        const oldFocus = this.focus;
-
-        this.tryMoveToParent();
-        const nonDelimitedParentFocus = this.focus;
-        this.focus = oldFocus;
-
-        this.tryMoveOutOfList(() => true);
-        const delimitedParentFocus = this.focus;
-        this.focus = oldFocus;
-
-        const choiceBoolean =
-          asEvenPathRange(nonDelimitedParentFocus).anchor.length >
-          asEvenPathRange(delimitedParentFocus).anchor.length;
-        const chosenFocus = choiceBoolean
-          ? nonDelimitedParentFocus
-          : delimitedParentFocus;
-        const nonChosenFocus = choiceBoolean
-          ? delimitedParentFocus
-          : nonDelimitedParentFocus;
-
-        this.focus = normalizeFocusIn(this.doc.root, chosenFocus);
-        if (
-          evenPathRangesAreEqual(
-            flipEvenPathRangeForward(asEvenPathRange(this.focus)),
-            flipEvenPathRangeForward(asEvenPathRange(oldFocus)),
-          )
-        ) {
-          this.focus = nonChosenFocus;
-        }
+        const result = cursorMoveInOut({
+          root: this.doc.root,
+          cursor: this.getCursor(),
+          direction: CursorMoveInOutDirection.Out,
+          bigStep: false,
+        });
+        this.setFromCursor(result.cursor);
       } else if (ev.key === "K") {
         const result = cursorMoveInOut({
           root: this.doc.root,
