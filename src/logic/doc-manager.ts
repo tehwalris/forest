@@ -803,27 +803,6 @@ export class DocManager {
     return;
   }
 
-  private getFocusSkippingDelimitedLists(): EvenPathRange {
-    let evenFocus = asEvenPathRange(this.focus);
-    if (evenFocus.offset < 0) {
-      evenFocus = flipEvenPathRange(evenFocus);
-    }
-    while (!evenFocus.offset) {
-      const focusedNode = nodeGetByPath(this.doc.root, evenFocus.anchor);
-      if (!focusedNode) {
-        throw new Error("invalid focus");
-      }
-      if (focusedNode.kind !== NodeKind.List) {
-        break;
-      }
-      evenFocus = {
-        anchor: [...evenFocus.anchor, 0],
-        offset: focusedNode.content.length - 1,
-      };
-    }
-    return evenFocus;
-  }
-
   private isFocusOnEmptyListContent(): boolean {
     return isFocusOnEmptyListContent(
       this.doc.root,
