@@ -1,4 +1,4 @@
-import { untilEvenFocusChanges } from "../focus";
+import { normalizeFocusIn, untilEvenFocusChanges } from "../focus";
 import { ListNode, NodeKind, UnevenPathRange } from "../interfaces";
 import {
   asEvenPathRange,
@@ -14,6 +14,7 @@ interface CursorMoveLeafArgs {
   root: ListNode;
   cursor: Cursor;
   direction: -1 | 1;
+  extend: boolean;
 }
 
 interface CursorMoveLeafResult {
@@ -25,6 +26,7 @@ export function cursorMoveLeaf({
   root,
   cursor: oldCursor,
   direction,
+  extend,
 }: CursorMoveLeafArgs): CursorMoveLeafResult {
   let focus = oldCursor.focus;
 
@@ -36,9 +38,10 @@ export function cursorMoveLeaf({
 
   focus = asEvenPathRange(
     untilEvenFocusChanges(asUnevenPathRange(focus), (focus) =>
-      tryMoveThroughLeavesOnce(root, focus, direction, false),
+      tryMoveThroughLeavesOnce(root, focus, direction, extend),
     ),
   );
+  focus = asEvenPathRange(normalizeFocusIn(root, asUnevenPathRange(focus)));
 
   return {
     cursor: { ...oldCursor, focus },

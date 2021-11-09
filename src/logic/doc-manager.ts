@@ -241,22 +241,34 @@ export class DocManager {
           root: this.doc.root,
           cursor: this.getCursor(),
           direction: 1,
+          extend: false,
         });
         this.setFromCursor(result.cursor);
       } else if (ev.key === "L" && !ev.ctrlKey) {
-        this.flipFocusForward();
-        this.tryMoveThroughLeaves(1, true);
+        const result = cursorMoveLeaf({
+          root: this.doc.root,
+          cursor: this.getCursor(),
+          direction: 1,
+          extend: true,
+        });
+        this.setFromCursor(result.cursor);
         this.nextEnableReduceToTip = true;
       } else if (ev.key === "h" && !hasAltLike(ev)) {
         const result = cursorMoveLeaf({
           root: this.doc.root,
           cursor: this.getCursor(),
           direction: -1,
+          extend: false,
         });
         this.setFromCursor(result.cursor);
       } else if (ev.key === "H" && !ev.ctrlKey) {
-        this.flipFocusBackward();
-        this.tryMoveThroughLeaves(-1, true);
+        const result = cursorMoveLeaf({
+          root: this.doc.root,
+          cursor: this.getCursor(),
+          direction: -1,
+          extend: true,
+        });
+        this.setFromCursor(result.cursor);
         this.nextEnableReduceToTip = true;
       } else if (ev.key === "k") {
         if (this.isFocusOnEmptyListContent()) {
