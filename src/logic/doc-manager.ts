@@ -41,7 +41,6 @@ import {
   evenPathRangesAreEqual,
   flipEvenPathRange,
   flipEvenPathRangeForward,
-  flipUnevenPathRange,
   getPathToTip,
 } from "./path-utils";
 import {
@@ -855,18 +854,6 @@ export class DocManager {
       anchor: nodeTryGetDeepestByPath(this.doc.root, this.focus.anchor).path,
       tip: nodeTryGetDeepestByPath(this.doc.root, this.focus.tip).path,
     };
-  }
-
-  private flipFocusForward() {
-    if (asEvenPathRange(this.focus).offset < 0) {
-      this.focus = flipUnevenPathRange(this.focus);
-    }
-  }
-
-  private flipFocusBackward() {
-    if (asEvenPathRange(this.focus).offset > 0) {
-      this.focus = flipUnevenPathRange(this.focus);
-    }
   }
 
   private removeInvisibleNodes() {
