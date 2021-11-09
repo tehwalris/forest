@@ -38,7 +38,7 @@ export function cursorMoveLeaf({
   let focus = oldCursor.focus;
 
   if (mode === CursorMoveLeafMode.ShrinkSelection && focus.offset === 0) {
-    return { cursor: oldCursor, didMove: false };
+    return { cursor: { focus, enableReduceToTip: false }, didMove: false };
   }
 
   if (direction === 1) {
@@ -62,9 +62,16 @@ export function cursorMoveLeaf({
   );
   focus = asEvenPathRange(normalizeFocusIn(root, asUnevenPathRange(focus)));
 
+  const didMove = !evenPathRangesAreEqualIgnoringDirection(
+    focus,
+    oldCursor.focus,
+  );
   return {
-    cursor: { ...oldCursor, focus },
-    didMove: !evenPathRangesAreEqualIgnoringDirection(focus, oldCursor.focus),
+    cursor: {
+      focus,
+      enableReduceToTip: didMove && mode !== CursorMoveLeafMode.Move,
+    },
+    didMove,
   };
 }
 

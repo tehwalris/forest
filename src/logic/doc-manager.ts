@@ -250,7 +250,6 @@ export class DocManager {
           mode: CursorMoveLeafMode.ExtendSelection,
         });
         this.setFromCursor(result.cursor);
-        this.nextEnableReduceToTip = true;
       } else if (ev.key === "h" && !hasAltLike(ev)) {
         const result = cursorMoveLeaf({
           root: this.doc.root,
@@ -267,7 +266,6 @@ export class DocManager {
           mode: CursorMoveLeafMode.ExtendSelection,
         });
         this.setFromCursor(result.cursor);
-        this.nextEnableReduceToTip = true;
       } else if (ev.key === "k") {
         if (this.isFocusOnEmptyListContent()) {
           this.tryMoveOutOfList(() => true);
@@ -558,7 +556,6 @@ export class DocManager {
       });
       if (result.didMove) {
         this.setFromCursor(result.cursor);
-        this.nextEnableReduceToTip = true;
       }
       this.onUpdate();
     } else if (
@@ -587,7 +584,6 @@ export class DocManager {
       });
       if (result.didMove) {
         this.setFromCursor(result.cursor);
-        this.nextEnableReduceToTip = true;
       }
       this.onUpdate();
     } else if (
@@ -902,11 +898,15 @@ export class DocManager {
   }
 
   private getCursor(): Cursor {
-    return { focus: asEvenPathRange(this.focus) };
+    return {
+      focus: asEvenPathRange(this.focus),
+      enableReduceToTip: this.enableReduceToTip,
+    };
   }
 
   private setFromCursor(cursor: Cursor) {
     this.focus = asUnevenPathRange(cursor.focus);
+    this.nextEnableReduceToTip = cursor.enableReduceToTip;
   }
 
   private onUpdate() {
