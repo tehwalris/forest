@@ -5,13 +5,14 @@ import {
   CursorMoveInOutDirection,
 } from "./cursor/move-in-out";
 import { cursorMoveLeaf, CursorMoveLeafMode } from "./cursor/move-leaf";
+import { adjustPostActionCursor } from "./cursor/post-action";
 import {
   cursorReduceSelection,
   CursorReduceSelectionSide,
 } from "./cursor/reduce-selection";
 import { emptyDoc } from "./doc-utils";
-import { normalizeFocusIn } from "./focus";
-import { Doc, InsertState, UnevenPathRange } from "./interfaces";
+import { isFocusOnEmptyListContent, normalizeFocusIn } from "./focus";
+import { Doc, InsertState, NodeKind, UnevenPathRange } from "./interfaces";
 import { memoize } from "./memoize";
 import { Clipboard } from "./paste";
 import {
@@ -25,7 +26,7 @@ import {
   getDocWithoutPlaceholdersNearCursor,
 } from "./placeholders";
 import { getDocWithInsert } from "./text";
-import { nodeTryGetDeepestByPath } from "./tree-utils/access";
+import { nodeGetByPath, nodeTryGetDeepestByPath } from "./tree-utils/access";
 import { withoutInvisibleNodes } from "./without-invisible";
 
 export enum Mode {
@@ -141,7 +142,30 @@ export class DocManager {
 
   onKeyPress = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal) {
-      if (ev.key === "l" && !hasAltLike(ev)) {
+      if (ev.key === "s") {
+        this.cursors = this.cursors.flatMap((cursor): Cursor[] => {
+          if (
+            isFocusOnEmptyListContent(this.doc.root, cursor.focus) ||
+            !cursor.focus.offset
+          ) {
+            return [adjustPostActionCursor(cursor)];
+          }
+          const parentPath = cursor.focus.anchor.slice(0, -1);
+          const focusedNode = nodeGetByPath(this.doc.root, parentPath);
+          if (
+            focusedNode?.kind !== NodeKind.List ||
+            !focusedNode.content.length
+          ) {
+            throw new Error("invalid focus");
+          }
+          return focusedNode.content.map((_child, i) =>
+            adjustPostActionCursor({
+              ...cursor,
+              focus: { anchor: [...parentPath, i], offset: 0 },
+            }),
+          );
+        });
+      } else if (ev.key === "l" && !hasAltLike(ev)) {
         this.cursors = this.cursors.map(
           (cursor) =>
             cursorMoveLeaf({
