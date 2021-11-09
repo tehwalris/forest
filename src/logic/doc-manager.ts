@@ -581,9 +581,14 @@ export class DocManager {
       }
     } else if (this.mode === Mode.Normal && ev.key === "L" && ev.ctrlKey) {
       ev.preventDefault?.();
-      if (asEvenPathRange(this.focus).offset !== 0) {
-        this.flipFocusBackward();
-        this.tryMoveThroughLeaves(1, true);
+      const result = cursorMoveLeaf({
+        root: this.doc.root,
+        cursor: this.getCursor(),
+        direction: 1,
+        mode: CursorMoveLeafMode.ShrinkSelection,
+      });
+      if (result.didMove) {
+        this.setFromCursor(result.cursor);
         this.nextEnableReduceToTip = true;
       }
       this.onUpdate();
