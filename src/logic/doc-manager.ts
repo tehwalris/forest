@@ -11,7 +11,7 @@ import {
 } from "./cursor/reduce-selection";
 import { emptyDoc } from "./doc-utils";
 import { normalizeFocusIn } from "./focus";
-import { Doc, EvenPathRange, InsertState, UnevenPathRange } from "./interfaces";
+import { Doc, InsertState, UnevenPathRange } from "./interfaces";
 import { memoize } from "./memoize";
 import { Clipboard } from "./paste";
 import {
@@ -36,16 +36,20 @@ export enum Mode {
 
 export interface DocManagerPublicState {
   doc: Doc;
-  focus: EvenPathRange;
   mode: Mode;
-  enableReduceToTip: boolean;
+  cursors: Cursor[];
 }
+
+const initialCursor: Cursor = {
+  focus: { anchor: [], offset: 0 },
+  enableReduceToTip: false,
+  clipboard: undefined,
+};
 
 export const initialDocManagerPublicState: DocManagerPublicState = {
   doc: emptyDoc,
-  focus: { anchor: [], offset: 0 },
   mode: Mode.Normal,
-  enableReduceToTip: false,
+  cursors: [initialCursor],
 };
 
 export interface MinimalKeyboardEvent {
@@ -402,9 +406,8 @@ export class DocManager {
     }
     this._onUpdate({
       doc,
-      focus: asEvenPathRange(this.focus),
       mode: this.mode,
-      enableReduceToTip: this.enableReduceToTip,
+      cursors: [this.getCursor()],
     });
   }
 

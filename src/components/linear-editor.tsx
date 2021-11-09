@@ -1,6 +1,7 @@
 import { css } from "@emotion/css";
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
+import { Cursor } from "../logic/cursor/interfaces";
 import {
   DocManager,
   DocManagerPublicState,
@@ -174,18 +175,19 @@ function getStyleForSelection(
   return style;
 }
 
-function renderDoc(
-  doc: Doc,
-  focus: EvenPathRange,
-  enableReduceToTip: boolean,
-): React.ReactNode {
+function renderDoc(doc: Doc, cursors: Cursor[]): React.ReactNode {
   const selectionsByChar = new Uint8Array(doc.text.length);
-  setCharSelections({
-    selectionsByChar,
-    node: doc.root,
-    focus,
-    isTipOfFocus: false,
-  });
+  for (const cursor of cursors) {
+    setCharSelections({
+      selectionsByChar,
+      node: doc.root,
+      focus: cursor.focus,
+      isTipOfFocus: false,
+    });
+  }
+
+  // HACK If enableReduceToTip is only set on some cursors, the display will be incorrect.
+  const enableReduceToTip = cursors.some((c) => c.enableReduceToTip);
 
   const lines: DocRenderLine[] = [];
   let pos = 0;
@@ -255,7 +257,7 @@ export const LinearEditor = ({ initialDoc }: Props) => {
     }
   });
 
-  const [{ doc, focus, mode, enableReduceToTip }, setPublicState] =
+  const [{ doc, mode, cursors }, setPublicState] =
     useState<DocManagerPublicState>(initialDocManagerPublicState);
   const [docManager, setDocManager] = useState(
     new DocManager(initialDoc, setPublicState),
@@ -297,7 +299,7 @@ export const LinearEditor = ({ initialDoc }: Props) => {
           docManager.onKeyUp(ev.nativeEvent),
         )}
       >
-        {renderDoc(doc, focus, enableReduceToTip)}
+        {renderDoc(doc, cursors)}
         {!doc.text.trim() && (
           <div style={{ opacity: 0.5, userSelect: "none" }}>
             (empty document)
@@ -305,15 +307,6 @@ export const LinearEditor = ({ initialDoc }: Props) => {
         )}
       </div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
-      <pre>
-        {JSON.stringify(
-          {
-            focus,
-          },
-          null,
-          2,
-        )}
-      </pre>
     </div>
   );
 };
