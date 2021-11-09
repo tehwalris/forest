@@ -1,18 +1,17 @@
 import { untilEvenFocusChanges } from "../focus";
-import { Doc, ListNode, NodeKind, UnevenPathRange } from "../interfaces";
+import { ListNode, NodeKind, UnevenPathRange } from "../interfaces";
 import {
   asEvenPathRange,
   asUnevenPathRange,
   evenPathRangesAreEqualIgnoringDirection,
   flipEvenPathRangeBackward,
   flipEvenPathRangeForward,
-  pathsAreEqual,
 } from "../path-utils";
 import { nodeGetByPath } from "../tree-utils/access";
 import { Cursor } from "./interfaces";
 
 interface CursorMoveLeafArgs {
-  doc: Doc;
+  root: ListNode;
   cursor: Cursor;
   direction: -1 | 1;
 }
@@ -20,33 +19,30 @@ interface CursorMoveLeafArgs {
 interface CursorMoveLeafResult {
   cursor: Cursor;
   didMove: boolean;
-  didMoveAcrossLists: boolean;
 }
 
 export function cursorMoveLeaf({
-  doc,
+  root,
   cursor: oldCursor,
   direction,
 }: CursorMoveLeafArgs): CursorMoveLeafResult {
   let focus = oldCursor.focus;
 
   if (direction === 1) {
-    focus = flipEvenPathRangeBackward(focus);
-  } else {
     focus = flipEvenPathRangeForward(focus);
+  } else {
+    focus = flipEvenPathRangeBackward(focus);
   }
 
   focus = asEvenPathRange(
     untilEvenFocusChanges(asUnevenPathRange(focus), (focus) =>
-      tryMoveThroughLeavesOnce(doc.root, focus, direction, false),
+      tryMoveThroughLeavesOnce(root, focus, direction, false),
     ),
   );
 
   return {
     cursor: { ...oldCursor, focus },
     didMove: !evenPathRangesAreEqualIgnoringDirection(focus, oldCursor.focus),
-    // TODO not sure if didMoveAcrossLists is correct
-    didMoveAcrossLists: !pathsAreEqual(focus.anchor, oldCursor.focus.anchor),
   };
 }
 

@@ -13,7 +13,7 @@ import {
 } from "./path-utils";
 import { nodeGetByPath } from "./tree-utils/access";
 
-export function normalizeFocusInOnce(
+function normalizeFocusInOnce(
   root: ListNode,
   focus: UnevenPathRange,
 ): UnevenPathRange {
@@ -36,6 +36,18 @@ export function normalizeFocusInOnce(
     anchor: [...evenFocus.anchor, 0],
     tip: [...evenFocus.anchor, focusedNode.content.length - 1],
   };
+}
+
+export function normalizeFocusIn(
+  root: ListNode,
+  focus: UnevenPathRange,
+): UnevenPathRange {
+  if (isFocusOnEmptyListContent(root, asEvenPathRange(focus))) {
+    return focus;
+  }
+  return whileUnevenFocusChanges(focus, (focus) =>
+    normalizeFocusInOnce(root, focus),
+  );
 }
 
 export function normalizeFocusOutOnce(
@@ -141,4 +153,23 @@ export function tryMoveThroughLeavesOnce(
   return extend
     ? { anchor: focus.anchor, tip: currentPath }
     : { anchor: currentPath, tip: currentPath };
+}
+
+export function isFocusOnEmptyListContent(
+  root: ListNode,
+  focus: EvenPathRange,
+): boolean {
+  if (!focus.anchor.length) {
+    return false;
+  }
+  const parentNode = nodeGetByPath(root, focus.anchor.slice(0, -1));
+  if (!parentNode) {
+    throw new Error("invalid focus");
+  }
+  return (
+    parentNode.kind === NodeKind.List &&
+    !parentNode.content.length &&
+    focus.anchor[focus.anchor.length - 1] === 0 &&
+    focus.offset === 0
+  );
 }

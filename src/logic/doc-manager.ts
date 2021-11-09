@@ -1,8 +1,11 @@
 import ts from "typescript";
 import { checkInsertion } from "./check-insertion";
+import { Cursor } from "./cursor/interfaces";
+import { cursorMoveLeaf } from "./cursor/move-leaf";
 import { docMapRoot, emptyDoc } from "./doc-utils";
 import {
-  normalizeFocusInOnce,
+  isFocusOnEmptyListContent,
+  normalizeFocusIn,
   normalizeFocusOutOnce,
   tryMoveThroughLeavesOnce,
   untilEvenFocusChanges,
@@ -234,15 +237,23 @@ export class DocManager {
           offset: 0,
         });
       } else if (ev.key === "l" && !hasAltLike(ev)) {
-        this.flipFocusForward();
-        this.tryMoveThroughLeaves(1, false);
+        const result = cursorMoveLeaf({
+          root: this.doc.root,
+          cursor: this.getCursor(),
+          direction: 1,
+        });
+        this.setFromCursor(result.cursor);
       } else if (ev.key === "L" && !ev.ctrlKey) {
         this.flipFocusForward();
         this.tryMoveThroughLeaves(1, true);
         this.nextEnableReduceToTip = true;
       } else if (ev.key === "h" && !hasAltLike(ev)) {
-        this.flipFocusBackward();
-        this.tryMoveThroughLeaves(-1, false);
+        const result = cursorMoveLeaf({
+          root: this.doc.root,
+          cursor: this.getCursor(),
+          direction: -1,
+        });
+        this.setFromCursor(result.cursor);
       } else if (ev.key === "H" && !ev.ctrlKey) {
         this.flipFocusBackward();
         this.tryMoveThroughLeaves(-1, true);
@@ -274,8 +285,7 @@ export class DocManager {
           ? delimitedParentFocus
           : nonDelimitedParentFocus;
 
-        this.focus = chosenFocus;
-        this.normalizeFocusIn();
+        this.focus = normalizeFocusIn(this.doc.root, chosenFocus);
         if (
           evenPathRangesAreEqual(
             flipEvenPathRangeForward(asEvenPathRange(this.focus)),
@@ -802,33 +812,10 @@ export class DocManager {
     );
   }
 
-  private normalizeFocusIn() {
-    if (this.isFocusOnEmptyListContent()) {
-      return;
-    }
-    this.focus = whileUnevenFocusChanges(this.focus, (focus) =>
-      normalizeFocusInOnce(this.doc.root, focus),
-    );
-  }
-
   private isFocusOnEmptyListContent(): boolean {
-    const evenFocus = asEvenPathRange(this.focus);
-
-    if (!evenFocus.anchor.length) {
-      return false;
-    }
-    const parentNode = nodeGetByPath(
+    return isFocusOnEmptyListContent(
       this.doc.root,
-      evenFocus.anchor.slice(0, -1),
-    );
-    if (!parentNode) {
-      throw new Error("invalid focus");
-    }
-    return (
-      parentNode.kind === NodeKind.List &&
-      !parentNode.content.length &&
-      evenFocus.anchor[evenFocus.anchor.length - 1] === 0 &&
-      evenFocus.offset === 0
+      asEvenPathRange(this.focus),
     );
   }
 
@@ -900,6 +887,14 @@ export class DocManager {
     this.mode = Mode.InsertAfter;
   }
 
+  private getCursor(): Cursor {
+    return { focus: asEvenPathRange(this.focus) };
+  }
+
+  private setFromCursor(cursor: Cursor) {
+    this.focus = asUnevenPathRange(cursor.focus);
+  }
+
   private onUpdate() {
     const docChanged = this.doc !== this.lastDoc;
 
@@ -907,8 +902,10 @@ export class DocManager {
       this.removeInvisibleNodes();
     }
 
-    this.focus = asUnevenPathRange(asEvenPathRange(this.focus));
-    this.normalizeFocusIn();
+    this.focus = normalizeFocusIn(
+      this.doc.root,
+      asUnevenPathRange(asEvenPathRange(this.focus)),
+    );
 
     if (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) {
       if (!this.insertState) {
