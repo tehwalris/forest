@@ -22,7 +22,6 @@ import {
   EvenPathRange,
   InsertState,
   ListKind,
-  ListNode,
   NodeKind,
   Path,
   UnevenPathRange,
@@ -58,7 +57,6 @@ import {
   nodeSetByPath,
   nodeTryGetDeepestByPath,
   nodeVisitDeep,
-  nodeVisitDeepInRange,
 } from "./tree-utils/access";
 import { filterNodes } from "./tree-utils/filter";
 import { withoutInvisibleNodes } from "./without-invisible";
@@ -175,7 +173,13 @@ export class DocManager {
         if (!asEvenPathRange(this.focus).anchor.length) {
           this.tryInsertIntoEmptyList();
         } else if (this.isFocusOnEmptyListContent()) {
-          this.tryMoveOutOfList(() => true);
+          const result = cursorMoveInOut({
+            root: this.doc.root,
+            cursor: this.getCursor(),
+            direction: CursorMoveInOutDirection.Out,
+            bigStep: true,
+          });
+          this.setFromCursor(result.cursor);
           this.tryInsertIntoEmptyList();
         } else {
           this.tryInsertBefore();
@@ -184,7 +188,13 @@ export class DocManager {
         if (!asEvenPathRange(this.focus).anchor.length) {
           this.tryInsertIntoEmptyList();
         } else if (this.isFocusOnEmptyListContent()) {
-          this.tryMoveOutOfList(() => true);
+          const result = cursorMoveInOut({
+            root: this.doc.root,
+            cursor: this.getCursor(),
+            direction: CursorMoveInOutDirection.Out,
+            bigStep: true,
+          });
+          this.setFromCursor(result.cursor);
           this.tryInsertIntoEmptyList();
         } else {
           this.tryInsertAfter();
@@ -723,87 +733,6 @@ export class DocManager {
       ev.preventDefault?.();
     }
   };
-
-  private tryMoveOutOfList(isMatch: (node: ListNode) => boolean) {
-    let evenFocus = asEvenPathRange(this.focus);
-    while (evenFocus.anchor.length >= 2) {
-      evenFocus = {
-        anchor: evenFocus.anchor.slice(0, -1),
-        offset: 0,
-      };
-      const focusedNode = nodeGetByPath(this.doc.root, evenFocus.anchor);
-      if (
-        focusedNode?.kind === NodeKind.List &&
-        !focusedNode.equivalentToContent &&
-        isMatch(focusedNode)
-      ) {
-        this.focus = asUnevenPathRange(evenFocus);
-        return;
-      }
-    }
-  }
-
-  private tryMoveIntoList(isMatch: (node: ListNode) => boolean) {
-    let listPath: Path | undefined;
-    nodeVisitDeepInRange(
-      this.doc.root,
-      asEvenPathRange(this.focus),
-      (node, path) => {
-        if (listPath) {
-          return;
-        }
-        if (
-          node.kind === NodeKind.List &&
-          !node.equivalentToContent &&
-          isMatch(node)
-        ) {
-          listPath = path;
-        }
-      },
-    );
-    if (!listPath) {
-      return;
-    }
-
-    const listNode = nodeGetByPath(this.doc.root, listPath);
-    if (listNode?.kind !== NodeKind.List) {
-      throw new Error("unreachable");
-    }
-    this.focus = asUnevenPathRange({
-      anchor: [...listPath, 0],
-      offset: Math.max(0, listNode.content.length - 1),
-    });
-  }
-
-  private tryMoveToParent() {
-    let evenFocus = asEvenPathRange(this.focus);
-    while (evenFocus.anchor.length) {
-      const parentPath = evenFocus.anchor.slice(0, -1);
-      const parentNode = nodeGetByPath(this.doc.root, parentPath);
-      if (parentNode?.kind !== NodeKind.List) {
-        throw new Error("parentNode is not a list");
-      }
-
-      const wholeParentSelected =
-        Math.abs(evenFocus.offset) + 1 === parentNode.content.length;
-      if (!wholeParentSelected) {
-        evenFocus = {
-          anchor: [...parentPath, 0],
-          offset: parentNode.content.length - 1,
-        };
-        this.focus = asUnevenPathRange(evenFocus);
-        return;
-      }
-
-      evenFocus = {
-        anchor: parentPath,
-        offset: 0,
-      };
-    }
-
-    this.focus = asUnevenPathRange(evenFocus);
-    return;
-  }
 
   private isFocusOnEmptyListContent(): boolean {
     return isFocusOnEmptyListContent(
