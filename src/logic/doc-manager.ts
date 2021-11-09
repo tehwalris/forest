@@ -1,6 +1,10 @@
 import ts from "typescript";
 import { checkInsertion } from "./check-insertion";
 import { Cursor } from "./cursor/interfaces";
+import {
+  cursorMoveInOut,
+  CursorMoveInOutDirection,
+} from "./cursor/move-in-out";
 import { cursorMoveLeaf, CursorMoveLeafMode } from "./cursor/move-leaf";
 import {
   cursorReduceSelection,
@@ -307,13 +311,39 @@ export class DocManager {
           this.focus = nonChosenFocus;
         }
       } else if (ev.key === "K") {
-        this.tryMoveOutOfList(() => true);
+        const result = cursorMoveInOut({
+          root: this.doc.root,
+          cursor: this.getCursor(),
+          direction: CursorMoveInOutDirection.Out,
+          bigStep: true,
+        });
+        this.setFromCursor(result.cursor);
       } else if ([")", "]", "}", ">"].includes(ev.key)) {
-        this.tryMoveOutOfList((node) => node.delimiters[1] === ev.key);
+        const result = cursorMoveInOut({
+          root: this.doc.root,
+          cursor: this.getCursor(),
+          direction: CursorMoveInOutDirection.Out,
+          bigStep: true,
+          delimiter: ev.key,
+        });
+        this.setFromCursor(result.cursor);
       } else if (ev.key === "j") {
-        this.tryMoveIntoList(() => true);
+        const result = cursorMoveInOut({
+          root: this.doc.root,
+          cursor: this.getCursor(),
+          direction: CursorMoveInOutDirection.In,
+          bigStep: true,
+        });
+        this.setFromCursor(result.cursor);
       } else if (["(", "[", "{", "<"].includes(ev.key)) {
-        this.tryMoveIntoList((node) => node.delimiters[0] === ev.key);
+        const result = cursorMoveInOut({
+          root: this.doc.root,
+          cursor: this.getCursor(),
+          direction: CursorMoveInOutDirection.In,
+          bigStep: true,
+          delimiter: ev.key,
+        });
+        this.setFromCursor(result.cursor);
       } else if (ev.key === " ") {
         ev.preventDefault?.();
         const result = cursorReduceSelection({
