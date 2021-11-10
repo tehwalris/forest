@@ -326,7 +326,17 @@ export class DocManager {
           if (cursorArraysAreEqual(cursors, this.cursors)) {
             continue;
           }
-          this.cursorRedoHistory.push(cursors);
+          this.cursorRedoHistory.push(this.cursors);
+          this.cursors = cursors;
+          break;
+        }
+      } else if (ev.key === "Z") {
+        while (this.cursorRedoHistory.length) {
+          const cursors = this.cursorRedoHistory.pop()!;
+          if (cursorArraysAreEqual(cursors, this.cursors)) {
+            continue;
+          }
+          this.cursorHistory.push(this.cursors);
           this.cursors = cursors;
           break;
         }
