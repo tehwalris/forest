@@ -1,5 +1,6 @@
 import { checkInsertion } from "./check-insertion";
 import { cursorCopy } from "./cursor/copy";
+import { cursorArraysAreEqual } from "./cursor/equal";
 import { Cursor } from "./cursor/interfaces";
 import {
   cursorMoveInOut,
@@ -24,7 +25,6 @@ import {
 import { memoize } from "./memoize";
 import { docFromAst } from "./node-from-ts";
 import { astFromTypescriptFileContent } from "./parse";
-import { Clipboard } from "./paste";
 import {
   asEvenPathRange,
   asUnevenPathRange,
@@ -89,8 +89,8 @@ export class DocManager {
   public readonly initialDoc: Doc;
   private cursors: Cursor[] = [initialCursor];
   private insertHistory: InsertHistoryEntry[] = [];
-  private focusHistory: FocusHistoryEntry[] = [];
-  private focusRedoHistory: FocusHistoryEntry[] = [];
+  private cursorHistory: Cursor[][] = [];
+  private cursorRedoHistory: Cursor[][] = [];
   private mode = Mode.Normal;
   private lastMode = this.mode;
   private lastDoc = emptyDoc;
@@ -98,7 +98,6 @@ export class DocManager {
   private getDocWithoutPlaceholdersNearCursors = memoize(
     getDocWithoutPlaceholdersNearCursors,
   );
-  private clipboard: Clipboard | undefined;
 
   constructor(
     private doc: Doc,
@@ -321,6 +320,16 @@ export class DocManager {
               cursor: cursor,
             }).cursor,
         );
+      } else if (ev.key === "z") {
+        while (this.cursorHistory.length) {
+          const cursors = this.cursorHistory.pop()!;
+          if (cursorArraysAreEqual(cursors, this.cursors)) {
+            continue;
+          }
+          this.cursorRedoHistory.push(cursors);
+          this.cursors = cursors;
+          break;
+        }
       }
     } else if (this.mode === Mode.Insert) {
       if (ev.key.length !== 1) {
@@ -504,9 +513,11 @@ export class DocManager {
 
     if (docChanged) {
       this.updateDocText();
-      this.focusHistory = [];
-      this.focusRedoHistory = [];
+      this.cursorHistory = [];
+      this.cursorRedoHistory = [];
     }
+
+    this.cursorHistory.push(this.cursors);
 
     this.lastDoc = this.doc;
 
