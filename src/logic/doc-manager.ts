@@ -12,7 +12,13 @@ import {
 } from "./cursor/reduce-selection";
 import { emptyDoc } from "./doc-utils";
 import { isFocusOnEmptyListContent, normalizeFocusIn } from "./focus";
-import { Doc, InsertState, NodeKind, UnevenPathRange } from "./interfaces";
+import {
+  Doc,
+  InsertState,
+  NodeKind,
+  Path,
+  UnevenPathRange,
+} from "./interfaces";
 import { memoize } from "./memoize";
 import { Clipboard } from "./paste";
 import {
@@ -139,7 +145,38 @@ export class DocManager {
 
   onKeyPress = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal) {
-      if (ev.key === "s") {
+      if (ev.key === "i") {
+        const getInsertPosForEmptyList = (path: Path) => {
+          const node = nodeGetByPath(this.doc.root, path);
+          if (node?.kind !== NodeKind.List || node.content.length) {
+            throw new Error("invalid focus");
+          }
+          return node.pos + node.delimiters[0].length;
+        };
+        const getInsertPosBeforeNode = (path: Path) => {
+          const node = nodeGetByPath(this.doc.root, path);
+          if (!node) {
+            throw new Error("invalid focus");
+          }
+          return node.pos;
+        };
+
+        this.mode = Mode.Insert;
+        this.insertState = {
+          beforePos: this.cursors.map((cursor): number => {
+            if (!cursor.focus.anchor.length) {
+              return getInsertPosForEmptyList(cursor.focus.anchor);
+            } else if (isFocusOnEmptyListContent(this.doc.root, cursor.focus)) {
+              return getInsertPosForEmptyList(cursor.focus.anchor.slice(-1));
+            } else {
+              return getInsertPosBeforeNode(
+                flipEvenPathRangeForward(cursor.focus).anchor,
+              );
+            }
+          }),
+          text: "",
+        };
+      } else if (ev.key === "s") {
         this.cursors = this.cursors.flatMap((cursor): Cursor[] => {
           if (
             isFocusOnEmptyListContent(this.doc.root, cursor.focus) ||
