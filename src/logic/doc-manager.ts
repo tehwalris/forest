@@ -418,9 +418,6 @@ export class DocManager {
       if (this.lastMode !== this.mode) {
         this.insertHistory = [];
       }
-      this.insertHistory.push({
-        insertState: this.insertState,
-      });
     }
     this.lastMode = this.mode;
 
