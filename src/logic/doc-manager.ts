@@ -23,16 +23,15 @@ import {
 } from "./path-utils";
 import {
   getDocWithAllPlaceholders,
-  getDocWithoutPlaceholdersNearCursor,
+  getDocWithoutPlaceholdersNearCursors,
 } from "./placeholders";
-import { getDocWithInsert } from "./text";
+import { getDocWithInsertions } from "./text";
 import { nodeGetByPath, nodeTryGetDeepestByPath } from "./tree-utils/access";
 import { withoutInvisibleNodes } from "./without-invisible";
 
 export enum Mode {
   Normal,
-  InsertBefore,
-  InsertAfter,
+  Insert,
 }
 
 export interface DocManagerPublicState {
@@ -69,8 +68,6 @@ function hasAltLike(
 }
 
 interface InsertHistoryEntry {
-  doc: Doc;
-  focus: UnevenPathRange;
   insertState: InsertState;
 }
 
@@ -93,8 +90,8 @@ export class DocManager {
   private insertState: InsertState | undefined;
   private enableReduceToTip = false;
   private nextEnableReduceToTip = false;
-  private getDocWithoutPlaceholdersNearCursor = memoize(
-    getDocWithoutPlaceholdersNearCursor,
+  private getDocWithoutPlaceholdersNearCursors = memoize(
+    getDocWithoutPlaceholdersNearCursors,
   );
   private clipboard: Clipboard | undefined;
 
@@ -276,6 +273,18 @@ export class DocManager {
             }).cursor,
         );
       }
+    } else if (this.mode === Mode.Insert) {
+      if (ev.key.length !== 1) {
+        return;
+      }
+      if (!this.insertState) {
+        throw new Error("this.insertState was undefined in insert mode");
+      }
+      this.insertHistory.push({ insertState: this.insertState });
+      this.insertState = {
+        ...this.insertState,
+        text: this.insertState.text + ev.key,
+      };
     }
 
     this.onUpdate();
@@ -336,24 +345,18 @@ export class DocManager {
           }).cursor,
       );
       this.onUpdate();
-    } else if (
-      (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) &&
-      ev.key === "Backspace"
-    ) {
-      if (this.insertHistory.length < 2) {
+    } else if (this.mode === Mode.Insert && ev.key === "Backspace") {
+      const old = this.insertHistory.pop();
+      if (!old) {
         return;
       }
-      this.insertHistory.pop();
-      const old = this.insertHistory.pop()!;
-      this.doc = old.doc;
-      this.focus = old.focus;
       this.insertState = old.insertState;
       this.onUpdate();
     }
   };
 
   onKeyUp = (ev: MinimalKeyboardEvent) => {
-    if (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) {
+    if (this.mode === Mode.Insert) {
       ev.stopPropagation?.();
       ev.preventDefault?.();
     }
@@ -371,7 +374,7 @@ export class DocManager {
       asUnevenPathRange(asEvenPathRange(this.focus)),
     );
 
-    if (this.mode === Mode.InsertBefore || this.mode === Mode.InsertAfter) {
+    if (this.mode === Mode.Insert) {
       if (!this.insertState) {
         throw new Error("this.insertState was undefined in insert mode");
       }
@@ -379,8 +382,6 @@ export class DocManager {
         this.insertHistory = [];
       }
       this.insertHistory.push({
-        doc: this.doc,
-        focus: this.focus,
         insertState: this.insertState,
       });
     }
@@ -428,14 +429,17 @@ export class DocManager {
   private reportUpdate() {
     let doc = this.doc;
     if (this.insertState) {
-      const result = this.getDocWithoutPlaceholdersNearCursor(
+      const result = this.getDocWithoutPlaceholdersNearCursors(
         this.doc,
         this.insertState.beforePos,
       );
-      doc = getDocWithInsert(result.doc, {
-        beforePos: result.cursorBeforePos,
-        text: this.insertState.text,
-      });
+      doc = getDocWithInsertions(
+        result.doc,
+        this.insertState.beforePos.map((beforePos) => ({
+          beforePos,
+          text: this.insertState!.text,
+        })),
+      );
     }
     this._onUpdate({
       doc,

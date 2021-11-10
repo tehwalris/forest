@@ -1,111 +1,91 @@
-import { ListNode, NodeWithPath, Path, UnevenPathRange } from "./interfaces";
-import { PathMapper } from "./path-mapper";
-import { pathsAreEqual } from "./path-utils";
-import { nodesAreEqualExceptRangesAndPlaceholders } from "./tree-utils/equal";
-import {
-  flattenNodeAroundSplit,
-  splitAtDeepestDelimiter,
-} from "./tree-utils/flatten";
-import { sliceTail } from "./util";
+import { Doc, Node } from "./interfaces";
+import { Insertion, makeNewPosFromOldPosForInsertions } from "./text";
+import { nodeVisitDeep } from "./tree-utils/access";
 
-export type CheckedInsertion =
-  | {
-      valid: false;
+interface CheckInsertionArgs {
+  newDoc: Doc;
+  oldDoc: Doc;
+  insertions: Insertion[];
+}
+
+interface ValidCheckedInsertion {
+  valid: true;
+  newNodesByOldNodes: Map<Node, Node>;
+}
+
+interface InvalidCheckedInsertion {
+  valid: false;
+  reason: string;
+}
+
+type CheckedInsertion = ValidCheckedInsertion | InvalidCheckedInsertion;
+
+class InvalidInsertionError extends Error {
+  constructor(message: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+export function checkInsertion(args: CheckInsertionArgs): CheckedInsertion {
+  try {
+    return _checkInsertion(args);
+  } catch (err) {
+    if (err instanceof InvalidInsertionError) {
+      return { valid: false, reason: err.message };
+    } else {
+      throw err;
     }
-  | {
-      valid: true;
-      pathMapper: PathMapper;
-      insertedRange?: UnevenPathRange;
+  }
+}
+
+function _checkInsertion({
+  newDoc,
+  oldDoc,
+  insertions,
+}: CheckInsertionArgs): ValidCheckedInsertion {
+  const newPosFromOldPos = makeNewPosFromOldPosForInsertions(insertions);
+
+  const newNodesByPos = new Map<number, Node[]>();
+  const unmatchedNewNodes = new Set<Node>();
+  nodeVisitDeep(oldDoc.root, (newNode) => {
+    const nodesAtPos = newNodesByPos.get(newNode.pos) || [];
+    newNodesByPos.set(newNode.pos, nodesAtPos);
+    nodesAtPos.push(newNode);
+    unmatchedNewNodes.add(newNode);
+  });
+
+  const newNodesByOldNodes = new Map<Node, Node>();
+  nodeVisitDeep(newDoc.root, (oldNode) => {
+    const expectedRange = {
+      pos: newPosFromOldPos(oldNode.pos),
+      end: newPosFromOldPos(oldNode.end),
     };
-
-export function checkInsertion(
-  nodeOld: ListNode,
-  nodeNew: ListNode,
-  insertBeforePath: Path,
-): CheckedInsertion {
-  const printReason = (reason: string) => {
-    console.warn(`Insertion is not valid. Reason: ${reason}`);
-  };
-
-  if (!insertBeforePath.length) {
-    throw new Error("insertBeforePath must not be empty");
-  }
-
-  const delimiterSplitOld = splitAtDeepestDelimiter(nodeOld, insertBeforePath);
-  const delimiterSplitNew = splitAtDeepestDelimiter(nodeNew, insertBeforePath);
-  if (
-    !nodesAreEqualExceptRangesAndPlaceholders(
-      delimiterSplitOld.withEmptyList,
-      delimiterSplitNew.withEmptyList,
-    )
-  ) {
-    printReason("changes outside of nearest containing delimited list");
-    return { valid: false };
-  }
-
-  if (
-    !pathsAreEqual(delimiterSplitOld.pathToList, delimiterSplitNew.pathToList)
-  ) {
-    printReason("path to nearest containing delimited list has changed");
-    return { valid: false };
-  }
-
-  const flatOld = flattenNodeAroundSplit(
-    delimiterSplitOld.list,
-    delimiterSplitOld.pathFromList,
-  );
-  const flatNew = flattenNodeAroundSplit(
-    delimiterSplitNew.list,
-    delimiterSplitNew.pathFromList,
-  );
-  if (
-    flatOld.before.length > flatNew.before.length ||
-    flatOld.after.length > flatNew.after.length
-  ) {
-    printReason("new flat lists are shorter");
-    return { valid: false };
-  }
-
-  const allNodesAreEqualWithoutPaths = (
-    nodesA: NodeWithPath[],
-    nodesB: NodeWithPath[],
-  ): boolean =>
-    nodesA.every((a, i) =>
-      nodesAreEqualExceptRangesAndPlaceholders(a.node, nodesB[i].node),
+    const nodesAtPos = newNodesByPos.get(expectedRange.pos) || [];
+    const matchingNodes = nodesAtPos.filter(
+      (newNode) => newNode.end === expectedRange.end,
     );
-  const flatNewBeforeCommon = flatNew.before.slice(0, flatOld.before.length);
-  if (!allNodesAreEqualWithoutPaths(flatOld.before, flatNewBeforeCommon)) {
-    printReason("existing nodes before cursor changed");
-    return { valid: false };
-  }
-  const flatNewAfterCommon = sliceTail(flatNew.after, flatOld.after.length);
-  if (!allNodesAreEqualWithoutPaths(flatOld.after, flatNewAfterCommon)) {
-    printReason("existing nodes after cursor changed");
-    return { valid: false };
-  }
+    if (matchingNodes.length !== 1) {
+      throw new InvalidInsertionError(
+        `${matchingNodes.length} new nodes matched this old node, expected exactly 1`,
+      );
+    }
+    const newNode = matchingNodes[0];
+    // TODO could check that the contents matches, but be careful to avoid exponential complexity
 
-  const flatInserted = [
-    ...flatNew.before.slice(flatOld.before.length),
-    ...flatNew.after.slice(0, flatNew.after.length - flatOld.after.length),
-  ];
-  let insertedRange: UnevenPathRange | undefined;
-  if (flatInserted.length) {
-    insertedRange = {
-      anchor: [...delimiterSplitNew.pathToList, ...flatInserted[0].path],
-      tip: [
-        ...delimiterSplitNew.pathToList,
-        ...flatInserted[flatInserted.length - 1].path,
-      ],
-    };
-  }
+    const firstMatchWithThisNewNode = unmatchedNewNodes.delete(newNode);
+    if (!firstMatchWithThisNewNode) {
+      throw new InvalidInsertionError(
+        "new node matched to more than 1 old node",
+      );
+    }
 
-  const pathMapper = new PathMapper(delimiterSplitOld.pathToList);
-  for (const [i, oldEntry] of flatOld.before.entries()) {
-    pathMapper.record({ old: oldEntry.path, new: flatNewBeforeCommon[i].path });
-  }
-  for (const [i, oldEntry] of flatOld.after.entries()) {
-    pathMapper.record({ old: oldEntry.path, new: flatNewAfterCommon[i].path });
-  }
+    newNodesByOldNodes.set(oldNode, newNode);
+  });
 
-  return { valid: true, pathMapper, insertedRange };
+  // TODO check new nodes and assign them to insertions
+  // - either they are full within a single insertion range
+  // - or they intersect exactly one insertion range and have equivalentToContent
+
+  return { valid: true, newNodesByOldNodes };
 }

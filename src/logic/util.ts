@@ -58,3 +58,15 @@ export function isSubarray(long: unknown[], short: unknown[]): boolean {
   }
   return !remainingShort.length;
 }
+
+export function assertSortedBy<T>(values: T[], cb: (v: T) => number): void {
+  let last = undefined;
+  for (const v of values) {
+    const cur = cb(v);
+    if (last === undefined || last <= cur) {
+      last = cur;
+    } else {
+      throw new Error("not sorted");
+    }
+  }
+}

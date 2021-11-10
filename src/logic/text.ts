@@ -1,11 +1,10 @@
-import {
-  Doc,
-  InsertState,
-  ListNode,
-  Node,
-  NodeKind,
-  TextRange,
-} from "./interfaces";
+import { Doc, ListNode, Node, NodeKind, TextRange } from "./interfaces";
+import { assertSortedBy } from "./util";
+
+export interface Insertion {
+  beforePos: number;
+  text: string;
+}
 
 export function duplicateMapPosCb(
   cb: (pos: number) => number,
@@ -39,21 +38,43 @@ function checkTextRangesDoNotOverlap(ranges: TextRange[]): boolean {
   return ranges.every((r, i) => i === 0 || ranges[i - 1].end <= r.pos);
 }
 
-export function getDocWithInsert(
-  doc: Doc,
-  insertState: Pick<InsertState, "beforePos" | "text">,
-): Doc {
+export function makeNewPosFromOldPosForInsertions(
+  insertions: Insertion[],
+): (oldPos: number) => number {
+  assertSortedBy(insertions, (insertion) => insertion.beforePos);
+  return (oldPos: number): number => {
+    let totalInsertionLengthBefore = 0;
+    for (const insertion of insertions) {
+      if (insertion.beforePos > oldPos) {
+        break;
+      }
+      totalInsertionLengthBefore += insertion.text.length;
+    }
+    return oldPos + totalInsertionLengthBefore;
+  };
+}
+
+export function getDocWithInsertions(doc: Doc, insertions: Insertion[]): Doc {
+  assertSortedBy(insertions, (insertion) => insertion.beforePos);
+
+  const textParts = [];
+  {
+    let pos = 0;
+    for (const insertion of insertions) {
+      textParts.push(doc.text.slice(pos, insertion.beforePos), insertion.text);
+      pos = insertion.beforePos;
+    }
+    if (pos < doc.text.length) {
+      textParts.push(doc.text.slice(pos, doc.text.length));
+    }
+  }
+
   return {
     root: mapNodeTextRanges(
       doc.root,
-      duplicateMapPosCb((pos) =>
-        pos >= insertState.beforePos ? pos + insertState.text.length : pos,
-      ),
+      duplicateMapPosCb(makeNewPosFromOldPosForInsertions(insertions)),
     ),
-    text:
-      doc.text.slice(0, insertState.beforePos) +
-      insertState.text +
-      doc.text.slice(insertState.beforePos),
+    text: textParts.join(""),
   };
 }
 

@@ -87,29 +87,47 @@ export function getDocWithAllPlaceholders(docWithoutPlaceholders: Doc): {
   };
 }
 
-export function getDocWithoutPlaceholdersNearCursor(
+export function getDocWithoutPlaceholdersNearCursors(
   doc: Doc,
-  cursorBeforePos: number,
+  cursorBeforePositions: number[],
 ): {
   doc: Doc;
   mapOldToWithoutAdjacent: (path: Path) => Path;
-  cursorBeforePos: number;
+  cursorBeforePositions: number[];
 } {
-  const cursorWhitespacePos = ((pos: number) => {
-    while (pos > 0 && pos < doc.text.length && doc.text[pos - 1].match(/\s/)) {
-      pos--;
-    }
-    return pos;
-  })(cursorBeforePos);
-  const cursorWhitespaceEnd = ((end: number) => {
-    while (end >= 0 && end + 1 < doc.text.length && doc.text[end].match(/\s/)) {
-      end++;
-    }
-    return end;
-  })(cursorBeforePos);
+  const cursorWhitespaceRanges: TextRange[] = cursorBeforePositions.map(
+    (cursorBeforePos) => {
+      return {
+        pos: ((pos: number) => {
+          while (
+            pos > 0 &&
+            pos < doc.text.length &&
+            doc.text[pos - 1].match(/\s/)
+          ) {
+            pos--;
+          }
+          return pos;
+        })(cursorBeforePos),
+        end: ((end: number) => {
+          while (
+            end >= 0 &&
+            end + 1 < doc.text.length &&
+            doc.text[end].match(/\s/)
+          ) {
+            end++;
+          }
+          return end;
+        })(cursorBeforePos),
+      };
+    },
+  );
+
   const isAdjacentToCursor = (range: TextRange) =>
-    (range.pos >= cursorWhitespacePos && range.pos <= cursorWhitespaceEnd) ||
-    (range.end >= cursorWhitespacePos && range.end <= cursorWhitespaceEnd);
+    cursorWhitespaceRanges.some(
+      ({ pos, end }) =>
+        (range.pos >= pos && range.pos <= end) ||
+        (range.end >= pos && range.end <= end),
+    );
 
   const shouldKeepNode = (node: Node) =>
     !node.isPlaceholder || !isAdjacentToCursor(node);
@@ -135,6 +153,8 @@ export function getDocWithoutPlaceholdersNearCursor(
       text: textDeletion.text,
     },
     mapOldToWithoutAdjacent,
-    cursorBeforePos: textDeletion.mapPos(cursorBeforePos),
+    cursorBeforePositions: cursorBeforePositions.map((pos) =>
+      textDeletion.mapPos(pos),
+    ),
   };
 }
