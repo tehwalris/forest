@@ -28,7 +28,6 @@ import { Clipboard } from "./paste";
 import {
   asEvenPathRange,
   asUnevenPathRange,
-  evenPathRangesAreEqual,
   flipEvenPathRangeBackward,
   flipEvenPathRangeForward,
 } from "./path-utils";
@@ -37,8 +36,7 @@ import {
   getDocWithoutPlaceholdersNearCursors,
 } from "./placeholders";
 import { getDocWithInsertions, Insertion } from "./text";
-import { nodeGetByPath, nodeTryGetDeepestByPath } from "./tree-utils/access";
-import { withoutInvisibleNodes } from "./without-invisible";
+import { nodeGetByPath } from "./tree-utils/access";
 
 export enum Mode {
   Normal,
@@ -90,17 +88,13 @@ interface FocusHistoryEntry {
 export class DocManager {
   public readonly initialDoc: Doc;
   private cursors: Cursor[] = [initialCursor];
-  private focus: UnevenPathRange = { anchor: [], tip: [] };
   private insertHistory: InsertHistoryEntry[] = [];
   private focusHistory: FocusHistoryEntry[] = [];
   private focusRedoHistory: FocusHistoryEntry[] = [];
   private mode = Mode.Normal;
   private lastMode = this.mode;
   private lastDoc = emptyDoc;
-  private lastFocus = this.focus;
   private insertState: InsertState | undefined;
-  private enableReduceToTip = false;
-  private nextEnableReduceToTip = false;
   private getDocWithoutPlaceholdersNearCursors = memoize(
     getDocWithoutPlaceholdersNearCursors,
   );
@@ -491,14 +485,12 @@ export class DocManager {
   private onUpdate() {
     const docChanged = this.doc !== this.lastDoc;
 
-    if (this.mode === Mode.Normal && docChanged) {
-      this.removeInvisibleNodes();
-    }
-
-    this.focus = normalizeFocusIn(
-      this.doc.root,
-      asUnevenPathRange(asEvenPathRange(this.focus)),
-    );
+    this.cursors = this.cursors.map((cursor) => ({
+      ...cursor,
+      focus: asEvenPathRange(
+        normalizeFocusIn(this.doc.root, asUnevenPathRange(cursor.focus)),
+      ),
+    }));
 
     if (this.mode === Mode.Insert) {
       if (!this.insertState) {
@@ -515,34 +507,6 @@ export class DocManager {
       this.focusHistory = [];
       this.focusRedoHistory = [];
     }
-
-    if (
-      !this.focusHistory.length ||
-      !evenPathRangesAreEqual(
-        asEvenPathRange(this.focusHistory[this.focusHistory.length - 1].focus),
-        asEvenPathRange(this.focus),
-      )
-    ) {
-      this.focusHistory.push({
-        focus: this.focus,
-        enableReduceToTip: this.enableReduceToTip,
-      });
-    }
-
-    if (
-      this.nextEnableReduceToTip &&
-      (!evenPathRangesAreEqual(
-        flipEvenPathRangeForward(asEvenPathRange(this.focus)),
-        flipEvenPathRangeForward(asEvenPathRange(this.lastFocus)),
-      ) ||
-        this.enableReduceToTip)
-    ) {
-      this.enableReduceToTip = this.nextEnableReduceToTip;
-    } else {
-      this.enableReduceToTip = false;
-    }
-    this.nextEnableReduceToTip = false;
-    this.lastFocus = this.focus;
 
     this.lastDoc = this.doc;
 
@@ -573,31 +537,5 @@ export class DocManager {
 
   private updateDocText() {
     this.doc = getDocWithAllPlaceholders(this.doc).doc;
-    // HACK makeNodeValidTs makes replaces some single item lists by their only item.
-    // This is the easiest way to make the focus valid again, even though it's not very clean.
-    this.fixFocus();
-  }
-
-  private fixFocus() {
-    this.focus = {
-      anchor: nodeTryGetDeepestByPath(this.doc.root, this.focus.anchor).path,
-      tip: nodeTryGetDeepestByPath(this.doc.root, this.focus.tip).path,
-    };
-  }
-
-  private removeInvisibleNodes() {
-    const anchorResult = withoutInvisibleNodes(this.doc, {
-      anchor: this.focus.anchor,
-      offset: 0,
-    });
-    const tipResult = withoutInvisibleNodes(this.doc, {
-      anchor: this.focus.tip,
-      offset: 0,
-    });
-    this.doc = anchorResult.doc;
-    this.focus = {
-      anchor: anchorResult.focus.anchor,
-      tip: tipResult.focus.anchor,
-    };
   }
 }
