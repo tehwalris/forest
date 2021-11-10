@@ -1,3 +1,4 @@
+import { checkInsertion } from "./check-insertion";
 import { cursorCopy } from "./cursor/copy";
 import { Cursor } from "./cursor/interfaces";
 import {
@@ -20,6 +21,8 @@ import {
   UnevenPathRange,
 } from "./interfaces";
 import { memoize } from "./memoize";
+import { docFromAst } from "./node-from-ts";
+import { astFromTypescriptFileContent } from "./parse";
 import { Clipboard } from "./paste";
 import {
   asEvenPathRange,
@@ -31,7 +34,7 @@ import {
   getDocWithAllPlaceholders,
   getDocWithoutPlaceholdersNearCursors,
 } from "./placeholders";
-import { getDocWithInsertions } from "./text";
+import { getDocWithInsertions, Insertion } from "./text";
 import { nodeGetByPath, nodeTryGetDeepestByPath } from "./tree-utils/access";
 import { withoutInvisibleNodes } from "./without-invisible";
 
@@ -382,6 +385,69 @@ export class DocManager {
           }).cursor,
       );
       this.onUpdate();
+    } else if (this.mode === Mode.Insert && ev.key === "Escape") {
+      const finalStuff = () => {
+        this.mode = Mode.Normal;
+        this.insertHistory = [];
+        this.insertState = undefined;
+        this.onUpdate();
+      };
+
+      if (!this.insertState) {
+        throw new Error("this.insertState was undefined in insert mode");
+      }
+
+      if (!this.insertState.text) {
+        finalStuff();
+        return;
+      }
+
+      const {
+        doc: oldDocWithoutPlaceholders,
+        cursorBeforePositions:
+          cursorBeforePositionsAdjustedForPlaceholderRemoval,
+      } = getDocWithoutPlaceholdersNearCursors(
+        this.doc,
+        this.insertState.beforePos,
+      );
+
+      const insertions: Insertion[] =
+        cursorBeforePositionsAdjustedForPlaceholderRemoval.map((beforePos) => ({
+          beforePos,
+          text: this.insertState!.text,
+        }));
+
+      const astWithInsertBeforeFormatting = astFromTypescriptFileContent(
+        getDocWithInsertions(oldDocWithoutPlaceholders, insertions).text,
+      );
+      if (astWithInsertBeforeFormatting.parseDiagnostics.length) {
+        console.warn(
+          "file has syntax errors",
+          astWithInsertBeforeFormatting.parseDiagnostics,
+          astWithInsertBeforeFormatting.text,
+        );
+        return;
+      }
+      const docWithInsertBeforeFormatting = docFromAst(
+        astWithInsertBeforeFormatting,
+      );
+
+      const checkedInsertion = checkInsertion({
+        oldDoc: oldDocWithoutPlaceholders,
+        newDoc: docWithInsertBeforeFormatting,
+        insertions,
+      });
+      if (!checkedInsertion.valid) {
+        console.warn("checkedInsertion is not valid:", checkedInsertion.reason);
+        return;
+      }
+
+      // TODO map placeholders
+      // TODO set focus on inserted ranges
+      // TODO format
+
+      this.doc = docWithInsertBeforeFormatting;
+      finalStuff();
     } else if (this.mode === Mode.Insert && ev.key === "Backspace") {
       const old = this.insertHistory.pop();
       if (!old) {

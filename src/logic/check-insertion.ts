@@ -48,7 +48,7 @@ function _checkInsertion({
 
   const newNodesByPos = new Map<number, Node[]>();
   const unmatchedNewNodes = new Set<Node>();
-  nodeVisitDeep(oldDoc.root, (newNode) => {
+  nodeVisitDeep(newDoc.root, (newNode) => {
     const nodesAtPos = newNodesByPos.get(newNode.pos) || [];
     newNodesByPos.set(newNode.pos, nodesAtPos);
     nodesAtPos.push(newNode);
@@ -56,7 +56,7 @@ function _checkInsertion({
   });
 
   const newNodesByOldNodes = new Map<Node, Node>();
-  nodeVisitDeep(newDoc.root, (oldNode) => {
+  nodeVisitDeep(oldDoc.root, (oldNode) => {
     const expectedRange = {
       pos: newPosFromOldPos(oldNode.pos),
       end: newPosFromOldPos(oldNode.end),
@@ -65,20 +65,17 @@ function _checkInsertion({
     const matchingNodes = nodesAtPos.filter(
       (newNode) => newNode.end === expectedRange.end,
     );
-    if (matchingNodes.length !== 1) {
-      throw new InvalidInsertionError(
-        `${matchingNodes.length} new nodes matched this old node, expected exactly 1`,
-      );
-    }
-    const newNode = matchingNodes[0];
-    // TODO could check that the contents matches, but be careful to avoid exponential complexity
 
-    const firstMatchWithThisNewNode = unmatchedNewNodes.delete(newNode);
-    if (!firstMatchWithThisNewNode) {
+    // HACK By taking the first unmatched node, outer nodes will be matched before inner nodes.
+    const newNode = matchingNodes.find((node) => unmatchedNewNodes.has(node));
+    if (!newNode) {
       throw new InvalidInsertionError(
-        "new node matched to more than 1 old node",
+        "no new nodes matched this old node, expected at least 1",
       );
     }
+    unmatchedNewNodes.delete(newNode);
+
+    // TODO could check that the contents matches, but be careful to avoid exponential complexity
 
     newNodesByOldNodes.set(oldNode, newNode);
   });
