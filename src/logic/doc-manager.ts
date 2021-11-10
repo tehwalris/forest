@@ -15,6 +15,7 @@ import { emptyDoc } from "./doc-utils";
 import { isFocusOnEmptyListContent, normalizeFocusIn } from "./focus";
 import {
   Doc,
+  EvenPathRange,
   InsertState,
   NodeKind,
   Path,
@@ -28,6 +29,7 @@ import {
   asEvenPathRange,
   asUnevenPathRange,
   evenPathRangesAreEqual,
+  flipEvenPathRangeBackward,
   flipEvenPathRangeForward,
 } from "./path-utils";
 import {
@@ -148,20 +150,15 @@ export class DocManager {
 
   onKeyPress = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal) {
-      if (ev.key === "i") {
+      const handleInsertOrAppend = (
+        normalFocusToPos: (focus: EvenPathRange) => number,
+      ) => {
         const getInsertPosForEmptyList = (path: Path) => {
           const node = nodeGetByPath(this.doc.root, path);
           if (node?.kind !== NodeKind.List || node.content.length) {
             throw new Error("invalid focus");
           }
           return node.pos + node.delimiters[0].length;
-        };
-        const getInsertPosBeforeNode = (path: Path) => {
-          const node = nodeGetByPath(this.doc.root, path);
-          if (!node) {
-            throw new Error("invalid focus");
-          }
-          return node.pos;
         };
 
         this.mode = Mode.Insert;
@@ -172,13 +169,31 @@ export class DocManager {
             } else if (isFocusOnEmptyListContent(this.doc.root, cursor.focus)) {
               return getInsertPosForEmptyList(cursor.focus.anchor.slice(-1));
             } else {
-              return getInsertPosBeforeNode(
-                flipEvenPathRangeForward(cursor.focus).anchor,
-              );
+              return normalFocusToPos(cursor.focus);
             }
           }),
           text: "",
         };
+      };
+
+      if (ev.key === "i") {
+        handleInsertOrAppend((focus) => {
+          const path = flipEvenPathRangeForward(focus).anchor;
+          const node = nodeGetByPath(this.doc.root, path);
+          if (!node) {
+            throw new Error("invalid focus");
+          }
+          return node.pos;
+        });
+      } else if (ev.key === "a") {
+        handleInsertOrAppend((focus) => {
+          const path = flipEvenPathRangeBackward(focus).anchor;
+          const node = nodeGetByPath(this.doc.root, path);
+          if (!node) {
+            throw new Error("invalid focus");
+          }
+          return node.end;
+        });
       } else if (ev.key === "s") {
         this.cursors = this.cursors.flatMap((cursor): Cursor[] => {
           if (
