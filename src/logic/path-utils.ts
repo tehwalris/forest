@@ -20,6 +20,24 @@ export function getCommonPathPrefix(a: Path, b: Path): Path {
   return common;
 }
 
+export function getSmallestContainingRange(paths: Path[]): EvenPathRange {
+  if (!paths.length) {
+    throw new Error("no paths");
+  }
+
+  const commonPrefix = paths.reduce((a, c) => getCommonPathPrefix(a, c));
+
+  if (paths.some((p) => pathsAreEqual(p, commonPrefix))) {
+    return { anchor: commonPrefix, offset: 0 };
+  }
+
+  const indices = paths.map((p) => p[commonPrefix.length]);
+  return {
+    anchor: [...commonPrefix, Math.min(...indices)],
+    offset: Math.max(...indices) - Math.min(...indices),
+  };
+}
+
 export function evenPathRangesAreEqual(
   a: EvenPathRange,
   b: EvenPathRange,

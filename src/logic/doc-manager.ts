@@ -442,8 +442,16 @@ export class DocManager {
         return;
       }
 
-      // TODO map placeholders
-      // TODO set focus on inserted ranges
+      for (const node of checkedInsertion.newNodesByOldPlaceholderNodes.values()) {
+        // HACK mutating docWithInsertBeforeFormatting
+        node.isPlaceholder = true;
+      }
+
+      this.cursors = this.cursors.map((cursor, i) => ({
+        ...cursor,
+        focus: checkedInsertion.insertionPathRanges[i],
+      }));
+
       // TODO format
 
       this.doc = docWithInsertBeforeFormatting;

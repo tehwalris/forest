@@ -1,4 +1,6 @@
-import { Doc, Node, NodeKind } from "./interfaces";
+import { TextRange } from "typescript";
+import { Doc, EvenPathRange, Node, NodeKind, Path } from "./interfaces";
+import { getSmallestContainingRange } from "./path-utils";
 import { Insertion, makeNewPosFromOldPosForInsertions } from "./text";
 import { nodeVisitDeep } from "./tree-utils/access";
 
@@ -11,6 +13,7 @@ interface CheckInsertionArgs {
 interface ValidCheckedInsertion {
   valid: true;
   newNodesByOldPlaceholderNodes: Map<Node, Node>;
+  insertionPathRanges: EvenPathRange[];
 }
 
 interface InvalidCheckedInsertion {
@@ -87,9 +90,31 @@ function _checkInsertion({
     }
   });
 
+  const insertionTextRanges: TextRange[] = insertions.map((insertion) => {
+    const end = newPosFromOldPos(insertion.beforePos);
+    const pos = end - insertion.text.length;
+    return { pos, end };
+  });
+
+  const insertedPathsByInsertion: Path[][] = insertions.map(() => []);
+  nodeVisitDeep(newDoc.root, (newNode, path) => {
+    const i = insertionTextRanges.findIndex(
+      ({ pos, end }) => newNode.pos >= pos && newNode.end <= end,
+    );
+    if (i !== -1) {
+      insertedPathsByInsertion[i].push(path);
+    }
+  });
+  if (insertedPathsByInsertion.some((paths) => !paths.length)) {
+    throw new InvalidInsertionError("some insertions did not add any nodes");
+  }
+  const insertionPathRanges = insertedPathsByInsertion.map((paths) =>
+    getSmallestContainingRange(paths),
+  );
+
   // TODO check new nodes and assign them to insertions
   // - either they are fully within a single insertion range
   // - or they intersect exactly one insertion range and have equivalentToContent
 
-  return { valid: true, newNodesByOldPlaceholderNodes };
+  return { valid: true, newNodesByOldPlaceholderNodes, insertionPathRanges };
 }
