@@ -164,10 +164,10 @@ export class DocManager {
         this.mode = Mode.Insert;
         this.insertState = {
           beforePos: this.cursors.map((cursor): number => {
-            if (!cursor.focus.anchor.length) {
+            if (!this.doc.root.content.length) {
               return getInsertPosForEmptyList(cursor.focus.anchor);
             } else if (isFocusOnEmptyListContent(this.doc.root, cursor.focus)) {
-              return getInsertPosForEmptyList(cursor.focus.anchor.slice(-1));
+              return getInsertPosForEmptyList(cursor.focus.anchor.slice(0, -1));
             } else {
               return normalFocusToPos(cursor.focus);
             }

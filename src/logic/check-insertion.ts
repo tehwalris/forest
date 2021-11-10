@@ -60,8 +60,11 @@ function _checkInsertion({
 
   const newNodesByOldPlaceholderNodes = new Map<Node, Node>();
   nodeVisitDeep(oldDoc.root, (oldNode) => {
-    if (oldNode.pos >= oldNode.end) {
-      throw new Error("node has zero/negative length text range");
+    if (oldNode.pos > oldNode.end) {
+      throw new Error("node has negative length text range");
+    }
+    if (oldNode.pos === oldNode.end && oldNode.isPlaceholder) {
+      throw new Error("placeholder node has zero length text range");
     }
     const expectedRange = {
       pos: newPosFromOldPos(oldNode.pos),
