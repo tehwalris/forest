@@ -14,14 +14,7 @@ import {
 } from "./cursor/reduce-selection";
 import { emptyDoc } from "./doc-utils";
 import { isFocusOnEmptyListContent, normalizeFocusIn } from "./focus";
-import {
-  Doc,
-  EvenPathRange,
-  InsertState,
-  NodeKind,
-  Path,
-  UnevenPathRange,
-} from "./interfaces";
+import { Doc, EvenPathRange, InsertState, NodeKind, Path } from "./interfaces";
 import { memoize } from "./memoize";
 import { docFromAst } from "./node-from-ts";
 import { astFromTypescriptFileContent } from "./parse";
@@ -78,11 +71,6 @@ function hasAltLike(
 
 interface InsertHistoryEntry {
   insertState: InsertState;
-}
-
-interface FocusHistoryEntry {
-  focus: UnevenPathRange;
-  enableReduceToTip: boolean;
 }
 
 export class DocManager {
