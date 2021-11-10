@@ -60,9 +60,12 @@ function _checkInsertion({
 
   const newNodesByOldPlaceholderNodes = new Map<Node, Node>();
   nodeVisitDeep(oldDoc.root, (oldNode) => {
+    if (oldNode.pos >= oldNode.end) {
+      throw new Error("node has zero/negative length text range");
+    }
     const expectedRange = {
       pos: newPosFromOldPos(oldNode.pos),
-      end: newPosFromOldPos(oldNode.end),
+      end: newPosFromOldPos(oldNode.end - 1) + 1,
     };
     const nodesAtPos = newNodesByPos.get(expectedRange.pos) || [];
     const matchingNodes = nodesAtPos.filter(
