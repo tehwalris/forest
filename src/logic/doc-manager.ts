@@ -1,3 +1,4 @@
+import { sortBy } from "ramda";
 import { checkInsertion } from "./check-insertion";
 import { cursorCopy } from "./cursor/copy";
 import { multiCursorDelete } from "./cursor/delete";
@@ -202,6 +203,11 @@ export class DocManager {
               }),
             );
         });
+      } else if (ev.key === "S") {
+        this.cursors = sortBy(
+          (c) => textRangeFromFocus(this.doc.root, c.focus).pos,
+          this.cursors,
+        ).slice(0, 1);
       } else if (ev.key === "l" && !hasAltLike(ev)) {
         this.cursors = this.cursors.map(
           (cursor) =>
