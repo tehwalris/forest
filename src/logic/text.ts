@@ -68,8 +68,6 @@ export function getDocWithInsertions(doc: Doc, insertions: Insertion[]): Doc {
       textParts.push(doc.text.slice(pos, doc.text.length));
     }
   }
-  console.log("DEBUG doc.text", doc.text);
-  console.log("DEBUG textParts", textParts);
 
   return {
     root: mapNodeTextRanges(
