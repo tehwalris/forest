@@ -502,13 +502,6 @@ export class DocManager {
   private onUpdate() {
     const docChanged = this.doc !== this.lastDoc;
 
-    this.cursors = this.cursors.map((cursor) => ({
-      ...cursor,
-      focus: asEvenPathRange(
-        normalizeFocusIn(this.doc.root, asUnevenPathRange(cursor.focus)),
-      ),
-    }));
-
     if (this.mode === Mode.Insert) {
       if (!this.insertState) {
         throw new Error("this.insertState was undefined in insert mode");
@@ -524,6 +517,13 @@ export class DocManager {
       this.cursorHistory = [];
       this.cursorRedoHistory = [];
     }
+
+    this.cursors = this.cursors.map((cursor) => ({
+      ...cursor,
+      focus: asEvenPathRange(
+        normalizeFocusIn(this.doc.root, asUnevenPathRange(cursor.focus)),
+      ),
+    }));
 
     this.cursorHistory.push(this.cursors);
 

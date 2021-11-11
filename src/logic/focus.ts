@@ -80,6 +80,18 @@ export function normalizeFocusOutOnce(
   }
 }
 
+export function normalizeFocusOut(
+  root: ListNode,
+  focus: UnevenPathRange,
+): UnevenPathRange {
+  if (isFocusOnEmptyListContent(root, asEvenPathRange(focus))) {
+    return focus;
+  }
+  return whileUnevenFocusChanges(focus, (focus) =>
+    normalizeFocusOutOnce(root, focus),
+  );
+}
+
 export function whileUnevenFocusChanges(
   initialFocus: UnevenPathRange,
   cb: (focus: UnevenPathRange) => UnevenPathRange,
