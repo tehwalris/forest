@@ -3,6 +3,7 @@ import { Doc, EvenPathRange, Node, NodeKind, Path } from "./interfaces";
 import { getSmallestContainingRange } from "./path-utils";
 import { Insertion, makeNewPosFromOldPosForInsertions } from "./text";
 import { nodeVisitDeep } from "./tree-utils/access";
+import { isToken, isTsQuestionDotToken } from "./ts-type-predicates";
 
 interface CheckInsertionArgs {
   newDoc: Doc;
@@ -104,8 +105,19 @@ function _checkInsertion({
 
   const insertedPathsByInsertion: Path[][] = insertions.map(() => []);
   nodeVisitDeep(newDoc.root, (newNode, path) => {
+    let nodeRange: TextRange = newNode;
+    if (isToken(newNode, isTsQuestionDotToken)) {
+      // HACK Inserting "?" before an existing "." (which we don't consider a
+      // node) will create "?." (which we do consider a node), but the "." part
+      // of this will be outside of the insertion range, which isn't allowed. We
+      // want to allow this special case on purpose.
+      nodeRange = { pos: nodeRange.pos, end: nodeRange.pos + 1 };
+    }
+
     const i = insertionTextRanges.findIndex(
-      ({ pos, end }) => newNode.pos >= pos && newNode.end <= end,
+      (insertionRange) =>
+        nodeRange.pos >= insertionRange.pos &&
+        nodeRange.end <= insertionRange.end,
     );
     if (i !== -1) {
       insertedPathsByInsertion[i].push(path);
