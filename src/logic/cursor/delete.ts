@@ -1,8 +1,15 @@
-import { isFocusOnEmptyListContent } from "../focus";
+import { isFocusOnEmptyListContent, normalizeFocusIn } from "../focus";
 import { ListNode, NodeKind, Path } from "../interfaces";
-import { flipEvenPathRangeForward } from "../path-utils";
+import {
+  asEvenPathRange,
+  asUnevenPathRange,
+  evenPathRangeIsValid,
+  flipEvenPathRangeForward,
+  uniqueByEvenPathRange,
+} from "../path-utils";
 import { ListItemReplacement, replaceMultiple } from "../replace-multiple";
 import { nodeGetByPath } from "../tree-utils/access";
+import { withoutInvisibleNodes } from "../without-invisible";
 import { Cursor } from "./interfaces";
 import { adjustPostActionCursor } from "./post-action";
 
@@ -84,17 +91,43 @@ export function multiCursorDelete({
 
   const replaceResult = replaceMultiple({ root: oldRoot, replacements });
 
-  const newCursors: Cursor[] = [];
+  let newCursors: Cursor[] = [];
   for (const [i, used] of replaceResult.replacementWasUsed.entries()) {
     if (used) {
       newCursors.push(cursorResults[cursorIndexByReplacement[i]].cursor);
     }
   }
+
+  if (
+    !newCursors.every((c) => evenPathRangeIsValid(replaceResult.root, c.focus))
+  ) {
+    throw new Error(
+      "remaining cursors invalid before removing invisible nodes",
+    );
+  }
+  const newRoot = withoutInvisibleNodes(replaceResult.root);
+  newCursors = newCursors.map((c) => {
+    let newFocus = c.focus;
+    while (!evenPathRangeIsValid(newRoot, newFocus)) {
+      if (!newFocus.anchor.length) {
+        throw new Error("unreachable");
+      }
+      newFocus = { anchor: newFocus.anchor.slice(0, -1), offset: 0 };
+    }
+    newFocus = asEvenPathRange(
+      normalizeFocusIn(newRoot, asUnevenPathRange(newFocus)),
+    );
+    newFocus = flipEvenPathRangeForward(newFocus);
+    return { ...c, focus: newFocus };
+  });
+
+  newCursors = uniqueByEvenPathRange(newCursors, (c) => c.focus);
+
   if (!newCursors.length) {
     throw new Error(
       "no cursors remaining after deletion - this should not happen",
     );
   }
 
-  return { root: replaceResult.root, cursors: newCursors };
+  return { root: newRoot, cursors: newCursors };
 }

@@ -1,9 +1,11 @@
 import {
   EvenPathRange,
+  ListNode,
   NodeWithPath,
   Path,
   UnevenPathRange,
 } from "./interfaces";
+import { nodeGetByPath } from "./tree-utils/access";
 
 export function pathsAreEqual(a: Path, b: Path): boolean {
   return a === b || (a.length === b.length && a.every((v, i) => v === b[i]));
@@ -12,12 +14,33 @@ export function pathsAreEqual(a: Path, b: Path): boolean {
 export function uniqueByPath<T>(items: T[], cb: (v: T) => Path): T[] {
   const seenPaths: Path[] = [];
   const uniqueItems: T[] = [];
-  for (const v of uniqueItems) {
+  for (const v of items) {
     const path = cb(v);
     if (seenPaths.find((seenPath) => pathsAreEqual(seenPath, path))) {
       continue;
     }
     seenPaths.push(path);
+    uniqueItems.push(v);
+  }
+  return uniqueItems;
+}
+
+export function uniqueByEvenPathRange<T>(
+  items: T[],
+  cb: (v: T) => EvenPathRange,
+): T[] {
+  const seenPathRanges: EvenPathRange[] = [];
+  const uniqueItems: T[] = [];
+  for (const v of items) {
+    const pathRange = cb(v);
+    if (
+      seenPathRanges.find((seenPathRange) =>
+        evenPathRangesAreEqual(seenPathRange, pathRange),
+      )
+    ) {
+      continue;
+    }
+    seenPathRanges.push(pathRange);
     uniqueItems.push(v);
   }
   return uniqueItems;
@@ -50,6 +73,16 @@ export function getSmallestContainingRange(paths: Path[]): EvenPathRange {
     anchor: [...commonPrefix, Math.min(...indices)],
     offset: Math.max(...indices) - Math.min(...indices),
   };
+}
+
+export function evenPathRangeIsValid(
+  root: ListNode,
+  range: EvenPathRange,
+): boolean {
+  return (
+    !!nodeGetByPath(root, range.anchor) &&
+    !!nodeGetByPath(root, getPathToTip(range))
+  );
 }
 
 export function evenPathRangesAreEqual(

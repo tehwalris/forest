@@ -182,7 +182,6 @@ export class DocManager {
           cursors: this.cursors,
         });
         this.doc = { ...this.doc, root: result.root };
-        console.log("DEBUG after setting this.doc in delete branch", this.doc);
         this.cursors = result.cursors;
       } else if (ev.key === "s") {
         this.cursors = this.cursors.flatMap((cursor): Cursor[] => {
@@ -519,9 +518,7 @@ export class DocManager {
     this.lastMode = this.mode;
 
     if (docChanged) {
-      console.log("DEBUG before updateDocText", this.doc);
       this.updateDocText();
-      console.log("DEBUG after updateDocText", this.doc);
       this.cursorHistory = [];
       this.cursorRedoHistory = [];
     }

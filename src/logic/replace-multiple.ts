@@ -1,11 +1,11 @@
 import { EvenPathRange, ListNode, Node, NodeKind } from "./interfaces";
 import {
+  evenPathRangeIsValid,
   flipEvenPathRangeForward,
   getCommonPathPrefix,
-  getPathToTip,
   pathsAreEqual,
 } from "./path-utils";
-import { nodeGetByPath, nodeMapDeep } from "./tree-utils/access";
+import { nodeMapDeep } from "./tree-utils/access";
 
 export interface ListItemReplacement {
   range: EvenPathRange;
@@ -39,8 +39,7 @@ export function replaceMultiple({
     !replacements.every(
       (r) =>
         r.range.anchor.length &&
-        nodeGetByPath(oldRoot, r.range.anchor) &&
-        nodeGetByPath(oldRoot, getPathToTip(r.range)) &&
+        evenPathRangeIsValid(oldRoot, r.range) &&
         (r.structKeys === undefined ||
           r.structKeys.length === r.content.length),
     )
@@ -133,8 +132,6 @@ export function replaceMultiple({
   if (newRoot.kind !== NodeKind.List) {
     throw new Error("unreachable");
   }
-
-  console.log("DEBUG", { oldRoot, newRoot, replacements });
 
   return {
     root: newRoot,
