@@ -42,13 +42,15 @@ function normalizeFocusInOnce(
 
 export function normalizeFocusIn(
   root: ListNode,
-  focus: UnevenPathRange,
-): UnevenPathRange {
-  if (isFocusOnEmptyListContent(root, asEvenPathRange(focus))) {
+  focus: EvenPathRange,
+): EvenPathRange {
+  if (isFocusOnEmptyListContent(root, focus)) {
     return focus;
   }
-  return whileUnevenFocusChanges(focus, (focus) =>
-    normalizeFocusInOnce(root, focus),
+  return asEvenPathRange(
+    whileUnevenFocusChanges(asUnevenPathRange(focus), (focus) =>
+      normalizeFocusInOnce(root, focus),
+    ),
   );
 }
 
@@ -82,13 +84,15 @@ export function normalizeFocusOutOnce(
 
 export function normalizeFocusOut(
   root: ListNode,
-  focus: UnevenPathRange,
-): UnevenPathRange {
-  if (isFocusOnEmptyListContent(root, asEvenPathRange(focus))) {
+  focus: EvenPathRange,
+): EvenPathRange {
+  if (isFocusOnEmptyListContent(root, focus)) {
     return focus;
   }
-  return whileUnevenFocusChanges(focus, (focus) =>
-    normalizeFocusOutOnce(root, focus),
+  return asEvenPathRange(
+    whileUnevenFocusChanges(asUnevenPathRange(focus), (focus) =>
+      normalizeFocusOutOnce(root, focus),
+    ),
   );
 }
 

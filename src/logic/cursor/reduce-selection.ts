@@ -1,8 +1,6 @@
 import { isFocusOnEmptyListContent, normalizeFocusIn } from "../focus";
 import { EvenPathRange, ListNode, NodeKind, Path } from "../interfaces";
 import {
-  asEvenPathRange,
-  asUnevenPathRange,
   evenPathRangesAreEqualIgnoringDirection,
   flipEvenPathRangeForward,
   getPathToTip,
@@ -70,7 +68,7 @@ export function cursorReduceSelection({
   }
 
   let focus: EvenPathRange = { anchor: target, offset: 0 };
-  focus = asEvenPathRange(normalizeFocusIn(root, asUnevenPathRange(focus)));
+  focus = normalizeFocusIn(root, focus);
 
   return {
     cursor: adjustPostActionCursor({ ...oldCursor, focus }),

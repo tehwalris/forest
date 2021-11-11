@@ -28,12 +28,7 @@ import { Doc, InsertState, NodeKind, Path } from "./interfaces";
 import { memoize } from "./memoize";
 import { docFromAst } from "./node-from-ts";
 import { astFromTypescriptFileContent } from "./parse";
-import {
-  asEvenPathRange,
-  asUnevenPathRange,
-  flipEvenPathRangeForward,
-  pathIsInRange,
-} from "./path-utils";
+import { flipEvenPathRangeForward, pathIsInRange } from "./path-utils";
 import {
   getDocWithAllPlaceholders,
   getDocWithoutPlaceholdersNearCursors,
@@ -520,9 +515,7 @@ export class DocManager {
 
     this.cursors = this.cursors.map((cursor) => ({
       ...cursor,
-      focus: asEvenPathRange(
-        normalizeFocusIn(this.doc.root, asUnevenPathRange(cursor.focus)),
-      ),
+      focus: normalizeFocusIn(this.doc.root, cursor.focus),
     }));
 
     this.cursorHistory.push(this.cursors);

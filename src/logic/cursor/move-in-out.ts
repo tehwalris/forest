@@ -1,10 +1,6 @@
 import { isFocusOnEmptyListContent, normalizeFocusIn } from "../focus";
 import { EvenPathRange, ListNode, NodeKind, Path } from "../interfaces";
-import {
-  asEvenPathRange,
-  asUnevenPathRange,
-  evenPathRangesAreEqualIgnoringDirection,
-} from "../path-utils";
+import { evenPathRangesAreEqualIgnoringDirection } from "../path-utils";
 import { nodeGetByPath, nodeVisitDeepInRange } from "../tree-utils/access";
 import { unreachable } from "../util";
 import { Cursor } from "./interfaces";
@@ -112,9 +108,7 @@ function cursorMoveOutSmall({
     ? delimitedParentFocus
     : nonDelimitedParentFocus;
 
-  let focus = asEvenPathRange(
-    normalizeFocusIn(root, asUnevenPathRange(chosenFocus)),
-  );
+  let focus = normalizeFocusIn(root, chosenFocus);
   if (!wrapResult(focus).didMove) {
     focus = nonChosenFocus;
   }

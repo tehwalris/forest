@@ -1,8 +1,6 @@
 import { isFocusOnEmptyListContent, normalizeFocusOut } from "../focus";
 import { ListNode, NodeKind, Path } from "../interfaces";
 import {
-  asEvenPathRange,
-  asUnevenPathRange,
   evenPathRangeIsValid,
   flipEvenPathRangeForward,
   uniqueByEvenPathRange,
@@ -114,9 +112,7 @@ export function multiCursorDelete({
       }
       newFocus = { anchor: newFocus.anchor.slice(0, -1), offset: 0 };
     }
-    newFocus = asEvenPathRange(
-      normalizeFocusOut(newRoot, asUnevenPathRange(newFocus)),
-    );
+    newFocus = normalizeFocusOut(newRoot, newFocus);
     newFocus = flipEvenPathRangeForward(newFocus);
     return { ...c, focus: newFocus };
   });

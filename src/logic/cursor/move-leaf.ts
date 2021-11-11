@@ -61,7 +61,7 @@ export function cursorMoveLeaf({
       ),
     ),
   );
-  focus = asEvenPathRange(normalizeFocusIn(root, asUnevenPathRange(focus)));
+  focus = normalizeFocusIn(root, focus);
 
   const didMove = !evenPathRangesAreEqualIgnoringDirection(
     focus,
