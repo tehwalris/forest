@@ -68,6 +68,8 @@ export function getDocWithInsertions(doc: Doc, insertions: Insertion[]): Doc {
       textParts.push(doc.text.slice(pos, doc.text.length));
     }
   }
+  console.log("DEBUG doc.text", doc.text);
+  console.log("DEBUG textParts", textParts);
 
   return {
     root: mapNodeTextRanges(
@@ -94,13 +96,14 @@ export function getTextWithDeletions(
   }
 
   return {
-    text:
-      text.slice(0, deleteRanges[0].pos) +
-      deleteRanges.map((r, i) => {
+    text: [
+      text.slice(0, deleteRanges[0].pos),
+      ...deleteRanges.map((r, i) => {
         const nextPos =
           i + 1 === deleteRanges.length ? text.length : deleteRanges[i + 1].pos;
         return text.slice(r.end, nextPos);
       }),
+    ].join(""),
 
     // Example
     // 0123456789
