@@ -8,7 +8,10 @@ import {
   initialDocManagerPublicState,
   Mode,
 } from "../logic/doc-manager";
-import { Doc, EvenPathRange, Node, NodeKind } from "../logic/interfaces";
+import { textRangeFromFocus } from "../logic/focus";
+import { Doc, EvenPathRange, ListNode } from "../logic/interfaces";
+import { getPathToTip } from "../logic/path-utils";
+import { nodeGetByPath, nodeVisitDeep } from "../logic/tree-utils/access";
 
 interface Props {
   initialDoc: Doc;
@@ -63,58 +66,51 @@ function fillBitwiseOr(
   }
 }
 
-function setCharSelections({
+function setCharSelectionsForFocus({
   selectionsByChar,
-  node,
+  root,
   focus,
-  isTipOfFocus,
 }: {
   selectionsByChar: Uint8Array;
-  node: Node;
-  focus: EvenPathRange | undefined;
-  isTipOfFocus: boolean;
+  root: ListNode;
+  focus: EvenPathRange;
 }) {
-  const focused = focus !== undefined && focus.anchor.length === 0;
-  let focusedChildRange: [number, number] | undefined;
-  let tipOfFocusIndex: number | undefined;
-  if (focus?.anchor.length) {
-    const offset = focus.anchor.length === 1 ? focus.offset : 0;
-    focusedChildRange = [focus.anchor[0], focus.anchor[0] + offset];
-    if (focus.anchor.length === 1) {
-      tipOfFocusIndex = focusedChildRange[1];
-    }
-    if (focusedChildRange[0] > focusedChildRange[1]) {
-      focusedChildRange = [focusedChildRange[1], focusedChildRange[0]];
-    }
+  const focusRange = textRangeFromFocus(root, focus);
+  fillBitwiseOr(
+    selectionsByChar,
+    CharSelection.Normal,
+    focusRange.pos,
+    focusRange.end,
+  );
+  const tipNode = nodeGetByPath(root, getPathToTip(focus));
+  if (tipNode) {
+    fillBitwiseOr(
+      selectionsByChar,
+      CharSelection.Tip,
+      tipNode.pos,
+      tipNode.end,
+    );
   }
+}
 
-  let fillValue = 0;
-  if (focused) {
-    fillValue |= isTipOfFocus ? CharSelection.Tip : CharSelection.Normal;
-  }
-  if (node.isPlaceholder) {
-    fillValue |= CharSelection.Placeholder;
-  }
-  fillBitwiseOr(selectionsByChar, fillValue, node.pos, node.end);
-
-  if (node.kind === NodeKind.List) {
-    for (const [i, c] of node.content.entries()) {
-      setCharSelections({
-        selectionsByChar,
-        node: c,
-        focus:
-          focusedChildRange &&
-          i >= focusedChildRange[0] &&
-          i <= focusedChildRange[1]
-            ? {
-                anchor: focus!.anchor.slice(1),
-                offset: focus!.offset,
-              }
-            : undefined,
-        isTipOfFocus: i === tipOfFocusIndex,
-      });
+function setCharSelectionsForPlaceholders({
+  selectionsByChar,
+  root,
+}: {
+  selectionsByChar: Uint8Array;
+  root: ListNode;
+}) {
+  nodeVisitDeep(root, (node) => {
+    if (!node.isPlaceholder) {
+      return;
     }
-  }
+    fillBitwiseOr(
+      selectionsByChar,
+      CharSelection.Placeholder,
+      node.pos,
+      node.end,
+    );
+  });
 }
 
 interface DocRenderLine {
@@ -180,15 +176,17 @@ function getStyleForSelection(
   return style;
 }
 
-function renderDoc(doc: Doc, cursors: Cursor[]): React.ReactNode {
+function renderDoc(doc: Doc, mode: Mode, cursors: Cursor[]): React.ReactNode {
   const selectionsByChar = new Uint8Array(doc.text.length);
-  for (const cursor of cursors) {
-    setCharSelections({
-      selectionsByChar,
-      node: doc.root,
-      focus: cursor.focus,
-      isTipOfFocus: false,
-    });
+  setCharSelectionsForPlaceholders({ selectionsByChar, root: doc.root });
+  if (mode === Mode.Normal) {
+    for (const cursor of cursors) {
+      setCharSelectionsForFocus({
+        selectionsByChar,
+        root: doc.root,
+        focus: cursor.focus,
+      });
+    }
   }
 
   // HACK If enableReduceToTip is only set on some cursors, the display will be incorrect.
@@ -304,7 +302,7 @@ export const LinearEditor = ({ initialDoc }: Props) => {
           docManager.onKeyUp(ev.nativeEvent),
         )}
       >
-        {renderDoc(doc, cursors)}
+        {renderDoc(doc, mode, cursors)}
         {!doc.text.trim() && (
           <div style={{ opacity: 0.5, userSelect: "none" }}>
             (empty document)
