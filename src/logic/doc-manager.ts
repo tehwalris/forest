@@ -18,7 +18,11 @@ import {
   multiCursorStartInsert,
 } from "./cursor/start-insert";
 import { emptyDoc } from "./doc-utils";
-import { isFocusOnEmptyListContent, normalizeFocusIn } from "./focus";
+import {
+  isFocusOnEmptyListContent,
+  normalizeFocusIn,
+  textRangeFromFocus,
+} from "./focus";
 import { Doc, InsertState, NodeKind, Path } from "./interfaces";
 import { memoize } from "./memoize";
 import { docFromAst } from "./node-from-ts";
@@ -33,7 +37,11 @@ import {
   getDocWithAllPlaceholders,
   getDocWithoutPlaceholdersNearCursors,
 } from "./placeholders";
-import { getDocWithInsertions, Insertion } from "./text";
+import {
+  checkTextRangesOverlap,
+  getDocWithInsertions,
+  Insertion,
+} from "./text";
 import { nodeGetByPath } from "./tree-utils/access";
 
 export enum Mode {
@@ -45,6 +53,7 @@ export interface DocManagerPublicState {
   doc: Doc;
   mode: Mode;
   cursors: Cursor[];
+  cursorsOverlap: boolean;
 }
 
 const initialCursor: Cursor = {
@@ -57,6 +66,7 @@ export const initialDocManagerPublicState: DocManagerPublicState = {
   doc: emptyDoc,
   mode: Mode.Normal,
   cursors: [initialCursor],
+  cursorsOverlap: false,
 };
 
 export interface MinimalKeyboardEvent {
@@ -535,6 +545,9 @@ export class DocManager {
       doc,
       mode: this.mode,
       cursors: this.cursors,
+      cursorsOverlap: checkTextRangesOverlap(
+        this.cursors.map((c) => textRangeFromFocus(this.doc.root, c.focus)),
+      ),
     });
   }
 

@@ -30,6 +30,11 @@ const styles = {
     margin: 5px;
     margin-top: 15px;
   `,
+  overlapWarning: css`
+    margin: 5px;
+    margin-top: 15px;
+    color: red;
+  `,
 };
 
 enum CharSelection {
@@ -257,7 +262,7 @@ export const LinearEditor = ({ initialDoc }: Props) => {
     }
   });
 
-  const [{ doc, mode, cursors }, setPublicState] =
+  const [{ doc, mode, cursors, cursorsOverlap }, setPublicState] =
     useState<DocManagerPublicState>(initialDocManagerPublicState);
   const [docManager, setDocManager] = useState(
     new DocManager(initialDoc, setPublicState),
@@ -307,6 +312,9 @@ export const LinearEditor = ({ initialDoc }: Props) => {
         )}
       </div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
+      {cursorsOverlap && (
+        <div className={styles.overlapWarning}>Warning: cursors overlap</div>
+      )}
     </div>
   );
 };
