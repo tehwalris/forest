@@ -1,5 +1,6 @@
 import { checkInsertion } from "./check-insertion";
 import { cursorCopy } from "./cursor/copy";
+import { multiCursorDelete } from "./cursor/delete";
 import { cursorArraysAreEqual } from "./cursor/equal";
 import { Cursor } from "./cursor/interfaces";
 import {
@@ -175,6 +176,14 @@ export class DocManager {
           }
           return node.end;
         });
+      } else if (ev.key === "d") {
+        const result = multiCursorDelete({
+          root: this.doc.root,
+          cursors: this.cursors,
+        });
+        this.doc = { ...this.doc, root: result.root };
+        console.log("DEBUG after setting this.doc in delete branch", this.doc);
+        this.cursors = result.cursors;
       } else if (ev.key === "s") {
         this.cursors = this.cursors.flatMap((cursor): Cursor[] => {
           if (
@@ -510,7 +519,9 @@ export class DocManager {
     this.lastMode = this.mode;
 
     if (docChanged) {
+      console.log("DEBUG before updateDocText", this.doc);
       this.updateDocText();
+      console.log("DEBUG after updateDocText", this.doc);
       this.cursorHistory = [];
       this.cursorRedoHistory = [];
     }

@@ -68,6 +68,7 @@ export function nodeMapAtPath(
   };
 }
 
+// visits parents before children
 export function nodeVisitDeep(
   node: Node,
   cb: (node: Node, path: Path) => void,
@@ -79,6 +80,22 @@ export function nodeVisitDeep(
       nodeVisitDeep(c, cb, [...path, i]);
     }
   }
+}
+
+// maps children before parents
+export function nodeMapDeep(
+  oldNode: Node,
+  cb: (node: Node, path: Path) => Node,
+  path: Path = [],
+): Node {
+  let newNode = oldNode;
+  if (oldNode.kind === NodeKind.List) {
+    newNode = {
+      ...oldNode,
+      content: oldNode.content.map((c, i) => nodeMapDeep(c, cb, [...path, i])),
+    };
+  }
+  return cb(newNode, path);
 }
 
 export function nodeVisitDeepInRange(

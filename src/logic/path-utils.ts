@@ -9,6 +9,20 @@ export function pathsAreEqual(a: Path, b: Path): boolean {
   return a === b || (a.length === b.length && a.every((v, i) => v === b[i]));
 }
 
+export function uniqueByPath<T>(items: T[], cb: (v: T) => Path): T[] {
+  const seenPaths: Path[] = [];
+  const uniqueItems: T[] = [];
+  for (const v of uniqueItems) {
+    const path = cb(v);
+    if (seenPaths.find((seenPath) => pathsAreEqual(seenPath, path))) {
+      continue;
+    }
+    seenPaths.push(path);
+    uniqueItems.push(v);
+  }
+  return uniqueItems;
+}
+
 export function getCommonPathPrefix(a: Path, b: Path): Path {
   const common: Path = [];
   for (let i = 0; i < Math.min(a.length, b.length); i++) {
