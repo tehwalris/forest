@@ -13,16 +13,19 @@ import {
   cursorReduceSelection,
   CursorReduceSelectionSide,
 } from "./cursor/reduce-selection";
+import {
+  CursorStartInsertSide,
+  multiCursorStartInsert,
+} from "./cursor/start-insert";
 import { emptyDoc } from "./doc-utils";
 import { isFocusOnEmptyListContent, normalizeFocusIn } from "./focus";
-import { Doc, EvenPathRange, InsertState, NodeKind, Path } from "./interfaces";
+import { Doc, InsertState, NodeKind, Path } from "./interfaces";
 import { memoize } from "./memoize";
 import { docFromAst } from "./node-from-ts";
 import { astFromTypescriptFileContent } from "./parse";
 import {
   asEvenPathRange,
   asUnevenPathRange,
-  flipEvenPathRangeBackward,
   flipEvenPathRangeForward,
   pathIsInRange,
 } from "./path-utils";
@@ -133,50 +136,28 @@ export class DocManager {
 
   onKeyPress = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal) {
-      const handleInsertOrAppend = (
-        normalFocusToPos: (focus: EvenPathRange) => number,
-      ) => {
-        const getInsertPosForEmptyList = (path: Path) => {
-          const node = nodeGetByPath(this.doc.root, path);
-          if (node?.kind !== NodeKind.List || node.content.length) {
-            throw new Error("invalid focus");
-          }
-          return node.pos + node.delimiters[0].length;
-        };
-
-        this.mode = Mode.Insert;
-        this.insertState = {
-          beforePos: this.cursors.map((cursor): number => {
-            if (!this.doc.root.content.length) {
-              return getInsertPosForEmptyList(cursor.focus.anchor);
-            } else if (isFocusOnEmptyListContent(this.doc.root, cursor.focus)) {
-              return getInsertPosForEmptyList(cursor.focus.anchor.slice(0, -1));
-            } else {
-              return normalFocusToPos(cursor.focus);
-            }
-          }),
-          text: "",
-        };
-      };
-
       if (ev.key === "i") {
-        handleInsertOrAppend((focus) => {
-          const path = flipEvenPathRangeForward(focus).anchor;
-          const node = nodeGetByPath(this.doc.root, path);
-          if (!node) {
-            throw new Error("invalid focus");
-          }
-          return node.pos;
+        const result = multiCursorStartInsert({
+          root: this.doc.root,
+          cursors: this.cursors,
+          side: CursorStartInsertSide.Before,
         });
+        if (result) {
+          this.mode = Mode.Insert;
+          this.insertState = result.insertState;
+          this.cursors = result.cursors;
+        }
       } else if (ev.key === "a") {
-        handleInsertOrAppend((focus) => {
-          const path = flipEvenPathRangeBackward(focus).anchor;
-          const node = nodeGetByPath(this.doc.root, path);
-          if (!node) {
-            throw new Error("invalid focus");
-          }
-          return node.end;
+        const result = multiCursorStartInsert({
+          root: this.doc.root,
+          cursors: this.cursors,
+          side: CursorStartInsertSide.After,
         });
+        if (result) {
+          this.mode = Mode.Insert;
+          this.insertState = result.insertState;
+          this.cursors = result.cursors;
+        }
       } else if (ev.key === "d") {
         const result = multiCursorDelete({
           root: this.doc.root,
@@ -203,7 +184,7 @@ export class DocManager {
           }
           return focusedNode.content
             .map((_child, i): Path => [...parentPath, i])
-            .filter(path => pathIsInRange(path, focus))
+            .filter((path) => pathIsInRange(path, focus))
             .map((path) =>
               adjustPostActionCursor({
                 ...cursor,

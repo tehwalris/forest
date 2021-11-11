@@ -23,7 +23,7 @@ interface CursorDeleteResult {
   cursor: Cursor;
 }
 
-export function cursorDelete({
+function cursorDelete({
   root,
   cursor: oldCursor,
 }: CursorDeleteArgs): CursorDeleteResult {

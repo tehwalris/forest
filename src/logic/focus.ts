@@ -2,6 +2,7 @@ import {
   EvenPathRange,
   ListNode,
   NodeKind,
+  TextRange,
   UnevenPathRange,
 } from "./interfaces";
 import {
@@ -9,6 +10,7 @@ import {
   asUnevenPathRange,
   evenPathRangesAreEqual,
   flipEvenPathRangeForward,
+  getPathToTip,
   unevenPathRangesAreEqual,
 } from "./path-utils";
 import { nodeGetByPath } from "./tree-utils/access";
@@ -132,4 +134,33 @@ export function isFocusOnEmptyListContent(
     focus.anchor[focus.anchor.length - 1] === 0 &&
     focus.offset === 0
   );
+}
+
+export function textRangeFromFocus(
+  root: ListNode,
+  focus: EvenPathRange,
+): TextRange {
+  focus = flipEvenPathRangeForward(focus);
+
+  if (isFocusOnEmptyListContent(root, focus)) {
+    const node = nodeGetByPath(root, focus.anchor.slice(0, -1));
+    if (node?.kind !== NodeKind.List || node.content.length) {
+      throw new Error("invalid focus");
+    }
+    return {
+      pos: node.pos + node.delimiters[0].length,
+      end: node.end - node.delimiters[1].length,
+    };
+  }
+
+  const firstNode = nodeGetByPath(root, focus.anchor);
+  const lastNode = nodeGetByPath(root, getPathToTip(focus));
+  if (!firstNode || !lastNode) {
+    throw new Error("invalid focus");
+  }
+
+  return {
+    pos: firstNode.pos,
+    end: lastNode.end,
+  };
 }

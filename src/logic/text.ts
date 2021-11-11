@@ -32,10 +32,10 @@ export function mapNodeTextRanges(
   return node;
 }
 
-function checkTextRangesDoNotOverlap(ranges: TextRange[]): boolean {
+export function checkTextRangesOverlap(ranges: TextRange[]): boolean {
   const sortedRanges = [...ranges];
   sortedRanges.sort();
-  return ranges.every((r, i) => i === 0 || ranges[i - 1].end <= r.pos);
+  return !ranges.every((r, i) => i === 0 || ranges[i - 1].end <= r.pos);
 }
 
 export function makeNewPosFromOldPosForInsertions(
@@ -89,7 +89,7 @@ export function getTextWithDeletions(
   const deleteRanges = [..._deleteRanges];
   deleteRanges.sort();
 
-  if (!checkTextRangesDoNotOverlap(deleteRanges)) {
+  if (checkTextRangesOverlap(deleteRanges)) {
     throw new Error("deleteRanges overlap");
   }
 
