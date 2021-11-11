@@ -191,3 +191,25 @@ export function getPathToTip(pathRange: EvenPathRange): Path {
   path[path.length - 1] += pathRange.offset;
   return path;
 }
+
+export function pathIsInRange(path: Path, _range: EvenPathRange): boolean {
+  const range = flipEvenPathRangeForward(_range);
+
+  if (!range.anchor.length) {
+    return true;
+  }
+
+  const rangeParentPath = range.anchor.slice(0, -1);
+  const rangeFirstIndex = range.anchor[range.anchor.length - 1];
+  const rangeLastIndex = rangeFirstIndex + range.offset;
+
+  return (
+    path.length > rangeParentPath.length &&
+    pathsAreEqual(
+      getCommonPathPrefix(rangeParentPath, path),
+      rangeParentPath,
+    ) &&
+    path[rangeParentPath.length] >= rangeFirstIndex &&
+    path[rangeParentPath.length] <= rangeLastIndex
+  );
+}

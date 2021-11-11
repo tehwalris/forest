@@ -24,6 +24,7 @@ import {
   asUnevenPathRange,
   flipEvenPathRangeBackward,
   flipEvenPathRangeForward,
+  pathIsInRange,
 } from "./path-utils";
 import {
   getDocWithAllPlaceholders,
@@ -185,13 +186,14 @@ export class DocManager {
         this.cursors = result.cursors;
       } else if (ev.key === "s") {
         this.cursors = this.cursors.flatMap((cursor): Cursor[] => {
+          const focus = flipEvenPathRangeForward(cursor.focus);
           if (
-            isFocusOnEmptyListContent(this.doc.root, cursor.focus) ||
-            !cursor.focus.offset
+            isFocusOnEmptyListContent(this.doc.root, focus) ||
+            !focus.offset
           ) {
             return [adjustPostActionCursor(cursor)];
           }
-          const parentPath = cursor.focus.anchor.slice(0, -1);
+          const parentPath = focus.anchor.slice(0, -1);
           const focusedNode = nodeGetByPath(this.doc.root, parentPath);
           if (
             focusedNode?.kind !== NodeKind.List ||
@@ -199,12 +201,15 @@ export class DocManager {
           ) {
             throw new Error("invalid focus");
           }
-          return focusedNode.content.map((_child, i) =>
-            adjustPostActionCursor({
-              ...cursor,
-              focus: { anchor: [...parentPath, i], offset: 0 },
-            }),
-          );
+          return focusedNode.content
+            .map((_child, i): Path => [...parentPath, i])
+            .filter(path => pathIsInRange(path, focus))
+            .map((path) =>
+              adjustPostActionCursor({
+                ...cursor,
+                focus: { anchor: path, offset: 0 },
+              }),
+            );
         });
       } else if (ev.key === "l" && !hasAltLike(ev)) {
         this.cursors = this.cursors.map(

@@ -1,5 +1,5 @@
 import { EvenPathRange, Node, NodeKind, Path } from "../interfaces";
-import { flipEvenPathRangeForward, getCommonPathPrefix } from "../path-utils";
+import { pathIsInRange } from "../path-utils";
 import { unreachable } from "../util";
 
 export function nodeTryGetDeepestByPath(
@@ -100,29 +100,11 @@ export function nodeMapDeep(
 
 export function nodeVisitDeepInRange(
   rootNode: Node,
-  _range: EvenPathRange,
+  range: EvenPathRange,
   cb: (node: Node, path: Path) => void,
 ) {
-  const range = flipEvenPathRangeForward(_range);
-
-  if (!range.anchor.length) {
-    nodeVisitDeep(rootNode, cb);
-    return;
-  }
-  const rangeParentPath = range.anchor.slice(0, -1);
-  const rangeFirstIndex = range.anchor[range.anchor.length - 1];
-  const rangeLastIndex = rangeFirstIndex + range.offset;
-
   nodeVisitDeep(rootNode, (node, path) => {
-    if (
-      path.length <= rangeParentPath.length ||
-      getCommonPathPrefix(rangeParentPath, path).length !==
-        rangeParentPath.length
-    ) {
-      return;
-    }
-    const rangeIndex = path[rangeParentPath.length];
-    if (rangeIndex >= rangeFirstIndex && rangeIndex <= rangeLastIndex) {
+    if (pathIsInRange(path, range)) {
       cb(node, path);
     }
   });
