@@ -528,13 +528,17 @@ export class DocManager {
   private reportUpdate() {
     let doc = this.doc;
     if (this.insertState) {
-      const result = this.getDocWithoutPlaceholdersNearCursors(
+      const {
+        doc: oldDocWithoutPlaceholders,
+        cursorBeforePositions:
+          cursorBeforePositionsAdjustedForPlaceholderRemoval,
+      } = this.getDocWithoutPlaceholdersNearCursors(
         this.doc,
         this.insertState.beforePos,
       );
       doc = getDocWithInsertions(
-        result.doc,
-        this.insertState.beforePos.map((beforePos) => ({
+        oldDocWithoutPlaceholders,
+        cursorBeforePositionsAdjustedForPlaceholderRemoval.map((beforePos) => ({
           beforePos,
           text: this.insertState!.text,
         })),
