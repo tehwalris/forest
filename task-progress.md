@@ -21,8 +21,8 @@
   - support: none
   - note: ClassDeclaration is not supported
 - `change-value-prefix`
-  - support: none
-  - note: can't edit strings
+  - support: ok
+  - note: strings can only be editing using the rename feature
 - `extend-if-condition`
   - support: good
 - `extract-part-of-if-condition`

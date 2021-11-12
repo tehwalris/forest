@@ -29,13 +29,19 @@ function cursorRename({
   const path = oldCursor.focus.anchor;
 
   const oldNode = nodeGetByPath(root, path);
-  if (!oldNode || !isToken(oldNode, ts.isIdentifier)) {
+  if (
+    !oldNode ||
+    !(isToken(oldNode, ts.isIdentifier) || isToken(oldNode, ts.isStringLiteral))
+  ) {
     return undefined;
   }
   const oldStructKey = nodeGetStructKeyByPath(root, path);
 
+  const newName = rename(oldNode.tsNode.text);
   const newNode = nodeFromTsNode(
-    ts.factory.createIdentifier(rename(oldNode.tsNode.text)),
+    isToken(oldNode, ts.isIdentifier)
+      ? ts.factory.createIdentifier(newName)
+      : ts.factory.createStringLiteral(newName),
     undefined,
   );
 
