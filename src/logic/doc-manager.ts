@@ -9,6 +9,7 @@ import {
   CursorMoveInOutDirection,
 } from "./cursor/move-in-out";
 import { cursorMoveLeaf, CursorMoveLeafMode } from "./cursor/move-leaf";
+import { multiCursorPaste } from "./cursor/paste";
 import { adjustPostActionCursor } from "./cursor/post-action";
 import {
   cursorReduceSelection,
@@ -313,6 +314,13 @@ export class DocManager {
               cursor: cursor,
             }).cursor,
         );
+      } else if (ev.key === "p") {
+        const result = multiCursorPaste({
+          root: this.doc.root,
+          cursors: this.cursors,
+        });
+        this.doc = { ...this.doc, root: result.root };
+        this.cursors = result.cursors;
       } else if (ev.key === "z") {
         while (this.cursorHistory.length) {
           const cursors = this.cursorHistory.pop()!;

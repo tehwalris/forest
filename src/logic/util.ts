@@ -70,3 +70,9 @@ export function assertSortedBy<T>(values: T[], cb: (v: T) => number): void {
     }
   }
 }
+
+export function checkAllItemsDefined<T>(
+  values: (T | undefined)[],
+): values is T[] {
+  return values.every((v) => v !== undefined);
+}

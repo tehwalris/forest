@@ -13,10 +13,13 @@ import {
   unions,
 } from "./legacy-templates/templates";
 import { nodeFromTsNode } from "./node-from-ts";
+import { ListItemReplacement } from "./replace-multiple";
 import { tsNodeFromNode } from "./ts-from-node";
 
-export function acceptPasteRoot(clipboard: Clipboard): ListNode | undefined {
-  return acceptPasteReplace({
+export function acceptPasteRoot(
+  clipboard: Clipboard,
+): ListItemReplacement | undefined {
+  const replacement = acceptPasteReplace({
     clipboard: clipboard.node,
     firstIndex: 0,
     lastIndex: 0,
@@ -31,6 +34,10 @@ export function acceptPasteRoot(clipboard: Clipboard): ListNode | undefined {
     },
     isPartialCopy: clipboard.isPartialCopy,
   });
+  if (!replacement) {
+    return undefined;
+  }
+  return { content: replacement.content, range: { anchor: [], offset: 0 } };
 }
 
 export interface Clipboard {
@@ -312,7 +319,7 @@ function canPasteNestedIntoGenericTsNodeList({
 
 export function acceptPasteReplace(
   args: PasteReplaceArgs,
-): ListNode | undefined {
+): ListItemReplacement | undefined {
   const { node, firstIndex, lastIndex, clipboard, isPartialCopy } = args;
 
   if (
@@ -400,17 +407,17 @@ export function acceptPasteReplace(
         "canPasteFlattened === true, but clipboard is not a list",
       );
     }
-    const newContent = [...node.content];
-    newContent.splice(
-      firstIndex,
-      lastIndex - firstIndex + 1,
-      ...clipboard.content,
-    );
-    return { ...node, content: newContent };
+    return {
+      range: { anchor: [firstIndex], offset: lastIndex - firstIndex },
+      content: clipboard.content,
+      structKeys: clipboard.structKeys,
+    };
   } else if (canPasteNested) {
-    const newContent = [...node.content];
-    newContent.splice(firstIndex, lastIndex - firstIndex + 1, clipboard);
-    return { ...node, content: newContent };
+    return {
+      range: { anchor: [firstIndex], offset: lastIndex - firstIndex },
+      content: [clipboard],
+      structKeys: node.structKeys?.slice(firstIndex, lastIndex + 1),
+    };
   } else if (!!clipboardTs && matchesUnion(clipboardTs, unions.Expression)) {
     return acceptPasteReplace({
       ...args,
