@@ -365,8 +365,8 @@ VariableStatement
 FunctionDeclaration
   O asteriskToken AsteriskToken
   O name Identifier
-  RL parameters ParameterDeclaration
   OL typeParameters TypeParameterDeclaration
+  RL parameters ParameterDeclaration
   O type TypeNode
   O body FunctionBody
   flags export default ambient async
@@ -375,8 +375,8 @@ FunctionDeclaration
 FunctionExpression
   O asteriskToken AsteriskToken
   O name Identifier
-  RL parameters ParameterDeclaration
   OL typeParameters TypeParameterDeclaration
+  RL parameters ParameterDeclaration
   O type TypeNode
   R body FunctionBody
   flags async
