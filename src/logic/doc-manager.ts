@@ -30,7 +30,11 @@ import { Doc, InsertState, NodeKind, Path } from "./interfaces";
 import { memoize } from "./memoize";
 import { docFromAst } from "./node-from-ts";
 import { astFromTypescriptFileContent } from "./parse";
-import { flipEvenPathRangeForward, pathIsInRange } from "./path-utils";
+import {
+  flipEvenPathRangeForward,
+  pathIsInRange,
+  uniqueByEvenPathRange,
+} from "./path-utils";
 import {
   getDocWithAllPlaceholders,
   getDocWithoutPlaceholdersNearCursors,
@@ -52,6 +56,7 @@ export interface DocManagerPublicState {
   mode: Mode;
   cursors: Cursor[];
   cursorsOverlap: boolean;
+  queuedCursors: Cursor[];
 }
 
 const initialCursor: Cursor = {
@@ -65,6 +70,7 @@ export const initialDocManagerPublicState: DocManagerPublicState = {
   mode: Mode.Normal,
   cursors: [initialCursor],
   cursorsOverlap: false,
+  queuedCursors: [],
 };
 
 export interface MinimalKeyboardEvent {
@@ -89,6 +95,7 @@ interface InsertHistoryEntry {
 export class DocManager {
   public readonly initialDoc: Doc;
   private cursors: Cursor[] = [initialCursor];
+  private queuedCursors: Cursor[] = [];
   private insertHistory: InsertHistoryEntry[] = [];
   private cursorHistory: Cursor[][] = [];
   private cursorRedoHistory: Cursor[][] = [];
@@ -144,6 +151,7 @@ export class DocManager {
 
   onKeyPress = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal) {
+      // TODO feature for queuing multiple disconnected cursors
       if (ev.key === "i") {
         const result = multiCursorStartInsert({
           root: this.doc.root,
@@ -232,6 +240,14 @@ export class DocManager {
           (c) => textRangeFromFocus(this.doc.root, c.focus).pos,
           this.cursors,
         ).slice(0, 1);
+      } else if (ev.key === "q") {
+        this.queuedCursors = uniqueByEvenPathRange(
+          [...this.queuedCursors, ...this.cursors],
+          (c) => c.focus,
+        );
+      } else if (ev.key === "Q") {
+        this.cursors = [...this.queuedCursors];
+        this.queuedCursors = [];
       } else if (ev.key === "l" && !hasAltLike(ev)) {
         this.cursors = this.cursors.map(
           (cursor) =>
@@ -547,6 +563,7 @@ export class DocManager {
       this.updateDocText();
       this.cursorHistory = [];
       this.cursorRedoHistory = [];
+      this.queuedCursors = [];
     }
 
     this.cursors = this.cursors.map((cursor) => ({
@@ -587,6 +604,7 @@ export class DocManager {
       cursorsOverlap: checkTextRangesOverlap(
         this.cursors.map((c) => textRangeFromFocus(this.doc.root, c.focus)),
       ),
+      queuedCursors: this.queuedCursors,
     });
   }
 

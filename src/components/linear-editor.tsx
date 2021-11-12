@@ -43,7 +43,8 @@ const styles = {
 enum CharSelection {
   Normal = 1,
   Tip = 2,
-  Placeholder = 4,
+  Queued = 4,
+  Placeholder = 8,
 }
 const numCharSelections = Object.entries(CharSelection).length / 2;
 for (let i = 0; i < numCharSelections; i++) {
@@ -161,11 +162,15 @@ function getStyleForSelection(
   if (!enableReduceToTip && selection & CharSelection.Tip) {
     selection = (selection & ~CharSelection.Tip) | CharSelection.Normal;
   }
+  if (selection & (CharSelection.Normal | CharSelection.Tip)) {
+    selection = selection & ~CharSelection.Queued;
+  }
 
   const stylesBySelection: { [K in CharSelection]: React.CSSProperties } = {
     [CharSelection.Normal]: { background: "rgba(11, 83, 255, 0.37)" },
     [CharSelection.Tip]: { background: "rgba(120, 83, 150, 0.37)" },
     [CharSelection.Placeholder]: { color: "#888" },
+    [CharSelection.Queued]: { background: "rgb(189, 189, 189)" },
   };
   const style: React.CSSProperties = {};
   for (let i = 0; i < numCharSelections; i++) {
@@ -176,7 +181,12 @@ function getStyleForSelection(
   return style;
 }
 
-function renderDoc(doc: Doc, mode: Mode, cursors: Cursor[]): React.ReactNode {
+function renderDoc(
+  doc: Doc,
+  mode: Mode,
+  cursors: Cursor[],
+  queuedCursors: Cursor[],
+): React.ReactNode {
   const selectionsByChar = new Uint8Array(doc.text.length);
   setCharSelectionsForPlaceholders({ selectionsByChar, root: doc.root });
   if (mode === Mode.Normal) {
@@ -186,6 +196,15 @@ function renderDoc(doc: Doc, mode: Mode, cursors: Cursor[]): React.ReactNode {
         root: doc.root,
         focus: cursor.focus,
       });
+    }
+    for (const cursor of queuedCursors) {
+      const focusRange = textRangeFromFocus(doc.root, cursor.focus);
+      fillBitwiseOr(
+        selectionsByChar,
+        CharSelection.Queued,
+        focusRange.pos,
+        focusRange.end,
+      );
     }
   }
 
@@ -260,8 +279,10 @@ export const LinearEditor = ({ initialDoc }: Props) => {
     }
   });
 
-  const [{ doc, mode, cursors, cursorsOverlap }, setPublicState] =
-    useState<DocManagerPublicState>(initialDocManagerPublicState);
+  const [
+    { doc, mode, cursors, cursorsOverlap, queuedCursors },
+    setPublicState,
+  ] = useState<DocManagerPublicState>(initialDocManagerPublicState);
   const [docManager, setDocManager] = useState(
     new DocManager(initialDoc, setPublicState),
   );
@@ -302,7 +323,7 @@ export const LinearEditor = ({ initialDoc }: Props) => {
           docManager.onKeyUp(ev.nativeEvent),
         )}
       >
-        {renderDoc(doc, mode, cursors)}
+        {renderDoc(doc, mode, cursors, queuedCursors)}
         {!doc.text.trim() && (
           <div style={{ opacity: 0.5, userSelect: "none" }}>
             (empty document)
