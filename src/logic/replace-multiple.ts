@@ -1,4 +1,6 @@
+import { isFocusOnEmptyListContent } from "./focus";
 import { EvenPathRange, ListNode, Node, NodeKind } from "./interfaces";
+import { makePlaceholderIdentifier } from "./make-valid";
 import {
   evenPathRangeIsValid,
   flipEvenPathRangeForward,
@@ -40,7 +42,8 @@ export function replaceMultiple({
     !replacements.every(
       (r) =>
         r.range.anchor.length &&
-        evenPathRangeIsValid(oldRoot, r.range) &&
+        (evenPathRangeIsValid(oldRoot, r.range) ||
+          isFocusOnEmptyListContent(oldRoot, r.range)) &&
         (r.structKeys === undefined ||
           r.structKeys.length === r.content.length),
     )
@@ -48,96 +51,117 @@ export function replaceMultiple({
     throw new Error("some replacements are invalid");
   }
 
+  const emptyListPaths = replacements
+    .filter((r) => isFocusOnEmptyListContent(oldRoot, r.range))
+    .map((r) => r.range.anchor.slice(0, -1));
+  const oldRootWithEmptyListPlaceholders = nodeMapDeep(
+    oldRoot,
+    (oldNode, path): Node => {
+      if (!emptyListPaths.find((p) => pathsAreEqual(p, path))) {
+        return oldNode;
+      }
+      if (oldNode.kind !== NodeKind.List || oldNode.content.length) {
+        throw new Error("invalid emptyListPaths");
+      }
+      // HACK Cursors with isFocusOnEmptyListContent point at a child node that
+      // doesn't exist. Create a fake node there so that the replacement works.
+      return { ...oldNode, content: [makePlaceholderIdentifier()] };
+    },
+  );
+
   const usedReplacements = new Set<ListItemReplacement>();
   const newContentRanges = new Map<ListItemReplacement, EvenPathRange>();
   let ambiguousOverlap = false;
-  const newRoot = nodeMapDeep(oldRoot, (oldNode, path): Node => {
-    if (oldNode.kind !== NodeKind.List) {
-      return oldNode;
-    }
-
-    const replacementsThisList = replacements.filter((r) =>
-      pathsAreEqual(r.range.anchor.slice(0, -1), path),
-    );
-    if (!replacementsThisList) {
-      return oldNode;
-    }
-
-    const possibleSourceIndices: number[][] = oldNode.content.map(() => []);
-    for (const [i, r] of replacementsThisList.entries()) {
-      const first = r.range.anchor[r.range.anchor.length - 1];
-      const last = first + r.range.offset;
-      for (let j = first; j <= last; j++) {
-        possibleSourceIndices[j].push(i);
+  const newRoot = nodeMapDeep(
+    oldRootWithEmptyListPlaceholders,
+    (oldNode, path): Node => {
+      if (oldNode.kind !== NodeKind.List) {
+        return oldNode;
       }
-    }
 
-    ambiguousOverlap =
-      ambiguousOverlap ||
-      possibleSourceIndices.some((indices) => indices.length > 1);
+      const replacementsThisList = replacements.filter((r) =>
+        pathsAreEqual(r.range.anchor.slice(0, -1), path),
+      );
+      if (!replacementsThisList) {
+        return oldNode;
+      }
 
-    const chosenSourceIndices: (number | undefined)[] = [];
-    {
-      // If possible, assign the same source as the last item had, otherwise we
-      // might split ranges, which would break replacement.
-      let cur: number | undefined;
-      for (const indices of possibleSourceIndices) {
-        if (cur === undefined || !indices.includes(cur)) {
-          cur = indices[0];
-        }
-        chosenSourceIndices.push(cur);
-      }
-    }
-
-    const replacementsInReplacedChild: ListItemReplacement[] = [];
-    for (const r of usedReplacements) {
-      if (!pathsAreEqual(getCommonPathPrefix(r.range.anchor, path), path)) {
-        // not in this subtree at all
-        continue;
-      }
-      const childIndex: number | undefined = r.range.anchor[path.length];
-      if (childIndex === undefined) {
-        throw new Error("unreachable");
-      }
-      if (chosenSourceIndices[childIndex] !== undefined) {
-        replacementsInReplacedChild.push(r);
-      }
-    }
-    for (const r of replacementsInReplacedChild) {
-      usedReplacements.delete(r);
-      newContentRanges.delete(r);
-    }
-
-    const newContent: Node[] = [];
-    const newStructKeys: string[] | undefined = oldNode.structKeys && [];
-    for (const [i, j] of chosenSourceIndices.entries()) {
-      const r = j === undefined ? undefined : replacementsThisList[j];
-      if (!r) {
-        newContent.push(oldNode.content[i]);
-        if (newStructKeys) {
-          newStructKeys.push(oldNode.structKeys![i]);
-        }
-      } else if (r && !usedReplacements.has(r)) {
-        usedReplacements.add(r);
-        if (r.content.length) {
-          newContentRanges.set(r, {
-            anchor: [...path, newContent.length],
-            offset: r.content.length - 1,
-          });
-        }
-        newContent.push(...r.content);
-        if (!newStructKeys !== !r.structKeys) {
-          throw new Error(
-            "replacement and target node must either both have or not have struct keys",
-          );
-        }
-        if (newStructKeys) {
-          newStructKeys.push(...r.structKeys!);
+      const possibleSourceIndices: number[][] = oldNode.content.map(() => []);
+      for (const [i, r] of replacementsThisList.entries()) {
+        const first = r.range.anchor[r.range.anchor.length - 1];
+        const last = first + r.range.offset;
+        for (let j = first; j <= last; j++) {
+          possibleSourceIndices[j].push(i);
         }
       }
-    }
-    return { ...oldNode, content: newContent, structKeys: newStructKeys };
-  });
+
+      ambiguousOverlap =
+        ambiguousOverlap ||
+        possibleSourceIndices.some((indices) => indices.length > 1);
+
+      const chosenSourceIndices: (number | undefined)[] = [];
+      {
+        // If possible, assign the same source as the last item had, otherwise we
+        // might split ranges, which would break replacement.
+        let cur: number | undefined;
+        for (const indices of possibleSourceIndices) {
+          if (cur === undefined || !indices.includes(cur)) {
+            cur = indices[0];
+          }
+          chosenSourceIndices.push(cur);
+        }
+      }
+
+      const replacementsInReplacedChild: ListItemReplacement[] = [];
+      for (const r of usedReplacements) {
+        if (!pathsAreEqual(getCommonPathPrefix(r.range.anchor, path), path)) {
+          // not in this subtree at all
+          continue;
+        }
+        const childIndex: number | undefined = r.range.anchor[path.length];
+        if (childIndex === undefined) {
+          throw new Error("unreachable");
+        }
+        if (chosenSourceIndices[childIndex] !== undefined) {
+          replacementsInReplacedChild.push(r);
+        }
+      }
+      for (const r of replacementsInReplacedChild) {
+        usedReplacements.delete(r);
+        newContentRanges.delete(r);
+      }
+
+      const newContent: Node[] = [];
+      const newStructKeys: string[] | undefined = oldNode.structKeys && [];
+      for (const [i, j] of chosenSourceIndices.entries()) {
+        const r = j === undefined ? undefined : replacementsThisList[j];
+        if (!r) {
+          newContent.push(oldNode.content[i]);
+          if (newStructKeys) {
+            newStructKeys.push(oldNode.structKeys![i]);
+          }
+        } else if (r && !usedReplacements.has(r)) {
+          usedReplacements.add(r);
+          if (r.content.length) {
+            newContentRanges.set(r, {
+              anchor: [...path, newContent.length],
+              offset: r.content.length - 1,
+            });
+          }
+          newContent.push(...r.content);
+          if (!newStructKeys !== !r.structKeys) {
+            throw new Error(
+              "replacement and target node must either both have or not have struct keys",
+            );
+          }
+          if (newStructKeys) {
+            newStructKeys.push(...r.structKeys!);
+          }
+        }
+      }
+      return { ...oldNode, content: newContent, structKeys: newStructKeys };
+    },
+  );
   if (newRoot.kind !== NodeKind.List) {
     throw new Error("unreachable");
   }

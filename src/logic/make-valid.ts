@@ -54,7 +54,7 @@ export function makeNodeValidTs(node: Node): {
   };
 }
 
-function makePlaceholderIdentifier(): Node {
+export function makePlaceholderIdentifier(): Node {
   return {
     ...nodeFromTsNode(ts.createIdentifier("placeholder"), undefined),
     isPlaceholder: true,
