@@ -61,6 +61,12 @@ function _checkInsertion({
 
   const newNodesByOldPlaceholderNodes = new Map<Node, Node>();
   nodeVisitDeep(oldDoc.root, (oldNode) => {
+    if (oldNode.kind === NodeKind.List && oldNode.equivalentToContent) {
+      // HACK These kinds of lists may be next to a cursor and expand over the cursor due to the insertion.
+      // This is generally fine, and when it's not fine (not sure when?) it's probably really hard to check.
+      return;
+    }
+
     if (oldNode.pos > oldNode.end) {
       throw new Error("node has negative length text range");
     }
@@ -77,13 +83,12 @@ function _checkInsertion({
     );
 
     // HACK By taking the first unmatched node, outer nodes will be matched before inner nodes.
-    const newNode = matchingNodes.find((node) => unmatchedNewNodes.has(node));
+    const newNode = matchingNodes.find(
+      (node) =>
+        unmatchedNewNodes.has(node) &&
+        (node.kind !== NodeKind.List || !node.equivalentToContent),
+    );
     if (!newNode) {
-      if (oldNode.kind === NodeKind.List && oldNode.equivalentToContent) {
-        // HACK These kinds of lists may be next to a cursor and expand over the cursor due to the insertion.
-        // This is generally fine, and when it's not fine (not sure when?) it's probably really hard to check.
-        return;
-      }
       throw new InvalidInsertionError(
         "no new nodes matched this old node, expected at least 1",
       );
