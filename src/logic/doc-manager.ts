@@ -15,6 +15,7 @@ import {
   cursorReduceSelection,
   CursorReduceSelectionSide,
 } from "./cursor/reduce-selection";
+import { multiCursorRename } from "./cursor/rename";
 import {
   CursorStartInsertSide,
   multiCursorStartInsert,
@@ -169,6 +170,33 @@ export class DocManager {
         const result = multiCursorDelete({
           root: this.doc.root,
           cursors: this.cursors,
+        });
+        this.doc = { ...this.doc, root: result.root };
+        this.cursors = result.cursors;
+      } else if (ev.key === "r") {
+        const renameFunctionBody = prompt(
+          'Enter an JS expression to perform renaming with. "s" is the old name. Example: "s.toLowerCase()"',
+        );
+        if (renameFunctionBody === null) {
+          return;
+        }
+        // HACK This is dangerous
+        // eslint-disable-next-line no-new-func
+        const _rename: (s: string) => unknown = new Function(
+          "s",
+          `return (${renameFunctionBody})`,
+        ) as any;
+        const rename = (oldName: string): string => {
+          const newName = _rename(oldName);
+          if (typeof newName !== "string") {
+            throw new Error("new name is not a string");
+          }
+          return newName;
+        };
+        const result = multiCursorRename({
+          root: this.doc.root,
+          cursors: this.cursors,
+          rename,
         });
         this.doc = { ...this.doc, root: result.root };
         this.cursors = result.cursors;

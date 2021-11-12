@@ -30,6 +30,20 @@ export function nodeGetByPath(node: Node, path: Path): Node | undefined {
   return result.path.length === path.length ? result.node : undefined;
 }
 
+export function nodeGetStructKeyByPath(
+  node: Node,
+  path: Path,
+): string | undefined {
+  if (path.length === 0) {
+    return undefined;
+  }
+  const parentNode = nodeGetByPath(node, path.slice(0, -1));
+  if (parentNode?.kind !== NodeKind.List || !parentNode.structKeys) {
+    return undefined;
+  }
+  return parentNode.structKeys[path[path.length - 1]];
+}
+
 export function nodeSetByPath(node: Node, path: Path, value: Node): Node {
   if (!path.length) {
     return value;
