@@ -97,6 +97,7 @@ function cursorPaste({
         ...replacement.range,
         anchor: [...parentPath, ...replacement.range.anchor],
       },
+      structKeys: oldParentNode.structKeys && replacement.structKeys,
     },
   };
 }
