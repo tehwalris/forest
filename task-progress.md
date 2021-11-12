@@ -32,8 +32,8 @@
 - `rename-related-declarations`
   - support: none
 - `rename-wrap-object-properties`
-  - support: none
-  - note: you can regroup them, but not rename them all together
+  - support: ok
+  - note: delete has to be done last, otherwise you loose your cursor location
 - `simplify-conditional`
   - support: good
 - `wrap-action`
