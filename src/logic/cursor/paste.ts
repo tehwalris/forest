@@ -132,16 +132,22 @@ export function multiCursorPaste({
     root: oldRoot,
     replacements: cursorResults.map((r) => r.replacement),
   });
+  const newContentRanges = replaceResult.newContentRanges;
   if (
     replaceResult.ambiguousOverlap ||
-    !replaceResult.replacementWasUsed.every((v) => v)
+    !replaceResult.replacementWasUsed.every((v) => v) ||
+    !checkAllItemsDefined(newContentRanges)
   ) {
-    console.warn("not pasting because some replacements overlap");
+    console.warn(
+      "not pasting because some replacements overlap or have no content",
+    );
     return failResult;
   }
 
-  // TODO adjust focus to match pasted items
-  const newCursors = oldCursors;
-
-  return { root: replaceResult.root, cursors: newCursors };
+  return {
+    root: replaceResult.root,
+    cursors: oldCursors.map((c, i) =>
+      adjustPostActionCursor({ ...c, focus: newContentRanges[i] }),
+    ),
+  };
 }

@@ -21,6 +21,7 @@ interface MultiReplaceArgs {
 interface MultiReplaceResult {
   root: ListNode;
   replacementWasUsed: boolean[];
+  newContentRanges: (EvenPathRange | undefined)[];
   ambiguousOverlap: boolean;
 }
 
@@ -48,6 +49,7 @@ export function replaceMultiple({
   }
 
   const usedReplacements = new Set<ListItemReplacement>();
+  const newContentRanges = new Map<ListItemReplacement, EvenPathRange>();
   let ambiguousOverlap = false;
   const newRoot = nodeMapDeep(oldRoot, (oldNode, path): Node => {
     if (oldNode.kind !== NodeKind.List) {
@@ -103,6 +105,7 @@ export function replaceMultiple({
     }
     for (const r of replacementsInReplacedChild) {
       usedReplacements.delete(r);
+      newContentRanges.delete(r);
     }
 
     const newContent: Node[] = [];
@@ -116,6 +119,12 @@ export function replaceMultiple({
         }
       } else if (r && !usedReplacements.has(r)) {
         usedReplacements.add(r);
+        if (r.content.length) {
+          newContentRanges.set(r, {
+            anchor: [...path, newContent.length],
+            offset: r.content.length - 1,
+          });
+        }
         newContent.push(...r.content);
         if (!newStructKeys !== !r.structKeys) {
           throw new Error(
@@ -136,6 +145,7 @@ export function replaceMultiple({
   return {
     root: newRoot,
     replacementWasUsed: replacements.map((r) => usedReplacements.has(r)),
+    newContentRanges: replacements.map((r) => newContentRanges.get(r)),
     ambiguousOverlap,
   };
 }
