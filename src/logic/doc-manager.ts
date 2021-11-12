@@ -390,6 +390,8 @@ export class DocManager {
       if (ev.key.length !== 1) {
         return;
       }
+      ev.preventDefault?.();
+      ev.stopPropagation?.();
       if (!this.insertState) {
         throw new Error("this.insertState was undefined in insert mode");
       }
