@@ -24,6 +24,7 @@ import { emptyDoc } from "./doc-utils";
 import {
   isFocusOnEmptyListContent,
   normalizeFocusIn,
+  normalizeFocusOut,
   textRangeFromFocus,
 } from "./focus";
 import { Doc, InsertState, NodeKind, Path } from "./interfaces";
@@ -63,6 +64,7 @@ const initialCursor: Cursor = {
   focus: { anchor: [], offset: 0 },
   enableReduceToTip: false,
   clipboard: undefined,
+  marks: [],
 };
 
 export const initialDocManagerPublicState: DocManagerPublicState = {
@@ -208,6 +210,16 @@ export class DocManager {
         });
         this.doc = { ...this.doc, root: result.root };
         this.cursors = result.cursors;
+      } else if (ev.key === "m") {
+        this.cursors = this.cursors.map((c) => ({
+          ...c,
+          marks: [{ focus: c.focus }],
+        }));
+      } else if (ev.key === "M") {
+        this.cursors = this.cursors.map((c) => ({
+          ...c,
+          focus: c.marks[0]?.focus || c.focus,
+        }));
       } else if (ev.key === "s") {
         this.cursors = this.cursors.flatMap((cursor): Cursor[] => {
           const focus = flipEvenPathRangeForward(cursor.focus);
@@ -571,6 +583,10 @@ export class DocManager {
     this.cursors = this.cursors.map((cursor) => ({
       ...cursor,
       focus: normalizeFocusIn(this.doc.root, cursor.focus),
+      marks: cursor.marks.map((m) => ({
+        ...m,
+        focus: normalizeFocusOut(this.doc.root, m.focus),
+      })),
     }));
 
     this.cursorHistory.push(this.cursors);
