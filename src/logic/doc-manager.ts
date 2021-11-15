@@ -531,7 +531,7 @@ export class DocManager {
 
       for (const [
         oldNode,
-        { node: newNode },
+        newNode,
       ] of checkedInsertion.newNodesByOldTraceableNodes.entries()) {
         // HACK mutating docWithInsertBeforeFormatting
         newNode.isPlaceholder = oldNode.isPlaceholder;

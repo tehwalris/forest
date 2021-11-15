@@ -1,12 +1,5 @@
 import { TextRange } from "typescript";
-import {
-  Doc,
-  EvenPathRange,
-  Node,
-  NodeKind,
-  NodeWithPath,
-  Path,
-} from "./interfaces";
+import { Doc, EvenPathRange, Node, NodeKind, Path } from "./interfaces";
 import { getSmallestContainingRange } from "./path-utils";
 import { Insertion, makeNewPosFromOldPosForInsertions } from "./text";
 import { nodeVisitDeep } from "./tree-utils/access";
@@ -20,7 +13,7 @@ interface CheckInsertionArgs {
 
 interface ValidCheckedInsertion {
   valid: true;
-  newNodesByOldTraceableNodes: Map<Node, NodeWithPath>;
+  newNodesByOldTraceableNodes: Map<Node, Node>;
   insertionPathRanges: EvenPathRange[];
 }
 
@@ -66,16 +59,16 @@ function _checkInsertion({
 }: CheckInsertionArgs): ValidCheckedInsertion {
   const newPosFromOldPos = makeNewPosFromOldPosForInsertions(insertions);
 
-  const newNodesByPos = new Map<number, NodeWithPath[]>();
+  const newNodesByPos = new Map<number, Node[]>();
   const unmatchedNewNodes = new Set<Node>();
-  nodeVisitDeep(newDoc.root, (newNode, newPath) => {
+  nodeVisitDeep(newDoc.root, (newNode) => {
     const nodesAtPos = newNodesByPos.get(newNode.pos) || [];
     newNodesByPos.set(newNode.pos, nodesAtPos);
-    nodesAtPos.push({ node: newNode, path: newPath });
+    nodesAtPos.push(newNode);
     unmatchedNewNodes.add(newNode);
   });
 
-  const newNodesByOldTraceableNodes = new Map<Node, NodeWithPath>();
+  const newNodesByOldTraceableNodes = new Map<Node, Node>();
   nodeVisitDeep(oldDoc.root, (oldNode) => {
     if (!isNodeTraceable(oldNode)) {
       return;
@@ -91,27 +84,27 @@ function _checkInsertion({
       pos: newPosFromOldPos(oldNode.pos),
       end: newPosFromOldPos(oldNode.end - 1) + 1,
     };
-    const nodesWithPathAtPos = newNodesByPos.get(expectedRange.pos) || [];
-    const matchingNodesWithPaths = nodesWithPathAtPos.filter(
-      ({ node: newNode }) => newNode.end === expectedRange.end,
+    const nodesAtPos = newNodesByPos.get(expectedRange.pos) || [];
+    const matchingNodes = nodesAtPos.filter(
+      (newNode) => newNode.end === expectedRange.end,
     );
 
     // HACK By taking the first unmatched node, outer nodes will be matched before inner nodes.
-    const newNodeWithPath = matchingNodesWithPaths.find(
-      ({ node }) =>
+    const newNode = matchingNodes.find(
+      (node) =>
         unmatchedNewNodes.has(node) &&
         (node.kind !== NodeKind.List || !node.equivalentToContent),
     );
-    if (!newNodeWithPath) {
+    if (!newNode) {
       throw new InvalidInsertionError(
         "no new nodes matched this old node, expected at least 1",
       );
     }
-    unmatchedNewNodes.delete(newNodeWithPath.node);
+    unmatchedNewNodes.delete(newNode);
 
     // TODO could check that the contents matches, but be careful to avoid exponential complexity
 
-    newNodesByOldTraceableNodes.set(oldNode, newNodeWithPath);
+    newNodesByOldTraceableNodes.set(oldNode, newNode);
   });
 
   const insertionTextRanges: TextRange[] = insertions.map((insertion) => {
