@@ -11,51 +11,62 @@ import {
   mapNodeTextRanges,
 } from "./text";
 import { nodeVisitDeep } from "./tree-utils/access";
-import { nodesAreEqualExceptRangesAndPlaceholders } from "./tree-utils/equal";
+import { nodesAreEqualExceptRangesAndPlaceholdersAndIds } from "./tree-utils/equal";
 import { filterNodes } from "./tree-utils/filter";
 import { tsNodeFromNode } from "./ts-from-node";
 
-export function withCopiedPlaceholders(
+export function withCopiedPlaceholdersAndIds(
   placeholderSource: ListNode,
   nodeSource: ListNode,
 ): ListNode;
-export function withCopiedPlaceholders(
+export function withCopiedPlaceholdersAndIds(
   placeholderSource: Node,
   nodeSource: Node,
 ): Node;
-export function withCopiedPlaceholders(
+export function withCopiedPlaceholdersAndIds(
   placeholderSource: Node,
   nodeSource: Node,
 ): Node {
   if (
-    !nodesAreEqualExceptRangesAndPlaceholders(placeholderSource, nodeSource)
+    !nodesAreEqualExceptRangesAndPlaceholdersAndIds(
+      placeholderSource,
+      nodeSource,
+    )
   ) {
     throw new Error(
       "nodes do not satisfy nodesAreEqualExceptRangesAndPlaceholders",
     );
   }
-  return _withCopiedPlaceholders(placeholderSource, nodeSource);
+  return _withCopiedPlaceholdersAndIds(placeholderSource, nodeSource);
 }
 
-function _withCopiedPlaceholders(
-  placeholderSource: Node,
+function _withCopiedPlaceholdersAndIds(
+  placeholderAndIdSource: Node,
   nodeSource: Node,
 ): Node {
   if (
-    placeholderSource.kind === NodeKind.Token &&
+    placeholderAndIdSource.kind === NodeKind.Token &&
     nodeSource.kind === NodeKind.Token
   ) {
-    return { ...nodeSource, isPlaceholder: placeholderSource.isPlaceholder };
+    return {
+      ...nodeSource,
+      isPlaceholder: placeholderAndIdSource.isPlaceholder,
+      id: placeholderAndIdSource.id,
+    };
   }
   if (
-    placeholderSource.kind === NodeKind.List &&
+    placeholderAndIdSource.kind === NodeKind.List &&
     nodeSource.kind === NodeKind.List
   ) {
     return {
       ...nodeSource,
-      isPlaceholder: placeholderSource.isPlaceholder,
-      content: placeholderSource.content.map((placeholderSourceChild, i) =>
-        _withCopiedPlaceholders(placeholderSourceChild, nodeSource.content[i]),
+      isPlaceholder: placeholderAndIdSource.isPlaceholder,
+      id: placeholderAndIdSource.id,
+      content: placeholderAndIdSource.content.map((placeholderSourceChild, i) =>
+        _withCopiedPlaceholdersAndIds(
+          placeholderSourceChild,
+          nodeSource.content[i],
+        ),
       ),
     };
   }
@@ -71,14 +82,16 @@ export function getDocWithAllPlaceholders(docWithoutPlaceholders: Doc): {
   const sourceFile = tsNodeFromNode(validRoot) as ts.SourceFile;
   const text = prettyPrintTsSourceFile(sourceFile);
   const parsedDoc = docFromAst(astFromTypescriptFileContent(text));
-  if (!nodesAreEqualExceptRangesAndPlaceholders(validRoot, parsedDoc.root)) {
+  if (
+    !nodesAreEqualExceptRangesAndPlaceholdersAndIds(validRoot, parsedDoc.root)
+  ) {
     console.warn("update would change tree");
     console.warn("old", docWithoutPlaceholders.text, validRoot);
     console.warn("new", text, parsedDoc.root);
     throw new Error("update would change tree");
   }
   const docWithPlaceholders = {
-    root: withCopiedPlaceholders(validRoot, parsedDoc.root),
+    root: withCopiedPlaceholdersAndIds(validRoot, parsedDoc.root),
     text: parsedDoc.text,
   };
   return {

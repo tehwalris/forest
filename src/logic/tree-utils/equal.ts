@@ -1,6 +1,6 @@
 import { Node, NodeKind } from "../interfaces";
 
-export function nodesAreEqualExceptRangesAndPlaceholders(
+export function nodesAreEqualExceptRangesAndPlaceholdersAndIds(
   a: Node,
   b: Node,
 ): boolean {
@@ -16,7 +16,7 @@ export function nodesAreEqualExceptRangesAndPlaceholders(
       a.delimiters[1] === b.delimiters[1] &&
       a.content.length === b.content.length &&
       a.content.every((ca, i) =>
-        nodesAreEqualExceptRangesAndPlaceholders(ca, b.content[i]),
+        nodesAreEqualExceptRangesAndPlaceholdersAndIds(ca, b.content[i]),
       ) &&
       a.equivalentToContent === b.equivalentToContent
     );
