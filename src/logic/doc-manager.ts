@@ -543,8 +543,6 @@ export class DocManager {
         focus: checkedInsertion.insertionPathRanges[i],
       }));
 
-      // TODO format
-
       this.doc = docWithInsertBeforeFormatting;
       finalStuff();
     } else if (this.mode === Mode.Insert && ev.key === "Backspace") {
