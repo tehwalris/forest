@@ -33,7 +33,9 @@
   - support: none
 - `rename-wrap-object-properties`
   - support: ok
-  - note: delete has to be done last, otherwise you loose your cursor location
+  - note:
+    - delete has to be done last, otherwise you lose your cursor location
+    - alternative: use marks before deleting
 - `simplify-conditional`
   - support: good
 - `wrap-action`
@@ -43,3 +45,4 @@
   - support: good
 - `wrap-object-properties`
   - support: good
+  - note: if using multi-cursor, use marks to deal with uneven length lists
