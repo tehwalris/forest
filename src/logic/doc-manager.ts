@@ -3,7 +3,7 @@ import { checkInsertion } from "./check-insertion";
 import { cursorCopy } from "./cursor/copy";
 import { multiCursorDelete } from "./cursor/delete";
 import { cursorArraysAreEqual } from "./cursor/equal";
-import { Cursor } from "./cursor/interfaces";
+import { Cursor, Mark } from "./cursor/interfaces";
 import {
   cursorMoveInOut,
   CursorMoveInOutDirection,
@@ -24,7 +24,6 @@ import { emptyDoc } from "./doc-utils";
 import {
   isFocusOnEmptyListContent,
   normalizeFocusIn,
-  normalizeFocusOut,
   textRangeFromFocus,
 } from "./focus";
 import { Doc, InsertState, NodeKind, Path } from "./interfaces";
@@ -45,6 +44,7 @@ import {
   getDocWithInsertions,
   Insertion,
 } from "./text";
+import { trackRanges } from "./track-ranges";
 import { nodeGetByPath } from "./tree-utils/access";
 
 export enum Mode {
@@ -577,6 +577,7 @@ export class DocManager {
 
     if (docChanged) {
       this.updateDocText();
+      this.updateMarkRanges();
       this.cursorHistory = [];
       this.cursorRedoHistory = [];
       this.queuedCursors = [];
@@ -587,7 +588,7 @@ export class DocManager {
       focus: normalizeFocusIn(this.doc.root, cursor.focus),
       marks: cursor.marks.map((m) => ({
         ...m,
-        focus: normalizeFocusOut(this.doc.root, m.focus),
+        focus: normalizeFocusIn(this.doc.root, m.focus),
       })),
     }));
 
@@ -630,5 +631,28 @@ export class DocManager {
 
   private updateDocText() {
     this.doc = getDocWithAllPlaceholders(this.doc).doc;
+  }
+
+  private updateMarkRanges() {
+    const oldRanges = this.cursors.flatMap((c) => c.marks).map((m) => m.focus);
+    const newRanges = trackRanges(this.lastDoc.root, this.doc.root, oldRanges);
+    const remainingNewRanges = [...newRanges];
+    this.cursors = this.cursors.map(
+      (c): Cursor => ({
+        ...c,
+        marks: c.marks
+          .map((m) => ({
+            ...m,
+            focus: remainingNewRanges.shift(),
+          }))
+          .filter((m) => m.focus !== undefined)
+          .map(
+            (m): Mark => ({
+              ...m,
+              focus: normalizeFocusIn(this.doc.root, m.focus!),
+            }),
+          ),
+      }),
+    );
   }
 }
