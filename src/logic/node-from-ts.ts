@@ -597,12 +597,11 @@ function listNodeFromTsBlock(
   file: ts.SourceFile | undefined,
 ): ListNode {
   return {
-    ...listNodeFromDelimitedTsNodeArray(
+    ...listNodeFromAutoTsNodeArray(
       block.statements,
+      block,
       file,
       ListKind.TsNodeList,
-      block.pos + 1,
-      block.end,
     ),
     tsNode: block,
   };

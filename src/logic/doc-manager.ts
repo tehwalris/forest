@@ -254,8 +254,8 @@ export class DocManager {
         ).slice(0, 1);
       } else if (ev.key === "q") {
         this.queuedCursors = uniqueByEvenPathRange(
-          [...this.queuedCursors, ...this.cursors],
-          (c) => c.focus,
+          [...this.cursors, ...this.queuedCursors],
+          (c) => flipEvenPathRangeForward(c.focus),
         );
       } else if (ev.key === "Q") {
         this.cursors = [...this.queuedCursors];
