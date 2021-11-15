@@ -22,7 +22,7 @@
   - note: ClassDeclaration is not supported
 - `change-value-prefix`
   - support: ok
-  - note: strings can only be editing using the rename feature
+  - note: strings can only be edited using the rename feature
 - `extend-if-condition`
   - support: good
 - `extract-part-of-if-condition`
