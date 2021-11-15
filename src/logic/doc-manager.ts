@@ -529,9 +529,13 @@ export class DocManager {
         return;
       }
 
-      for (const node of checkedInsertion.newNodesByOldPlaceholderNodes.values()) {
+      for (const [
+        oldNode,
+        newNode,
+      ] of checkedInsertion.newNodesByOldTraceableNodes.entries()) {
         // HACK mutating docWithInsertBeforeFormatting
-        node.isPlaceholder = true;
+        newNode.isPlaceholder = oldNode.isPlaceholder;
+        newNode.id = oldNode.id;
       }
 
       this.cursors = this.cursors.map((cursor, i) => ({

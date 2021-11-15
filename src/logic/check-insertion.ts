@@ -13,7 +13,7 @@ interface CheckInsertionArgs {
 
 interface ValidCheckedInsertion {
   valid: true;
-  newNodesByOldPlaceholderNodes: Map<Node, Node>;
+  newNodesByOldTraceableNodes: Map<Node, Node>;
   insertionPathRanges: EvenPathRange[];
 }
 
@@ -43,6 +43,15 @@ export function checkInsertion(args: CheckInsertionArgs): CheckedInsertion {
   }
 }
 
+function isNodeTraceable(node: Node): boolean {
+  if (node.kind === NodeKind.List && node.equivalentToContent) {
+    // HACK These kinds of lists may be next to a cursor and expand over the cursor due to the insertion.
+    // This is generally fine, and when it's not fine (not sure when?) it's probably really hard to check.
+    return false;
+  }
+  return true;
+}
+
 function _checkInsertion({
   newDoc,
   oldDoc,
@@ -59,11 +68,9 @@ function _checkInsertion({
     unmatchedNewNodes.add(newNode);
   });
 
-  const newNodesByOldPlaceholderNodes = new Map<Node, Node>();
+  const newNodesByOldTraceableNodes = new Map<Node, Node>();
   nodeVisitDeep(oldDoc.root, (oldNode) => {
-    if (oldNode.kind === NodeKind.List && oldNode.equivalentToContent) {
-      // HACK These kinds of lists may be next to a cursor and expand over the cursor due to the insertion.
-      // This is generally fine, and when it's not fine (not sure when?) it's probably really hard to check.
+    if (!isNodeTraceable(oldNode)) {
       return;
     }
 
@@ -97,9 +104,7 @@ function _checkInsertion({
 
     // TODO could check that the contents matches, but be careful to avoid exponential complexity
 
-    if (oldNode.isPlaceholder) {
-      newNodesByOldPlaceholderNodes.set(oldNode, newNode);
-    }
+    newNodesByOldTraceableNodes.set(oldNode, newNode);
   });
 
   const insertionTextRanges: TextRange[] = insertions.map((insertion) => {
@@ -139,5 +144,9 @@ function _checkInsertion({
   // - either they are fully within a single insertion range
   // - or they intersect exactly one insertion range and have equivalentToContent
 
-  return { valid: true, newNodesByOldPlaceholderNodes, insertionPathRanges };
+  return {
+    valid: true,
+    newNodesByOldTraceableNodes,
+    insertionPathRanges,
+  };
 }
