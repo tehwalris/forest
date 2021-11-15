@@ -18,6 +18,7 @@ export enum NodeKind {
 export type Node = TokenNode | ListNode;
 
 interface BaseNode extends TextRange {
+  id: Symbol;
   isPlaceholder?: boolean;
 }
 

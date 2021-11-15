@@ -9,6 +9,7 @@ export const emptyDoc: Doc = {
     equivalentToContent: true,
     pos: 0,
     end: 0,
+    id: Symbol(),
   },
   text: "",
 };

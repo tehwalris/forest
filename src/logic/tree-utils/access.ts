@@ -112,6 +112,10 @@ export function nodeMapDeep(
   return cb(newNode, path);
 }
 
+export function resetIdsDeep(oldRoot: Node): Node {
+  return nodeMapDeep(oldRoot, (oldNode) => ({ ...oldNode, id: Symbol() }));
+}
+
 export function nodeVisitDeepInRange(
   rootNode: Node,
   range: EvenPathRange,

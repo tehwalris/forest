@@ -186,6 +186,7 @@ function listNodeFromDelimitedTsNodeArray(
     equivalentToContent: false,
     pos,
     end,
+    id: Symbol(),
   };
 }
 
@@ -209,6 +210,7 @@ function listNodeFromNonDelimitedTsNodeArray(
     equivalentToContent: true,
     pos: nodeArray[0].pos,
     end: nodeArray[nodeArray.length - 1].end,
+    id: Symbol(),
   };
 }
 
@@ -238,6 +240,7 @@ function listNodeFromTsCallExpression(
     equivalentToContent: true,
     pos: callExpression.pos,
     end: callExpression.end,
+    id: Symbol(),
   };
 }
 
@@ -262,6 +265,7 @@ function listNodeFromTsPropertyAccessExpression(
     equivalentToContent: true,
     pos: propertyAccessExpression.pos,
     end: propertyAccessExpression.end,
+    id: Symbol(),
   };
 }
 
@@ -300,12 +304,14 @@ function listNodeFromTsElementAccessExpression(
           equivalentToContent: false,
           pos: bracketRange.pos,
           end: bracketRange.end,
+          id: Symbol(),
         },
       ],
     ),
     equivalentToContent: true,
     pos: elementAccessExpression.pos,
     end: elementAccessExpression.end,
+    id: Symbol(),
   };
 }
 
@@ -329,6 +335,7 @@ function listNodeFromTsNonNullExpression(
     equivalentToContent: true,
     pos: nonNullExpression.pos,
     end: nonNullExpression.end,
+    id: Symbol(),
   };
 }
 
@@ -352,6 +359,7 @@ function listNodeFromTsPrefixUnaryExpression(
     equivalentToContent: true,
     pos: prefixUnaryExpression.pos,
     end: prefixUnaryExpression.end,
+    id: Symbol(),
   };
 }
 
@@ -375,6 +383,7 @@ function listNodeFromTsPostfixUnaryExpression(
     equivalentToContent: true,
     pos: postfixUnaryExpression.pos,
     end: postfixUnaryExpression.end,
+    id: Symbol(),
   };
 }
 
@@ -400,6 +409,7 @@ function listNodeFromTsBinaryExpression(
     equivalentToContent: true,
     pos: binaryExpression.pos,
     end: binaryExpression.end,
+    id: Symbol(),
   };
 }
 
@@ -415,6 +425,7 @@ function listNodeFromTsParenthesizedExpression(
     equivalentToContent: false,
     pos: parenthesizedExpression.pos,
     end: parenthesizedExpression.end,
+    id: Symbol(),
   };
 }
 
@@ -451,6 +462,7 @@ function listNodeFromTsIfStatementBranch(
     equivalentToContent: true,
     pos: ifStatement.pos,
     end: ifStatement.thenStatement.end,
+    id: Symbol(),
   };
 }
 
@@ -471,6 +483,7 @@ function listNodeFromTsIfStatement(
       equivalentToContent: true,
       pos: node.pos,
       end: node.end,
+      id: Symbol(),
     };
   };
   return {
@@ -489,6 +502,7 @@ function listNodeFromTsIfStatement(
     equivalentToContent: true,
     pos: ifStatement.pos,
     end: ifStatement.end,
+    id: Symbol(),
   };
 }
 
@@ -521,6 +535,7 @@ function listNodeFromTsReturnStatement(
     equivalentToContent: true,
     pos: returnStatement.pos,
     end: returnStatement.end,
+    id: Symbol(),
   };
 }
 
@@ -551,6 +566,7 @@ function listNodeFromTsThrowStatement(
     equivalentToContent: true,
     pos: throwStatement.pos,
     end: throwStatement.end,
+    id: Symbol(),
   };
 }
 
@@ -633,6 +649,7 @@ function listNodeFromTsObjectLiteralElementLike(
     equivalentToContent: true,
     pos: objectLiteralElementLike.pos,
     end: objectLiteralElementLike.end,
+    id: Symbol(),
   };
 }
 
@@ -727,6 +744,7 @@ function tryMakeListNodeGenericStruct(
     equivalentToContent: true,
     pos: node.pos,
     end: node.end,
+    id: Symbol(),
   };
 }
 
@@ -781,6 +799,7 @@ export function nodeFromTsNode(
         pos: node.pos,
         end: node.end,
         tsNode: node,
+        id: Symbol(),
       }
     );
   }
@@ -810,6 +829,7 @@ export function docFromAst(file: ts.SourceFile): Doc {
         equivalentToContent: true,
         pos: file.pos,
         end: file.end,
+        id: Symbol(),
       },
       file,
     ),

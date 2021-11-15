@@ -8,7 +8,7 @@ import {
 } from "../paste";
 import { flipEvenPathRangeForward } from "../path-utils";
 import { ListItemReplacement, replaceMultiple } from "../replace-multiple";
-import { nodeGetByPath } from "../tree-utils/access";
+import { nodeGetByPath, resetIdsDeep } from "../tree-utils/access";
 import { checkAllItemsDefined } from "../util";
 import { Cursor } from "./interfaces";
 import { adjustPostActionCursor } from "./post-action";
@@ -35,7 +35,10 @@ function cursorPaste({
   );
 
   if (!focus.anchor.length) {
-    const replacement = acceptPasteRoot(oldCursor.clipboard);
+    const replacement = acceptPasteRoot({
+      ...oldCursor.clipboard,
+      node: resetIdsDeep(oldCursor.clipboard.node),
+    });
     return (
       replacement && {
         cursor: adjustPostActionCursor(oldCursor),
@@ -59,6 +62,7 @@ function cursorPaste({
           end: -1,
           isPlaceholder: true,
           tsNode: ts.factory.createIdentifier("placeholder"),
+          id: Symbol(),
         },
       ],
     };
@@ -83,7 +87,7 @@ function cursorPaste({
     parent: grandparentInfo,
     firstIndex,
     lastIndex: firstIndex + focus.offset,
-    clipboard: oldCursor.clipboard.node,
+    clipboard: resetIdsDeep(oldCursor.clipboard.node),
     isPartialCopy: oldCursor.clipboard.isPartialCopy,
   });
   if (!replacement) {

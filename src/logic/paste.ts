@@ -31,6 +31,7 @@ export function acceptPasteRoot(
       equivalentToContent: true,
       pos: 0,
       end: 0,
+      id: Symbol(),
     },
     isPartialCopy: clipboard.isPartialCopy,
   });
@@ -431,6 +432,7 @@ export function acceptPasteReplace(
         equivalentToContent: true,
         pos: clipboard.pos,
         end: clipboard.end,
+        id: Symbol(),
       },
     });
   } else {
