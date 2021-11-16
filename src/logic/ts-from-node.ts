@@ -177,7 +177,7 @@ export function tsNodeFromNode(node: Node): ts.Node {
         return ts.factory.createElementAccessChain(
           tsNodeFromNode(restNode) as ts.Expression,
           questionDotToken,
-          tsNodeFromNode(lastChild) as ts.Expression,
+          tsNodeFromNode(lastChild.content[0]) as ts.Expression,
         );
       } else if (isToken(lastChild, isTsExclamationToken)) {
         return ts.factory.createNonNullExpression(

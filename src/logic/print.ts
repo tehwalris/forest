@@ -150,20 +150,10 @@ function _prettyPrintTsSourceFile(unformattedAst: ts.SourceFile): string {
     }
   }
 
-  const adjustedText = getTextWithInsertionsAndDeletions(
+  return getTextWithInsertionsAndDeletions(
     formattedText,
     insertionsAndDeletions,
   );
-
-  console.log("DEBUG", {
-    wrapUnwraps,
-    insertionsAndDeletions,
-    unformattedText,
-    formattedText,
-    adjustedText,
-  });
-
-  return adjustedText;
 }
 
 // reprints source file so that text ranges are valid, but does not format it
