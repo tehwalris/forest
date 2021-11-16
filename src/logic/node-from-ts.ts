@@ -804,15 +804,20 @@ export function nodeFromTsNode(
   }
 }
 
+export function trimRange({ pos, end }: TextRange, text: string): TextRange {
+  while (pos <= end && pos < text.length && text[pos].match(/\s/)) {
+    pos++;
+  }
+  while (end >= pos && end > 0 && text[end - 1].match(/\s/)) {
+    end--;
+  }
+  return { pos, end };
+}
+
 function trimRanges(rootNode: ListNode, file: ts.SourceFile): ListNode {
   const cb = (pos: number, end: number): [number, number] => {
-    while (pos <= end && pos < file.text.length && file.text[pos].match(/\s/)) {
-      pos++;
-    }
-    while (end >= pos && end > 0 && file.text[end - 1].match(/\s/)) {
-      end--;
-    }
-    return [pos, end];
+    const newRange = trimRange({ pos, end }, file.text);
+    return [newRange.pos, newRange.end];
   };
   return mapNodeTextRanges(rootNode, cb);
 }

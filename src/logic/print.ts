@@ -2,6 +2,7 @@ import type { Options } from "prettier";
 import parserTypescript from "prettier/parser-typescript";
 import { format as prettierFormat } from "prettier/standalone";
 import ts from "typescript";
+import { trimRange } from "./node-from-ts";
 import { assertNoSyntaxErrors, astFromTypescriptFileContent } from "./parse";
 import {
   getTextWithInsertionsAndDeletions,
@@ -47,16 +48,16 @@ function visitDeepSynced(
 
 interface PrettierWrap {
   wrap: true;
-  nodeA: ts.Node;
-  outerNodeB: ts.Node;
-  innerNodeB: ts.Node;
+  nodeA: ts.TextRange;
+  outerNodeB: ts.TextRange;
+  innerNodeB: ts.TextRange;
 }
 
 interface PrettierUnwrap {
   wrap: false;
-  outerNodeA: ts.Node;
-  innerNodeA: ts.Node;
-  nodeB: ts.Node;
+  outerNodeA: ts.TextRange;
+  innerNodeA: ts.TextRange;
+  nodeB: ts.TextRange;
 }
 
 type PrettierWrapUnwrap = PrettierWrap | PrettierUnwrap;
@@ -86,9 +87,9 @@ function _prettyPrintTsSourceFile(unformattedAst: ts.SourceFile): string {
     ) {
       wrapUnwraps.push({
         wrap: true,
-        nodeA,
-        outerNodeB: nodeB,
-        innerNodeB: nodeB.expression,
+        nodeA: trimRange(nodeA, unformattedText),
+        outerNodeB: trimRange(nodeB, formattedText),
+        innerNodeB: trimRange(nodeB.expression, formattedText),
       });
       return [nodeA, nodeB.expression];
     } else if (
@@ -97,9 +98,9 @@ function _prettyPrintTsSourceFile(unformattedAst: ts.SourceFile): string {
     ) {
       wrapUnwraps.push({
         wrap: false,
-        outerNodeA: nodeA,
-        innerNodeA: nodeA.expression,
-        nodeB,
+        outerNodeA: trimRange(nodeA, unformattedText),
+        innerNodeA: trimRange(nodeA.expression, unformattedText),
+        nodeB: trimRange(nodeB, formattedText),
       });
       return [nodeA.expression, nodeB];
     } else {
