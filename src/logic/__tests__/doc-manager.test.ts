@@ -22,32 +22,109 @@ interface EventWithHandler {
   event: MinimalKeyboardEvent;
 }
 
-const evEnter: EventWithHandler = {
-  handler: "onKeyPress",
-  event: { key: "Enter" },
-};
-const evEscape: EventWithHandler = {
-  handler: "onKeyDown",
-  event: { key: "Escape" },
-};
-const evBackspace: EventWithHandler = {
-  handler: "onKeyDown",
-  event: { key: "Backspace" },
-};
-const evSemi: EventWithHandler = {
-  handler: "onKeyPress",
-  event: { key: ";" },
-};
-const evAltSemi: EventWithHandler = {
-  handler: "onKeyDown",
-  event: { key: ";", altKey: true },
-};
+interface SpecialKey {
+  name: string;
+  key?: string;
+  addToEvent?: (ev: MinimalKeyboardEvent) => MinimalKeyboardEvent;
+  handler?: EventHandler;
+}
+
+const specialKeys: SpecialKey[] = [
+  {
+    name: "enter",
+    key: "Enter",
+  },
+  {
+    name: "escape",
+    key: "Escape",
+    handler: "onKeyDown",
+  },
+  {
+    name: "backspace",
+    key: "Backspace",
+    handler: "onKeyDown",
+  },
+  {
+    name: "ctrl",
+    addToEvent: (ev) => ({ ...ev, ctrlKey: true }),
+    handler: "onKeyDown",
+  },
+  {
+    name: "alt",
+    addToEvent: (ev) => ({ ...ev, altKey: true }),
+    handler: "onKeyDown",
+  },
+  {
+    name: "shift",
+    addToEvent: (ev) => {
+      if (ev.key.length !== 1 || ev.key === ev.key.toUpperCase()) {
+        throw new Error("can't add shift to this key");
+      }
+      return { ...ev, key: ev.key.toUpperCase() };
+    },
+    handler: "onKeyDown",
+  },
+];
+
+function parseKeyCombo(combo: string): EventWithHandler {
+  if (combo.toLowerCase() !== combo) {
+    throw new Error("key combos must be lowercase");
+  }
+
+  let baseKey: string | undefined;
+  const setBaseKey = (k: string) => {
+    if (baseKey !== undefined) {
+      throw new Error("combo can not contain multiple base keys");
+    }
+    baseKey = k;
+  };
+  const usedSpecialKeys: SpecialKey[] = [];
+  for (const part of combo.split("-")) {
+    if (part.length === 1) {
+      setBaseKey(part);
+    } else {
+      const specialKey = specialKeys.find((s) => s.name === part);
+      if (!specialKey) {
+        throw new Error(`unknown special key: ${specialKey}`);
+      }
+      usedSpecialKeys.push(specialKey);
+      if (specialKey.key) {
+        setBaseKey(specialKey.key);
+      }
+    }
+  }
+
+  if (baseKey === undefined) {
+    throw new Error("combo contains no base key");
+  }
+
+  if (
+    new Set(usedSpecialKeys.map((s) => s.handler).filter((v) => v)).size > 1
+  ) {
+    throw new Error("combo contains multiple conflicting handlers");
+  }
+  const handler =
+    usedSpecialKeys.map((s) => s.handler).find((v) => v) || "onKeyPress";
+
+  let event: MinimalKeyboardEvent = { key: baseKey };
+  for (const specialKey of usedSpecialKeys) {
+    if (specialKey.addToEvent) {
+      event = specialKey.addToEvent(event);
+    }
+  }
+
+  return { handler, event };
+}
 
 function eventsFromKeys(keys: string): EventWithHandler[] {
-  return [...keys].map((char) => ({
-    handler: "onKeyPress",
-    event: { key: char },
-  }));
+  return keys
+    .trim()
+    .split(/\s+/)
+    .map((combo) => parseKeyCombo(combo));
+}
+
+function eventsToTypeString(keys: string): EventWithHandler[] {
+  return [...keys].map((key) => ({ handler: "onKeyPress", event: { key } }));
 }
 
 describe("DocManager", () => {
@@ -140,13 +217,13 @@ describe("DocManager", () => {
       label: "rewrite hello world",
       initialText: 'console.log("walrus")',
       events: [
-        ...eventsFromKeys("d"),
-        evEnter,
-        ...eventsFromKeys(`console.log('walrus')`),
-        evEscape,
+        ...eventsFromKeys("d a"),
+        ...eventsToTypeString(`console.log('walrus')`),
+        ...eventsFromKeys("escape"),
       ],
       expectedText: 'console.log("walrus")',
     },
+    /*
     {
       label: "replace string in call argument",
       initialText: 'console.log("walrus")',
@@ -481,6 +558,7 @@ describe("DocManager", () => {
       events: [...eventsFromKeys("c"), evSemi, ...eventsFromKeys("jp")],
       expectedText: "f(f(x))",
     },
+    */
     {
       label: "delete value of property that is named with a reserved word",
       initialText: `const shortcuts = { delete: "space d" };`,
