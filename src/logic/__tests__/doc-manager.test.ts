@@ -73,7 +73,7 @@ describe("DocManager", () => {
   const cases: TestCase[] = [
     makeRoundTripTest('console.log("walrus")'),
     makeRoundTripTest("f(async <T>(x: T, y) => x + y)"),
-    makeRoundTripTest('f(): string => "abc"'),
+    makeRoundTripTest('const f = (): string => "abc"'),
     makeRoundTripTest("f(g(x), y).foo[123].bar().baz"),
     makeRoundTripTest("a!.b"),
     makeRoundTripTest("a.b!"),
