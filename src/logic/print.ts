@@ -20,21 +20,13 @@ function createPrinter() {
   return ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 }
 
-function isNodeArray(
-  nodeOrNodeArray: ts.Node | ts.NodeArray<ts.Node>,
-): nodeOrNodeArray is ts.NodeArray<ts.Node> {
-  return Array.isArray(nodeOrNodeArray);
-}
-
 function visitDeepSynced(
   nodeA: ts.Node,
   nodeB: ts.Node,
   skip: (nodeA: ts.Node, nodeB: ts.Node) => [ts.Node, ts.Node],
 ) {
-  type Child = ts.Node | ts.NodeArray<ts.Node>;
-
-  const getChildren = (node: ts.Node): Child[] => {
-    const children: Child[] = [];
+  const getChildren = (node: ts.Node): ts.Node[] => {
+    const children: ts.Node[] = [];
     ts.forEachChild(node, (node) => {
       children.push(node);
     });
@@ -48,24 +40,8 @@ function visitDeepSynced(
   if (childrenA.length !== childrenB.length) {
     throw new Error("unequal number of children");
   }
-
   for (let i = 0; i < childrenA.length; i++) {
-    const childA = childrenA[i];
-    const childB = childrenB[i];
-    if (isNodeArray(childA) && isNodeArray(childB)) {
-      if (childA.length !== childB.length) {
-        throw new Error("NodeArrays childA and childB have unequal length");
-      }
-      for (let j = 0; j < childA.length; j++) {
-        visitDeepSynced(childA[j], childB[j], skip);
-      }
-    } else if (!isNodeArray(childA) && !isNodeArray(childB)) {
-      visitDeepSynced(childA, childB, skip);
-    } else {
-      throw new Error(
-        "childA and childB must either both be Node or be NodeArray",
-      );
-    }
+    visitDeepSynced(childrenA[i], childrenB[i], skip);
   }
 }
 
