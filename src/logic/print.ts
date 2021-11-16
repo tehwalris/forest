@@ -95,6 +95,7 @@ export function prettyPrintTsSourceFile(
     unformattedAst,
   );
   const formattedText = prettierFormat(unformattedText, PRETTIER_OPTIONS);
+
   const formattedAst = astFromTypescriptFileContent(formattedText);
 
   const wrapUnwraps: PrettierWrapUnwrap[] = [];
@@ -146,7 +147,26 @@ export function prettyPrintTsSourceFile(
         },
       );
     } else {
-      // TODO
+      insertionsAndDeletions.push(
+        {
+          kind: InsertionOrDeletionKind.Insertion,
+          insertion: {
+            beforePos: wrapUnwrap.nodeB.pos,
+            text: unformattedText
+              .slice(wrapUnwrap.outerNodeA.pos, wrapUnwrap.innerNodeA.pos)
+              .trim(),
+          },
+        },
+        {
+          kind: InsertionOrDeletionKind.Insertion,
+          insertion: {
+            beforePos: wrapUnwrap.nodeB.end,
+            text: unformattedText
+              .slice(wrapUnwrap.innerNodeA.end, wrapUnwrap.outerNodeA.end)
+              .trim(),
+          },
+        },
+      );
     }
   }
 
