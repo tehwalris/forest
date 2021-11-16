@@ -11,8 +11,8 @@ import { prettyPrintTsSourceFile } from "../print";
 
 function asPrettyDoc(uglyText: string): Doc {
   const uglyAst = astFromTypescriptFileContent(uglyText);
-  const prettyText = prettyPrintTsSourceFile(uglyAst);
-  return docFromAst(astFromTypescriptFileContent(prettyText));
+  const prettyAst = prettyPrintTsSourceFile(uglyAst);
+  return docFromAst(prettyAst);
 }
 
 type EventHandler = "onKeyUp" | "onKeyDown" | "onKeyPress";
