@@ -229,6 +229,16 @@ function listNodeFromTsCallExpression(
         ...(callExpression.questionDotToken
           ? [nodeFromTsNode(callExpression.questionDotToken, file)]
           : []),
+        ...(callExpression.typeArguments
+          ? [
+              listNodeFromAutoTsNodeArray(
+                callExpression.typeArguments,
+                callExpression,
+                file,
+                ListKind.TypeArguments,
+              ),
+            ]
+          : []),
         listNodeFromAutoTsNodeArray(
           callExpression.arguments,
           callExpression,

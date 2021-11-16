@@ -139,14 +139,33 @@ export function tsNodeFromNode(node: Node): ts.Node {
       }
 
       const secondToLastChild = node.content[node.content.length - 2];
+      const thirdToLastChild =
+        node.content.length >= 3
+          ? node.content[node.content.length - 3]
+          : undefined;
+      let potentialQuestionDotTokenNode: Node | undefined = secondToLastChild;
+      let extraUsedNodeCount = 0;
+      let typeArgumentsNode: ListNode | undefined;
+      if (
+        secondToLastChild.kind === NodeKind.List &&
+        secondToLastChild.listKind === ListKind.TypeArguments
+      ) {
+        typeArgumentsNode = secondToLastChild;
+        potentialQuestionDotTokenNode = thirdToLastChild;
+        extraUsedNodeCount++;
+      }
       let questionDotToken: ts.QuestionDotToken | undefined;
-      if (isToken(secondToLastChild, isTsQuestionDotToken)) {
-        questionDotToken = secondToLastChild.tsNode;
+      if (
+        potentialQuestionDotTokenNode &&
+        isToken(potentialQuestionDotTokenNode, isTsQuestionDotToken)
+      ) {
+        questionDotToken = potentialQuestionDotTokenNode.tsNode;
+        extraUsedNodeCount++;
       }
 
       const restNode = {
         ...node,
-        content: node.content.slice(0, questionDotToken ? -2 : -1),
+        content: node.content.slice(0, -(1 + extraUsedNodeCount)),
       };
 
       if (
@@ -164,10 +183,15 @@ export function tsNodeFromNode(node: Node): ts.Node {
         lastChild.kind === NodeKind.List &&
         lastChild.listKind === ListKind.CallArguments
       ) {
+        let typeArguments: ts.TypeNode[] = typeArgumentsNode
+          ? typeArgumentsNode.content.map(
+              (c) => tsNodeFromNode(c) as ts.TypeNode,
+            )
+          : [];
         return ts.factory.createCallChain(
           tsNodeFromNode(restNode) as ts.Expression,
           questionDotToken,
-          [],
+          typeArguments,
           lastChild.content.map((c) => tsNodeFromNode(c) as ts.Expression),
         );
       } else if (
@@ -253,6 +277,10 @@ export function tsNodeFromNode(node: Node): ts.Node {
     case ListKind.CallArguments:
       throw new Error(
         "CallArguments should be handled by TightExpression parent",
+      );
+    case ListKind.TypeArguments:
+      throw new Error(
+        "TypeArguments should be handled by TightExpression parent",
       );
     case ListKind.IfBranches: {
       if (node.content.length < 1) {

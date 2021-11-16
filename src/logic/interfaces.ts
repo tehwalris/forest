@@ -33,6 +33,7 @@ export enum ListKind {
   ParenthesizedExpression,
   ElementAccessExpressionArgument,
   CallArguments,
+  TypeArguments,
   IfBranches,
   IfBranch,
   ObjectLiteralElement,
