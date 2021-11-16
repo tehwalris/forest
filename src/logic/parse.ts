@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { CompilerHost } from "./compiler-host";
 
-const fakeFileName = "file.ts";
+const fakeFileName = "file.tsx";
 const languageVersion = ts.ScriptTarget.ES2020;
 
 export interface SourceFileWithDiagnostics extends ts.SourceFile {

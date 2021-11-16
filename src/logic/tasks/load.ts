@@ -12,6 +12,7 @@ import {
 const browseTaskPaths = [
   "src/logic/doc-manager.ts",
   "src/logic/node-from-ts.ts",
+  "src/components/linear-editor.tsx",
 ];
 
 export async function loadTasks(fs: Fs): Promise<Task[]> {
