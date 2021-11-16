@@ -3,7 +3,7 @@ import * as ReactDOM from "react-dom";
 import { App } from "./App";
 import "./index.css";
 import { configureRemoteFs } from "./logic/tasks/fs";
-
+import { roundTripFile } from "./logic/tasks/round-trip";
 (async () => {
   const _paths = `
     src/react-app-env.d.ts
@@ -63,27 +63,21 @@ import { configureRemoteFs } from "./logic/tasks/fs";
     src/index.tsx
     src/App.tsx
   `;
-
   const paths = _paths
     .trim()
     .split("\n")
     .map((s) => s.trim())
-    .filter((s) => !s.match(/\.d\.tsx?$/));
+    .filter((s) => !s.match(/\.d\.tsx?$/) && !s.endsWith("/templates.ts"));
   console.log(paths);
-
   const fs = await configureRemoteFs();
-
-  for (const path of paths) {
-    console.log("round tripping", path);
-    // await roundTripFile(fs,path);
+  for (const [i, path] of paths.entries()) {
+    console.log("round tripping", i, path);
+    await roundTripFile(fs, path);
   }
 })().catch((err) => console.warn(err));
-
-// HACK Automatic reload can be annoying during development
 window.onbeforeunload = function () {
   return false;
 };
-
 ReactDOM.render(
   <App />,
   document.getElementById("sceneContainer") as HTMLElement,
