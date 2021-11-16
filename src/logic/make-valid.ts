@@ -207,6 +207,8 @@ function makeTightExpressionValidTs(
         ((oldRight.kind === NodeKind.List &&
           oldRight.listKind === ListKind.CallArguments) ||
           (oldRight.kind === NodeKind.List &&
+            oldRight.listKind === ListKind.TypeArguments) ||
+          (oldRight.kind === NodeKind.List &&
             oldRight.listKind === ListKind.ElementAccessExpressionArgument) ||
           isToken(oldRight, isTsQuestionDotToken) ||
           (isToken(oldRight, isTsExclamationToken) &&
@@ -225,6 +227,28 @@ function makeTightExpressionValidTs(
         (oldRight === undefined || isToken(oldRight, isTsQuestionDotToken))
       ) {
         return makePlaceholderIdentifier();
+      }
+      if (
+        newLeft !== undefined &&
+        newLeft.kind === NodeKind.List &&
+        newLeft.listKind === ListKind.TypeArguments &&
+        (oldRight === undefined ||
+          !(
+            oldRight.kind === NodeKind.List &&
+            oldRight.listKind === ListKind.CallArguments
+          ))
+      ) {
+        return {
+          kind: NodeKind.List,
+          listKind: ListKind.CallArguments,
+          delimiters: ["(", ")"],
+          content: [],
+          equivalentToContent: false,
+          pos: -1,
+          end: -1,
+          isPlaceholder: true,
+          id: Symbol(),
+        };
       }
       return undefined;
     },
