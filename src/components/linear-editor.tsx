@@ -14,6 +14,7 @@ import { getPathToTip } from "../logic/path-utils";
 import { nodeGetByPath, nodeVisitDeep } from "../logic/tree-utils/access";
 interface Props {
   initialDoc: Doc;
+  onSave: (doc: Doc) => void;
 }
 const styles = {
   doc: css`
@@ -248,7 +249,7 @@ function wrapThrowRestore<A extends any[]>(
     }
   };
 }
-export const LinearEditor = ({ initialDoc }: Props) => {
+export const LinearEditor = ({ initialDoc, onSave }: Props) => {
   const focusedCodeDivRef = useRef<HTMLDivElement | null>(null);
   const codeDivRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -295,9 +296,15 @@ export const LinearEditor = ({ initialDoc }: Props) => {
         onKeyPress={wrapThrowRestore(docManager, (ev) =>
           docManager.onKeyPress(ev.nativeEvent),
         )}
-        onKeyDown={wrapThrowRestore(docManager, (ev) =>
-          docManager.onKeyDown(ev.nativeEvent),
-        )}
+        onKeyDown={wrapThrowRestore(docManager, (ev) => {
+          if (mode === Mode.Normal && ev.key === "s" && ev.ctrlKey) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            onSave(doc);
+          } else {
+            docManager.onKeyDown(ev.nativeEvent);
+          }
+        })}
         onKeyUp={wrapThrowRestore(docManager, (ev) =>
           docManager.onKeyUp(ev.nativeEvent),
         )}
