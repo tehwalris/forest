@@ -6,11 +6,9 @@ import {
   UnevenPathRange,
 } from "./interfaces";
 import { nodeGetByPath } from "./tree-utils/access";
-
 export function pathsAreEqual(a: Path, b: Path): boolean {
   return a === b || (a.length === b.length && a.every((v, i) => v === b[i]));
 }
-
 export function uniqueByPath<T>(items: T[], cb: (v: T) => Path): T[] {
   const seenPaths: Path[] = [];
   const uniqueItems: T[] = [];
@@ -24,7 +22,6 @@ export function uniqueByPath<T>(items: T[], cb: (v: T) => Path): T[] {
   }
   return uniqueItems;
 }
-
 export function uniqueByEvenPathRange<T>(
   items: T[],
   cb: (v: T) => EvenPathRange,
@@ -45,7 +42,6 @@ export function uniqueByEvenPathRange<T>(
   }
   return uniqueItems;
 }
-
 export function getCommonPathPrefix(a: Path, b: Path): Path {
   const common: Path = [];
   for (let i = 0; i < Math.min(a.length, b.length); i++) {
@@ -56,25 +52,20 @@ export function getCommonPathPrefix(a: Path, b: Path): Path {
   }
   return common;
 }
-
 export function getSmallestContainingRange(paths: Path[]): EvenPathRange {
   if (!paths.length) {
     throw new Error("no paths");
   }
-
   const commonPrefix = paths.reduce((a, c) => getCommonPathPrefix(a, c));
-
   if (paths.some((p) => pathsAreEqual(p, commonPrefix))) {
     return { anchor: commonPrefix, offset: 0 };
   }
-
   const indices = paths.map((p) => p[commonPrefix.length]);
   return {
     anchor: [...commonPrefix, Math.min(...indices)],
     offset: Math.max(...indices) - Math.min(...indices),
   };
 }
-
 export function evenPathRangeIsValid(
   root: ListNode,
   range: EvenPathRange,
@@ -84,7 +75,6 @@ export function evenPathRangeIsValid(
     !!nodeGetByPath(root, getPathToTip(range))
   );
 }
-
 export function evenPathRangesAreEqual(
   a: EvenPathRange,
   b: EvenPathRange,
@@ -93,7 +83,6 @@ export function evenPathRangesAreEqual(
     a === b || (pathsAreEqual(a.anchor, b.anchor) && a.offset === b.offset)
   );
 }
-
 export function evenPathRangesAreEqualIgnoringDirection(
   a: EvenPathRange,
   b: EvenPathRange,
@@ -103,7 +92,6 @@ export function evenPathRangesAreEqualIgnoringDirection(
     flipEvenPathRangeForward(b),
   );
 }
-
 export function unevenPathRangesAreEqual(
   a: UnevenPathRange,
   b: UnevenPathRange,
@@ -113,14 +101,12 @@ export function unevenPathRangesAreEqual(
     (pathsAreEqual(a.anchor, b.anchor) && pathsAreEqual(a.tip, b.tip))
   );
 }
-
 export function prefixNodesWithPaths(
   nodes: NodeWithPath[],
   prefix: number,
 ): NodeWithPath[] {
   return nodes.map((r) => ({ ...r, path: [prefix, ...r.path] }));
 }
-
 export function asUnevenPathRange(even: EvenPathRange): UnevenPathRange {
   if (!even.offset) {
     return { anchor: even.anchor, tip: even.anchor };
@@ -132,10 +118,14 @@ export function asUnevenPathRange(even: EvenPathRange): UnevenPathRange {
   tip[tip.length - 1] += even.offset;
   return { anchor: even.anchor, tip };
 }
-
 export function asEvenPathRange(uneven: UnevenPathRange): EvenPathRange {
   const commonPrefix = [];
-  let firstUnequal: { anchor: number; tip: number } | undefined;
+  let firstUnequal:
+    | {
+        anchor: number;
+        tip: number;
+      }
+    | undefined;
   for (let i = 0; i < Math.min(uneven.anchor.length, uneven.tip.length); i++) {
     if (uneven.anchor[i] === uneven.tip[i]) {
       commonPrefix.push(uneven.anchor[i]);
@@ -151,7 +141,6 @@ export function asEvenPathRange(uneven: UnevenPathRange): EvenPathRange {
       }
     : { anchor: commonPrefix, offset: 0 };
 }
-
 export function flipEvenPathRange(oldPathRange: EvenPathRange): EvenPathRange {
   if (!oldPathRange.anchor.length || !oldPathRange.offset) {
     return oldPathRange;
@@ -163,26 +152,22 @@ export function flipEvenPathRange(oldPathRange: EvenPathRange): EvenPathRange {
   newPathRange.anchor[newPathRange.anchor.length - 1] += oldPathRange.offset;
   return newPathRange;
 }
-
 export function flipUnevenPathRange({
   anchor,
   tip,
 }: UnevenPathRange): UnevenPathRange {
   return { anchor: tip, tip: anchor };
 }
-
 export function flipEvenPathRangeForward(
   pathRange: EvenPathRange,
 ): EvenPathRange {
   return pathRange.offset >= 0 ? pathRange : flipEvenPathRange(pathRange);
 }
-
 export function flipEvenPathRangeBackward(
   pathRange: EvenPathRange,
 ): EvenPathRange {
   return flipEvenPathRange(flipEvenPathRangeForward(pathRange));
 }
-
 export function getPathToTip(pathRange: EvenPathRange): Path {
   const path = [...pathRange.anchor];
   if (!path.length) {
@@ -191,18 +176,14 @@ export function getPathToTip(pathRange: EvenPathRange): Path {
   path[path.length - 1] += pathRange.offset;
   return path;
 }
-
 export function pathIsInRange(path: Path, _range: EvenPathRange): boolean {
   const range = flipEvenPathRangeForward(_range);
-
   if (!range.anchor.length) {
     return true;
   }
-
   const rangeParentPath = range.anchor.slice(0, -1);
   const rangeFirstIndex = range.anchor[range.anchor.length - 1];
   const rangeLastIndex = rangeFirstIndex + range.offset;
-
   return (
     path.length > rangeParentPath.length &&
     pathsAreEqual(

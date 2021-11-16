@@ -1,7 +1,4 @@
 import ts from "typescript";
-
-// https://github.com/microsoft/TypeScript/blob/663b19fe4a7c4d4ddaa61aedadd28da06acd27b6/src/compiler/utilities.ts#L3659
-// https://github.com/prettier/prettier/blob/30f82c0356ad3c24e56e79c95933988c02555427/src/language-js/utils.js#L1106
 const precedenceByBinaryOperator = new Map<ts.SyntaxKind, number>();
 for (const [i, ops] of [
   [
@@ -60,7 +57,6 @@ for (const [i, ops] of [
     precedenceByBinaryOperator.set(op, i);
   }
 }
-
 export function getBinaryOperatorPrecedence(operator: ts.BinaryOperator) {
   const precedence = precedenceByBinaryOperator.get(operator);
   if (precedence === undefined) {

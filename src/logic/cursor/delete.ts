@@ -10,17 +10,14 @@ import { nodeGetByPath } from "../tree-utils/access";
 import { withoutInvisibleNodes } from "../without-invisible";
 import { Cursor } from "./interfaces";
 import { adjustPostActionCursor } from "./post-action";
-
 interface CursorDeleteArgs {
   root: ListNode;
   cursor: Cursor;
 }
-
 interface CursorDeleteResult {
   replacement?: ListItemReplacement;
   cursor: Cursor;
 }
-
 function cursorDelete({
   root,
   cursor: oldCursor,
@@ -28,11 +25,9 @@ function cursorDelete({
   const failResult: CursorDeleteResult = {
     cursor: adjustPostActionCursor(oldCursor),
   };
-
   if (isFocusOnEmptyListContent(root, oldCursor.focus)) {
     return failResult;
   }
-
   let deleteRange = flipEvenPathRangeForward(oldCursor.focus);
   if (deleteRange.anchor.length === 0) {
     if (!root.content.length) {
@@ -40,13 +35,11 @@ function cursorDelete({
     }
     deleteRange = { anchor: [0], offset: root.content.length - 1 };
   }
-
   const parentPath: Path = deleteRange.anchor.slice(0, -1);
   const parentNode = nodeGetByPath(root, parentPath);
   if (parentNode?.kind !== NodeKind.List) {
     throw new Error("invalid focus");
   }
-
   return {
     replacement: {
       range: deleteRange,
@@ -59,17 +52,14 @@ function cursorDelete({
     }),
   };
 }
-
 interface MultiCursorDeleteArgs {
   root: ListNode;
   cursors: Cursor[];
 }
-
 interface MultiCursorDeleteResult {
   root: ListNode;
   cursors: Cursor[];
 }
-
 export function multiCursorDelete({
   root: oldRoot,
   cursors: oldCursors,
@@ -77,7 +67,6 @@ export function multiCursorDelete({
   const cursorResults = oldCursors.map((cursor) =>
     cursorDelete({ root: oldRoot, cursor }),
   );
-
   const replacements: ListItemReplacement[] = [];
   const cursorIndexByReplacement: number[] = [];
   for (const [i, cursorResult] of cursorResults.entries()) {
@@ -86,16 +75,13 @@ export function multiCursorDelete({
       cursorIndexByReplacement.push(i);
     }
   }
-
   const replaceResult = replaceMultiple({ root: oldRoot, replacements });
-
   let newCursors: Cursor[] = [];
   for (const [i, used] of replaceResult.replacementWasUsed.entries()) {
     if (used) {
       newCursors.push(cursorResults[cursorIndexByReplacement[i]].cursor);
     }
   }
-
   if (
     !newCursors.every((c) => evenPathRangeIsValid(replaceResult.root, c.focus))
   ) {
@@ -116,14 +102,11 @@ export function multiCursorDelete({
     newFocus = flipEvenPathRangeForward(newFocus);
     return { ...c, focus: newFocus };
   });
-
   newCursors = uniqueByEvenPathRange(newCursors, (c) => c.focus);
-
   if (!newCursors.length) {
     throw new Error(
       "no cursors remaining after deletion - this should not happen",
     );
   }
-
   return { root: newRoot, cursors: newCursors };
 }

@@ -1,5 +1,4 @@
 import { Doc, ListKind, ListNode, Node, NodeKind } from "./interfaces";
-
 export const emptyDoc: Doc = {
   root: {
     kind: NodeKind.List,
@@ -13,7 +12,6 @@ export const emptyDoc: Doc = {
   },
   text: "",
 };
-
 export function docMapRoot(doc: Doc, cb: (node: ListNode) => Node): Doc {
   const newRoot = cb(doc.root);
   if (newRoot === doc.root) {

@@ -9,18 +9,15 @@ import {
   InsertionOrDeletion,
   InsertionOrDeletionKind,
 } from "./text";
-
 const PRETTIER_OPTIONS: Options = {
   parser: "typescript",
   printWidth: 80,
   trailingComma: "all",
   plugins: [parserTypescript],
 };
-
 function createPrinter() {
   return ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 }
-
 function visitDeepSynced(
   nodeA: ts.Node,
   nodeB: ts.Node,
@@ -33,11 +30,9 @@ function visitDeepSynced(
     });
     return children;
   };
-
   [nodeA, nodeB] = skip(nodeA, nodeB);
   const childrenA = getChildren(nodeA);
   const childrenB = getChildren(nodeB);
-
   if (childrenA.length !== childrenB.length) {
     throw new Error("unequal number of children");
   }
@@ -45,31 +40,25 @@ function visitDeepSynced(
     visitDeepSynced(childrenA[i], childrenB[i], skip);
   }
 }
-
 interface PrettierWrap {
   wrap: true;
   nodeA: ts.TextRange;
   outerNodeB: ts.TextRange;
   innerNodeB: ts.TextRange;
 }
-
 interface PrettierUnwrap {
   wrap: false;
   outerNodeA: ts.TextRange;
   innerNodeA: ts.TextRange;
   nodeB: ts.TextRange;
 }
-
 type PrettierWrapUnwrap = PrettierWrap | PrettierUnwrap;
-
 function _prettyPrintTsSourceFile(unformattedAst: ts.SourceFile): string {
   const unformattedText = unformattedAst.text;
   const formattedText = prettierFormat(unformattedText, PRETTIER_OPTIONS);
-
   const formattedAst = assertNoSyntaxErrors(
     astFromTypescriptFileContent(formattedText),
   );
-
   const wrapUnwraps: PrettierWrapUnwrap[] = [];
   visitDeepSynced(unformattedAst, formattedAst, (nodeA, nodeB) => {
     if (
@@ -80,7 +69,6 @@ function _prettyPrintTsSourceFile(unformattedAst: ts.SourceFile): string {
     ) {
       throw new Error("nodes have invalid text ranges");
     }
-
     if (
       !ts.isParenthesizedExpression(nodeA) &&
       ts.isParenthesizedExpression(nodeB)
@@ -107,7 +95,6 @@ function _prettyPrintTsSourceFile(unformattedAst: ts.SourceFile): string {
       return [nodeA, nodeB];
     }
   });
-
   const insertionsAndDeletions: InsertionOrDeletion[] = [];
   for (const wrapUnwrap of wrapUnwraps) {
     if (wrapUnwrap.wrap) {
@@ -150,15 +137,11 @@ function _prettyPrintTsSourceFile(unformattedAst: ts.SourceFile): string {
       );
     }
   }
-
   return getTextWithInsertionsAndDeletions(
     formattedText,
     insertionsAndDeletions,
   );
 }
-
-// reprints source file so that text ranges are valid, but does not format it
-// very nicely
 export function uglyPrintTsSourceFile(
   unformattedAst: ts.SourceFile,
 ): ts.SourceFile {
@@ -169,7 +152,6 @@ export function uglyPrintTsSourceFile(
     ),
   );
 }
-
 export function prettyPrintTsSourceFile(
   unformattedAst: ts.SourceFile,
 ): ts.SourceFile {
@@ -177,7 +159,6 @@ export function prettyPrintTsSourceFile(
     astFromTypescriptFileContent(_prettyPrintTsSourceFile(unformattedAst)),
   );
 }
-
 export function prettyPrintTsString(unformattedText: string): string {
   return _prettyPrintTsSourceFile(
     assertNoSyntaxErrors(astFromTypescriptFileContent(unformattedText)),

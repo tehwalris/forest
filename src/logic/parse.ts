@@ -1,14 +1,10 @@
 import ts from "typescript";
 import { CompilerHost } from "./compiler-host";
-
 const fakeFileName = "file.tsx";
 const languageVersion = ts.ScriptTarget.ES2020;
-
 export interface SourceFileWithDiagnostics extends ts.SourceFile {
-  // HACK This field is private
   parseDiagnostics: ts.DiagnosticWithLocation[];
 }
-
 export function assertSourceFileHasDiagnostics(
   file: ts.SourceFile,
 ): asserts file is SourceFileWithDiagnostics {
@@ -16,7 +12,6 @@ export function assertSourceFileHasDiagnostics(
     throw new Error("ts.SourceFile has no parseDiagnostics property");
   }
 }
-
 export function assertNoSyntaxErrors(
   file: SourceFileWithDiagnostics,
 ): SourceFileWithDiagnostics {
@@ -26,7 +21,6 @@ export function assertNoSyntaxErrors(
   }
   return file;
 }
-
 export function astFromTypescriptFileContent(
   fileContent: string,
 ): SourceFileWithDiagnostics {
@@ -35,7 +29,6 @@ export function astFromTypescriptFileContent(
   assertSourceFileHasDiagnostics(file);
   return file;
 }
-
 export function createScanner(fileContent: string): ts.Scanner {
   return ts.createScanner(
     languageVersion,

@@ -3,30 +3,27 @@ import { Node, NodeKind, TokenNode } from "./interfaces";
 import { matchesUnion } from "./legacy-templates/match";
 import { unions } from "./legacy-templates/templates";
 import { unreachable } from "./util";
-
 export function isToken<T extends ts.Node>(
   node: Node,
   tsNodePredicate: (tsNode: ts.Node) => tsNode is T,
-): node is TokenNode & { tsNode: T } {
+): node is TokenNode & {
+  tsNode: T;
+} {
   return node.kind === NodeKind.Token && tsNodePredicate(node.tsNode);
 }
-
 export function isTsQuestionDotToken(
   node: ts.Node,
 ): node is ts.QuestionDotToken {
   return ts.isToken(node) && node.kind === ts.SyntaxKind.QuestionDotToken;
 }
-
 export function isTsColonToken(node: ts.Node): node is ts.ColonToken {
   return ts.isToken(node) && node.kind === ts.SyntaxKind.ColonToken;
 }
-
 export function isTsExclamationToken(
   node: ts.Node,
 ): node is ts.ExclamationToken {
   return ts.isToken(node) && node.kind === ts.SyntaxKind.ExclamationToken;
 }
-
 function isTsPrefixUnaryOperatorToken(
   node: ts.Node,
 ): node is ts.Token<ts.PrefixUnaryOperator> {
@@ -35,7 +32,6 @@ function isTsPrefixUnaryOperatorToken(
     unions.PrefixUnaryOperator,
   );
 }
-
 export function isTsPrefixUnaryOperatorTokenWithExpectedParent(
   node: ts.Node,
 ): node is ts.Token<ts.PrefixUnaryOperator> & {
@@ -46,7 +42,6 @@ export function isTsPrefixUnaryOperatorTokenWithExpectedParent(
     node.parent?.kind === ts.SyntaxKind.PrefixUnaryExpression
   );
 }
-
 function isTsPostfixUnaryOperatorToken(
   node: ts.Node,
 ): node is ts.Token<ts.PostfixUnaryOperator> {
@@ -55,7 +50,6 @@ function isTsPostfixUnaryOperatorToken(
     unions.PostfixUnaryOperator,
   );
 }
-
 export function isTsPostfixUnaryOperatorTokenWithExpectedParent(
   node: ts.Node,
 ): node is ts.Token<ts.PostfixUnaryOperator> & {
@@ -66,7 +60,6 @@ export function isTsPostfixUnaryOperatorTokenWithExpectedParent(
     node.parent?.kind === ts.SyntaxKind.PostfixUnaryExpression
   );
 }
-
 export function isTsBinaryOperatorToken(
   node: ts.Node,
 ): node is ts.BinaryOperatorToken {
@@ -76,13 +69,11 @@ export function isTsBinaryOperatorToken(
     node.kind <= ts.SyntaxKind.LastBinaryOperator
   );
 }
-
 type VarLetConstToken = ts.Token<
   | ts.SyntaxKind.VarKeyword
   | ts.SyntaxKind.LetKeyword
   | ts.SyntaxKind.ConstKeyword
 >;
-
 export function isTsVarLetConst(node: ts.Node): node is VarLetConstToken {
   return (
     ts.isToken(node) &&
@@ -93,7 +84,6 @@ export function isTsVarLetConst(node: ts.Node): node is VarLetConstToken {
     ].includes(node.kind)
   );
 }
-
 export function flagsForTsVarLetConst(node: VarLetConstToken): ts.NodeFlags {
   if (node.kind === ts.SyntaxKind.VarKeyword) {
     return ts.NodeFlags.None;

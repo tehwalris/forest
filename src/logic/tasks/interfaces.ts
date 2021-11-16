@@ -4,7 +4,6 @@ export interface Task {
   contentBefore: string;
   contentAfter: string;
 }
-
 export interface CreationTask extends Task {
   contentBefore: "";
 }

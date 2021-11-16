@@ -1,11 +1,13 @@
 import { EvenPathRange, Node, NodeKind, Path } from "../interfaces";
 import { pathIsInRange } from "../path-utils";
 import { unreachable } from "../util";
-
 export function nodeTryGetDeepestByPath(
   node: Node,
   path: Path,
-): { path: Path; node: Node } {
+): {
+  path: Path;
+  node: Node;
+} {
   if (!path.length) {
     return { path: [], node };
   }
@@ -24,12 +26,10 @@ export function nodeTryGetDeepestByPath(
       return unreachable(node);
   }
 }
-
 export function nodeGetByPath(node: Node, path: Path): Node | undefined {
   const result = nodeTryGetDeepestByPath(node, path);
   return result.path.length === path.length ? result.node : undefined;
 }
-
 export function nodeGetStructKeyByPath(
   node: Node,
   path: Path,
@@ -43,7 +43,6 @@ export function nodeGetStructKeyByPath(
   }
   return parentNode.structKeys[path[path.length - 1]];
 }
-
 export function nodeSetByPath(node: Node, path: Path, value: Node): Node {
   if (!path.length) {
     return value;
@@ -68,7 +67,6 @@ export function nodeSetByPath(node: Node, path: Path, value: Node): Node {
       return unreachable(node);
   }
 }
-
 export function nodeMapAtPath(
   path: Path,
   cb: (node: Node) => Node,
@@ -81,8 +79,6 @@ export function nodeMapAtPath(
     return nodeSetByPath(node, path, cb(oldFocusedNode));
   };
 }
-
-// visits parents before children
 export function nodeVisitDeep(
   node: Node,
   cb: (node: Node, path: Path) => void,
@@ -95,8 +91,6 @@ export function nodeVisitDeep(
     }
   }
 }
-
-// maps children before parents
 export function nodeMapDeep(
   oldNode: Node,
   cb: (node: Node, path: Path) => Node,
@@ -111,11 +105,9 @@ export function nodeMapDeep(
   }
   return cb(newNode, path);
 }
-
 export function resetIdsDeep(oldRoot: Node): Node {
   return nodeMapDeep(oldRoot, (oldNode) => ({ ...oldNode, id: Symbol() }));
 }
-
 export function nodeVisitDeepInRange(
   rootNode: Node,
   range: EvenPathRange,
@@ -127,7 +119,6 @@ export function nodeVisitDeepInRange(
     }
   });
 }
-
 export function onlyChildFromNode(node: Node): Node {
   if (node.kind !== NodeKind.List || node.content.length !== 1) {
     throw new Error("node must be a list with exactly 1 child");

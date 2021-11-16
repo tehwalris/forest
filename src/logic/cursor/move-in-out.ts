@@ -5,12 +5,10 @@ import { nodeGetByPath, nodeVisitDeepInRange } from "../tree-utils/access";
 import { unreachable } from "../util";
 import { Cursor } from "./interfaces";
 import { adjustPostActionCursor } from "./post-action";
-
 export enum CursorMoveInOutDirection {
   In,
   Out,
 }
-
 interface CursorMoveInOutArgs {
   root: ListNode;
   cursor: Cursor;
@@ -18,14 +16,11 @@ interface CursorMoveInOutArgs {
   bigStep: boolean;
   delimiter?: string;
 }
-
 interface CursorMoveInOutResult {
   cursor: Cursor;
   didMove: boolean;
 }
-
 type MatchFn = (node: ListNode) => boolean;
-
 export function cursorMoveInOut({
   root,
   cursor: oldCursor,
@@ -39,17 +34,14 @@ export function cursorMoveInOut({
   ) {
     throw new Error("invalid combination of arguments");
   }
-
   if (!bigStep && direction === CursorMoveInOutDirection.Out) {
     return cursorMoveOutSmall({ root, cursor: oldCursor });
   }
-
   let isMatch: MatchFn = () => true;
   if (delimiter) {
     const delimiterIndex = direction === CursorMoveInOutDirection.In ? 0 : 1;
     isMatch = (node) => node.delimiters[delimiterIndex] === delimiter;
   }
-
   let focus: EvenPathRange | undefined;
   if (direction === CursorMoveInOutDirection.In) {
     focus = tryMoveIntoList(root, oldCursor.focus, isMatch);
@@ -58,7 +50,6 @@ export function cursorMoveInOut({
   } else {
     return unreachable(direction);
   }
-
   if (!focus) {
     return { cursor: adjustPostActionCursor(oldCursor), didMove: false };
   }
@@ -67,7 +58,6 @@ export function cursorMoveInOut({
     didMove: !evenPathRangesAreEqualIgnoringDirection(focus, oldCursor.focus),
   };
 }
-
 function cursorMoveOutSmall({
   root,
   cursor: oldCursor,
@@ -83,22 +73,18 @@ function cursorMoveOutSmall({
       !!focus &&
       !evenPathRangesAreEqualIgnoringDirection(focus, oldCursor.focus),
   });
-
   if (isFocusOnEmptyListContent(root, oldCursor.focus)) {
     return wrapResult(tryMoveOutOfList(root, oldCursor.focus, () => true));
   }
-
   const nonDelimitedParentFocus = tryMoveToParent(root, oldCursor.focus);
   const delimitedParentFocus = tryMoveOutOfList(
     root,
     oldCursor.focus,
     () => true,
   );
-
   if (!nonDelimitedParentFocus || !delimitedParentFocus) {
     return wrapResult(nonDelimitedParentFocus || delimitedParentFocus);
   }
-
   const choiceBoolean =
     nonDelimitedParentFocus.anchor.length > delimitedParentFocus.anchor.length;
   const chosenFocus = choiceBoolean
@@ -107,14 +93,12 @@ function cursorMoveOutSmall({
   const nonChosenFocus = choiceBoolean
     ? delimitedParentFocus
     : nonDelimitedParentFocus;
-
   let focus = normalizeFocusIn(root, chosenFocus);
   if (!wrapResult(focus).didMove) {
     focus = nonChosenFocus;
   }
   return wrapResult(focus);
 }
-
 function tryMoveIntoList(
   root: ListNode,
   focus: EvenPathRange,
@@ -136,7 +120,6 @@ function tryMoveIntoList(
   if (!listPath) {
     return undefined;
   }
-
   const listNode = nodeGetByPath(root, listPath);
   if (listNode?.kind !== NodeKind.List) {
     throw new Error("unreachable");
@@ -146,7 +129,6 @@ function tryMoveIntoList(
     offset: Math.max(0, listNode.content.length - 1),
   };
 }
-
 function tryMoveOutOfList(
   root: ListNode,
   focus: EvenPathRange,
@@ -168,7 +150,6 @@ function tryMoveOutOfList(
   }
   return undefined;
 }
-
 function tryMoveToParent(
   root: ListNode,
   focus: EvenPathRange,
@@ -179,7 +160,6 @@ function tryMoveToParent(
     if (parentNode?.kind !== NodeKind.List) {
       throw new Error("parentNode is not a list");
     }
-
     const wholeParentSelected =
       Math.abs(focus.offset) + 1 === parentNode.content.length;
     if (!wholeParentSelected) {
@@ -188,7 +168,6 @@ function tryMoveToParent(
         offset: parentNode.content.length - 1,
       };
     }
-
     focus = {
       anchor: parentPath,
       offset: 0,

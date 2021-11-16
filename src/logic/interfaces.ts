@@ -1,32 +1,25 @@
 import ts from "typescript";
-
 export interface Doc {
   root: ListNode;
   text: string;
 }
-
 export interface TextRange {
   pos: number;
   end: number;
 }
-
 export enum NodeKind {
   Token,
   List,
 }
-
 export type Node = TokenNode | ListNode;
-
 interface BaseNode extends TextRange {
   id: Symbol;
   isPlaceholder?: boolean;
 }
-
 export interface TokenNode extends BaseNode {
   kind: NodeKind.Token;
   tsNode: ts.Node;
 }
-
 export enum ListKind {
   TightExpression,
   LooseExpression,
@@ -42,7 +35,6 @@ export enum ListKind {
   TsNodeList,
   File,
 }
-
 export interface ListNode extends BaseNode {
   kind: NodeKind.List;
   listKind: ListKind;
@@ -52,16 +44,19 @@ export interface ListNode extends BaseNode {
   content: Node[];
   equivalentToContent: boolean;
 }
-
 export type Path = number[];
-export type EvenPathRange = { anchor: Path; offset: number };
-export type UnevenPathRange = { anchor: Path; tip: Path };
-
+export type EvenPathRange = {
+  anchor: Path;
+  offset: number;
+};
+export type UnevenPathRange = {
+  anchor: Path;
+  tip: Path;
+};
 export interface NodeWithPath {
   node: Node;
   path: Path;
 }
-
 export interface InsertState {
   beforePos: number[];
   text: string;

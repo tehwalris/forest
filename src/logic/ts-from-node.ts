@@ -21,14 +21,12 @@ import {
   isTsVarLetConst,
 } from "./ts-type-predicates";
 import { unreachable } from "./util";
-
 function tsNodeArrayFromNode(node: Node): ts.Node[] {
   if (node.kind !== NodeKind.List) {
     throw new Error("node is not a list");
   }
   return node.content.map((c) => tsNodeFromNode(c));
 }
-
 function tsIfStatementFromIfBranchNode(
   node: Node,
   elseStatement: ts.Statement | undefined,
@@ -56,7 +54,6 @@ function tsIfStatementFromIfBranchNode(
     elseStatement,
   );
 }
-
 function tryMakeTsNodeFromGenericTsNodeStruct(
   node: ListNode,
 ): ts.Node | undefined {
@@ -64,24 +61,20 @@ function tryMakeTsNodeFromGenericTsNodeStruct(
   if (!oldTsNode || !allowedGenericNodeMatchers.find((m) => m(oldTsNode))) {
     return undefined;
   }
-
   const structTemplate: UnknownStructTemplate | undefined =
     structTemplates.find((t) => t.match(oldTsNode)) as any;
   if (!structTemplate) {
     return undefined;
   }
-
   const modifierKeys = (node.structKeys || []).filter((k) => isModifierKey(k));
   const content = getStructContent(
     node,
     structTemplate.keyword ? ["keyword"] : [],
     [...structTemplate.children, ...modifierKeys],
   );
-
   const modifiers: ts.Modifier[] = modifierKeys.map(
     (k) => tsNodeFromNode(content[k]!) as ts.Modifier,
   );
-
   const children: {
     [key: string]: ts.Node | ts.NodeArray<ts.Node> | undefined;
   } = {};
@@ -99,10 +92,8 @@ function tryMakeTsNodeFromGenericTsNodeStruct(
       children[k] = tsNodeFromNode(childNode);
     }
   }
-
   return structTemplate.build(children, modifiers);
 }
-
 function tryMakeTsNodeFromGenericTsNodeList(
   node: ListNode,
 ): ts.Node | undefined {
@@ -110,20 +101,17 @@ function tryMakeTsNodeFromGenericTsNodeList(
   if (!oldTsNode || !allowedGenericNodeMatchers.find((m) => m(oldTsNode))) {
     return undefined;
   }
-
   const listTemplate: UnknownListTemplate | undefined = listTemplates.find(
     (t) => t.match(oldTsNode),
   ) as any;
   if (!listTemplate) {
     return undefined;
   }
-
   return listTemplate.build(
     node.content.map((c) => tsNodeFromNode(c)),
     [],
   );
 }
-
 export function tsNodeFromNode(node: Node): ts.Node {
   if (node.kind === NodeKind.Token) {
     return node.tsNode;
@@ -137,7 +125,6 @@ export function tsNodeFromNode(node: Node): ts.Node {
       if (node.content.length === 1) {
         return tsNodeFromNode(lastChild);
       }
-
       const secondToLastChild = node.content[node.content.length - 2];
       const thirdToLastChild =
         node.content.length >= 3
@@ -162,12 +149,10 @@ export function tsNodeFromNode(node: Node): ts.Node {
         questionDotToken = potentialQuestionDotTokenNode.tsNode;
         extraUsedNodeCount++;
       }
-
       const restNode = {
         ...node,
         content: node.content.slice(0, -(1 + extraUsedNodeCount)),
       };
-
       if (
         isToken(node.content[0], isTsPrefixUnaryOperatorTokenWithExpectedParent)
       ) {
@@ -309,7 +294,6 @@ export function tsNodeFromNode(node: Node): ts.Node {
       } else {
         syntaxKind = ts.SyntaxKind.PropertyAssignment;
       }
-
       switch (syntaxKind) {
         case ts.SyntaxKind.PropertyAssignment: {
           if (node.content.length !== 2) {
@@ -396,12 +380,10 @@ export function tsNodeFromNode(node: Node): ts.Node {
               "VariableDeclarationList must have at least 2 children (var/let/const and at least 1 VariableDeclaration)",
             );
           }
-
           const varLetConst = tsNodeFromNode(node.content[0]);
           if (!isTsVarLetConst(varLetConst)) {
             throw new Error("first child is not var/let/const");
           }
-
           return ts.createVariableDeclarationList(
             tsNodeArrayFromNode({
               ...node,

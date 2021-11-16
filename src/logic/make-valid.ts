@@ -28,7 +28,6 @@ import {
   isTsQuestionDotToken,
   isTsVarLetConst,
 } from "./ts-type-predicates";
-
 export function makeNodeValidTs(node: ListNode): {
   node: ListNode;
   pathMapper: PathMapper;
@@ -53,14 +52,12 @@ export function makeNodeValidTs(node: Node): {
     pathMapper,
   };
 }
-
 export function makePlaceholderIdentifier(): Node {
   return {
     ...nodeFromTsNode(ts.createIdentifier("placeholder"), undefined),
     isPlaceholder: true,
   };
 }
-
 function makePlaceholderForUnion(union: Union<ts.Node>): Node {
   const placeholders: Node[] = [
     makePlaceholderIdentifier(),
@@ -80,17 +77,16 @@ function makePlaceholderForUnion(union: Union<ts.Node>): Node {
   }
   return matchingPlaceholder;
 }
-
-function isEmptyListNode(node: Node): node is ListNode & { content: [] } {
+function isEmptyListNode(node: Node): node is ListNode & {
+  content: [];
+} {
   return node.kind === NodeKind.List && !node.content.length;
 }
-
 export interface WithInsertedContentMapArgs {
   oldIndex?: number;
   newIndex: number;
   node: Node;
 }
-
 function reinsertPlaceholdersIntoContent(
   oldContent: Node[],
   shouldInsert: (
@@ -107,14 +103,9 @@ function reinsertPlaceholdersIntoContent(
     node: Node;
     oldIndex?: number;
   }) => {
-    const mappedNode = map({
-      oldIndex,
-      newIndex: newContent.length,
-      node,
-    });
+    const mappedNode = map({ oldIndex, newIndex: newContent.length, node });
     newContent.push(mappedNode);
   };
-
   let oldIndex = 0;
   while (true) {
     let oldIndexExcludingPlaceholders = oldIndex;
@@ -128,28 +119,21 @@ function reinsertPlaceholdersIntoContent(
       oldIndexExcludingPlaceholders < oldContent.length
         ? oldContent[oldIndexExcludingPlaceholders]
         : undefined;
-
     const newNode = shouldInsert(last(newContent), oldNode);
     if (newNode && oldIndex === oldIndexExcludingPlaceholders) {
-      // insert before non-placeholder node
       mapAndPush({ node: newNode });
     } else if (newNode) {
-      // replace placeholder node
       mapAndPush({ node: newNode, oldIndex });
       oldIndex++;
     } else if (!oldNode) {
-      // consumed all nodes except trailing placeholders
       break;
     } else {
-      // consume and output old node
       mapAndPush({ node: oldNode, oldIndex });
       oldIndex = oldIndexExcludingPlaceholders + 1;
     }
   }
-
   return newContent;
 }
-
 function makeLooseExpressionValidTs(
   oldContent: Node[],
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
@@ -193,7 +177,6 @@ function makeLooseExpressionValidTs(
     mapChild,
   );
 }
-
 function makeTightExpressionValidTs(
   oldNode: ListNode,
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
@@ -255,7 +238,6 @@ function makeTightExpressionValidTs(
     mapChild,
   );
 }
-
 function makeVariableDeclarationListValidTs(
   oldContent: Node[],
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
@@ -294,7 +276,6 @@ function makeVariableDeclarationListValidTs(
     mapChild,
   );
 }
-
 function makeReturnStatementValidTs(
   oldNode: ListNode,
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
@@ -337,7 +318,6 @@ function makeReturnStatementValidTs(
     throw new Error("unsupported structKeys");
   }
 }
-
 function makeThrowStatementValidTs(
   oldNode: ListNode,
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
@@ -374,7 +354,6 @@ function makeThrowStatementValidTs(
     );
   }
 }
-
 function makePropertyAssignmentValidTs(
   oldContent: Node[],
   oldStructKeys: string[] | undefined,
@@ -383,7 +362,6 @@ function makePropertyAssignmentValidTs(
   if (!oldStructKeys || oldStructKeys.length !== oldContent.length) {
     throw new Error("structKeys is missing or has wrong length");
   }
-
   if (
     oldStructKeys.length === 2 &&
     oldStructKeys[0] === "name" &&
@@ -406,14 +384,12 @@ function makePropertyAssignmentValidTs(
     throw new Error("unsupported structKeys");
   }
 }
-
 function makeShorthandPropertyAssignmentValidTs(
   oldContent: Node[],
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
 ): Node[] {
   return [mapChild({ node: oldContent[0], oldIndex: 0, newIndex: 0 })];
 }
-
 function makeSpreadAssignmentValidTs(
   oldContent: Node[],
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
@@ -433,7 +409,6 @@ function makeSpreadAssignmentValidTs(
     mapChild,
   );
 }
-
 function makeObjectLiteralElementValidTs(
   oldNode: ListNode,
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
@@ -441,11 +416,9 @@ function makeObjectLiteralElementValidTs(
   if (oldNode.content.length < 1) {
     throw new Error("ObjectLiteralElement must have at least 1 child");
   }
-
   const oldContentWithoutPlaceholders = oldNode.content.filter(
     (c) => !c.isPlaceholder,
   );
-
   if (isToken(oldNode.content[0], ts.isDotDotDotToken)) {
     return {
       ...oldNode,
@@ -476,7 +449,6 @@ function makeObjectLiteralElementValidTs(
     };
   }
 }
-
 function tryMakeGenericStructNodeValidTs(
   oldNode: ListNode,
   mapChild: (args: { node: Node; oldIndex?: number; newIndex: number }) => Node,
@@ -488,13 +460,11 @@ function tryMakeGenericStructNodeValidTs(
   if (!oldTsNode || !allowedGenericNodeMatchers.find((m) => m(oldTsNode))) {
     return undefined;
   }
-
   const structTemplate: UnknownStructTemplate | undefined =
     structTemplates.find((t) => t.match(oldTsNode)) as any;
   if (!structTemplate) {
     return undefined;
   }
-
   const modifierKeys = (oldNode.structKeys || []).filter((k) =>
     isModifierKey(k),
   );
@@ -507,13 +477,9 @@ function tryMakeGenericStructNodeValidTs(
   if (overrideTemplateChildren) {
     templateChildren = overrideTemplateChildren(templateChildren);
   }
-
-  const newNode: ListNode & { structKeys: string[] } = {
-    ...oldNode,
-    content: [],
-    structKeys: [],
-  };
-
+  const newNode: ListNode & {
+    structKeys: string[];
+  } = { ...oldNode, content: [], structKeys: [] };
   for (const k of modifierKeys) {
     const newIndex = newNode.content.length;
     newNode.content.push(
@@ -525,12 +491,10 @@ function tryMakeGenericStructNodeValidTs(
     );
     newNode.structKeys.push(k);
   }
-
   if (oldContent.keyword) {
     newNode.content.push(oldContent.keyword);
     newNode.structKeys.push("keyword");
   }
-
   for (const k of structTemplate.children) {
     const templateChild = templateChildren[k];
     const newIndex = newNode.content.length;
@@ -556,14 +520,11 @@ function tryMakeGenericStructNodeValidTs(
       newNode.structKeys.push(k);
     }
   }
-
   return newNode;
 }
-
 interface ExtraInfo {
   couldBeElseBranch?: boolean;
 }
-
 function _makeNodeValidTs({
   node,
   pathMapper,
@@ -583,17 +544,13 @@ function _makeNodeValidTs({
       throw new Error("there is no non-placeholder child");
     }
     return _makeNodeValidTs({
-      node: onlyChildFromNode({
-        ...node,
-        content: [node.content[i]],
-      }),
+      node: onlyChildFromNode({ ...node, content: [node.content[i]] }),
       pathMapper,
       oldPath: [...oldPath, i],
       newPath: [...newPath],
       extraInfo: {},
     });
   }
-
   function mapChild({
     node,
     oldIndex,
@@ -616,11 +573,9 @@ function _makeNodeValidTs({
       extraInfo: extraInfo || {},
     });
   }
-
   if (!pathsAreEqual(oldPath, newPath)) {
     pathMapper.record({ old: oldPath, new: newPath });
   }
-
   if (
     node.kind === NodeKind.List &&
     node.listKind === ListKind.TightExpression
@@ -628,10 +583,7 @@ function _makeNodeValidTs({
     if (makeTightExpressionValidTs(node, (e) => e.node).length === 1) {
       node = extractOnlyNonPlaceholderChild(node);
     } else {
-      node = {
-        ...node,
-        content: makeTightExpressionValidTs(node, mapChild),
-      };
+      node = { ...node, content: makeTightExpressionValidTs(node, mapChild) };
     }
   } else if (
     node.kind === NodeKind.List &&
@@ -690,7 +642,6 @@ function _makeNodeValidTs({
     const hasDefaultExport =
       modifierSyntaxKinds.includes(ts.SyntaxKind.ExportKeyword) &&
       modifierSyntaxKinds.includes(ts.SyntaxKind.DefaultKeyword);
-
     const genericNode = tryMakeGenericStructNodeValidTs(
       node,
       mapChild,
@@ -707,7 +658,6 @@ function _makeNodeValidTs({
         };
       },
     );
-
     if (!genericNode) {
       throw new Error("expected generic support for FunctionDeclaration");
     }
@@ -740,16 +690,9 @@ function _makeNodeValidTs({
       ...node,
       content: node.content.map((c, i) => {
         if (structKeys[i] === "expression" && isEmptyListNode(c)) {
-          return {
-            ...c,
-            content: [makePlaceholderIdentifier()],
-          };
+          return { ...c, content: [makePlaceholderIdentifier()] };
         } else {
-          return mapChild({
-            node: c,
-            oldIndex: i,
-            newIndex: i,
-          });
+          return mapChild({ node: c, oldIndex: i, newIndex: i });
         }
       }),
     };

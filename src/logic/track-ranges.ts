@@ -1,7 +1,6 @@
 import { EvenPathRange, ListNode, Path } from "./interfaces";
 import { getSmallestContainingRange, pathIsInRange } from "./path-utils";
 import { nodeVisitDeep } from "./tree-utils/access";
-
 export function trackRanges(
   oldRoot: ListNode,
   newRoot: ListNode,
@@ -18,7 +17,6 @@ export function trackRanges(
       rangeIndices.push(iRange);
     }
   });
-
   const pathsByRange: Path[][] = oldRanges.map(() => []);
   nodeVisitDeep(newRoot, (newNode, path) => {
     const rangeIndices = rangeIndicesByNodeIds.get(newNode.id) || [];
@@ -26,7 +24,6 @@ export function trackRanges(
       pathsByRange[iRange].push(path);
     }
   });
-
   return pathsByRange.map((paths) =>
     paths.length ? getSmallestContainingRange(paths) : undefined,
   );

@@ -7,17 +7,14 @@ import { isToken } from "../ts-type-predicates";
 import { checkAllItemsDefined } from "../util";
 import { Cursor } from "./interfaces";
 import { adjustPostActionCursor } from "./post-action";
-
 interface CursorRenameArgs {
   root: ListNode;
   cursor: Cursor;
   rename: (s: string) => string;
 }
-
 interface CursorRenameResult {
   replacement: ListItemReplacement;
 }
-
 function cursorRename({
   root,
   cursor: oldCursor,
@@ -27,7 +24,6 @@ function cursorRename({
     return undefined;
   }
   const path = oldCursor.focus.anchor;
-
   const oldNode = nodeGetByPath(root, path);
   if (
     !oldNode ||
@@ -36,7 +32,6 @@ function cursorRename({
     return undefined;
   }
   const oldStructKey = nodeGetStructKeyByPath(root, path);
-
   const newName = rename(oldNode.tsNode.text);
   const newNode = nodeFromTsNode(
     isToken(oldNode, ts.isIdentifier)
@@ -44,7 +39,6 @@ function cursorRename({
       : ts.factory.createStringLiteral(newName),
     undefined,
   );
-
   return {
     replacement: {
       range: { anchor: path, offset: 0 },
@@ -53,18 +47,15 @@ function cursorRename({
     },
   };
 }
-
 interface MultiCursorRenameArgs {
   root: ListNode;
   cursors: Cursor[];
   rename: (s: string) => string;
 }
-
 interface MultiCursorRenameResult {
   root: ListNode;
   cursors: Cursor[];
 }
-
 export function multiCursorRename({
   root: oldRoot,
   cursors: oldCursors,
@@ -74,7 +65,6 @@ export function multiCursorRename({
     root: oldRoot,
     cursors: oldCursors.map((c) => adjustPostActionCursor(c)),
   };
-
   const cursorResults = oldCursors.map((cursor) =>
     cursorRename({ root: oldRoot, cursor, rename }),
   );
@@ -84,7 +74,6 @@ export function multiCursorRename({
     );
     return failResult;
   }
-
   const replaceResult = replaceMultiple({
     root: oldRoot,
     replacements: cursorResults.map((r) => r.replacement),
@@ -100,7 +89,6 @@ export function multiCursorRename({
     );
     return failResult;
   }
-
   return {
     root: replaceResult.root,
     cursors: oldCursors.map((c, i) =>

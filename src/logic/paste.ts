@@ -15,7 +15,6 @@ import {
 import { nodeFromTsNode } from "./node-from-ts";
 import { ListItemReplacement } from "./replace-multiple";
 import { tsNodeFromNode } from "./ts-from-node";
-
 export function acceptPasteRoot(
   clipboard: Clipboard,
 ): ListItemReplacement | undefined {
@@ -40,12 +39,10 @@ export function acceptPasteRoot(
   }
   return { content: replacement.content, range: { anchor: [], offset: 0 } };
 }
-
 export interface Clipboard {
   node: Node;
   isPartialCopy: boolean;
 }
-
 export interface PasteReplaceArgs {
   node: ListNode;
   parent?: {
@@ -57,35 +54,28 @@ export interface PasteReplaceArgs {
   clipboard: Node;
   isPartialCopy: boolean;
 }
-
 interface FlattenedPasteReplaceArgs extends PasteReplaceArgs {
   clipboard: ListNode;
 }
-
 interface NestedPasteReplaceArgs extends PasteReplaceArgs {
   clipboardTs: ts.Node | undefined;
 }
-
 function canPasteFlattenedIntoTightExpression({
   firstIndex,
   clipboard,
 }: FlattenedPasteReplaceArgs): boolean {
-  // TODO this is very restrictive, see canPasteNestedIntoTightExpression
   return clipboard.listKind === ListKind.TightExpression && firstIndex === 0;
 }
-
 function canPasteFlattenedIntoLooseExpression({
   clipboard,
 }: FlattenedPasteReplaceArgs): boolean {
   return clipboard.listKind === ListKind.LooseExpression;
 }
-
 function canPasteFlattenedIntoCallArguments({
   clipboard,
 }: FlattenedPasteReplaceArgs): boolean {
   return clipboard.listKind === ListKind.CallArguments;
 }
-
 function canPasteFlattenedIntoGenericTsNodeChildList({
   parent,
   node,
@@ -110,7 +100,6 @@ function canPasteFlattenedIntoGenericTsNodeChildList({
     });
   });
 }
-
 function canPasteFlattenedIntoGenericTsNodeList({
   node,
   clipboard,
@@ -139,7 +128,6 @@ function canPasteFlattenedIntoGenericTsNodeList({
     });
   });
 }
-
 function canPasteFlattenedIntoTsBlockOrFile({
   clipboard,
 }: FlattenedPasteReplaceArgs): boolean {
@@ -149,32 +137,26 @@ function canPasteFlattenedIntoTsBlockOrFile({
     clipboard.listKind === ListKind.File
   );
 }
-
 function canPasteNestedIntoTightExpression({
   clipboardTs,
 }: NestedPasteReplaceArgs): boolean {
-  // TODO this is very restrictive, but other kinds of expressions can only appear on the left side of a TightExpression
   return !!clipboardTs && ts.isIdentifier(clipboardTs);
 }
-
 function canPasteNestedIntoLooseExpression({
   clipboardTs,
 }: NestedPasteReplaceArgs): boolean {
   return !!clipboardTs && matchesUnion(clipboardTs, unions.Expression);
 }
-
 function canPasteNestedIntoParenthesizedExpression({
   clipboardTs,
 }: NestedPasteReplaceArgs): boolean {
   return !!clipboardTs && matchesUnion(clipboardTs, unions.Expression);
 }
-
 function canPasteNestedIntoCallArguments({
   clipboardTs,
 }: NestedPasteReplaceArgs): boolean {
   return !!clipboardTs && matchesUnion(clipboardTs, unions.Expression);
 }
-
 function canPasteNestedIntoObjectLiteralElement({
   node,
   firstIndex,
@@ -187,7 +169,6 @@ function canPasteNestedIntoObjectLiteralElement({
   if (!clipboardTs) {
     return false;
   }
-
   switch (tsNodeFromNode(node).kind) {
     case ts.SyntaxKind.PropertyAssignment: {
       if (firstIndex === 0) {
@@ -216,7 +197,6 @@ function canPasteNestedIntoObjectLiteralElement({
       return false;
   }
 }
-
 function canPasteNestedIntoTsBlockOrFile({
   clipboardTs,
 }: NestedPasteReplaceArgs): boolean {
@@ -224,7 +204,6 @@ function canPasteNestedIntoTsBlockOrFile({
     !!clipboardTs && matchesUnion<ts.Statement>(clipboardTs, unions.Statement)
   );
 }
-
 function tryGetTemplateChildForGenericTsNodeStruct(
   node: ListNode,
   childIndex: number,
@@ -233,23 +212,18 @@ function tryGetTemplateChildForGenericTsNodeStruct(
   if (!oldTsNode || !allowedGenericNodeMatchers.find((m) => m(oldTsNode))) {
     return undefined;
   }
-
   const structTemplate: UnknownStructTemplate | undefined =
     structTemplates.find((t) => t.match(oldTsNode)) as any;
   if (!structTemplate) {
     return undefined;
   }
-
   const templateChildren = structTemplate.load(oldTsNode);
-
   const structKey = node.structKeys?.[childIndex];
   if (!structKey) {
     throw new Error("childIndex does not point to a valid structKey");
   }
-
   return templateChildren[structKey];
 }
-
 function tryGetTemplateForGenericTsNodeList(
   node: ListNode,
 ): UnknownListTemplate | undefined {
@@ -257,13 +231,11 @@ function tryGetTemplateForGenericTsNodeList(
   if (!oldTsNode || !allowedGenericNodeMatchers.find((m) => m(oldTsNode))) {
     return undefined;
   }
-
   const listTemplate: UnknownListTemplate | undefined = listTemplates.find(
     (t) => t.match(oldTsNode),
   ) as any;
   return listTemplate;
 }
-
 function canPasteNestedIntoGenericTsNodeStruct({
   node,
   firstIndex,
@@ -282,7 +254,6 @@ function canPasteNestedIntoGenericTsNodeStruct({
   }
   return matchesUnion(clipboardTs, templateChild.union);
 }
-
 function canPasteNestedIntoGenericTsNodeStructChildList({
   parent,
   firstIndex,
@@ -301,7 +272,6 @@ function canPasteNestedIntoGenericTsNodeStructChildList({
   }
   return matchesUnion(clipboardTs, templateChild.union);
 }
-
 function canPasteNestedIntoGenericTsNodeList({
   node,
   firstIndex,
@@ -317,12 +287,10 @@ function canPasteNestedIntoGenericTsNodeList({
   }
   return matchesUnion(clipboardTs, listTemplate.childUnion);
 }
-
 export function acceptPasteReplace(
   args: PasteReplaceArgs,
 ): ListItemReplacement | undefined {
   const { node, firstIndex, lastIndex, clipboard, isPartialCopy } = args;
-
   if (
     !(
       firstIndex >= 0 &&
@@ -332,12 +300,10 @@ export function acceptPasteReplace(
   ) {
     throw new Error("invalid indices");
   }
-
   let clipboardTs: ts.Node | undefined;
   try {
     clipboardTs = tsNodeFromNode(clipboard);
   } catch {}
-
   const canPasteFlattened = (function () {
     if (
       clipboard.kind !== NodeKind.List ||
@@ -369,7 +335,6 @@ export function acceptPasteReplace(
         return false;
     }
   })();
-
   const canPasteNested = (function () {
     const _args: NestedPasteReplaceArgs = { ...args, clipboardTs };
     switch (node.listKind) {
@@ -401,7 +366,6 @@ export function acceptPasteReplace(
         return false;
     }
   })();
-
   if (canPasteFlattened) {
     if (clipboard.kind !== NodeKind.List) {
       throw new Error(

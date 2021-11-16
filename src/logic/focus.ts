@@ -14,7 +14,6 @@ import {
   unevenPathRangesAreEqual,
 } from "./path-utils";
 import { nodeGetByPath } from "./tree-utils/access";
-
 function normalizeFocusInOnce(
   root: ListNode,
   focus: UnevenPathRange,
@@ -39,7 +38,6 @@ function normalizeFocusInOnce(
     tip: [...evenFocus.anchor, focusedNode.content.length - 1],
   };
 }
-
 export function normalizeFocusIn(
   root: ListNode,
   focus: EvenPathRange,
@@ -53,7 +51,6 @@ export function normalizeFocusIn(
     ),
   );
 }
-
 export function normalizeFocusOutOnce(
   root: ListNode,
   focus: UnevenPathRange,
@@ -81,7 +78,6 @@ export function normalizeFocusOutOnce(
     return focus;
   }
 }
-
 export function normalizeFocusOut(
   root: ListNode,
   focus: EvenPathRange,
@@ -95,7 +91,6 @@ export function normalizeFocusOut(
     ),
   );
 }
-
 export function whileUnevenFocusChanges(
   initialFocus: UnevenPathRange,
   cb: (focus: UnevenPathRange) => UnevenPathRange,
@@ -109,7 +104,6 @@ export function whileUnevenFocusChanges(
     oldFocus = newFocus;
   }
 }
-
 export function untilEvenFocusChanges(
   initialFocus: UnevenPathRange,
   cb: (focus: UnevenPathRange) => UnevenPathRange,
@@ -118,7 +112,6 @@ export function untilEvenFocusChanges(
   while (true) {
     const newFocus = cb(oldFocus);
     if (unevenPathRangesAreEqual(newFocus, oldFocus)) {
-      // avoid infinite loop (if the uneven focus didn't change, it probably never will, so the even focus wont either)
       return newFocus;
     }
     if (
@@ -132,7 +125,6 @@ export function untilEvenFocusChanges(
     oldFocus = newFocus;
   }
 }
-
 export function isFocusOnEmptyListContent(
   root: ListNode,
   focus: EvenPathRange,
@@ -151,13 +143,11 @@ export function isFocusOnEmptyListContent(
     focus.offset === 0
   );
 }
-
 export function textRangeFromFocus(
   root: ListNode,
   focus: EvenPathRange,
 ): TextRange {
   focus = flipEvenPathRangeForward(focus);
-
   if (isFocusOnEmptyListContent(root, focus)) {
     const node = nodeGetByPath(root, focus.anchor.slice(0, -1));
     if (node?.kind !== NodeKind.List || node.content.length) {
@@ -168,15 +158,10 @@ export function textRangeFromFocus(
       end: node.end - node.delimiters[1].length,
     };
   }
-
   const firstNode = nodeGetByPath(root, focus.anchor);
   const lastNode = nodeGetByPath(root, getPathToTip(focus));
   if (!firstNode || !lastNode) {
     throw new Error("invalid focus");
   }
-
-  return {
-    pos: firstNode.pos,
-    end: lastNode.end,
-  };
+  return { pos: firstNode.pos, end: lastNode.end };
 }

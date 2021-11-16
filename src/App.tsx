@@ -10,7 +10,6 @@ import { configureRemoteFs } from "./logic/tasks/fs";
 import { Task } from "./logic/tasks/interfaces";
 import { loadTasks } from "./logic/tasks/load";
 import { isBrowseTask, isCreationTask } from "./logic/tasks/util";
-
 const exampleFileText = `
         if (Date.now() % 100 == 0) {
           console.log("lucky you");
@@ -18,7 +17,6 @@ const exampleFileText = `
           console.log("even better");
         }
 `;
-
 const styles = {
   splitView: css`
     display: flex;
@@ -34,7 +32,6 @@ const styles = {
     opacity: 0.5;
   `,
 };
-
 export const App = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   useEffect(() => {
@@ -52,7 +49,6 @@ export const App = () => {
       );
     })().catch((err) => console.error("failed to load tasks", err));
   }, []);
-
   const [initialDocText, setInitialDocText] = useState(exampleFileText);
   const initialDoc = useMemo(
     () =>
@@ -61,7 +57,6 @@ export const App = () => {
       ),
     [initialDocText],
   );
-
   const [_selectedTaskName, setSelectedTaskName] = useState("");
   const selectedTask = useMemo(
     () => tasks.find((t) => t.name === _selectedTaskName),
@@ -74,7 +69,6 @@ export const App = () => {
       setInitialDocText(exampleFileText);
     }
   }, [selectedTask]);
-
   const prettySelectedTaskContentAfter = useMemo(() => {
     if (!selectedTask) {
       return undefined;
@@ -86,9 +80,7 @@ export const App = () => {
       return selectedTask.contentAfter;
     }
   }, [selectedTask]);
-
   const [showTargetView, setShowTargetView] = useState(false);
-
   return (
     <>
       <div>

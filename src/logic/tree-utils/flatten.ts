@@ -1,7 +1,6 @@
 import { ListNode, Node, NodeKind, NodeWithPath, Path } from "../interfaces";
 import { prefixNodesWithPaths } from "../path-utils";
 import { nodeGetByPath, nodeMapAtPath } from "../tree-utils/access";
-
 function flattenNode(node: Node): NodeWithPath[] {
   if (node.kind === NodeKind.Token || !node.equivalentToContent) {
     return [{ node, path: [] }];
@@ -10,11 +9,13 @@ function flattenNode(node: Node): NodeWithPath[] {
     prefixNodesWithPaths(flattenNode(c), i),
   );
 }
-
 export function flattenNodeAroundSplit(
   node: Node,
   splitBeforePath: Path,
-): { before: NodeWithPath[]; after: NodeWithPath[] } {
+): {
+  before: NodeWithPath[];
+  after: NodeWithPath[];
+} {
   if (!splitBeforePath.length || node.kind === NodeKind.Token) {
     return { before: [], after: flattenNode(node) };
   }
@@ -42,12 +43,9 @@ export function flattenNodeAroundSplit(
     after: [...(at?.after || []), ...after],
   };
 }
-
-// path must point *inside* the list, not just at it
 function getPathToDeepestDelimitedListOrRoot(root: ListNode, path: Path): Path {
   return _getPathToDeepestDelimitedList(root, path) || [];
 }
-
 function _getPathToDeepestDelimitedList(
   node: ListNode,
   path: Path,
@@ -55,17 +53,14 @@ function _getPathToDeepestDelimitedList(
   if (!path.length) {
     return undefined;
   }
-
   let deeperPathSuffix: Path | undefined;
   const child = node.content[path[0]];
   if (child?.kind === NodeKind.List) {
     deeperPathSuffix = _getPathToDeepestDelimitedList(child, path.slice(1));
   }
-
   const pathIfDelimited = node.equivalentToContent ? undefined : [];
   return deeperPathSuffix ? [path[0], ...deeperPathSuffix] : pathIfDelimited;
 }
-
 export function splitAtDeepestDelimiter(
   root: ListNode,
   targetPath: Path,

@@ -1,6 +1,5 @@
 import { evenPathRangesAreEqual } from "../path-utils";
 import { Cursor } from "./interfaces";
-
 export function cursorsAreEqual(a: Cursor, b: Cursor): boolean {
   return (
     evenPathRangesAreEqual(a.focus, b.focus) &&
@@ -8,7 +7,6 @@ export function cursorsAreEqual(a: Cursor, b: Cursor): boolean {
     a.clipboard === b.clipboard
   );
 }
-
 export function cursorArraysAreEqual(aArr: Cursor[], bArr: Cursor[]): boolean {
   return (
     aArr.length === bArr.length &&

@@ -1,8 +1,13 @@
-// first argument is used as a weak map key, further arguments are checked for reference equality
 export function memoize<A extends [object, ...any], T>(
   f: (...args: A) => T,
 ): (...args: A) => T {
-  const cache = new WeakMap<A[0], { args: unknown[]; result: T }>();
+  const cache = new WeakMap<
+    A[0],
+    {
+      args: unknown[];
+      result: T;
+    }
+  >();
   return (...args: A): T => {
     if (!args.length) {
       return f(...args);

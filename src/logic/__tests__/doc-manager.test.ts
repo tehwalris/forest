@@ -9,46 +9,27 @@ import { Doc } from "../interfaces";
 import { docFromAst } from "../node-from-ts";
 import { astFromTypescriptFileContent } from "../parse";
 import { prettyPrintTsString } from "../print";
-
 function asPrettyDoc(uglyText: string): Doc {
   return docFromAst(
     astFromTypescriptFileContent(prettyPrintTsString(uglyText)),
   );
 }
-
 type EventHandler = "onKeyUp" | "onKeyDown" | "onKeyPress";
-
 interface EventWithHandler {
   handler: EventHandler;
   event: MinimalKeyboardEvent;
 }
-
 interface SpecialKey {
   name: string;
   key?: string;
   addToEvent?: (ev: MinimalKeyboardEvent) => MinimalKeyboardEvent;
   handler?: EventHandler;
 }
-
 const specialKeys: SpecialKey[] = [
-  {
-    name: "enter",
-    key: "Enter",
-  },
-  {
-    name: "space",
-    key: " ",
-  },
-  {
-    name: "escape",
-    key: "Escape",
-    handler: "onKeyDown",
-  },
-  {
-    name: "backspace",
-    key: "Backspace",
-    handler: "onKeyDown",
-  },
+  { name: "enter", key: "Enter" },
+  { name: "space", key: " " },
+  { name: "escape", key: "Escape", handler: "onKeyDown" },
+  { name: "backspace", key: "Backspace", handler: "onKeyDown" },
   {
     name: "ctrl",
     addToEvent: (ev) => ({ ...ev, ctrlKey: true }),
@@ -69,12 +50,10 @@ const specialKeys: SpecialKey[] = [
     },
   },
 ];
-
 function parseKeyCombo(combo: string): EventWithHandler {
   if (combo.toLowerCase() !== combo) {
     throw new Error("key combos must be lowercase");
   }
-
   let baseKey: string | undefined;
   const setBaseKey = (k: string) => {
     if (baseKey !== undefined) {
@@ -97,11 +76,9 @@ function parseKeyCombo(combo: string): EventWithHandler {
       }
     }
   }
-
   if (baseKey === undefined) {
     throw new Error("combo contains no base key");
   }
-
   if (
     new Set(usedSpecialKeys.map((s) => s.handler).filter((v) => v)).size > 1
   ) {
@@ -109,28 +86,23 @@ function parseKeyCombo(combo: string): EventWithHandler {
   }
   const handler =
     usedSpecialKeys.map((s) => s.handler).find((v) => v) || "onKeyPress";
-
   let event: MinimalKeyboardEvent = { key: baseKey };
   for (const specialKey of usedSpecialKeys) {
     if (specialKey.addToEvent) {
       event = specialKey.addToEvent(event);
     }
   }
-
   return { handler, event };
 }
-
 function eventsFromKeys(keys: string): EventWithHandler[] {
   return keys
     .trim()
     .split(/\s+/)
     .map((combo) => parseKeyCombo(combo));
 }
-
 function eventsToTypeString(keys: string): EventWithHandler[] {
   return [...keys].map((key) => ({ handler: "onKeyPress", event: { key } }));
 }
-
 describe("DocManager", () => {
   interface TestCase {
     label: string;
@@ -139,7 +111,6 @@ describe("DocManager", () => {
     expectedText: string;
     skip?: boolean;
   }
-
   const makeRoundTripTest = (text: string): TestCase => ({
     label: `round trip: ${text}`,
     initialText: text,
@@ -150,10 +121,8 @@ describe("DocManager", () => {
     ...makeRoundTripTest(text),
     skip: true,
   });
-
   const cases: TestCase[] = [
     makeRoundTripTest('console.log("walrus")'),
-    // broken in JSX mode
     makeRoundTripTest.skip("f(async <T>(x: T, y) => x + y)"),
     makeRoundTripTest('const f = (): string => "abc"'),
     makeRoundTripTest("f(g(x), y).foo[123].bar().baz"),
@@ -535,14 +504,11 @@ describe("DocManager", () => {
     {
       label: "delete value of property that is named with a reserved word",
       initialText: `const shortcuts = { delete: "space d" };`,
-      events: [
-        /* TODO */
-      ],
+      events: [],
       expectedText: `const shortcuts = { delete: placeholder };`,
       skip: true,
     },
   ];
-
   for (const c of cases) {
     (c.skip ? test.skip : test)(c.label, () => {
       const initialDoc = asPrettyDoc(c.initialText);
@@ -551,11 +517,9 @@ describe("DocManager", () => {
         publicState = s;
       });
       docManager.forceUpdate();
-
       for (const { handler, event } of c.events) {
         docManager[handler](event);
       }
-
       expect(publicState.doc.text).toEqual(asPrettyDoc(c.expectedText).text);
       expect(publicState.mode === Mode.Normal);
     });

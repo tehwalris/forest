@@ -1,6 +1,5 @@
 import { ListNode, Node, NodeKind } from "./interfaces";
 import { nodeMapDeep } from "./tree-utils/access";
-
 export function withoutInvisibleNodes(oldRoot: ListNode): ListNode {
   const newRoot = nodeMapDeep(oldRoot, (oldNode): Node => {
     if (oldNode.kind === NodeKind.Token) {

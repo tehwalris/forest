@@ -9,24 +9,20 @@ import { nodeGetByPath } from "../tree-utils/access";
 import { unreachable } from "../util";
 import { Cursor } from "./interfaces";
 import { adjustPostActionCursor } from "./post-action";
-
 export enum CursorReduceSelectionSide {
   First,
   Last,
   JustExtended,
 }
-
 interface CursorReduceSelectionArgs {
   root: ListNode;
   cursor: Cursor;
   side: CursorReduceSelectionSide;
 }
-
 interface CursorReduceSelectionResult {
   cursor: Cursor;
   didReduce: boolean;
 }
-
 export function cursorReduceSelection({
   root,
   cursor: oldCursor,
@@ -42,7 +38,6 @@ export function cursorReduceSelection({
       didReduce: false,
     };
   }
-
   let target: Path;
   switch (side) {
     case CursorReduceSelectionSide.First:
@@ -59,23 +54,19 @@ export function cursorReduceSelection({
     default:
       return unreachable(side);
   }
-
   if (!nodeGetByPath(root, target)) {
     return {
       cursor: adjustPostActionCursor({ ...oldCursor, focus: oldCursor.focus }),
       didReduce: false,
     };
   }
-
   let focus: EvenPathRange = { anchor: target, offset: 0 };
   focus = normalizeFocusIn(root, focus);
-
   return {
     cursor: adjustPostActionCursor({ ...oldCursor, focus }),
     didReduce: !evenPathRangesAreEqualIgnoringDirection(focus, oldCursor.focus),
   };
 }
-
 function getFocusSkippingDelimitedLists(
   root: ListNode,
   focus: EvenPathRange,

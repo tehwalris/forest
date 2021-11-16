@@ -4,16 +4,13 @@ import {
   StructChild,
   StructTemplate,
 } from "./legacy-templates/interfaces";
-
 export type UnknownStructTemplate = StructTemplate<
   {
     [key: string]: StructChild<ts.Node>;
   },
   ts.Node
 >;
-
 export type UnknownListTemplate = ListTemplate<ts.Node, ts.Node>;
-
 export const allowedGenericNodeMatchers: ((node: ts.Node) => boolean)[] = [
   ts.isConditionalExpression,
   ts.isArrowFunction,

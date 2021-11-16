@@ -46,12 +46,10 @@ import {
 } from "./text";
 import { trackRanges } from "./track-ranges";
 import { nodeGetByPath } from "./tree-utils/access";
-
 export enum Mode {
   Normal,
   Insert,
 }
-
 export interface DocManagerPublicState {
   doc: Doc;
   mode: Mode;
@@ -59,14 +57,12 @@ export interface DocManagerPublicState {
   cursorsOverlap: boolean;
   queuedCursors: Cursor[];
 }
-
 const initialCursor: Cursor = {
   focus: { anchor: [], offset: 0 },
   enableReduceToTip: false,
   clipboard: undefined,
   marks: [],
 };
-
 export const initialDocManagerPublicState: DocManagerPublicState = {
   doc: emptyDoc,
   mode: Mode.Normal,
@@ -74,7 +70,6 @@ export const initialDocManagerPublicState: DocManagerPublicState = {
   cursorsOverlap: false,
   queuedCursors: [],
 };
-
 export interface MinimalKeyboardEvent {
   key: string;
   altKey?: boolean;
@@ -83,17 +78,20 @@ export interface MinimalKeyboardEvent {
   preventDefault?: () => void;
   stopPropagation?: () => void;
 }
-
-function hasAltLike(
-  ev: MinimalKeyboardEvent,
-): ev is MinimalKeyboardEvent & ({ altKey: true } | { metaKey: true }) {
+function hasAltLike(ev: MinimalKeyboardEvent): ev is MinimalKeyboardEvent &
+  (
+    | {
+        altKey: true;
+      }
+    | {
+        metaKey: true;
+      }
+  ) {
   return !!ev.altKey || !!ev.metaKey;
 }
-
 interface InsertHistoryEntry {
   insertState: InsertState;
 }
-
 export class DocManager {
   public readonly initialDoc: Doc;
   private cursors: Cursor[] = [initialCursor];
@@ -108,14 +106,12 @@ export class DocManager {
   private getDocWithoutPlaceholdersNearCursors = memoize(
     getDocWithoutPlaceholdersNearCursors,
   );
-
   constructor(
     private doc: Doc,
     private _onUpdate: (publicState: DocManagerPublicState) => void,
   ) {
     this.initialDoc = doc;
   }
-
   private static copyDocManagerFields(source: DocManager, target: DocManager) {
     for (const [k, v] of Object.entries(source)) {
       if (typeof v === "function") {
@@ -128,17 +124,14 @@ export class DocManager {
       }
     }
   }
-
   clone(): DocManager {
     const other = new DocManager(this.initialDoc, this.onUpdate);
     DocManager.copyDocManagerFields(this, other);
     return other;
   }
-
   fillFromOther(other: DocManager) {
     DocManager.copyDocManagerFields(other, this);
   }
-
   forceUpdate() {
     if (this.mode !== Mode.Normal) {
       throw new Error("forceUpdate can only be called in normal mode");
@@ -146,14 +139,11 @@ export class DocManager {
     this.onUpdate();
     this.insertHistory = [];
   }
-
   disableUpdates() {
     this._onUpdate = () => {};
   }
-
   onKeyPress = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal) {
-      // TODO feature for queuing multiple disconnected cursors
       if (ev.key === "i") {
         const result = multiCursorStartInsert({
           root: this.doc.root,
@@ -190,8 +180,6 @@ export class DocManager {
         if (renameFunctionBody === null) {
           return;
         }
-        // HACK This is dangerous
-        // eslint-disable-next-line no-new-func
         const _rename: (s: string) => unknown = new Function(
           "s",
           `return (${renameFunctionBody})`,
@@ -413,10 +401,8 @@ export class DocManager {
         text: this.insertState.text + ev.key,
       };
     }
-
     this.onUpdate();
   };
-
   onKeyDown = (ev: MinimalKeyboardEvent) => {
     if (
       this.mode === Mode.Normal &&
@@ -479,16 +465,13 @@ export class DocManager {
         this.insertState = undefined;
         this.onUpdate();
       };
-
       if (!this.insertState) {
         throw new Error("this.insertState was undefined in insert mode");
       }
-
       if (!this.insertState.text) {
         finalStuff();
         return;
       }
-
       const {
         doc: oldDocWithoutPlaceholders,
         cursorBeforePositions:
@@ -497,13 +480,11 @@ export class DocManager {
         this.doc,
         this.insertState.beforePos,
       );
-
       const insertions: Insertion[] =
         cursorBeforePositionsAdjustedForPlaceholderRemoval.map((beforePos) => ({
           beforePos,
           text: this.insertState!.text,
         }));
-
       const astWithInsertBeforeFormatting = astFromTypescriptFileContent(
         getDocWithInsertions(oldDocWithoutPlaceholders, insertions).text,
       );
@@ -518,7 +499,6 @@ export class DocManager {
       const docWithInsertBeforeFormatting = docFromAst(
         astWithInsertBeforeFormatting,
       );
-
       const checkedInsertion = checkInsertion({
         oldDoc: oldDocWithoutPlaceholders,
         newDoc: docWithInsertBeforeFormatting,
@@ -528,21 +508,17 @@ export class DocManager {
         console.warn("checkedInsertion is not valid:", checkedInsertion.reason);
         return;
       }
-
       for (const [
         oldNode,
         newNode,
       ] of checkedInsertion.newNodesByOldTraceableNodes.entries()) {
-        // HACK mutating docWithInsertBeforeFormatting
         newNode.isPlaceholder = oldNode.isPlaceholder;
         newNode.id = oldNode.id;
       }
-
       this.cursors = this.cursors.map((cursor, i) => ({
         ...cursor,
         focus: checkedInsertion.insertionPathRanges[i],
       }));
-
       this.doc = docWithInsertBeforeFormatting;
       finalStuff();
     } else if (this.mode === Mode.Insert && ev.key === "Backspace") {
@@ -554,17 +530,14 @@ export class DocManager {
       this.onUpdate();
     }
   };
-
   onKeyUp = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Insert) {
       ev.stopPropagation?.();
       ev.preventDefault?.();
     }
   };
-
   private onUpdate() {
     const docChanged = this.doc !== this.lastDoc;
-
     if (this.mode === Mode.Insert) {
       if (!this.insertState) {
         throw new Error("this.insertState was undefined in insert mode");
@@ -574,7 +547,6 @@ export class DocManager {
       }
     }
     this.lastMode = this.mode;
-
     if (docChanged) {
       this.updateDocText();
       this.updateMarkRanges();
@@ -582,7 +554,6 @@ export class DocManager {
       this.cursorRedoHistory = [];
       this.queuedCursors = [];
     }
-
     this.cursors = this.cursors.map((cursor) => ({
       ...cursor,
       focus: normalizeFocusIn(this.doc.root, cursor.focus),
@@ -591,14 +562,10 @@ export class DocManager {
         focus: normalizeFocusIn(this.doc.root, m.focus),
       })),
     }));
-
     this.cursorHistory.push(this.cursors);
-
     this.lastDoc = this.doc;
-
     this.reportUpdate();
   }
-
   private reportUpdate() {
     let doc = this.doc;
     if (this.insertState) {
@@ -628,11 +595,9 @@ export class DocManager {
       queuedCursors: this.queuedCursors,
     });
   }
-
   private updateDocText() {
     this.doc = getDocWithAllPlaceholders(this.doc).doc;
   }
-
   private updateMarkRanges() {
     const oldRanges = this.cursors.flatMap((c) => c.marks).map((m) => m.focus);
     const newRanges = trackRanges(this.lastDoc.root, this.doc.root, oldRanges);

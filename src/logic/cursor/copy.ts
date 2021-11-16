@@ -11,16 +11,13 @@ import { getStructContent } from "../struct";
 import { nodeGetByPath } from "../tree-utils/access";
 import { Cursor } from "./interfaces";
 import { adjustPostActionCursor } from "./post-action";
-
 interface CursorCopyArgs {
   root: ListNode;
   cursor: Cursor;
 }
-
 interface CursorCopyResult {
   cursor: Cursor;
 }
-
 export function cursorCopy({
   root,
   cursor: oldCursor,
@@ -28,13 +25,11 @@ export function cursorCopy({
   if (isFocusOnEmptyListContent(root, oldCursor.focus)) {
     return { cursor: adjustPostActionCursor(oldCursor) };
   }
-
   const focus = asEvenPathRange(
     whileUnevenFocusChanges(asUnevenPathRange(oldCursor.focus), (focus) =>
       normalizeFocusOutOnce(root, focus),
     ),
   );
-
   let clipboard: Clipboard | undefined;
   if (focus.offset === 0) {
     const node = nodeGetByPath(root, focus.anchor);
@@ -69,18 +64,13 @@ export function cursorCopy({
       };
     }
   }
-
   if (
     clipboard?.node.kind === NodeKind.List &&
     clipboard.node.listKind === ListKind.File &&
     clipboard.node.content.length === 1
   ) {
-    clipboard = {
-      node: clipboard.node.content[0],
-      isPartialCopy: false,
-    };
+    clipboard = { node: clipboard.node.content[0], isPartialCopy: false };
   }
-
   if (
     clipboard?.node.kind === NodeKind.List &&
     clipboard.node.listKind === ListKind.TsNodeStruct &&
@@ -91,6 +81,5 @@ export function cursorCopy({
       isPartialCopy: false,
     };
   }
-
   return { cursor: adjustPostActionCursor({ ...oldCursor, clipboard }) };
 }

@@ -1,6 +1,5 @@
 import { ListNode, Node, NodeKind, Path } from "../interfaces";
 import { PathMapper } from "../path-mapper";
-
 export function filterNodes(
   node: ListNode,
   shouldKeep: (node: Node) => boolean,
@@ -34,7 +33,6 @@ export function filterNodes(
     pathMapper,
   };
 }
-
 function _filterNodes({
   node,
   shouldKeep,

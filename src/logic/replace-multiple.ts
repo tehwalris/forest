@@ -8,36 +8,29 @@ import {
   pathsAreEqual,
 } from "./path-utils";
 import { nodeMapDeep } from "./tree-utils/access";
-
 export interface ListItemReplacement {
   range: EvenPathRange;
   structKeys?: string[];
   content: Node[];
 }
-
 interface MultiReplaceArgs {
   root: ListNode;
   replacements: ListItemReplacement[];
 }
-
 interface MultiReplaceResult {
   root: ListNode;
   replacementWasUsed: boolean[];
   newContentRanges: (EvenPathRange | undefined)[];
   ambiguousOverlap: boolean;
 }
-
 export function replaceMultiple({
   root: oldRoot,
   replacements,
 }: MultiReplaceArgs): MultiReplaceResult {
-  // HACK It's important that this makes every replacement reference-unique,
-  // since they are tracked by reference later.
   replacements = replacements.map((r) => ({
     ...r,
     range: flipEvenPathRangeForward(r.range),
   }));
-
   if (
     !replacements.every(
       (r) =>
@@ -50,7 +43,6 @@ export function replaceMultiple({
   ) {
     throw new Error("some replacements are invalid");
   }
-
   const emptyListPaths = replacements
     .filter((r) => isFocusOnEmptyListContent(oldRoot, r.range))
     .map((r) => r.range.anchor.slice(0, -1));
@@ -63,12 +55,9 @@ export function replaceMultiple({
       if (oldNode.kind !== NodeKind.List || oldNode.content.length) {
         throw new Error("invalid emptyListPaths");
       }
-      // HACK Cursors with isFocusOnEmptyListContent point at a child node that
-      // doesn't exist. Create a fake node there so that the replacement works.
       return { ...oldNode, content: [makePlaceholderIdentifier()] };
     },
   );
-
   const usedReplacements = new Set<ListItemReplacement>();
   const newContentRanges = new Map<ListItemReplacement, EvenPathRange>();
   let ambiguousOverlap = false;
@@ -78,14 +67,12 @@ export function replaceMultiple({
       if (oldNode.kind !== NodeKind.List) {
         return oldNode;
       }
-
       const replacementsThisList = replacements.filter((r) =>
         pathsAreEqual(r.range.anchor.slice(0, -1), path),
       );
       if (!replacementsThisList) {
         return oldNode;
       }
-
       const possibleSourceIndices: number[][] = oldNode.content.map(() => []);
       for (const [i, r] of replacementsThisList.entries()) {
         const first = r.range.anchor[r.range.anchor.length - 1];
@@ -94,15 +81,11 @@ export function replaceMultiple({
           possibleSourceIndices[j].push(i);
         }
       }
-
       ambiguousOverlap =
         ambiguousOverlap ||
         possibleSourceIndices.some((indices) => indices.length > 1);
-
       const chosenSourceIndices: (number | undefined)[] = [];
       {
-        // If possible, assign the same source as the last item had, otherwise we
-        // might split ranges, which would break replacement.
         let cur: number | undefined;
         for (const indices of possibleSourceIndices) {
           if (cur === undefined || !indices.includes(cur)) {
@@ -111,11 +94,9 @@ export function replaceMultiple({
           chosenSourceIndices.push(cur);
         }
       }
-
       const replacementsInReplacedChild: ListItemReplacement[] = [];
       for (const r of usedReplacements) {
         if (!pathsAreEqual(getCommonPathPrefix(r.range.anchor, path), path)) {
-          // not in this subtree at all
           continue;
         }
         const childIndex: number | undefined = r.range.anchor[path.length];
@@ -130,7 +111,6 @@ export function replaceMultiple({
         usedReplacements.delete(r);
         newContentRanges.delete(r);
       }
-
       const newContent: Node[] = [];
       const newStructKeys: string[] | undefined = oldNode.structKeys && [];
       for (const [i, j] of chosenSourceIndices.entries()) {
@@ -165,7 +145,6 @@ export function replaceMultiple({
   if (newRoot.kind !== NodeKind.List) {
     throw new Error("unreachable");
   }
-
   return {
     root: newRoot,
     replacementWasUsed: replacements.map((r) => usedReplacements.has(r)),

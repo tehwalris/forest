@@ -12,17 +12,14 @@ import { nodeGetByPath, resetIdsDeep } from "../tree-utils/access";
 import { checkAllItemsDefined } from "../util";
 import { Cursor } from "./interfaces";
 import { adjustPostActionCursor } from "./post-action";
-
 interface CursorPasteArgs {
   root: ListNode;
   cursor: Cursor;
 }
-
 interface CursorPasteResult {
   replacement: ListItemReplacement;
   cursor: Cursor;
 }
-
 function cursorPaste({
   root,
   cursor: oldCursor,
@@ -33,20 +30,15 @@ function cursorPaste({
   const focus = flipEvenPathRangeForward(
     normalizeFocusOut(root, oldCursor.focus),
   );
-
   if (!focus.anchor.length) {
     const replacement = acceptPasteRoot({
       ...oldCursor.clipboard,
       node: resetIdsDeep(oldCursor.clipboard.node),
     });
     return (
-      replacement && {
-        cursor: adjustPostActionCursor(oldCursor),
-        replacement,
-      }
+      replacement && { cursor: adjustPostActionCursor(oldCursor), replacement }
     );
   }
-
   const parentPath = focus.anchor.slice(0, -1);
   let oldParentNode = nodeGetByPath(root, parentPath);
   if (oldParentNode?.kind !== NodeKind.List) {
@@ -67,7 +59,6 @@ function cursorPaste({
       ],
     };
   }
-
   let grandparentInfo: PasteReplaceArgs["parent"];
   if (focus.anchor.length >= 2) {
     const grandparentPath = focus.anchor.slice(0, -2);
@@ -80,7 +71,6 @@ function cursorPaste({
       childIndex: parentPath[parentPath.length - 1],
     };
   }
-
   const firstIndex = focus.anchor[focus.anchor.length - 1];
   const replacement = acceptPasteReplace({
     node: oldParentNode,
@@ -105,17 +95,14 @@ function cursorPaste({
     },
   };
 }
-
 interface MultiCursorPasteArgs {
   root: ListNode;
   cursors: Cursor[];
 }
-
 interface MultiCursorPasteResult {
   root: ListNode;
   cursors: Cursor[];
 }
-
 export function multiCursorPaste({
   root: oldRoot,
   cursors: oldCursors,
@@ -124,7 +111,6 @@ export function multiCursorPaste({
     root: oldRoot,
     cursors: oldCursors.map((c) => adjustPostActionCursor(c)),
   };
-
   const cursorResults = oldCursors.map((cursor) =>
     cursorPaste({ root: oldRoot, cursor }),
   );
@@ -132,7 +118,6 @@ export function multiCursorPaste({
     console.warn("not pasting because some cursors could not paste");
     return failResult;
   }
-
   const replaceResult = replaceMultiple({
     root: oldRoot,
     replacements: cursorResults.map((r) => r.replacement),
@@ -148,7 +133,6 @@ export function multiCursorPaste({
     );
     return failResult;
   }
-
   return {
     root: replaceResult.root,
     cursors: oldCursors.map((c, i) =>

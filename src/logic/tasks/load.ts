@@ -8,13 +8,11 @@ import {
   isExplicitBeforePath,
   taskNameFromPath,
 } from "./util";
-
 const browseTaskPaths = [
   "src/logic/doc-manager.ts",
   "src/logic/node-from-ts.ts",
   "src/components/linear-editor.tsx",
 ];
-
 export async function loadTasks(fs: Fs): Promise<Task[]> {
   const taskPaths: string[] = [...browseTaskPaths];
   for (const subdirName of ["creation", "editing"]) {
@@ -26,10 +24,8 @@ export async function loadTasks(fs: Fs): Promise<Task[]> {
       }
     }
   }
-
   const loadText = (path: string): Promise<string> =>
     promisify(fs.readFile)(path, { encoding: "utf-8" });
-
   return await Promise.all(
     taskPaths.map(async (afterPath) => {
       const contentAfter = await loadText(afterPath);

@@ -11,25 +11,21 @@ import {
 import { nodeGetByPath } from "../tree-utils/access";
 import { Cursor } from "./interfaces";
 import { adjustPostActionCursor } from "./post-action";
-
 export enum CursorMoveLeafMode {
   Move,
   ExtendSelection,
   ShrinkSelection,
 }
-
 interface CursorMoveLeafArgs {
   root: ListNode;
   cursor: Cursor;
   direction: -1 | 1;
   mode: CursorMoveLeafMode;
 }
-
 interface CursorMoveLeafResult {
   cursor: Cursor;
   didMove: boolean;
 }
-
 export function cursorMoveLeaf({
   root,
   cursor: oldCursor,
@@ -37,11 +33,9 @@ export function cursorMoveLeaf({
   mode,
 }: CursorMoveLeafArgs): CursorMoveLeafResult {
   let focus = oldCursor.focus;
-
   if (mode === CursorMoveLeafMode.ShrinkSelection && focus.offset === 0) {
     return { cursor: adjustPostActionCursor(oldCursor), didMove: false };
   }
-
   if (direction === 1) {
     focus = flipEvenPathRangeForward(focus);
   } else {
@@ -50,7 +44,6 @@ export function cursorMoveLeaf({
   if (mode === CursorMoveLeafMode.ShrinkSelection) {
     focus = flipEvenPathRange(focus);
   }
-
   focus = asEvenPathRange(
     untilEvenFocusChanges(asUnevenPathRange(focus), (focus) =>
       tryMoveThroughLeavesOnce(
@@ -62,7 +55,6 @@ export function cursorMoveLeaf({
     ),
   );
   focus = normalizeFocusIn(root, focus);
-
   const didMove = !evenPathRangesAreEqualIgnoringDirection(
     focus,
     oldCursor.focus,
@@ -75,7 +67,6 @@ export function cursorMoveLeaf({
     didMove,
   };
 }
-
 function tryMoveThroughLeavesOnce(
   root: ListNode,
   focus: UnevenPathRange,
@@ -95,7 +86,6 @@ function tryMoveThroughLeavesOnce(
     }
     currentPath.pop();
   }
-
   while (true) {
     const currentNode = nodeGetByPath(root, currentPath)!;
     if (currentNode.kind !== NodeKind.List || !currentNode.content.length) {
@@ -110,7 +100,6 @@ function tryMoveThroughLeavesOnce(
     }
     currentPath = childPath;
   }
-
   return extend
     ? { anchor: focus.anchor, tip: currentPath }
     : { anchor: currentPath, tip: currentPath };

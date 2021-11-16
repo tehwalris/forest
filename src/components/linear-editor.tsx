@@ -12,11 +12,9 @@ import { textRangeFromFocus } from "../logic/focus";
 import { Doc, EvenPathRange, ListNode } from "../logic/interfaces";
 import { getPathToTip } from "../logic/path-utils";
 import { nodeGetByPath, nodeVisitDeep } from "../logic/tree-utils/access";
-
 interface Props {
   initialDoc: Doc;
 }
-
 const styles = {
   doc: css`
     margin: 5px;
@@ -39,7 +37,6 @@ const styles = {
     color: red;
   `,
 };
-
 enum CharSelection {
   Normal = 1,
   Tip = 2,
@@ -52,7 +49,6 @@ for (let i = 0; i < numCharSelections; i++) {
     throw new Error("CharSelection is invalid");
   }
 }
-
 function fillBitwiseOr(
   data: Uint8Array,
   value: number,
@@ -66,7 +62,6 @@ function fillBitwiseOr(
     data[i] |= value;
   }
 }
-
 function setCharSelectionsForFocus({
   selectionsByChar,
   root,
@@ -93,7 +88,6 @@ function setCharSelectionsForFocus({
     );
   }
 }
-
 function setCharSelectionsForPlaceholders({
   selectionsByChar,
   root,
@@ -113,16 +107,13 @@ function setCharSelectionsForPlaceholders({
     );
   });
 }
-
 interface DocRenderLine {
   regions: DocRenderRegion[];
 }
-
 interface DocRenderRegion {
   text: string;
   selection: CharSelection;
 }
-
 function splitDocRenderRegions(
   text: string,
   selectionsByChar: Uint8Array,
@@ -130,11 +121,9 @@ function splitDocRenderRegions(
   if (text.length !== selectionsByChar.length) {
     throw new Error("text and selectionsByChar must have same length");
   }
-
   if (!selectionsByChar.length) {
     return [];
   }
-
   const regions: DocRenderRegion[] = [];
   let start = 0;
   const pushRegion = (end: number) => {
@@ -154,7 +143,6 @@ function splitDocRenderRegions(
   }
   return regions;
 }
-
 function getStyleForSelection(
   selection: CharSelection,
   enableReduceToTip: boolean,
@@ -165,8 +153,9 @@ function getStyleForSelection(
   if (selection & (CharSelection.Normal | CharSelection.Tip)) {
     selection = selection & ~CharSelection.Queued;
   }
-
-  const stylesBySelection: { [K in CharSelection]: React.CSSProperties } = {
+  const stylesBySelection: {
+    [K in CharSelection]: React.CSSProperties;
+  } = {
     [CharSelection.Normal]: { background: "rgba(11, 83, 255, 0.37)" },
     [CharSelection.Tip]: { background: "rgba(120, 83, 150, 0.37)" },
     [CharSelection.Placeholder]: { color: "#888" },
@@ -180,7 +169,6 @@ function getStyleForSelection(
   }
   return style;
 }
-
 function renderDoc(
   doc: Doc,
   mode: Mode,
@@ -207,10 +195,7 @@ function renderDoc(
       );
     }
   }
-
-  // HACK If enableReduceToTip is only set on some cursors, the display will be incorrect.
   const enableReduceToTip = cursors.some((c) => c.enableReduceToTip);
-
   const lines: DocRenderLine[] = [];
   let pos = 0;
   for (const lineText of doc.text.split("\n")) {
@@ -228,7 +213,6 @@ function renderDoc(
   while (lines.length && !lines[lines.length - 1].regions.length) {
     lines.pop();
   }
-
   return (
     <div style={{ whiteSpace: "pre" }}>
       {lines.map((line, iLine) => (
@@ -247,7 +231,6 @@ function renderDoc(
     </div>
   );
 }
-
 function wrapThrowRestore<A extends any[]>(
   docManager: DocManager,
   f: (...args: A) => void,
@@ -265,7 +248,6 @@ function wrapThrowRestore<A extends any[]>(
     }
   };
 }
-
 export const LinearEditor = ({ initialDoc }: Props) => {
   const focusedCodeDivRef = useRef<HTMLDivElement | null>(null);
   const codeDivRef = useRef<HTMLDivElement>(null);
@@ -278,7 +260,6 @@ export const LinearEditor = ({ initialDoc }: Props) => {
       focusedCodeDivRef.current = codeDivRef.current;
     }
   });
-
   const [
     { doc, mode, cursors, cursorsOverlap, queuedCursors },
     setPublicState,
@@ -298,7 +279,6 @@ export const LinearEditor = ({ initialDoc }: Props) => {
       }
       return newDocManager;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [DocManager, initialDoc]);
   useEffect(() => {
     docManager.forceUpdate();
@@ -306,7 +286,6 @@ export const LinearEditor = ({ initialDoc }: Props) => {
       docManager.disableUpdates();
     };
   }, [docManager]);
-
   return (
     <div>
       <div

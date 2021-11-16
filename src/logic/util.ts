@@ -2,7 +2,6 @@ export function unreachable(v: never): never {
   console.error(v);
   throw new Error("unreachable");
 }
-
 export function mergeIntoMapNoDuplicates<K, V>(
   target: Map<K, V>,
   source: Map<K, V>,
@@ -14,7 +13,6 @@ export function mergeIntoMapNoDuplicates<K, V>(
     target.set(k, v);
   }
 }
-
 export function mergeIntoMapNoOverwrite<K, V>(
   target: Map<K, V>,
   source: Map<K, V>,
@@ -23,7 +21,6 @@ export function mergeIntoMapNoOverwrite<K, V>(
     target.set(k, v);
   }
 }
-
 export function sliceTail<T>(a: T[], n: number): T[] {
   if (n < 0) {
     throw new Error("negative count");
@@ -33,16 +30,6 @@ export function sliceTail<T>(a: T[], n: number): T[] {
   }
   return a.slice(-n);
 }
-
-// isSubarray([1, 2, 3], [2, 3]) === true
-// isSubarray([1, 2, 3], [1, 2, 3]) === true
-// isSubarray([1, 2, 3], [1]) === true
-// isSubarray([1], [1, 2, 3]) === false
-// isSubarray([1, 2, 3], [3, 2]) === false
-// isSubarray([1, 2, 3], []) === true
-// isSubarray([1, 2, 3], [2, 2, 3]) === false
-// isSubarray([1, 2, 2, 3], [2, 3]) === true
-// isSubarray([1, 2, 3], [1, 3]) === true
 export function isSubarray(long: unknown[], short: unknown[]): boolean {
   if (long.length < short.length) {
     return false;
@@ -58,7 +45,6 @@ export function isSubarray(long: unknown[], short: unknown[]): boolean {
   }
   return !remainingShort.length;
 }
-
 export function assertSortedBy<T>(values: T[], cb: (v: T) => number): void {
   let last = undefined;
   for (const v of values) {
@@ -70,7 +56,6 @@ export function assertSortedBy<T>(values: T[], cb: (v: T) => number): void {
     }
   }
 }
-
 export function checkAllItemsDefined<T>(
   values: (T | undefined)[],
 ): values is T[] {

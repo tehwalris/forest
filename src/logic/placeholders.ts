@@ -13,7 +13,6 @@ import { nodeVisitDeep } from "./tree-utils/access";
 import { nodesAreEqualExceptRangesAndPlaceholdersAndIds } from "./tree-utils/equal";
 import { filterNodes } from "./tree-utils/filter";
 import { tsNodeFromNode } from "./ts-from-node";
-
 export function withCopiedPlaceholdersAndIds(
   placeholderSource: ListNode,
   nodeSource: ListNode,
@@ -38,7 +37,6 @@ export function withCopiedPlaceholdersAndIds(
   }
   return _withCopiedPlaceholdersAndIds(placeholderSource, nodeSource);
 }
-
 function _withCopiedPlaceholdersAndIds(
   placeholderAndIdSource: Node,
   nodeSource: Node,
@@ -71,7 +69,6 @@ function _withCopiedPlaceholdersAndIds(
   }
   throw new Error("unreachable");
 }
-
 export function getDocWithAllPlaceholders(docWithoutPlaceholders: Doc): {
   doc: Doc;
   pathMapper: PathMapper;
@@ -100,7 +97,6 @@ export function getDocWithAllPlaceholders(docWithoutPlaceholders: Doc): {
     pathMapper: placeholderAddition.pathMapper,
   };
 }
-
 export function getDocWithoutPlaceholdersNearCursors(
   doc: Doc,
   cursorBeforePositions: number[],
@@ -135,14 +131,12 @@ export function getDocWithoutPlaceholdersNearCursors(
       };
     },
   );
-
   const isAdjacentToCursor = (range: TextRange) =>
     cursorWhitespaceRanges.some(
       ({ pos, end }) =>
         (range.pos >= pos && range.pos <= end) ||
         (range.end >= pos && range.end <= end),
     );
-
   const shouldKeepNode = (node: Node) =>
     !node.isPlaceholder || !isAdjacentToCursor(node);
   const placeholderRemoval = filterNodes(doc.root, shouldKeepNode);
@@ -152,12 +146,9 @@ export function getDocWithoutPlaceholdersNearCursors(
       removedPlaceholders.push(node);
     }
   });
-
   const textDeletion = getTextWithDeletions(doc.text, removedPlaceholders);
-
   const mapOldToWithoutAdjacent = (oldPath: Path) =>
     placeholderRemoval.pathMapper.mapRough(oldPath);
-
   return {
     doc: {
       root: mapNodeTextRanges(

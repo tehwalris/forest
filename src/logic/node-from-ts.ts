@@ -8,18 +8,18 @@ import { Doc, ListKind, ListNode, Node, NodeKind } from "./interfaces";
 import { listTemplates, structTemplates } from "./legacy-templates/templates";
 import { mapNodeTextRanges } from "./text";
 import { isTsVarLetConst } from "./ts-type-predicates";
-
 function shouldFlattenWithListKind<K extends ListKind>(
   listKind: K,
   list: Node,
-): list is ListNode & { listKind: K } {
+): list is ListNode & {
+  listKind: K;
+} {
   return (
     list.kind === NodeKind.List &&
     list.listKind === listKind &&
     list.equivalentToContent
   );
 }
-
 function flattenLeftIfListKind(
   listKind: ListKind,
   left: Node,
@@ -30,7 +30,6 @@ function flattenLeftIfListKind(
   }
   return [left, ...right];
 }
-
 function flattenRightIfListKind(
   listKind: ListKind,
   left: Node[],
@@ -41,11 +40,9 @@ function flattenRightIfListKind(
   }
   return [...left, right];
 }
-
 function flattenIfListKind(listKind: ListKind, node: Node): Node[] {
   return shouldFlattenWithListKind(listKind, node) ? node.content : [node];
 }
-
 function tryExpandRangeBySurroundingDelimiters(
   oldRange: ts.TextRange,
   parent: ts.Node,
@@ -54,11 +51,7 @@ function tryExpandRangeBySurroundingDelimiters(
   if (!file) {
     return undefined;
   }
-
   const childrenOfParent = parent.getChildren(file);
-  // HACK The relevant child (nodeArray) returned by parent.getChildren() is not
-  // reference equal to nodeArray which is passed as our argument. Use text
-  // ranges to find this child instead.
   const childIndex = childrenOfParent.findIndex(
     (c) => c.pos === oldRange.pos && c.end === oldRange.end,
   );
@@ -67,7 +60,6 @@ function tryExpandRangeBySurroundingDelimiters(
       "range does not correspond to any child in parent.getChildren()",
     );
   }
-
   if (childIndex > 0 && childIndex + 1 < childrenOfParent.length) {
     const surroundingChildren = [
       childrenOfParent[childIndex - 1],
@@ -92,10 +84,8 @@ function tryExpandRangeBySurroundingDelimiters(
       };
     }
   }
-
   return undefined;
 }
-
 function listNodeFromAutoTsNodeArray(
   nodeArray: ts.NodeArray<ts.Node>,
   parent: ts.Node,
@@ -105,18 +95,13 @@ function listNodeFromAutoTsNodeArray(
   if (!file) {
     throw new Error("listNodeFromAutoTsNodeArray requires file");
   }
-
   const childrenOfParent = parent.getChildren(file);
-  // HACK The relevant child (nodeArray) returned by parent.getChildren() is not
-  // reference equal to nodeArray which is passed as our argument. Use text
-  // ranges to find this child instead.
   const childIndex = childrenOfParent.findIndex(
     (c) => c.pos === nodeArray.pos && c.end === nodeArray.end,
   );
   if (childIndex === -1) {
     throw new Error("nodeArray not found in parent.getChildren()");
   }
-
   const oldRange: TextRange = { pos: nodeArray.pos, end: nodeArray.end };
   let delimitedRange: TextRange | undefined;
   if (
@@ -133,7 +118,6 @@ function listNodeFromAutoTsNodeArray(
       file,
     );
   }
-
   if (delimitedRange) {
     return listNodeFromDelimitedTsNodeArray(
       nodeArray,
@@ -146,7 +130,6 @@ function listNodeFromAutoTsNodeArray(
     return listNodeFromNonDelimitedTsNodeArray(nodeArray, file, listKind);
   }
 }
-
 function listNodeFromDelimitedTsNodeArray(
   nodeArray: ts.NodeArray<ts.Node> | ts.Node[],
   file: ts.SourceFile | undefined,
@@ -157,12 +140,9 @@ function listNodeFromDelimitedTsNodeArray(
   if (!file) {
     throw new Error("listNodeFromDelimitedTsNodeArray requires file");
   }
-
-  // HACK sometimes there's whitespace before the delimiters
   while (pos < file.text.length && file.text[pos].match(/\s/)) {
     pos += 1;
   }
-
   const validDelimiters = [
     ["(", ")"],
     ["{", "}"],
@@ -177,7 +157,6 @@ function listNodeFromDelimitedTsNodeArray(
   ) {
     throw new Error(`invalid delimiters ${JSON.stringify(delimiters)}`);
   }
-
   return {
     kind: NodeKind.List,
     listKind,
@@ -189,7 +168,6 @@ function listNodeFromDelimitedTsNodeArray(
     id: Symbol(),
   };
 }
-
 function listNodeFromNonDelimitedTsNodeArray(
   nodeArray: ts.NodeArray<ts.Node>,
   file: ts.SourceFile | undefined,
@@ -201,7 +179,6 @@ function listNodeFromNonDelimitedTsNodeArray(
   if (!nodeArray.length) {
     throw new Error("nodeArray must not be empty");
   }
-
   return {
     kind: NodeKind.List,
     listKind,
@@ -213,7 +190,6 @@ function listNodeFromNonDelimitedTsNodeArray(
     id: Symbol(),
   };
 }
-
 function listNodeFromTsCallExpression(
   callExpression: ts.CallExpression,
   file: ts.SourceFile | undefined,
@@ -253,7 +229,6 @@ function listNodeFromTsCallExpression(
     id: Symbol(),
   };
 }
-
 function listNodeFromTsPropertyAccessExpression(
   propertyAccessExpression: ts.PropertyAccessExpression,
   file: ts.SourceFile | undefined,
@@ -278,7 +253,6 @@ function listNodeFromTsPropertyAccessExpression(
     id: Symbol(),
   };
 }
-
 function listNodeFromTsElementAccessExpression(
   elementAccessExpression: ts.ElementAccessExpression,
   file: ts.SourceFile | undefined,
@@ -292,7 +266,6 @@ function listNodeFromTsElementAccessExpression(
     throw new Error("could not expand range around argumentExpression");
   }
   bracketRange = bracketRange || elementAccessExpression.argumentExpression;
-
   return {
     kind: NodeKind.List,
     listKind: ListKind.TightExpression,
@@ -324,7 +297,6 @@ function listNodeFromTsElementAccessExpression(
     id: Symbol(),
   };
 }
-
 function listNodeFromTsNonNullExpression(
   nonNullExpression: ts.NonNullExpression,
   file: ts.SourceFile | undefined,
@@ -348,7 +320,6 @@ function listNodeFromTsNonNullExpression(
     id: Symbol(),
   };
 }
-
 function listNodeFromTsPrefixUnaryExpression(
   prefixUnaryExpression: ts.PrefixUnaryExpression,
   file: ts.SourceFile | undefined,
@@ -372,7 +343,6 @@ function listNodeFromTsPrefixUnaryExpression(
     id: Symbol(),
   };
 }
-
 function listNodeFromTsPostfixUnaryExpression(
   postfixUnaryExpression: ts.PostfixUnaryExpression,
   file: ts.SourceFile | undefined,
@@ -396,7 +366,6 @@ function listNodeFromTsPostfixUnaryExpression(
     id: Symbol(),
   };
 }
-
 function listNodeFromTsBinaryExpression(
   binaryExpression: ts.BinaryExpression,
   file: ts.SourceFile | undefined,
@@ -422,7 +391,6 @@ function listNodeFromTsBinaryExpression(
     id: Symbol(),
   };
 }
-
 function listNodeFromTsParenthesizedExpression(
   parenthesizedExpression: ts.ParenthesizedExpression,
   file: ts.SourceFile | undefined,
@@ -438,7 +406,6 @@ function listNodeFromTsParenthesizedExpression(
     id: Symbol(),
   };
 }
-
 function listNodeFromTsIfStatementBranch(
   ifStatement: ts.IfStatement,
   file: ts.SourceFile | undefined,
@@ -475,7 +442,6 @@ function listNodeFromTsIfStatementBranch(
     id: Symbol(),
   };
 }
-
 function listNodeFromTsIfStatement(
   ifStatement: ts.IfStatement,
   file: ts.SourceFile | undefined,
@@ -515,26 +481,22 @@ function listNodeFromTsIfStatement(
     id: Symbol(),
   };
 }
-
 function listNodeFromTsReturnStatement(
   returnStatement: ts.ReturnStatement,
   file: ts.SourceFile | undefined,
 ): ListNode {
   const content: Node[] = [];
   const structKeys: string[] = [];
-
   const firstToken = returnStatement.getFirstToken(file);
   if (!firstToken || firstToken.kind !== ts.SyntaxKind.ReturnKeyword) {
     throw new Error("missing or unsupported firstToken");
   }
   content.push(nodeFromTsNode(firstToken, file));
   structKeys.push("returnKeyword");
-
   if (returnStatement.expression) {
     content.push(nodeFromTsNode(returnStatement.expression, file));
     structKeys.push("expression");
   }
-
   return {
     kind: NodeKind.List,
     listKind: ListKind.TsNodeStruct,
@@ -548,24 +510,20 @@ function listNodeFromTsReturnStatement(
     id: Symbol(),
   };
 }
-
 function listNodeFromTsThrowStatement(
   throwStatement: ts.ThrowStatement,
   file: ts.SourceFile | undefined,
 ): ListNode {
   const content: Node[] = [];
   const structKeys: string[] = [];
-
   const firstToken = throwStatement.getFirstToken(file);
   if (!firstToken || firstToken.kind !== ts.SyntaxKind.ThrowKeyword) {
     throw new Error("missing or unsupported firstToken");
   }
   content.push(nodeFromTsNode(firstToken, file));
   structKeys.push("throwKeyword");
-
   content.push(nodeFromTsNode(throwStatement.expression, file));
   structKeys.push("expression");
-
   return {
     kind: NodeKind.List,
     listKind: ListKind.TsNodeStruct,
@@ -579,7 +537,6 @@ function listNodeFromTsThrowStatement(
     id: Symbol(),
   };
 }
-
 function listNodeFromTsVariableDeclarationList(
   variableDeclarationList: ts.VariableDeclarationList,
   file: ts.SourceFile | undefined,
@@ -592,16 +549,13 @@ function listNodeFromTsVariableDeclarationList(
   node.tsNode = variableDeclarationList;
   node.pos = variableDeclarationList.pos;
   node.end = variableDeclarationList.end;
-
   const firstToken = variableDeclarationList.getFirstToken(file);
   if (!firstToken || !isTsVarLetConst(firstToken)) {
     throw new Error("missing or unsupported firstToken");
   }
   node.content.unshift(nodeFromTsNode(firstToken, file));
-
   return node;
 }
-
 function listNodeFromTsBlock(
   block: ts.Block,
   file: ts.SourceFile | undefined,
@@ -616,14 +570,12 @@ function listNodeFromTsBlock(
     tsNode: block,
   };
 }
-
 function listNodeFromTsObjectLiteralElementLike(
   objectLiteralElementLike: ts.ObjectLiteralElementLike,
   file: ts.SourceFile | undefined,
 ): ListNode {
   const content: Node[] = [];
   const structKeys: string[] = [];
-
   if (ts.isPropertyAssignment(objectLiteralElementLike)) {
     content.push(nodeFromTsNode(objectLiteralElementLike.name, file));
     structKeys.push("name");
@@ -648,7 +600,6 @@ function listNodeFromTsObjectLiteralElementLike(
       }) is not yet supported`,
     );
   }
-
   return {
     kind: NodeKind.List,
     listKind: ListKind.ObjectLiteralElement,
@@ -661,7 +612,6 @@ function listNodeFromTsObjectLiteralElementLike(
     id: Symbol(),
   };
 }
-
 function tryMakeListNodeGeneric(
   node: ts.Node,
   file: ts.SourceFile | undefined,
@@ -669,7 +619,6 @@ function tryMakeListNodeGeneric(
   if (!allowedGenericNodeMatchers.find((m) => m(node))) {
     return undefined;
   }
-
   const structTemplate: UnknownStructTemplate | undefined =
     structTemplates.find((t) => t.match(node)) as any;
   const listTemplate: UnknownListTemplate | undefined = listTemplates.find(
@@ -683,22 +632,18 @@ function tryMakeListNodeGeneric(
     return undefined;
   }
 }
-
 function tryMakeListNodeGenericStruct(
   node: ts.Node,
   file: ts.SourceFile | undefined,
   structTemplate: UnknownStructTemplate,
 ): ListNode | undefined {
   const children = structTemplate.load(node);
-
   const structKeys: string[] = [];
   const content: Node[] = [];
-
   for (const [i, modifierNode] of (node.modifiers || []).entries()) {
     structKeys.push(`modifiers[${i}]`);
     content.push(nodeFromTsNode(modifierNode, file));
   }
-
   if (structTemplate.keyword) {
     if (file) {
       const keywordToken = node
@@ -719,14 +664,11 @@ function tryMakeListNodeGenericStruct(
       structKeys.push("keyword");
     }
   }
-
   for (const k of structTemplate.children) {
     const child = children[k];
-
     if (child.optional && child.value === undefined) {
       continue;
     }
-
     if (child.isList) {
       structKeys.push(k);
       content.push(
@@ -742,7 +684,6 @@ function tryMakeListNodeGenericStruct(
       content.push(nodeFromTsNode(child.value!, file));
     }
   }
-
   return {
     kind: NodeKind.List,
     listKind: ListKind.TsNodeStruct,
@@ -756,7 +697,6 @@ function tryMakeListNodeGenericStruct(
     id: Symbol(),
   };
 }
-
 function tryMakeListNodeGenericList(
   node: ts.Node,
   file: ts.SourceFile | undefined,
@@ -768,7 +708,6 @@ function tryMakeListNodeGenericList(
     tsNode: node,
   };
 }
-
 export function nodeFromTsNode(
   node: ts.Node,
   file: ts.SourceFile | undefined,
@@ -813,7 +752,6 @@ export function nodeFromTsNode(
     );
   }
 }
-
 export function trimRange({ pos, end }: TextRange, text: string): TextRange {
   while (pos <= end && pos < text.length && text[pos].match(/\s/)) {
     pos++;
@@ -823,7 +761,6 @@ export function trimRange({ pos, end }: TextRange, text: string): TextRange {
   }
   return { pos, end };
 }
-
 function trimRanges(rootNode: ListNode, file: ts.SourceFile): ListNode {
   const cb = (pos: number, end: number): [number, number] => {
     const newRange = trimRange({ pos, end }, file.text);
@@ -831,7 +768,6 @@ function trimRanges(rootNode: ListNode, file: ts.SourceFile): ListNode {
   };
   return mapNodeTextRanges(rootNode, cb);
 }
-
 export function docFromAst(file: ts.SourceFile): Doc {
   return {
     root: trimRanges(
