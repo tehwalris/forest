@@ -1,3 +1,4 @@
+import { repeat } from "ramda";
 import {
   DocManager,
   initialDocManagerPublicState,
@@ -35,6 +36,10 @@ const specialKeys: SpecialKey[] = [
     key: "Enter",
   },
   {
+    name: "space",
+    key: " ",
+  },
+  {
     name: "escape",
     key: "Escape",
     handler: "onKeyDown",
@@ -62,7 +67,6 @@ const specialKeys: SpecialKey[] = [
       }
       return { ...ev, key: ev.key.toUpperCase() };
     },
-    handler: "onKeyDown",
   },
 ];
 
@@ -223,16 +227,13 @@ describe("DocManager", () => {
       ],
       expectedText: 'console.log("walrus")',
     },
-    /*
     {
       label: "replace string in call argument",
       initialText: 'console.log("walrus")',
       events: [
-        evSemi,
-        ...eventsFromKeys("jd"),
-        evEnter,
-        ...eventsFromKeys('"hello"'),
-        evEscape,
+        ...eventsFromKeys("( d ( i"),
+        ...eventsToTypeString("'hello'"),
+        ...eventsFromKeys("escape"),
       ],
       expectedText: 'console.log("hello")',
     },
@@ -240,24 +241,30 @@ describe("DocManager", () => {
       label: "change property name",
       initialText: 'console.log("walrus")',
       events: [
-        ...eventsFromKeys("h"),
-        evSemi,
-        ...eventsFromKeys("di"),
-        ...eventsFromKeys(".warn"),
-        evEscape,
+        ...eventsFromKeys("ctrl-shift-l space d alt-h a"),
+        ...eventsToTypeString(".warn"),
+        ...eventsFromKeys("escape"),
       ],
       expectedText: 'console.warn("walrus")',
     },
     {
       label: "write arithmetic expression",
       initialText: "",
-      events: [evEnter, ...eventsFromKeys("1*2/3+4**5+6*7*8"), evEscape],
+      events: [
+        ...eventsFromKeys("a"),
+        ...eventsToTypeString("1*2/3+4**5+6*7*8"),
+        ...eventsFromKeys("escape"),
+      ],
       expectedText: "1*2/3+4**5+6*7*8",
     },
     {
       label: "flatly change arithmetic expression",
       initialText: "1*2/3+4**5+6*7*8",
-      events: [evAltSemi, evSemi, ...eventsFromKeys("llllldi**"), evEscape],
+      events: [
+        ...eventsFromKeys("alt-h l l l l m l d shift-m a"),
+        ...eventsToTypeString("**"),
+        ...eventsFromKeys("escape"),
+      ],
       expectedText: "1*2/3**4**5+6*7*8",
     },
     {
@@ -265,11 +272,9 @@ describe("DocManager", () => {
         "change arithmetic expression with parens which keeps them required",
       initialText: "a*(b+c)",
       events: [
-        evSemi,
-        ...eventsFromKeys("j"),
-        evSemi,
-        ...eventsFromKeys("hdi-"),
-        evEscape,
+        ...eventsFromKeys("( alt-h l d alt-h a"),
+        ...eventsToTypeString("-"),
+        ...eventsFromKeys("escape"),
       ],
       expectedText: "a*(b-c)",
     },
@@ -278,34 +283,23 @@ describe("DocManager", () => {
         "change arithmetic expression with parens which makes them optional",
       initialText: "a*(b+c)",
       events: [
-        evSemi,
-        ...eventsFromKeys("j"),
-        evSemi,
-        ...eventsFromKeys("hdi*"),
-        evEscape,
+        ...eventsFromKeys("( alt-h l d alt-h a"),
+        ...eventsToTypeString("*"),
+        ...eventsFromKeys("escape"),
       ],
       expectedText: "a*(b*c)",
-      skip: true,
     },
     {
       label: "backspace works and does not go too far",
       initialText: 'console.log("walrus")',
       events: [
-        ...eventsFromKeys("h"),
-        evSemi,
-        ...eventsFromKeys("di"),
-        ...eventsFromKeys(".wa"),
-        evBackspace,
-        evBackspace,
-        evBackspace,
-        evBackspace,
-        evBackspace,
-        evBackspace,
-        evBackspace,
-        ...eventsFromKeys(".x"),
-        evBackspace,
-        ...eventsFromKeys("warn"),
-        evEscape,
+        ...eventsFromKeys("ctrl-shift-l space d alt-h a"),
+        ...eventsToTypeString(".wa"),
+        ...eventsFromKeys(repeat("backspace", 10).join(" ")),
+        ...eventsToTypeString(".x"),
+        ...eventsFromKeys("backspace"),
+        ...eventsToTypeString("warn"),
+        ...eventsFromKeys("escape"),
       ],
       expectedText: 'console.warn("walrus")',
     },
@@ -313,26 +307,24 @@ describe("DocManager", () => {
       label: "insert statement",
       initialText: "f(x); g(y);",
       events: [
-        evAltSemi,
-        evSemi,
-        ...eventsFromKeys("a"),
-        ...eventsFromKeys(";h(z)"),
-        evEscape,
+        ...eventsFromKeys("alt-h a"),
+        ...eventsToTypeString(";h(z)"),
+        ...eventsFromKeys("escape"),
       ],
       expectedText: "f(x); h(z); g(y);",
     },
     {
-      label: "delete non-last statement in block",
+      label: "delete first statement in block",
       initialText: `
         if (1 === 0) {
           console.log("walrus");
           console.log("seal");
         }
       `,
-      events: [evSemi, ...eventsFromKeys("j"), evSemi, ...eventsFromKeys("d")],
+      events: eventsFromKeys("{ alt-h d"),
       expectedText: `
         if (1 === 0) {
-          console.log("walrus");
+          console.log("seal");
         }
       `,
     },
@@ -344,7 +336,7 @@ describe("DocManager", () => {
           console.log("seal");
         }
       `,
-      events: [evSemi, ...eventsFromKeys("j"), evSemi, ...eventsFromKeys("d")],
+      events: eventsFromKeys("{ alt-l d"),
       expectedText: `
         if (1 === 0) {
           console.log("walrus");
@@ -362,7 +354,7 @@ describe("DocManager", () => {
           throw new Error("unreachable");
         }
       `,
-      events: [...eventsFromKeys("H"), evSemi, ...eventsFromKeys("d")],
+      events: eventsFromKeys("ctrl-shift-l space d"),
       expectedText: `
         if (Date.now() % 100 == 0) {
           console.log("lucky you");
@@ -380,7 +372,7 @@ describe("DocManager", () => {
           console.log("even better");
         }
       `,
-      events: [evSemi, ...eventsFromKeys("H"), ...eventsFromKeys("d")],
+      events: eventsFromKeys("alt-l ctrl-shift-h d"),
       expectedText: `
         if (Date.now() % 100 == 0) {
           console.log("lucky you");
@@ -392,51 +384,36 @@ describe("DocManager", () => {
     {
       label: "make normal object property into shorthand",
       initialText: "const x = { y: z }",
-      events: [
-        evSemi,
-        evSemi,
-        ...eventsFromKeys("j"),
-        evAltSemi,
-        ...eventsFromKeys("Ld"),
-      ],
+      events: eventsFromKeys("{ alt-l d"),
       expectedText: "const x = { y }",
     },
     {
       label: "make shorthand object property into spread",
       initialText: "const x = { y }",
       events: [
-        evSemi,
-        evSemi,
-        ...eventsFromKeys("j"),
-        ...eventsFromKeys("i..."),
-        evEscape,
+        ...eventsFromKeys("{ i"),
+        ...eventsToTypeString("..."),
+        ...eventsFromKeys("escape"),
       ],
       expectedText: "const x = { ...y }",
     },
     {
-      label: "change object property initializer using placeholder",
+      label: "change object property initializer",
       initialText: "const x = { y: z }",
       events: [
-        evSemi,
-        evSemi,
-        ...eventsFromKeys("j"),
-        evSemi,
-        ...eventsFromKeys("da:a"),
-        evEscape,
+        ...eventsFromKeys("{ alt-l d a"),
+        ...eventsToTypeString(":a"),
+        ...eventsFromKeys("escape"),
       ],
       expectedText: "const x = { y: a }",
     },
     {
-      label: "change object property name using placeholder",
+      label: "change object property name",
       initialText: "const x = { y: z }",
       events: [
-        evSemi,
-        evSemi,
-        ...eventsFromKeys("j"),
-        evAltSemi,
-        evSemi,
-        ...eventsFromKeys("dia:"),
-        evEscape,
+        ...eventsFromKeys("{ alt-h d i"),
+        ...eventsToTypeString("a:"),
+        ...eventsFromKeys("escape"),
       ],
       expectedText: "const x = { a: z }",
     },
@@ -444,12 +421,9 @@ describe("DocManager", () => {
       label: "change spread assignment expression using placeholder",
       initialText: "const x = { ...y }",
       events: [
-        evSemi,
-        evSemi,
-        ...eventsFromKeys("j"),
-        evSemi,
-        ...eventsFromKeys("daa"),
-        evEscape,
+        ...eventsFromKeys("{ alt-l d a"),
+        ...eventsToTypeString("a"),
+        ...eventsFromKeys("escape"),
       ],
       expectedText: "const x = { ...a }",
     },
@@ -457,12 +431,9 @@ describe("DocManager", () => {
       label: "add statement to block",
       initialText: "const x = () => { y() }",
       events: [
-        evSemi,
-        evSemi,
-        evSemi,
-        ...eventsFromKeys("j"),
-        ...eventsFromKeys("a;z()"),
-        evEscape,
+        ...eventsFromKeys("{ a"),
+        ...eventsToTypeString(";z()"),
+        ...eventsFromKeys("escape"),
       ],
       expectedText: "const x = () => { y(); z() }",
     },
@@ -470,10 +441,9 @@ describe("DocManager", () => {
       label: "change expression of return statement",
       initialText: "return a",
       events: [
-        evSemi,
-        ...eventsFromKeys("d"),
-        ...eventsFromKeys("a b"),
-        evEscape,
+        ...eventsFromKeys("alt-l d a"),
+        ...eventsToTypeString(" b"),
+        ...eventsFromKeys("escape"),
       ],
       expectedText: "return b",
     },
@@ -481,7 +451,11 @@ describe("DocManager", () => {
       label:
         "convert return statement into expression statement and back (basic)",
       initialText: "return f()",
-      events: [evAltSemi, evSemi, ...eventsFromKeys("direturn "), evEscape],
+      events: [
+        ...eventsFromKeys("alt-h d i"),
+        ...eventsToTypeString("return "),
+        ...eventsFromKeys("escape"),
+      ],
       expectedText: "return f()",
     },
     {
@@ -489,11 +463,9 @@ describe("DocManager", () => {
         "convert return statement into expression statement and back (after other statement)",
       initialText: "g(); return f()",
       events: [
-        evSemi,
-        evAltSemi,
-        evSemi,
-        ...eventsFromKeys("direturn "),
-        evEscape,
+        ...eventsFromKeys("alt-l alt-h d i"),
+        ...eventsToTypeString("return "),
+        ...eventsFromKeys("escape"),
       ],
       expectedText: "g(); return f()",
     },
@@ -501,7 +473,7 @@ describe("DocManager", () => {
       label:
         "convert return statement into expression statement (requires parens)",
       initialText: "return {animal: 'walrus'}",
-      events: [evAltSemi, evSemi, ...eventsFromKeys("d")],
+      events: eventsFromKeys("alt-h d"),
       expectedText: "({animal: 'walrus'})",
       skip: true,
     },
@@ -509,10 +481,9 @@ describe("DocManager", () => {
       label: "change expression of throw statement",
       initialText: "throw new Error('test')",
       events: [
-        evSemi,
-        ...eventsFromKeys("d"),
-        ...eventsFromKeys("a'walrus'"),
-        evEscape,
+        ...eventsFromKeys("alt-l d a"),
+        ...eventsToTypeString("'walrus'"),
+        ...eventsFromKeys("escape"),
       ],
       expectedText: "throw 'walrus'",
     },
@@ -520,14 +491,18 @@ describe("DocManager", () => {
       label:
         "convert throw statement into expression statement and back (basic)",
       initialText: "throw new Error('test')",
-      events: [evAltSemi, evSemi, ...eventsFromKeys("dithrow "), evEscape],
+      events: [
+        ...eventsFromKeys("alt-h d i"),
+        ...eventsToTypeString("throw "),
+        ...eventsFromKeys("escape"),
+      ],
       expectedText: "throw new Error('test')",
     },
     {
       label:
         "convert throw statement into expression statement (requires parens)",
       initialText: "throw {animal: 'walrus'}",
-      events: [evAltSemi, evSemi, ...eventsFromKeys("d")],
+      events: eventsFromKeys("alt-h d"),
       expectedText: "({animal: 'walrus'})",
       skip: true,
     },
@@ -535,12 +510,9 @@ describe("DocManager", () => {
       label: "add and remove export from type alias declaration",
       initialText: "type X = Y",
       events: [
-        ...eventsFromKeys("iexport "),
-        evEscape,
-        ...eventsFromKeys("K"),
-        evAltSemi,
-        evSemi,
-        ...eventsFromKeys("d"),
+        ...eventsFromKeys("i"),
+        ...eventsToTypeString("export "),
+        ...eventsFromKeys("escape alt-h d"),
       ],
       expectedText: "type X = Y",
     },
@@ -548,17 +520,16 @@ describe("DocManager", () => {
       label:
         "paste ExpressionStatement into Expression location (one of multiple statements)",
       initialText: "f(x); g(x)",
-      events: [evSemi, ...eventsFromKeys("c"), evSemi, ...eventsFromKeys("jp")],
+      events: eventsFromKeys("alt-l c ( p"),
       expectedText: "f(x); g(g(x))",
     },
     {
       label:
         "paste ExpressionStatement into Expression location (at root of file)",
       initialText: "f(x)",
-      events: [...eventsFromKeys("c"), evSemi, ...eventsFromKeys("jp")],
+      events: eventsFromKeys("c ( p"),
       expectedText: "f(f(x))",
     },
-    */
     {
       label: "delete value of property that is named with a reserved word",
       initialText: `const shortcuts = { delete: "space d" };`,
