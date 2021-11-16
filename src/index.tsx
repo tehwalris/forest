@@ -63,11 +63,12 @@ import { roundTripFile } from "./logic/tasks/round-trip";
     src/index.tsx
     src/App.tsx
   `;
-  const paths = _paths
-    .trim()
-    .split("\n")
-    .map((s) => s.trim())
-    .filter((s) => !s.match(/\.d\.tsx?$/) && !s.endsWith("/templates.ts"));
+  // const paths = _paths
+  //   .trim()
+  //   .split("\n")
+  //   .map((s) => s.trim())
+  //   .filter((s) => !s.match(/\.d\.tsx?$/) && !s.endsWith("/templates.ts"));
+  const paths: string[] = [];
   console.log(paths);
   const fs = await configureRemoteFs();
   for (const [i, path] of paths.entries()) {
