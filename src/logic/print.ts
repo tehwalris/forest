@@ -2,7 +2,7 @@ import type { Options } from "prettier";
 import parserTypescript from "prettier/parser-typescript";
 import { format as prettierFormat } from "prettier/standalone";
 import ts from "typescript";
-import { astFromTypescriptFileContent } from "./parse";
+import { assertNoSyntaxErrors, astFromTypescriptFileContent } from "./parse";
 import {
   getTextWithInsertionsAndDeletions,
   InsertionOrDeletion,
@@ -85,21 +85,25 @@ interface PrettierUnwrap {
 
 type PrettierWrapUnwrap = PrettierWrap | PrettierUnwrap;
 
-export function prettyPrintTsSourceFile(
-  unformattedAst: ts.SourceFile,
-): ts.SourceFile {
-  const printer = createPrinter();
-  const unformattedText = printer.printNode(
-    ts.EmitHint.SourceFile,
-    unformattedAst,
-    unformattedAst,
-  );
+function _prettyPrintTsSourceFile(unformattedAst: ts.SourceFile): string {
+  const unformattedText = unformattedAst.text;
   const formattedText = prettierFormat(unformattedText, PRETTIER_OPTIONS);
 
-  const formattedAst = astFromTypescriptFileContent(formattedText);
+  const formattedAst = assertNoSyntaxErrors(
+    astFromTypescriptFileContent(formattedText),
+  );
 
   const wrapUnwraps: PrettierWrapUnwrap[] = [];
   visitDeepSynced(unformattedAst, formattedAst, (nodeA, nodeB) => {
+    if (
+      nodeA.pos === -1 ||
+      nodeA.end === -1 ||
+      nodeB.pos === -1 ||
+      nodeB.end === -1
+    ) {
+      throw new Error("nodes have invalid text ranges");
+    }
+
     if (
       !ts.isParenthesizedExpression(nodeA) &&
       ts.isParenthesizedExpression(nodeB)
@@ -183,29 +187,32 @@ export function prettyPrintTsSourceFile(
     adjustedText,
   });
 
-  return astFromTypescriptFileContent(adjustedText);
+  return adjustedText;
+}
+
+// reprints source file so that text ranges are valid, but does not format it
+// very nicely
+export function uglyPrintTsSourceFile(
+  unformattedAst: ts.SourceFile,
+): ts.SourceFile {
+  const printer = createPrinter();
+  return assertNoSyntaxErrors(
+    astFromTypescriptFileContent(
+      printer.printNode(ts.EmitHint.SourceFile, unformattedAst, unformattedAst),
+    ),
+  );
+}
+
+export function prettyPrintTsSourceFile(
+  unformattedAst: ts.SourceFile,
+): ts.SourceFile {
+  return assertNoSyntaxErrors(
+    astFromTypescriptFileContent(_prettyPrintTsSourceFile(unformattedAst)),
+  );
 }
 
 export function prettyPrintTsString(unformattedText: string): string {
-  const printer = createPrinter();
-
-  const formattedText = prettierFormat(unformattedText, PRETTIER_OPTIONS);
-
-  const transformer: ts.TransformerFactory<ts.SourceFile> =
-    (context) => (rootNode) => {
-      function visit(node: ts.Node): ts.Node {
-        if (ts.isParenthesizedExpression(node)) {
-          return ts.visitEachChild(node.expression, visit, context);
-        }
-        return ts.visitEachChild(node, visit, context);
-      }
-      return ts.visitNode(rootNode, visit);
-    };
-
-  const formattedAst = astFromTypescriptFileContent(formattedText);
-  const transformResult = ts.transform(formattedAst, [transformer]);
-  const astWithoutParens = transformResult.transformed[0];
-
-  const textWithoutParens = printer.printFile(astWithoutParens);
-  return textWithoutParens;
+  return _prettyPrintTsSourceFile(
+    assertNoSyntaxErrors(astFromTypescriptFileContent(unformattedText)),
+  );
 }

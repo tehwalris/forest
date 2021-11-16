@@ -3,7 +3,7 @@ import { Doc, ListNode, Node, NodeKind, Path, TextRange } from "./interfaces";
 import { makeNodeValidTs } from "./make-valid";
 import { docFromAst } from "./node-from-ts";
 import { PathMapper } from "./path-mapper";
-import { prettyPrintTsSourceFile } from "./print";
+import { prettyPrintTsSourceFile, uglyPrintTsSourceFile } from "./print";
 import {
   duplicateMapPosCb,
   getTextWithDeletions,
@@ -79,7 +79,9 @@ export function getDocWithAllPlaceholders(docWithoutPlaceholders: Doc): {
   const placeholderAddition = makeNodeValidTs(docWithoutPlaceholders.root);
   const validRoot = placeholderAddition.node;
   const uglySourceFile = tsNodeFromNode(validRoot) as ts.SourceFile;
-  const prettySourceFile = prettyPrintTsSourceFile(uglySourceFile);
+  const prettySourceFile = prettyPrintTsSourceFile(
+    uglyPrintTsSourceFile(uglySourceFile),
+  );
   const parsedDoc = docFromAst(prettySourceFile);
   if (
     !nodesAreEqualExceptRangesAndPlaceholdersAndIds(validRoot, parsedDoc.root)

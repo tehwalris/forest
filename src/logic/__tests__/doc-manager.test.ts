@@ -7,12 +7,12 @@ import {
 import { Doc } from "../interfaces";
 import { docFromAst } from "../node-from-ts";
 import { astFromTypescriptFileContent } from "../parse";
-import { prettyPrintTsSourceFile } from "../print";
+import { prettyPrintTsString } from "../print";
 
 function asPrettyDoc(uglyText: string): Doc {
-  const uglyAst = astFromTypescriptFileContent(uglyText);
-  const prettyAst = prettyPrintTsSourceFile(uglyAst);
-  return docFromAst(prettyAst);
+  return docFromAst(
+    astFromTypescriptFileContent(prettyPrintTsString(uglyText)),
+  );
 }
 
 type EventHandler = "onKeyUp" | "onKeyDown" | "onKeyPress";

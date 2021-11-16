@@ -17,6 +17,16 @@ export function assertSourceFileHasDiagnostics(
   }
 }
 
+export function assertNoSyntaxErrors(
+  file: SourceFileWithDiagnostics,
+): SourceFileWithDiagnostics {
+  if (file.parseDiagnostics.length) {
+    console.warn("file has syntax errors", file);
+    throw new Error("file has syntax errors");
+  }
+  return file;
+}
+
 export function astFromTypescriptFileContent(
   fileContent: string,
 ): SourceFileWithDiagnostics {
