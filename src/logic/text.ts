@@ -1,10 +1,23 @@
+import { sortBy } from "ramda";
 import { Doc, ListNode, Node, NodeKind, TextRange } from "./interfaces";
-import { assertSortedBy } from "./util";
+import { assertSortedBy, unreachable } from "./util";
 
 export interface Insertion {
   beforePos: number;
   text: string;
 }
+
+export enum InsertionOrDeletionKind {
+  Insertion,
+  Deletion,
+}
+
+export type InsertionOrDeletion =
+  | {
+      kind: InsertionOrDeletionKind.Insertion;
+      insertion: Insertion;
+    }
+  | { kind: InsertionOrDeletionKind.Deletion; textRange: TextRange };
 
 export function duplicateMapPosCb(
   cb: (pos: number) => number,
@@ -86,8 +99,7 @@ export function getTextWithDeletions(
     return { text, mapPos: (pos) => pos };
   }
 
-  const deleteRanges = [..._deleteRanges];
-  deleteRanges.sort();
+  const deleteRanges = sortBy((r) => r.pos, _deleteRanges);
 
   if (checkTextRangesOverlap(deleteRanges)) {
     throw new Error("deleteRanges overlap");
@@ -124,4 +136,44 @@ export function getTextWithDeletions(
       return pos - deletedCharsBefore;
     },
   };
+}
+
+export function getTextWithInsertionsAndDeletions(
+  oldText: string,
+  _operations: InsertionOrDeletion[],
+): string {
+  const operations = sortBy(
+    (o) =>
+      o.kind === InsertionOrDeletionKind.Insertion
+        ? o.insertion.beforePos - 0.5
+        : o.textRange.pos,
+    _operations,
+  );
+
+  const textParts = [];
+  let pos = 0;
+  for (const o of operations) {
+    if (o.kind === InsertionOrDeletionKind.Insertion) {
+      if (pos > o.insertion.beforePos) {
+        throw new Error("overlapping operations");
+      }
+      textParts.push(
+        oldText.slice(pos, o.insertion.beforePos),
+        o.insertion.text,
+      );
+      pos = o.insertion.beforePos;
+    } else if (o.kind === InsertionOrDeletionKind.Deletion) {
+      if (pos > o.textRange.pos) {
+        throw new Error("overlapping operations");
+      }
+      textParts.push(oldText.slice(pos, o.textRange.pos));
+      pos = o.textRange.end;
+    } else {
+      return unreachable(o);
+    }
+  }
+  if (pos < oldText.length) {
+    textParts.push(oldText.slice(pos, oldText.length));
+  }
+  return textParts.join("");
 }

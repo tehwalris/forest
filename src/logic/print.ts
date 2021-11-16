@@ -3,6 +3,11 @@ import parserTypescript from "prettier/parser-typescript";
 import { format as prettierFormat } from "prettier/standalone";
 import ts from "typescript";
 import { astFromTypescriptFileContent } from "./parse";
+import {
+  getTextWithInsertionsAndDeletions,
+  InsertionOrDeletion,
+  InsertionOrDeletionKind,
+} from "./text";
 
 const PRETTIER_OPTIONS: Options = {
   parser: "typescript",
@@ -121,9 +126,44 @@ export function prettyPrintTsSourceFile(
     }
   });
 
-  console.log("DEBUG wrapUnwraps", wrapUnwraps);
+  const insertionsAndDeletions: InsertionOrDeletion[] = [];
+  for (const wrapUnwrap of wrapUnwraps) {
+    if (wrapUnwrap.wrap) {
+      insertionsAndDeletions.push(
+        {
+          kind: InsertionOrDeletionKind.Deletion,
+          textRange: {
+            pos: wrapUnwrap.outerNodeB.pos,
+            end: wrapUnwrap.innerNodeB.pos,
+          },
+        },
+        {
+          kind: InsertionOrDeletionKind.Deletion,
+          textRange: {
+            pos: wrapUnwrap.innerNodeB.end,
+            end: wrapUnwrap.outerNodeB.end,
+          },
+        },
+      );
+    } else {
+      // TODO
+    }
+  }
 
-  return astFromTypescriptFileContent(formattedText);
+  const adjustedText = getTextWithInsertionsAndDeletions(
+    formattedText,
+    insertionsAndDeletions,
+  );
+
+  console.log("DEBUG", {
+    wrapUnwraps,
+    insertionsAndDeletions,
+    unformattedText,
+    formattedText,
+    adjustedText,
+  });
+
+  return astFromTypescriptFileContent(adjustedText);
 }
 
 export function prettyPrintTsString(unformattedText: string): string {
