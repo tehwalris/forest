@@ -12,22 +12,8 @@ import { loadTasks } from "./logic/tasks/load";
 import { isBrowseTask, isCreationTask } from "./logic/tasks/util";
 
 const exampleFileText = `
-  export const handlers: {
-    [key: string]: (() => void) | undefined;
-  } = {
-    Enter: node.actions.setVariant
-      ? tryAction("setVariant", (n) => n.id, true)
-      : tryAction("setFromString"),
-    "ctrl-d": tryDeleteChild,
-    "ctrl-c": () => copyNode(node),
-    "ctrl-p": copiedNode && tryAction("replace", (n) => n.id),
-    "ctrl-f": editFlags,
-    "ctrl-4": () =>
-      setMarks({
-        ...marks,
-        TODO: idPathFromParentIndexEntry(parentIndexEntry),
-      }),
-  };
+if (nodeArray[0]) {
+}
 `;
 
 const styles = {
