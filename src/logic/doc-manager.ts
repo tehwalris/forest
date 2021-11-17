@@ -246,6 +246,9 @@ export class DocManager {
           (c) => flipEvenPathRangeForward(c.focus),
         );
       } else if (ev.key === "Q") {
+        if (!this.queuedCursors.length) {
+          return;
+        }
         this.cursors = [...this.queuedCursors];
         this.queuedCursors = [];
       } else if (ev.key === "l" && !hasAltLike(ev)) {
