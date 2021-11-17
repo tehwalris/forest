@@ -236,10 +236,7 @@ export class DocManager {
             );
         });
       } else if (ev.key === "S") {
-        this.cursors = sortBy(
-          (c) => textRangeFromFocus(this.doc.root, c.focus).pos,
-          this.cursors,
-        ).slice(0, 1);
+        this.cursors = this.cursors.slice(0, 1);
       } else if (ev.key === "q") {
         this.queuedCursors = uniqueByEvenPathRange(
           [...this.cursors, ...this.queuedCursors],
@@ -565,6 +562,10 @@ export class DocManager {
         focus: normalizeFocusIn(this.doc.root, m.focus),
       })),
     }));
+    this.cursors = sortBy(
+      (c) => textRangeFromFocus(this.doc.root, c.focus).pos,
+      this.cursors,
+    );
     this.cursorHistory.push(this.cursors);
     this.lastDoc = this.doc;
     this.reportUpdate();
