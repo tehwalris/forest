@@ -3,18 +3,14 @@ import { sortBy } from "ramda";
 import { useEffect, useState } from "react";
 import { promisify } from "util";
 import { Fs } from "../logic/tasks/fs";
-
 interface Props {
   fs: Fs;
   onSelect: (file: FileWithPath) => void;
 }
-
 interface FileWithPath {
   text: string;
   path: string;
 }
-
-// based on https://stackoverflow.com/questions/5827612/node-js-fs-readdir-recursive-directory-search
 async function getAllPaths(fs: Fs, root: string): Promise<string[]> {
   const entries = await promisify(fs.readdir)(root);
   const files = await Promise.all(
@@ -26,7 +22,6 @@ async function getAllPaths(fs: Fs, root: string): Promise<string[]> {
   );
   return files.flat();
 }
-
 export const FileSearch = ({ fs, onSelect }: Props) => {
   const [paths, setPaths] = useState<string[]>([]);
   useEffect(() => {
@@ -41,13 +36,11 @@ export const FileSearch = ({ fs, onSelect }: Props) => {
       )
       .catch((err) => console.error("getAllPaths failed", err));
   }, [fs]);
-
   const [selectedPath, setSelectedPath] = useState("");
   useEffect(() => {
     if (!selectedPath) {
       return;
     }
-
     let didCancel = false;
     (async () => {
       const text = await promisify(fs.readFile)(selectedPath, {
@@ -59,12 +52,10 @@ export const FileSearch = ({ fs, onSelect }: Props) => {
     })().catch((err) =>
       console.error("failed to load file", selectedPath, err),
     );
-
     return () => {
       didCancel = true;
     };
   }, [selectedPath, onSelect, fs]);
-
   return (
     <select
       value={selectedPath}
