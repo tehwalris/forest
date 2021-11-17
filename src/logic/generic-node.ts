@@ -35,4 +35,6 @@ export const allowedGenericNodeMatchers: ((node: ts.Node) => boolean)[] = [
   ts.isObjectLiteralExpression,
   ts.isArrayLiteralExpression,
   ts.isTypeReferenceNode,
+  ts.isObjectBindingPattern,
+  ts.isBindingElement,
 ];
