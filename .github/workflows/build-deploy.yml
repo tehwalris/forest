@@ -21,7 +21,6 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=8192"
           CI: "false"
       - run: npx now --prod -t ${{ secrets.ZEIT_NOW_TOKEN }}
-        working-directory: forest
         env:
           NOW_ORG_ID: ${{ secrets.ZEIT_NOW_ORG_ID }}
           NOW_PROJECT_ID: ${{ secrets.ZEIT_NOW_PROJECT_ID }}
