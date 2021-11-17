@@ -10,40 +10,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-        with:
-          path: forest
-      - uses: actions/checkout@v2
-        with:
-          repository: "tehwalris/divetree"
-          path: divetree
       - name: Use Node.js
         uses: actions/setup-node@v1
         with:
-          node-version: 12.x
+          node-version: 16.x
       - run: yarn install --frozen-lockfile
-        working-directory: divetree
-      - run: yarn workspace divetree-core build
-        working-directory: divetree
-      - run: yarn workspace divetree-react build
-        working-directory: divetree
-      - run: yarn link
-        working-directory: divetree/divetree-core
-      - run: yarn link
-        working-directory: divetree/divetree-react
-      - run: yarn link
-        working-directory: divetree/node_modules/react
-      - run: yarn install --frozen-lockfile
-        working-directory: forest
-      - run: yarn link divetree-core
-        working-directory: forest
-      - run: yarn link divetree-react
-        working-directory: forest
-      - run: yarn link react
-        working-directory: forest
-      - run: node generate-templates.js
-        working-directory: forest/src/logic/providers/typescript
       - run: yarn build
-        working-directory: forest
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
           CI: "false"
