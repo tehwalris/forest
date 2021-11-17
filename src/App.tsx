@@ -3,6 +3,7 @@ import { sortBy } from "ramda";
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { promisify } from "util";
+import { FileSearch } from "./components/file-search";
 import { LinearEditor } from "./components/linear-editor";
 import { Doc } from "./logic/interfaces";
 import { docFromAst } from "./logic/node-from-ts";
@@ -95,6 +96,9 @@ export const App = () => {
     }
   }, [selectedTask]);
   const [showTargetView, setShowTargetView] = useState(false);
+  if (!fs) {
+    return <div>Connecting to remote filesystem...</div>;
+  }
   const editor = (
     <LinearEditor
       initialDoc={initialDoc}
@@ -103,9 +107,6 @@ export const App = () => {
           if (!initialDocInfo.path) {
             console.warn("open file has no save path");
             return;
-          }
-          if (!fs) {
-            throw new Error("no filesystem connected");
           }
           await promisify(fs.writeFile)(initialDocInfo.path, doc.text, {
             encoding: "utf-8",
@@ -117,12 +118,15 @@ export const App = () => {
   return (
     <>
       <div>
+        <FileSearch fs={fs} onSelect={setInitialDocInfo} />
+      </div>
+      <div>
         <select
           value={selectedTask?.name || ""}
           onChange={(ev) => setSelectedTaskName(ev.target.value)}
         >
           <option key="" value="">
-            -
+            Select task...
           </option>
           {tasks.map((t) => (
             <option key={t.name} value={t.name}>
