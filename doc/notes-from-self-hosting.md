@@ -8,6 +8,7 @@
 # Most important missing features
 
 - Scroll with cursor
+- Paste from system clipboard (in insert mode)
 - Search for filenames
 - Jump to definition
 - Multiple marks

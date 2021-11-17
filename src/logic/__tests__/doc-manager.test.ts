@@ -508,6 +508,12 @@ describe("DocManager", () => {
       expectedText: `const shortcuts = { delete: placeholder };`,
       skip: true,
     },
+    {
+      label: "paste Identifier into TypeReferenceNode location",
+      initialText: "interface Test { f: T }",
+      events: eventsFromKeys("ctrl-shift-l space c k { alt-l p"),
+      expectedText: "interface Test { f: Test }",
+    },
   ];
   for (const c of cases) {
     (c.skip ? test.skip : test)(c.label, () => {

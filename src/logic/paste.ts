@@ -53,6 +53,7 @@ export interface PasteReplaceArgs {
   lastIndex: number;
   clipboard: Node;
   isPartialCopy: boolean;
+  disableConversions?: boolean;
 }
 interface FlattenedPasteReplaceArgs extends PasteReplaceArgs {
   clipboard: ListNode;
@@ -290,7 +291,14 @@ function canPasteNestedIntoGenericTsNodeList({
 export function acceptPasteReplace(
   args: PasteReplaceArgs,
 ): ListItemReplacement | undefined {
-  const { node, firstIndex, lastIndex, clipboard, isPartialCopy } = args;
+  const {
+    node,
+    firstIndex,
+    lastIndex,
+    clipboard,
+    isPartialCopy,
+    disableConversions = false,
+  } = args;
   if (
     !(
       firstIndex >= 0 &&
@@ -383,24 +391,54 @@ export function acceptPasteReplace(
       content: [clipboard],
       structKeys: node.structKeys?.slice(firstIndex, lastIndex + 1),
     };
-  } else if (!!clipboardTs && matchesUnion(clipboardTs, unions.Expression)) {
-    return acceptPasteReplace({
-      ...args,
-      clipboard: {
-        kind: NodeKind.List,
-        listKind: ListKind.TsNodeStruct,
-        tsNode: ts.createExpressionStatement(ts.createIdentifier("")),
-        delimiters: ["", ""],
-        structKeys: ["expression"],
-        content: [clipboard],
-        equivalentToContent: true,
-        pos: clipboard.pos,
-        end: clipboard.end,
-        id: Symbol(),
-      },
-    });
   } else {
-    console.warn("the requested paste was not explicitly allowed");
+    const conversionResults: (ListItemReplacement | undefined)[] = [];
+    if (!disableConversions) {
+      if (!!clipboardTs && matchesUnion(clipboardTs, unions.Expression)) {
+        conversionResults.push(
+          acceptPasteReplace({
+            ...args,
+            clipboard: {
+              kind: NodeKind.List,
+              listKind: ListKind.TsNodeStruct,
+              tsNode: ts.createExpressionStatement(ts.createIdentifier("")),
+              delimiters: ["", ""],
+              structKeys: ["expression"],
+              content: [clipboard],
+              equivalentToContent: true,
+              pos: clipboard.pos,
+              end: clipboard.end,
+              id: Symbol(),
+            },
+            disableConversions: true,
+          }),
+        );
+      }
+      if (!!clipboardTs && ts.isIdentifier(clipboardTs)) {
+        conversionResults.push(
+          acceptPasteReplace({
+            ...args,
+            clipboard: {
+              kind: NodeKind.List,
+              listKind: ListKind.TsNodeStruct,
+              tsNode: ts.factory.createTypeReferenceNode(clipboardTs),
+              delimiters: ["", ""],
+              structKeys: ["typeName"],
+              content: [clipboard],
+              equivalentToContent: true,
+              pos: clipboard.pos,
+              end: clipboard.end,
+              id: Symbol(),
+            },
+            disableConversions: true,
+          }),
+        );
+      }
+    }
+    const firstGoodConversion = conversionResults.filter((c) => c)[0];
+    if (firstGoodConversion) {
+      return firstGoodConversion;
+    }
     return undefined;
   }
 }
