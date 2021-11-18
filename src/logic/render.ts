@@ -10,6 +10,7 @@ export enum CharSelection {
   Tip = 2,
   Queued = 4,
   Placeholder = 8,
+  PrimaryCursor = 16,
 }
 const numCharSelections = Object.entries(CharSelection).length / 2;
 for (let i = 0; i < numCharSelections; i++) {
@@ -35,16 +36,20 @@ function setCharSelectionsForFocus({
   root,
   focus,
   enableReduceToTip,
+  isPrimaryCursor,
 }: {
   selectionsByChar: Uint8Array;
   root: ListNode;
   focus: EvenPathRange;
   enableReduceToTip: boolean;
+  isPrimaryCursor: boolean;
 }) {
   const focusRange = textRangeFromFocus(root, focus);
   fillBitwiseOr(
     selectionsByChar,
-    CharSelection.Normal,
+    isPrimaryCursor
+      ? (CharSelection.Normal | CharSelection.PrimaryCursor)
+      : CharSelection.Normal,
     focusRange.pos,
     focusRange.end,
   );
@@ -124,8 +129,9 @@ export function getStyleForSelection(
   } = {
     [CharSelection.Normal]: { background: "rgba(11, 83, 255, 0.37)" },
     [CharSelection.Tip]: { background: "rgba(120, 83, 150, 0.37)" },
-    [CharSelection.Placeholder]: { color: "#888" },
     [CharSelection.Queued]: { background: "rgb(189, 189, 189)" },
+    [CharSelection.Placeholder]: { color: "#888" },
+    [CharSelection.PrimaryCursor]: {},
   };
   const style: React.CSSProperties = {};
   for (let i = 0; i < numCharSelections; i++) {
@@ -144,12 +150,13 @@ export function renderLinesFromDoc(
   const selectionsByChar = new Uint8Array(doc.text.length);
   setCharSelectionsForPlaceholders({ selectionsByChar, root: doc.root });
   if (mode === Mode.Normal) {
-    for (const cursor of cursors) {
+    for (const [iCursor, cursor] of cursors.entries()) {
       setCharSelectionsForFocus({
         selectionsByChar,
         root: doc.root,
         focus: cursor.focus,
         enableReduceToTip: cursor.enableReduceToTip,
+        isPrimaryCursor: iCursor === 0,
       });
     }
     for (const cursor of queuedCursors) {

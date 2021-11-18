@@ -9,7 +9,7 @@ import {
 } from "../logic/doc-manager";
 import { Doc } from "../logic/interfaces";
 import { renderLinesFromDoc } from "../logic/render";
-import { SimpleLines } from "./simple-lines";
+import { FollowLines } from "./follow-lines";
 interface Props {
   initialDoc: Doc;
   onSave: (doc: Doc) => void;
@@ -115,7 +115,7 @@ export const LinearEditor = ({ initialDoc, onSave }: Props) => {
         )}
       >
         {doc.text.trim() ? (
-          <SimpleLines lines={lines} />
+          <FollowLines lines={lines} viewportHeightLines={20} />
         ) : (
           <div style={{ opacity: 0.5, userSelect: "none" }}>
             (empty document)
