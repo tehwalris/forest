@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useRef } from "react";
 import { CharSelection, DocRenderLine } from "../logic/render";
 import { Line } from "./line";
 interface Props {
@@ -37,10 +38,12 @@ export const FollowLines = ({ lines, viewportHeightLines }: Props) => {
         r.selection & CharSelection.PrimaryCursor,
     ),
   );
-  const firstVisibleLineIndex = Math.max(
-    0,
-    (tipRange?.[0] ?? normalRange?.[0] ?? 0) - 5,
-  );
+  const oldFirstVisibleLineIndexRef = useRef(0);
+  const target = tipRange?.[0] ?? normalRange?.[0];
+  const firstVisibleLineIndex = target
+    ? Math.max(0, target - 5)
+    : oldFirstVisibleLineIndexRef.current;
+  oldFirstVisibleLineIndexRef.current = firstVisibleLineIndex;
   const visibleLineIndices: number[] = [];
   visibleLineIndices.push(
     ...lines
