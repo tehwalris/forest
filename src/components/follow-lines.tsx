@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { CharSelection, DocRenderLine } from "../logic/render";
 import { Line } from "./line";
 interface Props {
@@ -113,15 +113,31 @@ export const FollowLines = ({
       ? c
       : a,
   ).offset;
-  oldOffsetRef.current = offset;
-  const visibleLineIndices: number[] = [];
-  visibleLineIndices.push(
-    ...lines.map((l, i) => i).slice(offset, offset + viewportHeightLines),
-  );
+  const wrapperDivRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (wrapperDivRef.current) {
+      wrapperDivRef.current.scroll({
+        top: lines.length
+          ? (offset / lines.length) * wrapperDivRef.current.scrollHeight
+          : 0,
+        left: 0,
+        behavior: "smooth",
+      });
+    }
+    oldOffsetRef.current = offset;
+  });
   return (
-    <div style={{ whiteSpace: "pre" }}>
-      {visibleLineIndices.map((i) => (
-        <Line key={i} line={lines[i]} />
+    <div
+      ref={wrapperDivRef}
+      style={{
+        whiteSpace: "pre",
+        // TODO 20 is the wrong height
+        height: viewportHeightLines * 20,
+        overflow: "auto scroll",
+      }}
+    >
+      {lines.map((line, iLine) => (
+        <Line key={iLine} line={line} />
       ))}
     </div>
   );
