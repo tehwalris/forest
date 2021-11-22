@@ -98,10 +98,10 @@ export const FollowLines = ({
     .map((v) => evaluateOffset(v!));
   const offset = candidateOffsets.reduce((a, c) => {
     const keysByPriority: (keyof CandidateOffset)[] = [
-      "visibleTipCount",
-      "visibleNormalCount",
       "startOfTipVisible",
+      "visibleTipCount",
       "startOfNormalVisible",
+      "visibleNormalCount",
     ];
     for (const k of keysByPriority) {
       const av = a[k];
@@ -137,6 +137,7 @@ export const FollowLines = ({
     }
     oldOffsetRef.current = offset;
   });
+  // TODO you were here: fill all vertical space and detect line height automatically
   return (
     <div
       ref={wrapperDivRef}
