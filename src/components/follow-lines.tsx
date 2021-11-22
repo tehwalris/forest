@@ -89,10 +89,10 @@ export const FollowLines = ({
   ): number | undefined =>
     r === undefined ? undefined : Math.max(r[0] - paddingTop, 0);
   const candidateOffsets = [
-    alignTopPadded(tipRange, 5),
     alignTopPadded(normalRange, 5),
-    alignTopPadded(tipRange, 1),
     alignTopPadded(normalRange, 1),
+    alignTopPadded(tipRange, 5),
+    alignTopPadded(tipRange, 1),
     oldOffsetRef.current,
   ]
     .filter((v) => v !== undefined)
