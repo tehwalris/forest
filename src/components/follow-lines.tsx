@@ -36,10 +36,18 @@ function countOverlap(a: Range | undefined, b: Range | undefined): number {
   }
   return Math.min(a[1], b[1]) - b[0] + 1;
 }
+function rangeContainsLocation(
+  a: Range | undefined,
+  b: number | undefined,
+): boolean {
+  return countOverlap(a, b === undefined ? undefined : [b, b]) === 1;
+}
 interface CandidateOffset {
   offset: number;
   visibleTipCount: number;
   visibleNormalCount: number;
+  startOfTipVisible: boolean;
+  startOfNormalVisible: boolean;
 }
 export const FollowLines = ({
   lines,
@@ -66,6 +74,12 @@ export const FollowLines = ({
       offset,
       visibleTipCount: countOverlap(visibleRange, tipRange),
       visibleNormalCount: countOverlap(visibleRange, normalRange),
+      startOfTipVisible:
+        tipRange !== undefined &&
+        rangeContainsLocation(visibleRange, tipRange[0]),
+      startOfNormalVisible:
+        normalRange !== undefined &&
+        rangeContainsLocation(visibleRange, normalRange[0]),
     };
   };
   const oldOffsetRef = useRef(0);
@@ -79,11 +93,19 @@ export const FollowLines = ({
   ]
     .filter((v) => v !== undefined)
     .map((v) => evaluateOffset(v!));
-  console.log("DEBUG", { candidateOffsets, tipRange, normalRange });
   const offset = candidateOffsets.reduce((a, c) =>
     c.visibleTipCount > a.visibleTipCount ||
     (c.visibleTipCount === a.visibleTipCount &&
-      c.visibleNormalCount > a.visibleNormalCount)
+      c.visibleNormalCount > a.visibleNormalCount) ||
+    (c.visibleTipCount === a.visibleTipCount &&
+      c.visibleNormalCount === a.visibleNormalCount &&
+      c.startOfTipVisible &&
+      !a.startOfTipVisible) ||
+    (c.visibleTipCount === a.visibleTipCount &&
+      c.visibleNormalCount === a.visibleNormalCount &&
+      c.startOfTipVisible === a.startOfTipVisible &&
+      c.startOfNormalVisible &&
+      !a.startOfNormalVisible)
       ? c
       : a,
   ).offset;
