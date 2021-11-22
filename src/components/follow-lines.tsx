@@ -97,22 +97,34 @@ export const FollowLines = ({
   ]
     .filter((v) => v !== undefined)
     .map((v) => evaluateOffset(v!));
-  const offset = candidateOffsets.reduce((a, c) =>
-    c.visibleTipCount > a.visibleTipCount ||
-    (c.visibleTipCount === a.visibleTipCount &&
-      c.visibleNormalCount > a.visibleNormalCount) ||
-    (c.visibleTipCount === a.visibleTipCount &&
-      c.visibleNormalCount === a.visibleNormalCount &&
-      c.startOfTipVisible &&
-      !a.startOfTipVisible) ||
-    (c.visibleTipCount === a.visibleTipCount &&
-      c.visibleNormalCount === a.visibleNormalCount &&
-      c.startOfTipVisible === a.startOfTipVisible &&
-      c.startOfNormalVisible &&
-      !a.startOfNormalVisible)
-      ? c
-      : a,
-  ).offset;
+  const offset = candidateOffsets.reduce((a, c) => {
+    const keysByPriority: (keyof CandidateOffset)[] = [
+      "visibleTipCount",
+      "visibleNormalCount",
+      "startOfTipVisible",
+      "startOfNormalVisible",
+    ];
+    for (const k of keysByPriority) {
+      const av = a[k];
+      const cv = c[k];
+      if (typeof av === "number" && typeof cv === "number") {
+        if (av < cv) {
+          return c;
+        } else if (av > cv) {
+          return a;
+        }
+      } else if (typeof av === "boolean" && typeof cv === "boolean") {
+        if (!av && cv) {
+          return c;
+        } else if (av && !cv) {
+          return a;
+        }
+      } else {
+        throw new Error("unexpected types");
+      }
+    }
+    return a;
+  }).offset;
   const wrapperDivRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (wrapperDivRef.current) {
@@ -131,7 +143,6 @@ export const FollowLines = ({
       ref={wrapperDivRef}
       style={{
         whiteSpace: "pre",
-        // TODO 20 is the wrong height
         height: viewportHeightLines * 20,
         overflow: "auto scroll",
       }}
