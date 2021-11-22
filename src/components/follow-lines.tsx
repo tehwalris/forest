@@ -89,13 +89,12 @@ export const FollowLines = ({
   ): number | undefined =>
     r === undefined ? undefined : Math.max(r[0] - paddingTop, 0);
   const candidateOffsets = [
-    alignTopPadded(normalRange, 5),
-    alignTopPadded(normalRange, 1),
-    alignTopPadded(tipRange, 5),
-    alignTopPadded(tipRange, 1),
+    ...[normalRange, tipRange].flatMap((r) =>
+      [5, 4, 3, 2, 1].map((o) => alignTopPadded(r, o)),
+    ),
     oldOffsetRef.current,
   ]
-    .filter((v) => v !== undefined)
+    .filter((v: number | undefined) => v !== undefined)
     .map((v) => evaluateOffset(v!));
   const offset = candidateOffsets.reduce((a, c) => {
     const keysByPriority: (keyof CandidateOffset)[] = [
