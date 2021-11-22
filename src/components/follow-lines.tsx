@@ -83,12 +83,16 @@ export const FollowLines = ({
     };
   };
   const oldOffsetRef = useRef(0);
-  const paddingTop = 5;
+  const alignTopPadded = (
+    r: Range | undefined,
+    paddingTop: number,
+  ): number | undefined =>
+    r === undefined ? undefined : Math.max(r[0] - paddingTop, 0);
   const candidateOffsets = [
-    tipRange === undefined ? undefined : Math.max(tipRange[0] - paddingTop, 0),
-    normalRange === undefined
-      ? undefined
-      : Math.max(normalRange[0] - paddingTop, 0),
+    alignTopPadded(tipRange, 5),
+    alignTopPadded(normalRange, 5),
+    alignTopPadded(tipRange, 1),
+    alignTopPadded(normalRange, 1),
     oldOffsetRef.current,
   ]
     .filter((v) => v !== undefined)
