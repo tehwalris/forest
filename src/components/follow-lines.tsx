@@ -6,11 +6,12 @@ interface Props {
   lines: DocRenderLine[];
   viewportHeightLines: number;
 }
+type Range = [number, number];
 function getMatchingRange<T>(
   values: T[],
   cb: (v: T) => unknown,
-): [number, number] | undefined {
-  let range: [number, number] | undefined;
+): Range | undefined {
+  let range: Range | undefined;
   for (const [i, v] of values.entries()) {
     if (!cb(v)) {
       continue;
@@ -23,7 +24,28 @@ function getMatchingRange<T>(
   }
   return range;
 }
-export const FollowLines = ({ lines, viewportHeightLines }: Props) => {
+function countOverlap(a: Range | undefined, b: Range | undefined): number {
+  if (a === undefined || b === undefined) {
+    return 0;
+  }
+  if (a[0] > b[0]) {
+    return countOverlap(b, a);
+  }
+  if (a[1] < b[0]) {
+    return 0;
+  }
+  return Math.min(a[1], b[1]) - b[0] + 1;
+}
+interface CandidateOffset {
+  offset: number;
+  visibleTipCount: number;
+  visibleNormalCount: number;
+}
+export const FollowLines = ({
+  lines,
+  viewportHeightLines: _viewportHeightLines,
+}: Props) => {
+  const viewportHeightLines = Math.max(_viewportHeightLines, 10);
   const tipRange = getMatchingRange(lines, (l) =>
     l.regions.find(
       (r) =>
@@ -38,20 +60,37 @@ export const FollowLines = ({ lines, viewportHeightLines }: Props) => {
         r.selection & CharSelection.PrimaryCursor,
     ),
   );
-  const oldFirstVisibleLineIndexRef = useRef(0);
-  const target = tipRange?.[0] ?? normalRange?.[0];
-  const firstVisibleLineIndex = target
-    ? Math.max(0, target - 5)
-    : oldFirstVisibleLineIndexRef.current;
-  oldFirstVisibleLineIndexRef.current = firstVisibleLineIndex;
+  const evaluateOffset = (offset: number): CandidateOffset => {
+    const visibleRange: Range = [offset, offset + viewportHeightLines - 1];
+    return {
+      offset,
+      visibleTipCount: countOverlap(visibleRange, tipRange),
+      visibleNormalCount: countOverlap(visibleRange, normalRange),
+    };
+  };
+  const oldOffsetRef = useRef(0);
+  const paddingTop = 5;
+  const candidateOffsets = [
+    tipRange === undefined ? undefined : Math.max(tipRange[0] - paddingTop, 0),
+    normalRange === undefined
+      ? undefined
+      : Math.max(normalRange[0] - paddingTop, 0),
+    oldOffsetRef.current,
+  ]
+    .filter((v) => v !== undefined)
+    .map((v) => evaluateOffset(v!));
+  console.log("DEBUG", { candidateOffsets, tipRange, normalRange });
+  const offset = candidateOffsets.reduce((a, c) =>
+    c.visibleTipCount > a.visibleTipCount ||
+    (c.visibleTipCount === a.visibleTipCount &&
+      c.visibleNormalCount > a.visibleNormalCount)
+      ? c
+      : a,
+  ).offset;
+  oldOffsetRef.current = offset;
   const visibleLineIndices: number[] = [];
   visibleLineIndices.push(
-    ...lines
-      .map((l, i) => i)
-      .slice(
-        firstVisibleLineIndex,
-        firstVisibleLineIndex + viewportHeightLines,
-      ),
+    ...lines.map((l, i) => i).slice(offset, offset + viewportHeightLines),
   );
   return (
     <div style={{ whiteSpace: "pre" }}>
