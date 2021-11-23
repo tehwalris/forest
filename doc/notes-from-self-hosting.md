@@ -27,14 +27,15 @@
 - [x] Scroll with cursor
 - [x] Paste should try every level of `equivalentToContent` target lists
   - Pasting `Identifier` over a `BindingElement` does not work because the paste targets the `BindingElement`, not its inner `Identifier`
-- [ ] Paste from system clipboard (in insert mode)
-- [ ] Change command (instead of delete and insert)
-- [ ] Warn when closing unsaved file
-- [ ] No way to swap two values without adding temporary code
-- [ ] Jump to definition
-- [ ] Search for filenames
-- [ ] Showing syntax errors while typing
-- [ ] Multiple marks
-- [ ] Creating files
+- [ ] Structural search
 - [ ] Synchronized multi-cursor
+- [ ] Change command (instead of delete and insert)
+- [ ] No way to swap two values without adding temporary code
+- [ ] Paste from system clipboard (in insert mode)
 - [ ] Nested multi-cursor
+- [ ] Jump to definition
+- [ ] Multiple marks
+- [ ] Warn when closing unsaved file
+- [ ] Showing syntax errors while typing
+- [ ] Search for filenames
+- [ ] Creating files
