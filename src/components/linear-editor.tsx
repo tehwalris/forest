@@ -15,7 +15,15 @@ interface Props {
   onSave: (doc: Doc) => void;
 }
 const styles = {
+  wrapper: css`
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  `,
   doc: css`
+    flex: 1 1 100px;
+    overflow: hidden;
     margin: 5px;
 
     &:focus {
@@ -93,7 +101,7 @@ export const LinearEditor = ({ initialDoc, onSave }: Props) => {
   }, [docManager]);
   const lines = renderLinesFromDoc(doc, mode, cursors, queuedCursors);
   return (
-    <div>
+    <div className={styles.wrapper}>
       <div
         ref={codeDivRef}
         className={styles.doc}
@@ -115,7 +123,7 @@ export const LinearEditor = ({ initialDoc, onSave }: Props) => {
         )}
       >
         {doc.text.trim() ? (
-          <FollowLines lines={lines} viewportHeightLines={20} />
+          <FollowLines lines={lines} />
         ) : (
           <div style={{ opacity: 0.5, userSelect: "none" }}>
             (empty document)

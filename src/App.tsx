@@ -21,7 +21,19 @@ const exampleFileText = `
         }
 `;
 const styles = {
+  outerWrapper: css`
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  `,
+  contentWrapper: css`
+    flex: 1 1 100px;
+    overflow: hidden;
+  `,
   splitView: css`
+    height: 100%;
+    overflow: hidden;
     display: flex;
     flex-direction: row;
     & > div {
@@ -116,7 +128,7 @@ export const App = () => {
     />
   );
   return (
-    <>
+    <div className={styles.outerWrapper}>
       <div>
         <FileSearch fs={fs} onSelect={setInitialDocInfo} />
       </div>
@@ -138,16 +150,18 @@ export const App = () => {
           Toggle target view
         </button>
       </div>
-      {showTargetView ? (
-        <div className={styles.splitView}>
-          {editor}
-          <div className={styles.afterDoc}>
-            {prettySelectedTaskContentAfter}
+      <div className={styles.contentWrapper}>
+        {showTargetView ? (
+          <div className={styles.splitView}>
+            {editor}
+            <div className={styles.afterDoc}>
+              {prettySelectedTaskContentAfter}
+            </div>
           </div>
-        </div>
-      ) : (
-        editor
-      )}
-    </>
+        ) : (
+          editor
+        )}
+      </div>
+    </div>
   );
 };
