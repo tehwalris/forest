@@ -1,6 +1,6 @@
 # Bugs
 
-- [ ] Insert sometimes doesn't work
+- [x] Insert sometimes doesn't work
   - Especially when inserting functions and if statements
   - Seems to depend on which side you insert on
   - `Error: unequal number of children`

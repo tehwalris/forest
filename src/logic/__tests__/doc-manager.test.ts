@@ -514,6 +514,28 @@ describe("DocManager", () => {
       events: eventsFromKeys("ctrl-shift-l space c k { alt-l p"),
       expectedText: "interface Test { f: Test }",
     },
+    {
+      label:
+        "insert interface (ending in braces) after normal statement (ending with semicolon) in source file",
+      initialText: "console.log('walrus');",
+      events: [
+        ...eventsFromKeys("a"),
+        ...eventsToTypeString(";interface T {}"),
+        ...eventsFromKeys("escape"),
+      ],
+      expectedText: "console.log('walrus'); interface T {}",
+    },
+    {
+      label:
+        "insert interface (ending in braces) after normal statement (ending with semicolon) in block",
+      initialText: "if (x) { console.log('walrus'); }",
+      events: [
+        ...eventsFromKeys("{ a"),
+        ...eventsToTypeString(";interface T {}"),
+        ...eventsFromKeys("escape"),
+      ],
+      expectedText: "if (x) { console.log('walrus'); interface T {} }",
+    },
   ];
   for (const c of cases) {
     (c.skip ? test.skip : test)(c.label, () => {

@@ -22,11 +22,14 @@ function visitDeepSynced(
   nodeA: ts.Node,
   nodeB: ts.Node,
   skip: (nodeA: ts.Node, nodeB: ts.Node) => [ts.Node, ts.Node],
+  shouldVisitChild: (child: ts.Node, parent: ts.Node) => boolean,
 ) {
   const getChildren = (node: ts.Node): ts.Node[] => {
     const children: ts.Node[] = [];
-    ts.forEachChild(node, (node) => {
-      children.push(node);
+    ts.forEachChild(node, (child) => {
+      if (shouldVisitChild(child, node)) {
+        children.push(child);
+      }
     });
     return children;
   };
@@ -37,7 +40,7 @@ function visitDeepSynced(
     throw new Error("unequal number of children");
   }
   for (let i = 0; i < childrenA.length; i++) {
-    visitDeepSynced(childrenA[i], childrenB[i], skip);
+    visitDeepSynced(childrenA[i], childrenB[i], skip, shouldVisitChild);
   }
 }
 interface PrettierWrap {
@@ -60,41 +63,50 @@ function _prettyPrintTsSourceFile(unformattedAst: ts.SourceFile): string {
     astFromTypescriptFileContent(formattedText),
   );
   const wrapUnwraps: PrettierWrapUnwrap[] = [];
-  visitDeepSynced(unformattedAst, formattedAst, (nodeA, nodeB) => {
-    if (
-      nodeA.pos === -1 ||
-      nodeA.end === -1 ||
-      nodeB.pos === -1 ||
-      nodeB.end === -1
-    ) {
-      throw new Error("nodes have invalid text ranges");
-    }
-    if (
-      !ts.isParenthesizedExpression(nodeA) &&
-      ts.isParenthesizedExpression(nodeB)
-    ) {
-      wrapUnwraps.push({
-        wrap: true,
-        nodeA: trimRange(nodeA, unformattedText),
-        outerNodeB: trimRange(nodeB, formattedText),
-        innerNodeB: trimRange(nodeB.expression, formattedText),
-      });
-      return [nodeA, nodeB.expression];
-    } else if (
-      ts.isParenthesizedExpression(nodeA) &&
-      !ts.isParenthesizedExpression(nodeB)
-    ) {
-      wrapUnwraps.push({
-        wrap: false,
-        outerNodeA: trimRange(nodeA, unformattedText),
-        innerNodeA: trimRange(nodeA.expression, unformattedText),
-        nodeB: trimRange(nodeB, formattedText),
-      });
-      return [nodeA.expression, nodeB];
-    } else {
-      return [nodeA, nodeB];
-    }
-  });
+  visitDeepSynced(
+    unformattedAst,
+    formattedAst,
+    (nodeA, nodeB) => {
+      if (
+        nodeA.pos === -1 ||
+        nodeA.end === -1 ||
+        nodeB.pos === -1 ||
+        nodeB.end === -1
+      ) {
+        throw new Error("nodes have invalid text ranges");
+      }
+      if (
+        !ts.isParenthesizedExpression(nodeA) &&
+        ts.isParenthesizedExpression(nodeB)
+      ) {
+        wrapUnwraps.push({
+          wrap: true,
+          nodeA: trimRange(nodeA, unformattedText),
+          outerNodeB: trimRange(nodeB, formattedText),
+          innerNodeB: trimRange(nodeB.expression, formattedText),
+        });
+        return [nodeA, nodeB.expression];
+      } else if (
+        ts.isParenthesizedExpression(nodeA) &&
+        !ts.isParenthesizedExpression(nodeB)
+      ) {
+        wrapUnwraps.push({
+          wrap: false,
+          outerNodeA: trimRange(nodeA, unformattedText),
+          innerNodeA: trimRange(nodeA.expression, unformattedText),
+          nodeB: trimRange(nodeB, formattedText),
+        });
+        return [nodeA.expression, nodeB];
+      } else {
+        return [nodeA, nodeB];
+      }
+    },
+    (child, parent) =>
+      !(
+        ts.isEmptyStatement(child) &&
+        (ts.isBlock(parent) || ts.isSourceFile(parent))
+      ),
+  );
   const insertionsAndDeletions: InsertionOrDeletion[] = [];
   for (const wrapUnwrap of wrapUnwraps) {
     if (wrapUnwrap.wrap) {

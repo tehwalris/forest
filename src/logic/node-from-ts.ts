@@ -567,6 +567,9 @@ function listNodeFromTsBlock(
       file,
       ListKind.TsNodeList,
     ),
+    content: block.statements
+      .filter((s) => !ts.isEmptyStatement(s))
+      .map((s) => nodeFromTsNode(s, file)),
     tsNode: block,
   };
 }
@@ -775,7 +778,9 @@ export function docFromAst(file: ts.SourceFile): Doc {
         kind: NodeKind.List,
         listKind: ListKind.File,
         delimiters: ["", ""],
-        content: file.statements.map((s) => nodeFromTsNode(s, file)),
+        content: file.statements
+          .filter((s) => !ts.isEmptyStatement(s))
+          .map((s) => nodeFromTsNode(s, file)),
         equivalentToContent: true,
         pos: file.pos,
         end: file.end,
