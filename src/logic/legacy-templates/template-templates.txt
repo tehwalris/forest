@@ -380,6 +380,7 @@ FunctionExpression
   O type TypeNode
   R body FunctionBody
   flags async
+  keyword FunctionKeyword
   build ({asteriskToken, name, parameters, typeParameters, type, body}, modifiers) => ts.createFunctionExpression(modifiers, asteriskToken, name, typeParameters, parameters, type, body)
 ExpressionStatement
   R expression Expression
