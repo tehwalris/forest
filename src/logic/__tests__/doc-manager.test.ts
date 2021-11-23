@@ -179,7 +179,7 @@ describe("DocManager", () => {
     makeRoundTripTest("const x = [abc, 123, (x) => y]"),
     makeRoundTripTest("interface X extends A, B {}"),
     makeRoundTripTest("f([])"),
-    makeRoundTripTest.skip(
+    makeRoundTripTest(
       "const [queue, setQueue] = useState<DelayedInput[]>([]);",
     ),
     {
