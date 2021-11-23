@@ -15,6 +15,13 @@ import {
 import { nodeFromTsNode } from "./node-from-ts";
 import { ListItemReplacement } from "./replace-multiple";
 import { tsNodeFromNode } from "./ts-from-node";
+import {
+  isToken,
+  isTsExclamationToken,
+  isTsPostfixUnaryOperatorTokenWithExpectedParent,
+  isTsPrefixUnaryOperatorTokenWithExpectedParent,
+  isTsQuestionDotToken,
+} from "./ts-type-predicates";
 export function acceptPasteRoot(
   clipboard: Clipboard,
 ): ListItemReplacement | undefined {
@@ -61,11 +68,88 @@ interface FlattenedPasteReplaceArgs extends PasteReplaceArgs {
 interface NestedPasteReplaceArgs extends PasteReplaceArgs {
   clipboardTs: ts.Node | undefined;
 }
-function canPasteFlattenedIntoTightExpression({
-  firstIndex,
-  clipboard,
-}: FlattenedPasteReplaceArgs): boolean {
-  return clipboard.listKind === ListKind.TightExpression && firstIndex === 0;
+function isValidTightExpressionChild(c: Node): unknown {
+  if (
+    (c.kind === NodeKind.List &&
+      (c.listKind === ListKind.CallArguments ||
+        c.listKind === ListKind.TypeArguments ||
+        c.listKind === ListKind.ElementAccessExpressionArgument ||
+        c.listKind === ListKind.ParenthesizedExpression)) ||
+    isToken(c, ts.isIdentifier) ||
+    isToken(c, isTsQuestionDotToken) ||
+    isToken(c, isTsExclamationToken) ||
+    isToken(c, isTsPrefixUnaryOperatorTokenWithExpectedParent) ||
+    isToken(c, isTsPostfixUnaryOperatorTokenWithExpectedParent)
+  ) {
+    return true;
+  }
+  try {
+    return matchesUnion(tsNodeFromNode(c), unions.LeftHandSideExpression);
+  } catch {
+    return false;
+  }
+}
+function isTightExpressionContentValid(content: Node[]): boolean {
+  {
+    let parenthesizedExpressionAllowed = true;
+    for (const c of content) {
+      if (
+        c.kind === NodeKind.List &&
+        c.listKind === ListKind.ParenthesizedExpression
+      ) {
+        if (!parenthesizedExpressionAllowed) {
+          return false;
+        }
+        parenthesizedExpressionAllowed = false;
+      } else if (isToken(c, ts.isIdentifier)) {
+        parenthesizedExpressionAllowed = false;
+      }
+    }
+  }
+  return (
+    !!content.length && content.every((c) => isValidTightExpressionChild(c))
+  );
+}
+function makeCanPasteFlattenedFromCanPasteNested(
+  canPasteNested: (args: NestedPasteReplaceArgs) => boolean,
+): (args: FlattenedPasteReplaceArgs) => boolean {
+  return (args) => {
+    const { node, clipboard } = args;
+    return clipboard.content.every((clipboardChild) => {
+      let clipboardChildTs: ts.Node | undefined;
+      try {
+        clipboardChildTs = tsNodeFromNode(clipboardChild);
+      } catch {}
+      return canPasteNested({
+        node: { ...node, content: node.content.slice(0, 1) },
+        clipboard: clipboardChild,
+        clipboardTs: clipboardChildTs,
+        firstIndex: 0,
+        lastIndex: 0,
+        isPartialCopy: false,
+      });
+    });
+  };
+}
+function canPasteFlattenedIntoTightExpression(
+  args: FlattenedPasteReplaceArgs,
+): boolean {
+  const { firstIndex, lastIndex, node, clipboard } = args;
+  if (
+    clipboard.listKind !== ListKind.TightExpression &&
+    !makeCanPasteFlattenedFromCanPasteNested(canPasteNestedIntoTightExpression)(
+      args,
+    )
+  ) {
+    return false;
+  }
+  const newContent = [...node.content];
+  newContent.splice(
+    firstIndex,
+    lastIndex - firstIndex + 1,
+    ...clipboard.content,
+  );
+  return isTightExpressionContentValid(newContent);
 }
 function canPasteFlattenedIntoLooseExpression({
   clipboard,
@@ -77,34 +161,21 @@ function canPasteFlattenedIntoCallArguments({
 }: FlattenedPasteReplaceArgs): boolean {
   return clipboard.listKind === ListKind.CallArguments;
 }
-function canPasteFlattenedIntoGenericTsNodeChildList({
-  parent,
-  node,
-  clipboard,
-}: FlattenedPasteReplaceArgs): boolean {
+function canPasteFlattenedIntoGenericTsNodeChildList(
+  args: FlattenedPasteReplaceArgs,
+): boolean {
+  const { clipboard } = args;
   if (clipboard.listKind !== ListKind.UnknownTsNodeArray) {
     return false;
   }
-  return clipboard.content.every((clipboardChild) => {
-    let clipboardChildTs: ts.Node | undefined;
-    try {
-      clipboardChildTs = tsNodeFromNode(clipboardChild);
-    } catch {}
-    return canPasteNestedIntoGenericTsNodeStructChildList({
-      parent,
-      node,
-      clipboard: clipboardChild,
-      clipboardTs: clipboardChildTs,
-      firstIndex: 0,
-      lastIndex: 0,
-      isPartialCopy: false,
-    });
-  });
+  return makeCanPasteFlattenedFromCanPasteNested(
+    canPasteNestedIntoGenericTsNodeStructChildList,
+  )(args);
 }
-function canPasteFlattenedIntoGenericTsNodeList({
-  node,
-  clipboard,
-}: FlattenedPasteReplaceArgs): boolean {
+function canPasteFlattenedIntoGenericTsNodeList(
+  args: FlattenedPasteReplaceArgs,
+): boolean {
+  const { node, clipboard } = args;
   if (
     node.listKind === ListKind.TsNodeList &&
     clipboard.listKind === ListKind.TsNodeList &&
@@ -114,20 +185,9 @@ function canPasteFlattenedIntoGenericTsNodeList({
   ) {
     return true;
   }
-  return clipboard.content.every((clipboardChild) => {
-    let clipboardChildTs: ts.Node | undefined;
-    try {
-      clipboardChildTs = tsNodeFromNode(clipboardChild);
-    } catch {}
-    return canPasteNestedIntoGenericTsNodeList({
-      node,
-      clipboard: clipboardChild,
-      clipboardTs: clipboardChildTs,
-      firstIndex: 0,
-      lastIndex: 0,
-      isPartialCopy: false,
-    });
-  });
+  return makeCanPasteFlattenedFromCanPasteNested(
+    canPasteNestedIntoGenericTsNodeList,
+  )(args);
 }
 function canPasteFlattenedIntoTsBlockOrFile({
   clipboard,
@@ -139,9 +199,14 @@ function canPasteFlattenedIntoTsBlockOrFile({
   );
 }
 function canPasteNestedIntoTightExpression({
-  clipboardTs,
+  firstIndex,
+  lastIndex,
+  node,
+  clipboard,
 }: NestedPasteReplaceArgs): boolean {
-  return !!clipboardTs && ts.isIdentifier(clipboardTs);
+  const newContent = [...node.content];
+  newContent.splice(firstIndex, lastIndex - firstIndex + 1, clipboard);
+  return isTightExpressionContentValid(newContent);
 }
 function canPasteNestedIntoLooseExpression({
   clipboardTs,
