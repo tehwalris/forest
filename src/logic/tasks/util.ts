@@ -21,7 +21,7 @@ export function beforePathFromAfterPath(afterPath: string): string {
 }
 export function taskNameFromPath(p: string): string {
   const filename = path.basename(p);
-  const m = filename.match(/^([a-z-]+)(?:\.before|\.after)?\.tsx?$/);
+  const m = filename.match(/^([a-zA-Z\d-]+)(?:\.before|\.after)?\.tsx?$/);
   if (!m) {
     throw new Error("invalid filename format");
   }
