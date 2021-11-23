@@ -13,6 +13,9 @@
 - [x] Can't paste binary operators
 - [x] Can't insert before for-of because text range starts inside paren
   - May be due to focus normalization
+- [ ] Can't append to multiple lists where some are empty because the leading separator gets in the way
+  - Example: Try to append argument `a` to both `f(x)` and `f()` - doesn't work in second case because you get `f(,a)`
+  - This is not an issue with inserts (at the start of a list) because trailing commas are removed (like in `f(a,)`)
 
 # Most important missing node support
 
