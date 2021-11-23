@@ -553,6 +553,18 @@ describe("DocManager", () => {
       events: eventsFromKeys("alt-h alt-h l c k k l l p"),
       expectedText: "const x = z; const { x } = z;",
     },
+    {
+      label: "alt-h on delimited list with 1 item",
+      initialText: "const x = [y.z];",
+      events: eventsFromKeys("[ ] alt-h d"),
+      expectedText: "const x = [];",
+    },
+    {
+      label: "alt-h on delimited list with 2 items",
+      initialText: "const x = [y.z, x.y.z];",
+      events: eventsFromKeys("[ ] alt-h d"),
+      expectedText: "const x = [x.y.z];",
+    },
   ];
   for (const c of cases) {
     (c.skip ? test.skip : test)(c.label, () => {

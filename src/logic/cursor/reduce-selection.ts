@@ -84,6 +84,9 @@ function getFocusSkippingDelimitedLists(
       anchor: [...focus.anchor, 0],
       offset: focusedNode.content.length - 1,
     };
+    if (!focusedNode.equivalentToContent) {
+      return focus;
+    }
   }
   return focus;
 }
