@@ -11,7 +11,7 @@
   - Same problem when pasting `a.b` over an array element
 - [ ] When a prompt opens an you cancel it, the input area stops being focused and can only be focused somehow by opening devtools
 - [x] Can't paste binary operators
-- [ ] Can't insert before for-of because text range starts inside paren
+- [x] Can't insert before for-of because text range starts inside paren
   - May be due to focus normalization
 
 # Most important missing node support
@@ -36,3 +36,5 @@
 - [ ] Showing syntax errors while typing
 - [ ] Multiple marks
 - [ ] Creating files
+- [ ] Synchronized multi-cursor
+- [ ] Nested multi-cursor

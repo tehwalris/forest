@@ -757,6 +757,7 @@ ForOfStatement
   R initializer ForInitializer
   R expression Expression
   R statement Statement
+  keyword ForKeyword
   build ({awaitModifier, initializer, expression, statement}) => ts.createForOf(awaitModifier!, initializer, expression, statement)
 SpreadElement
   R expression Expression
