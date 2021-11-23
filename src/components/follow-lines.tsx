@@ -56,11 +56,7 @@ export const FollowLines = ({ lines }: Props) => {
       return;
     }
     if (!lines.length) {
-      wrapperDivRef.current.scroll({
-        top: 0,
-        left: 0,
-        behavior: "smooth",
-      });
+      wrapperDivRef.current.scroll({ top: 0, left: 0, behavior: "smooth" });
       oldOffsetRef.current = 0;
     }
     const viewportHeightLines = Math.max(
@@ -103,9 +99,19 @@ export const FollowLines = ({ lines }: Props) => {
       paddingTop: number,
     ): number | undefined =>
       r === undefined ? undefined : Math.max(r[0] - paddingTop, 0);
+    const alignBottomPadded = (
+      r: Range | undefined,
+      paddingBottom: number,
+    ): number | undefined =>
+      r === undefined
+        ? undefined
+        : Math.max(r[1] - viewportHeightLines + paddingBottom + 1, 0);
     const candidateOffsets = [
       ...[normalRange, tipRange].flatMap((r) =>
-        [5, 4, 3, 2, 1].map((o) => alignTopPadded(r, o)),
+        [5, 4, 3, 2, 1].flatMap((o) => [
+          alignTopPadded(r, o),
+          alignBottomPadded(r, o),
+        ]),
       ),
       oldOffsetRef.current,
     ]
