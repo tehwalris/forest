@@ -38,10 +38,10 @@ const styles = {
     flex-direction: row;
     & > div {
       width: 50%;
-      overflow: auto hidden;
     }
   `,
   afterDoc: css`
+    overflow: auto scroll;
     margin: 5px;
     white-space: pre;
     opacity: 0.5;
