@@ -565,6 +565,12 @@ describe("DocManager", () => {
       events: eventsFromKeys("[ ] alt-h d"),
       expectedText: "const x = [x.y.z];",
     },
+    {
+      label: "paste single Identifier over PropertyAccessExpression",
+      initialText: "const x = y; return a.b;",
+      events: eventsFromKeys("alt-h alt-h l c l l shift-l space p"),
+      expectedText: "const x = y; return x;",
+    },
   ];
   for (const c of cases) {
     (c.skip ? test.skip : test)(c.label, () => {

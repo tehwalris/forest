@@ -24,6 +24,7 @@ import { emptyDoc } from "./doc-utils";
 import {
   isFocusOnEmptyListContent,
   normalizeFocusIn,
+  normalizeFocusOut,
   textRangeFromFocus,
 } from "./focus";
 import { Doc, InsertState, NodeKind, Path } from "./interfaces";
@@ -548,6 +549,14 @@ export class DocManager {
     }
     this.lastMode = this.mode;
     if (docChanged) {
+      this.cursors = this.cursors.map((cursor) => ({
+        ...cursor,
+        focus: normalizeFocusOut(this.doc.root, cursor.focus),
+        marks: cursor.marks.map((m) => ({
+          ...m,
+          focus: normalizeFocusOut(this.doc.root, m.focus),
+        })),
+      }));
       this.updateDocText();
       this.updateMarkRanges();
       this.cursorHistory = [];
