@@ -1,12 +1,7 @@
 import ts from "typescript";
-import {
-  isFocusOnEmptyListContent,
-  normalizeFocusOutOnce,
-  whileUnevenFocusChanges,
-} from "../focus";
+import { isFocusOnEmptyListContent, normalizeFocusOut } from "../focus";
 import { ListKind, ListNode, NodeKind } from "../interfaces";
 import { Clipboard } from "../paste";
-import { asEvenPathRange, asUnevenPathRange } from "../path-utils";
 import { getStructContent } from "../struct";
 import { nodeGetByPath } from "../tree-utils/access";
 import { Cursor } from "./interfaces";
@@ -25,11 +20,7 @@ export function cursorCopy({
   if (isFocusOnEmptyListContent(root, oldCursor.focus)) {
     return { cursor: adjustPostActionCursor(oldCursor) };
   }
-  const focus = asEvenPathRange(
-    whileUnevenFocusChanges(asUnevenPathRange(oldCursor.focus), (focus) =>
-      normalizeFocusOutOnce(root, focus),
-    ),
-  );
+  const focus = normalizeFocusOut(root, oldCursor.focus);
   let clipboard: Clipboard | undefined;
   if (focus.offset === 0) {
     const node = nodeGetByPath(root, focus.anchor);
@@ -43,7 +34,11 @@ export function cursorCopy({
       throw new Error("oldParent must be a list");
     }
     if (oldParent.structKeys) {
-      console.warn("can not copy from non-list node", focus, focus);
+      console.warn(
+        "can not copy multiple items from non-list node",
+        focus,
+        focus,
+      );
     } else {
       let selectedRange = [
         focus.anchor[focus.anchor.length - 1],

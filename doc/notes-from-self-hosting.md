@@ -11,6 +11,8 @@
   - Same problem when pasting `a.b` over an array element
 - [ ] When a prompt opens an you cancel it, the input area stops being focused and can only be focused somehow by opening devtools
 - [x] Can't paste binary operators
+- [ ] Can't insert before for-of because text range starts inside paren
+  - May be due to focus normalization
 
 # Most important missing node support
 
@@ -23,7 +25,7 @@
 # Most important missing features
 
 - [x] Scroll with cursor
-- [ ] Paste should try every level of `equivalentToContent` target lists
+- [x] Paste should try every level of `equivalentToContent` target lists
   - Pasting `Identifier` over a `BindingElement` does not work because the paste targets the `BindingElement`, not its inner `Identifier`
 - [ ] Paste from system clipboard (in insert mode)
 - [ ] Change command (instead of delete and insert)

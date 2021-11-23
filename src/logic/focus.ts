@@ -14,7 +14,7 @@ import {
   unevenPathRangesAreEqual,
 } from "./path-utils";
 import { nodeGetByPath } from "./tree-utils/access";
-function normalizeFocusInOnce(
+export function normalizeFocusInOnce(
   root: ListNode,
   focus: UnevenPathRange,
 ): UnevenPathRange {
@@ -93,11 +93,13 @@ export function normalizeFocusOut(
 }
 export function whileUnevenFocusChanges(
   initialFocus: UnevenPathRange,
-  cb: (focus: UnevenPathRange) => UnevenPathRange,
+  cbNext: (focus: UnevenPathRange) => UnevenPathRange,
+  cbVisit: (focus: UnevenPathRange) => void = () => {},
 ): UnevenPathRange {
   let oldFocus = initialFocus;
   while (true) {
-    const newFocus = cb(oldFocus);
+    cbVisit(oldFocus);
+    const newFocus = cbNext(oldFocus);
     if (unevenPathRangesAreEqual(newFocus, oldFocus)) {
       return newFocus;
     }

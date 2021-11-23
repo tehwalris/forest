@@ -1,12 +1,23 @@
 import ts from "typescript";
-import { isFocusOnEmptyListContent, normalizeFocusOut } from "../focus";
-import { ListNode, NodeKind } from "../interfaces";
+import {
+  isFocusOnEmptyListContent,
+  normalizeFocusInOnce,
+  normalizeFocusOut,
+  whileUnevenFocusChanges,
+} from "../focus";
+import { EvenPathRange, ListNode, Node, NodeKind } from "../interfaces";
 import {
   acceptPasteReplace,
   acceptPasteRoot,
+  Clipboard,
   PasteReplaceArgs,
 } from "../paste";
-import { flipEvenPathRangeForward } from "../path-utils";
+import {
+  asEvenPathRange,
+  asUnevenPathRange,
+  flipEvenPathRangeForward,
+  uniqueByEvenPathRange,
+} from "../path-utils";
 import { ListItemReplacement, replaceMultiple } from "../replace-multiple";
 import { nodeGetByPath, resetIdsDeep } from "../tree-utils/access";
 import { checkAllItemsDefined } from "../util";
@@ -27,9 +38,7 @@ function cursorPaste({
   if (!oldCursor.clipboard) {
     return undefined;
   }
-  const focus = flipEvenPathRangeForward(
-    normalizeFocusOut(root, oldCursor.focus),
-  );
+  const focus = flipEvenPathRangeForward(oldCursor.focus);
   if (!focus.anchor.length) {
     const replacement = acceptPasteRoot({
       ...oldCursor.clipboard,
@@ -95,6 +104,92 @@ function cursorPaste({
     },
   };
 }
+function getEquivalentFocuses(
+  root: Node,
+  focus: EvenPathRange,
+): EvenPathRange[] {
+  if (root.kind !== NodeKind.List) {
+    return [focus];
+  }
+  if (isFocusOnEmptyListContent(root, focus)) {
+    return [focus];
+  }
+  const equivalentFocuses: EvenPathRange[] = [];
+  whileUnevenFocusChanges(
+    asUnevenPathRange(normalizeFocusOut(root, focus)),
+    (focus) => normalizeFocusInOnce(root, focus),
+    (focus) => equivalentFocuses.push(asEvenPathRange(focus)),
+  );
+  return uniqueByEvenPathRange(equivalentFocuses, (v) => v);
+}
+function cursorPasteEquivalent({
+  root,
+  cursor: oldCursor,
+}: CursorPasteArgs): CursorPasteResult | undefined {
+  const oldClipboard = oldCursor.clipboard;
+  if (!oldClipboard) {
+    return undefined;
+  }
+  const equivalentFocuses = getEquivalentFocuses(root, oldCursor.focus);
+  const equivalentClipboards = getEquivalentFocuses(oldClipboard.node, {
+    anchor: [],
+    offset: 0,
+  })
+    .map((focus): Clipboard | undefined => {
+      if (!focus.anchor.length) {
+        return oldClipboard;
+      } else if (focus.offset === 0) {
+        const node = nodeGetByPath(oldClipboard.node, focus.anchor);
+        if (!node) {
+          throw new Error("invalid focus");
+        }
+        return { node, isPartialCopy: false };
+      } else {
+        const oldParent = nodeGetByPath(root, focus.anchor.slice(0, -1));
+        if (oldParent?.kind !== NodeKind.List) {
+          throw new Error("oldParent must be a list");
+        }
+        if (oldParent.structKeys) {
+          return undefined;
+        } else {
+          let selectedRange = [
+            focus.anchor[focus.anchor.length - 1],
+            focus.anchor[focus.anchor.length - 1] + focus.offset,
+          ];
+          if (selectedRange[0] > selectedRange[1]) {
+            selectedRange = [selectedRange[1], selectedRange[0]];
+          }
+          return {
+            node: {
+              ...oldParent,
+              content: oldParent.content.slice(
+                selectedRange[0],
+                selectedRange[1] + 1,
+              ),
+            },
+            isPartialCopy: true,
+          };
+        }
+      }
+    })
+    .filter((v) => v)
+    .map((v) => v!);
+  for (const focus of equivalentFocuses) {
+    for (const clipboard of equivalentClipboards) {
+      const result = cursorPaste({
+        root,
+        cursor: { ...oldCursor, focus, clipboard },
+      });
+      if (result) {
+        return {
+          cursor: adjustPostActionCursor(oldCursor),
+          replacement: result.replacement,
+        };
+      }
+    }
+  }
+  return undefined;
+}
 interface MultiCursorPasteArgs {
   root: ListNode;
   cursors: Cursor[];
@@ -112,7 +207,7 @@ export function multiCursorPaste({
     cursors: oldCursors.map((c) => adjustPostActionCursor(c)),
   };
   const cursorResults = oldCursors.map((cursor) =>
-    cursorPaste({ root: oldRoot, cursor }),
+    cursorPasteEquivalent({ root: oldRoot, cursor }),
   );
   if (!checkAllItemsDefined(cursorResults)) {
     console.warn("not pasting because some cursors could not paste");

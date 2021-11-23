@@ -546,6 +546,13 @@ describe("DocManager", () => {
       ],
       expectedText: "const f = (x) => x + 1",
     },
+    {
+      label:
+        "paste Identifier over BindingElement which only has an Identifier",
+      initialText: "const x = z; const { y } = z;",
+      events: eventsFromKeys("alt-h alt-h l c k k l l p"),
+      expectedText: "const x = z; const { x } = z;",
+    },
   ];
   for (const c of cases) {
     (c.skip ? test.skip : test)(c.label, () => {
