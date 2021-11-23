@@ -439,7 +439,7 @@ export function acceptPasteReplace(
         return false;
     }
   })();
-  if (canPasteFlattened) {
+  if (canPasteFlattened && (!canPasteNested || isPartialCopy)) {
     if (clipboard.kind !== NodeKind.List) {
       throw new Error(
         "canPasteFlattened === true, but clipboard is not a list",

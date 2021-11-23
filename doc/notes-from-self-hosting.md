@@ -7,7 +7,7 @@
   - Adding a space before the insertion seems to help sometimes
 - [x] Inserting an arrow function without parens around the argument crashes
 - [x] Can't paste multiple items into any part of a TightExpression that's not on the very left
-- [ ] Copying and pasting a whole ternary expression which is an array element pastes the three parts of the ternary as separate array elements
+- [x] Copying and pasting a whole ternary expression which is an array element pastes the three parts of the ternary as separate array elements
   - Same problem when pasting `a.b` over an array element
 - [ ] When a prompt opens an you cancel it, the input area stops being focused and can only be focused somehow by opening devtools
 - [ ] Can't paste binary operators
