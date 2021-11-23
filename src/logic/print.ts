@@ -2,6 +2,7 @@ import type { Options } from "prettier";
 import parserTypescript from "prettier/parser-typescript";
 import { format as prettierFormat } from "prettier/standalone";
 import ts from "typescript";
+import { ListKind, ListNode, Node, NodeKind } from "./interfaces";
 import { trimRange } from "./node-from-ts";
 import { assertNoSyntaxErrors, astFromTypescriptFileContent } from "./parse";
 import {
@@ -9,6 +10,7 @@ import {
   InsertionOrDeletion,
   InsertionOrDeletionKind,
 } from "./text";
+import { nodesAreEqualExceptRangesAndPlaceholdersAndIds } from "./tree-utils/equal";
 const PRETTIER_OPTIONS: Options = {
   parser: "typescript",
   printWidth: 80,
@@ -174,5 +176,31 @@ export function prettyPrintTsSourceFile(
 export function prettyPrintTsString(unformattedText: string): string {
   return _prettyPrintTsSourceFile(
     assertNoSyntaxErrors(astFromTypescriptFileContent(unformattedText)),
+  );
+}
+export function prettyPrinterAdjustedEquality(a: Node, b: Node): boolean {
+  return nodesAreEqualExceptRangesAndPlaceholdersAndIds(
+    a,
+    b,
+    (ca, cb, ka, _kb, pa, _pb) => {
+      if (
+        pa &&
+        pa.kind === NodeKind.List &&
+        pa.listKind === ListKind.TsNodeStruct &&
+        pa.tsNode &&
+        ts.isArrowFunction(pa.tsNode) &&
+        ka === "parameters" &&
+        ca.kind === NodeKind.List &&
+        cb.kind === NodeKind.List
+      ) {
+        const adjustList = (l: ListNode): ListNode => ({
+          ...l,
+          delimiters: ["(", ")"],
+          equivalentToContent: false,
+        });
+        return prettyPrinterAdjustedEquality(adjustList(ca), adjustList(cb));
+      }
+      return undefined;
+    },
   );
 }

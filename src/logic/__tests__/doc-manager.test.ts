@@ -536,6 +536,16 @@ describe("DocManager", () => {
       ],
       expectedText: "if (x) { console.log('walrus'); interface T {} }",
     },
+    {
+      label: "insert arrow function without parens around argument",
+      initialText: "",
+      events: [
+        ...eventsFromKeys("a"),
+        ...eventsToTypeString("const f = x => x + 1"),
+        ...eventsFromKeys("escape"),
+      ],
+      expectedText: "const f = (x) => x + 1",
+    },
   ];
   for (const c of cases) {
     (c.skip ? test.skip : test)(c.label, () => {

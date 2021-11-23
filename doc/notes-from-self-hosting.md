@@ -5,7 +5,7 @@
   - Seems to depend on which side you insert on
   - `Error: unequal number of children`
   - Adding a space before the insertion seems to help sometimes
-- [ ] Inserting an arrow function without parens around the argument crashes
+- [x] Inserting an arrow function without parens around the argument crashes
 - [ ] Can't paste multiple items into any part of a TightExpression that's not on the very left
 - [ ] Copying and pasting a whole ternary expression which is an array element pastes the three parts of the ternary as separate array elements
   - Same problem when pasting `a.b` over an array element

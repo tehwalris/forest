@@ -3,14 +3,17 @@ import { Doc, ListNode, Node, NodeKind, Path, TextRange } from "./interfaces";
 import { makeNodeValidTs } from "./make-valid";
 import { docFromAst } from "./node-from-ts";
 import { PathMapper } from "./path-mapper";
-import { prettyPrintTsSourceFile, uglyPrintTsSourceFile } from "./print";
+import {
+  prettyPrinterAdjustedEquality,
+  prettyPrintTsSourceFile,
+  uglyPrintTsSourceFile,
+} from "./print";
 import {
   duplicateMapPosCb,
   getTextWithDeletions,
   mapNodeTextRanges,
 } from "./text";
 import { nodeVisitDeep } from "./tree-utils/access";
-import { nodesAreEqualExceptRangesAndPlaceholdersAndIds } from "./tree-utils/equal";
 import { filterNodes } from "./tree-utils/filter";
 import { tsNodeFromNode } from "./ts-from-node";
 export function withCopiedPlaceholdersAndIds(
@@ -25,12 +28,7 @@ export function withCopiedPlaceholdersAndIds(
   placeholderSource: Node,
   nodeSource: Node,
 ): Node {
-  if (
-    !nodesAreEqualExceptRangesAndPlaceholdersAndIds(
-      placeholderSource,
-      nodeSource,
-    )
-  ) {
+  if (!prettyPrinterAdjustedEquality(placeholderSource, nodeSource)) {
     throw new Error(
       "nodes do not satisfy nodesAreEqualExceptRangesAndPlaceholders",
     );
@@ -80,9 +78,7 @@ export function getDocWithAllPlaceholders(docWithoutPlaceholders: Doc): {
     uglyPrintTsSourceFile(uglySourceFile),
   );
   const parsedDoc = docFromAst(prettySourceFile);
-  if (
-    !nodesAreEqualExceptRangesAndPlaceholdersAndIds(validRoot, parsedDoc.root)
-  ) {
+  if (!prettyPrinterAdjustedEquality(validRoot, parsedDoc.root)) {
     console.warn("update would change tree");
     console.warn("old", docWithoutPlaceholders.text, validRoot);
     console.warn("new", prettySourceFile, parsedDoc.root);
