@@ -10,7 +10,7 @@
 - [x] Copying and pasting a whole ternary expression which is an array element pastes the three parts of the ternary as separate array elements
   - Same problem when pasting `a.b` over an array element
 - [ ] When a prompt opens an you cancel it, the input area stops being focused and can only be focused somehow by opening devtools
-- [ ] Can't paste binary operators
+- [x] Can't paste binary operators
 
 # Most important missing node support
 

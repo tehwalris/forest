@@ -17,6 +17,7 @@ import { ListItemReplacement } from "./replace-multiple";
 import { tsNodeFromNode } from "./ts-from-node";
 import {
   isToken,
+  isTsBinaryOperatorToken,
   isTsExclamationToken,
   isTsPostfixUnaryOperatorTokenWithExpectedParent,
   isTsPrefixUnaryOperatorTokenWithExpectedParent,
@@ -211,7 +212,11 @@ function canPasteNestedIntoTightExpression({
 function canPasteNestedIntoLooseExpression({
   clipboardTs,
 }: NestedPasteReplaceArgs): boolean {
-  return !!clipboardTs && matchesUnion(clipboardTs, unions.Expression);
+  return (
+    !!clipboardTs &&
+    (matchesUnion(clipboardTs, unions.Expression) ||
+      isTsBinaryOperatorToken(clipboardTs))
+  );
 }
 function canPasteNestedIntoParenthesizedExpression({
   clipboardTs,
