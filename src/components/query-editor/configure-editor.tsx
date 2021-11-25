@@ -13,7 +13,7 @@ import { NodeWithPath, Path } from "../../logic/interfaces";
 import { PathMap } from "../../logic/path-map";
 import { getCommonPathPrefix, pathsAreEqual } from "../../logic/path-utils";
 import { makeExactMatchQuery } from "../../logic/search/exact";
-import { StructuralSearchSettings } from "../../logic/search/interfaces";
+import { SearchSettings } from "../../logic/search/interfaces";
 import { getDefaultStructuralSearchSettings } from "../../logic/search/settings";
 import { nodeGetByPath } from "../../logic/tree-utils/access";
 import { DocUi } from "../doc-ui";
@@ -45,7 +45,7 @@ export const ConfigureEditor = ({
   const [codeDivRef] = useAutofocus<HTMLDivElement>();
   const [docManager, docManagerState] = useDocManager(doc, true);
   const { mode, cursors } = docManagerState;
-  const settingsMap = useRef(new PathMap<StructuralSearchSettings>()).current;
+  const settingsMap = useRef(new PathMap<SearchSettings>()).current;
   const markSettingsChanged = useRenderTrigger();
   useEffect(() => settingsMap.clear(), [settingsMap, doc]);
   const focusedPath = useMemo<Path | undefined>(() => {
@@ -101,18 +101,21 @@ export const ConfigureEditor = ({
               searchRootPath,
             ),
           )
-          .map(({ node, path }) => (
-            <SettingsPanel
-              node={node}
-              settings={
-                settingsMap.get(path) ||
-                getDefaultStructuralSearchSettings(node)
-              }
-              setSettings={(s) => {
-                settingsMap.set(path, s);
-                markSettingsChanged();
-              }}
-            />
+          .map(({ node, path }, i) => (
+            <React.Fragment key={i}>
+              {i !== 0 && <hr />}
+              <SettingsPanel
+                node={node}
+                settings={
+                  settingsMap.get(path) ||
+                  getDefaultStructuralSearchSettings(node)
+                }
+                setSettings={(s) => {
+                  settingsMap.set(path, s);
+                  markSettingsChanged();
+                }}
+              />
+            </React.Fragment>
           ))}
       </div>
     </div>
