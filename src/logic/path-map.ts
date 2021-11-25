@@ -47,4 +47,10 @@ export class PathMap<T> {
   clear() {
     this.data = [];
   }
+
+  clone(): PathMap<T> {
+    const other = new PathMap<T>();
+    other.data = this.data.map((e) => ({ ...e }));
+    return other;
+  }
 }

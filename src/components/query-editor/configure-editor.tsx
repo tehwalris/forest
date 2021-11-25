@@ -12,9 +12,11 @@ import {
 import { NodeWithPath, Path } from "../../logic/interfaces";
 import { PathMap } from "../../logic/path-map";
 import { getCommonPathPrefix, pathsAreEqual } from "../../logic/path-utils";
-import { makeExactMatchQuery } from "../../logic/search/exact";
 import { SearchSettings } from "../../logic/search/interfaces";
-import { getDefaultStructuralSearchSettings } from "../../logic/search/settings";
+import {
+  getDefaultStructuralSearchSettings,
+  makeQueryFromSettings,
+} from "../../logic/search/settings";
 import { nodeGetByPath } from "../../logic/tree-utils/access";
 import { DocUi } from "../doc-ui";
 import { ConfigureState, Stage, State } from "./interfaces";
@@ -79,13 +81,13 @@ export const ConfigureEditor = ({
             if (mode === Mode.Normal && ev.key === "Enter") {
               ev.preventDefault();
               ev.stopPropagation();
-              const searchRootNode = nodeGetByPath(doc.root, searchRootPath);
-              if (!searchRootNode) {
-                throw new Error("unreachable");
-              }
               setState({
                 stage: Stage.QueryReady,
-                query: makeExactMatchQuery(searchRootNode),
+                query: makeQueryFromSettings(
+                  doc.root,
+                  searchRootPath,
+                  settingsMap.clone(),
+                ),
               });
             } else {
               handleWithDocManager();
