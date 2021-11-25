@@ -571,14 +571,26 @@ describe("DocManager", () => {
       events: eventsFromKeys("alt-h alt-h l c l l shift-l space p"),
       expectedText: "const x = y; return x;",
     },
+    {
+      label:
+        "multi-cursor delete where deletion of outer cursor changes path of inner cursor",
+      initialText: "f.g(f.g)",
+      events: eventsFromKeys("alt-h q l l q shift-q d"),
+      expectedText: "g(g)",
+      skip: true,
+    },
   ];
   for (const c of cases) {
     (c.skip ? test.skip : test)(c.label, () => {
       const initialDoc = asPrettyDoc(c.initialText);
       let publicState = initialDocManagerPublicState;
-      const docManager = new DocManager(initialDoc, (s) => {
-        publicState = s;
-      });
+      const docManager = new DocManager(
+        initialDoc,
+        (s) => {
+          publicState = s;
+        },
+        false,
+      );
       docManager.forceUpdate();
       for (const { handler, event } of c.events) {
         docManager[handler](event);
