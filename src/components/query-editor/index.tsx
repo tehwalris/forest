@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { unreachable } from "../../logic/util";
 import { Stage, State } from "./interfaces";
+import { SelectTargetExactEditor } from "./select-target-exact-editor";
 import { SelectTargetRoughEditor } from "./select-target-rough-editor";
 import { WriteDocEditor } from "./write-doc-editor";
 
@@ -14,9 +15,9 @@ export const QueryEditor = (_props: Props) => {
     case Stage.SelectTargetRough:
       return <SelectTargetRoughEditor state={state} setState={setState} />;
     case Stage.SelectTargetExact:
-      return (
-        <div>TODO SelectTargetExact {JSON.stringify(state.roughTarget)}</div>
-      );
+      return <SelectTargetExactEditor state={state} setState={setState} />;
+    case Stage.QueryReady:
+      return <div>TODO QueryReady</div>;
     default:
       return unreachable(state);
   }
