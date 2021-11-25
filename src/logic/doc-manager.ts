@@ -102,7 +102,7 @@ export class DocManager {
   private cursorRedoHistory: Cursor[][] = [];
   private mode = Mode.Normal;
   private lastMode = this.mode;
-  private lastDoc = emptyDoc;
+  private lastDoc;
   private insertState: InsertState | undefined;
   private getDocWithoutPlaceholdersNearCursors = memoize(
     getDocWithoutPlaceholdersNearCursors,
@@ -110,8 +110,10 @@ export class DocManager {
   constructor(
     private doc: Doc,
     private _onUpdate: (publicState: DocManagerPublicState) => void,
+    private readOnly: boolean,
   ) {
     this.initialDoc = doc;
+    this.lastDoc = doc;
   }
   private static copyDocManagerFields(source: DocManager, target: DocManager) {
     for (const [k, v] of Object.entries(source)) {
@@ -126,7 +128,7 @@ export class DocManager {
     }
   }
   clone(): DocManager {
-    const other = new DocManager(this.initialDoc, this.onUpdate);
+    const other = new DocManager(this.initialDoc, this.onUpdate, this.readOnly);
     DocManager.copyDocManagerFields(this, other);
     return other;
   }
@@ -145,7 +147,7 @@ export class DocManager {
   }
   onKeyPress = (ev: MinimalKeyboardEvent) => {
     if (this.mode === Mode.Normal) {
-      if (ev.key === "i") {
+      if (ev.key === "i" && !this.readOnly) {
         const result = multiCursorStartInsert({
           root: this.doc.root,
           cursors: this.cursors,
@@ -156,7 +158,7 @@ export class DocManager {
           this.insertState = result.insertState;
           this.cursors = result.cursors;
         }
-      } else if (ev.key === "a") {
+      } else if (ev.key === "a" && !this.readOnly) {
         const result = multiCursorStartInsert({
           root: this.doc.root,
           cursors: this.cursors,
@@ -167,14 +169,14 @@ export class DocManager {
           this.insertState = result.insertState;
           this.cursors = result.cursors;
         }
-      } else if (ev.key === "d") {
+      } else if (ev.key === "d" && !this.readOnly) {
         const result = multiCursorDelete({
           root: this.doc.root,
           cursors: this.cursors,
         });
         this.doc = { ...this.doc, root: result.root };
         this.cursors = result.cursors;
-      } else if (ev.key === "r") {
+      } else if (ev.key === "r" && !this.readOnly) {
         const renameFunctionBody = prompt(
           'Enter an JS expression to perform renaming with. "s" is the old name. Example: "s.toLowerCase()"',
         );
@@ -359,7 +361,7 @@ export class DocManager {
               cursor: cursor,
             }).cursor,
         );
-      } else if (ev.key === "p") {
+      } else if (ev.key === "p" && !this.readOnly) {
         const result = multiCursorPaste({
           root: this.doc.root,
           cursors: this.cursors,
@@ -548,7 +550,13 @@ export class DocManager {
       }
     }
     this.lastMode = this.mode;
+    if (this.readOnly && this.mode === Mode.Insert) {
+      throw new Error("this.readOnly && this.mode === Mode.Insert");
+    }
     if (docChanged) {
+      if (this.readOnly) {
+        throw new Error("this.readOnly && docChanged");
+      }
       this.cursors = this.cursors.map((cursor) => ({
         ...cursor,
         focus: normalizeFocusOut(this.doc.root, cursor.focus),

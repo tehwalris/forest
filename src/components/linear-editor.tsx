@@ -14,7 +14,7 @@ export const LinearEditor = ({ initialDoc, onSave }: Props) => {
   useEffect(() => {
     focusCodeDiv();
   }, [initialDoc, focusCodeDiv]);
-  const [docManager, docManagerState] = useDocManager(initialDoc);
+  const [docManager, docManagerState] = useDocManager(initialDoc, false);
   const { doc, mode } = docManagerState;
   return (
     <DocUi

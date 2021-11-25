@@ -1,4 +1,4 @@
-import { Doc, EvenPathRange } from "../../logic/interfaces";
+import { Doc, Path } from "../../logic/interfaces";
 
 export enum Stage {
   WriteDoc,
@@ -23,5 +23,5 @@ export interface SelectTargetRoughState {
 export interface SelectTargetExactState {
   stage: Stage.SelectTargetExact;
   doc: Doc;
-  roughTarget: EvenPathRange;
+  roughTarget: Path;
 }

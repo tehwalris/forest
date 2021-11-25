@@ -11,7 +11,7 @@ interface Props {
 }
 
 export const WriteDocEditor = ({ state: _state, setState }: Props) => {
-  const [docManager, docManagerState] = useDocManager(emptyDoc);
+  const [docManager, docManagerState] = useDocManager(emptyDoc, false);
   const { doc, mode } = docManagerState;
   return (
     <DocUi
