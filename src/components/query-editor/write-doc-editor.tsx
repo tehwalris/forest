@@ -2,7 +2,7 @@ import { css } from "@emotion/css";
 import React from "react";
 import { emptyDoc } from "../../logic/doc-utils";
 import { LinearEditor } from "../linear-editor";
-import { WriteDocState } from "./interfaces";
+import { Stage, State, WriteDocState } from "./interfaces";
 
 const styles = {
   outerWrapper: css`
@@ -13,12 +13,16 @@ const styles = {
 
 interface Props {
   state: WriteDocState;
+  setState: (state: State) => void;
 }
 
-export const WriteDocEditor = ({ state }: Props) => {
+export const WriteDocEditor = ({ state, setState }: Props) => {
   return (
     <div className={styles.outerWrapper}>
-      <LinearEditor initialDoc={emptyDoc} onSave={() => {}} />
+      <LinearEditor
+        initialDoc={emptyDoc}
+        onSave={(doc) => setState({ stage: Stage.SelectTargetRough, doc })}
+      />
     </div>
   );
 };

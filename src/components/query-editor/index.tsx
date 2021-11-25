@@ -9,7 +9,7 @@ export const QueryEditor = (_props: Props) => {
   const [state, setState] = useState<State>({ stage: Stage.WriteDoc });
   switch (state.stage) {
     case Stage.WriteDoc:
-      return <WriteDocEditor state={state} />;
+      return <WriteDocEditor state={state} setState={setState} />;
     case Stage.SelectTargetRough:
       return <div>TODO SelectTargetRough</div>;
     case Stage.SelectTargetExact:
