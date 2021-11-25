@@ -20,8 +20,9 @@ import {
   stringFromPath,
   uniqueByPath,
 } from "../../logic/path-utils";
+import { makeExactMatchQuery } from "../../logic/search/exact";
 import { nodeGetByPath } from "../../logic/tree-utils/access";
-import { SelectTargetExactState, State } from "./interfaces";
+import { SelectTargetExactState, Stage, State } from "./interfaces";
 
 interface Props {
   state: SelectTargetExactState;
@@ -69,28 +70,39 @@ export const SelectTargetExactEditor = ({
     throw new Error("expected at least one choice");
   }
   return (
-    <select
-      value={stringFromPath(selectedEquivalentNode.path)}
-      onChange={(ev) => setSelectedPathString(ev.target.value)}
+    <form
+      onSubmit={(ev) => {
+        ev.preventDefault();
+        setState({
+          stage: Stage.QueryReady,
+          query: makeExactMatchQuery(selectedEquivalentNode.node),
+        });
+      }}
     >
-      {equivalentNodes.map(({ node, path }) => (
-        <option key={stringFromPath(path)} value={stringFromPath(path)}>
-          {[
-            ["path", JSON.stringify(path)],
-            ["node.kind", NodeKind[node.kind]],
-            [
-              "node.listKind",
-              node.kind === NodeKind.List ? ListKind[node.listKind] : "-",
-            ],
-            [
-              "node.tsNode.kind",
-              node.tsNode ? ts.SyntaxKind[node.tsNode.kind] : "-",
-            ],
-          ]
-            .map((v) => v.join(": "))
-            .join(", ")}
-        </option>
-      ))}
-    </select>
+      <select
+        value={stringFromPath(selectedEquivalentNode.path)}
+        onChange={(ev) => setSelectedPathString(ev.target.value)}
+      >
+        {equivalentNodes.map(({ node, path }) => (
+          <option key={stringFromPath(path)} value={stringFromPath(path)}>
+            {[
+              ["path", JSON.stringify(path)],
+              ["node.kind", NodeKind[node.kind]],
+              [
+                "node.listKind",
+                node.kind === NodeKind.List ? ListKind[node.listKind] : "-",
+              ],
+              [
+                "node.tsNode.kind",
+                node.tsNode ? ts.SyntaxKind[node.tsNode.kind] : "-",
+              ],
+            ]
+              .map((v) => v.join(": "))
+              .join(", ")}
+          </option>
+        ))}
+      </select>
+      <button autoFocus>Select</button>
+    </form>
   );
 };

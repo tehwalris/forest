@@ -1,4 +1,5 @@
 import React from "react";
+import { useAutofocus } from "../../hooks/use-autofocus";
 import { useDocManager } from "../../hooks/use-doc-manager";
 import { Mode } from "../../logic/doc-manager";
 import { emptyDoc } from "../../logic/doc-utils";
@@ -11,12 +12,14 @@ interface Props {
 }
 
 export const WriteDocEditor = ({ state: _state, setState }: Props) => {
+  const [codeDivRef] = useAutofocus<HTMLDivElement>();
   const [docManager, docManagerState] = useDocManager(emptyDoc, false);
   const { doc, mode } = docManagerState;
   return (
     <DocUi
       docManager={docManager}
       state={docManagerState}
+      codeDivRef={codeDivRef}
       onKeyDown={(ev, handleWithDocManager) => {
         if (mode === Mode.Normal && ev.key === "s" && ev.ctrlKey) {
           ev.preventDefault();

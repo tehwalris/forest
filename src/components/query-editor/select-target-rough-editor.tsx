@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useAutofocus } from "../../hooks/use-autofocus";
 import { useDocManager } from "../../hooks/use-doc-manager";
 import { Mode } from "../../logic/doc-manager";
 import {
@@ -18,6 +19,7 @@ export const SelectTargetRoughEditor = ({
   state: { doc },
   setState,
 }: Props) => {
+  const [codeDivRef] = useAutofocus<HTMLDivElement>();
   const [docManager, docManagerState] = useDocManager(doc, true);
   const { mode, cursors } = docManagerState;
   const roughTarget = useMemo<Path | undefined>(() => {
@@ -38,6 +40,7 @@ export const SelectTargetRoughEditor = ({
     <DocUi
       docManager={docManager}
       state={docManagerState}
+      codeDivRef={codeDivRef}
       onKeyDown={(ev, handleWithDocManager) => {
         if (mode === Mode.Normal && ev.key === "s" && ev.ctrlKey) {
           ev.preventDefault();
