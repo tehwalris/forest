@@ -23,7 +23,6 @@ export const ListSettingsPanel = ({ settings, setSettings }: Props) => {
           }
         >
           <option value="Whole">Whole</option>
-          <option value="Subarray">Subarray</option>
           <option value="Ignore">Ignore</option>
         </select>
       </label>

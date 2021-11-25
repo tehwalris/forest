@@ -18,7 +18,6 @@ export interface GenericSearchSettings {
 
 export enum ListContentMatchKind {
   Whole = "Whole",
-  Subarray = "Subarray",
   Ignore = "Ignore",
 }
 

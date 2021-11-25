@@ -84,8 +84,6 @@ function matchFromSettings(
           return false;
         }
         break;
-      case ListContentMatchKind.Subarray:
-        throw new Error("ListContentMatchKind.Subarray: not implemented");
       case ListContentMatchKind.Ignore:
         break;
       default:
