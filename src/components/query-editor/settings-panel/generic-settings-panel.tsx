@@ -6,5 +6,18 @@ interface Props {
 }
 
 export const GenericSettingsPanel = ({ settings, setSettings }: Props) => {
-  return <div>{JSON.stringify(settings)}</div>;
+  return (
+    <div>
+      <label>
+        <input
+          type="checkbox"
+          checked={settings.deep}
+          onChange={(ev) =>
+            setSettings({ ...settings, deep: ev.target.checked })
+          }
+        />
+        Deep match
+      </label>
+    </div>
+  );
 };

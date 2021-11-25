@@ -1,4 +1,4 @@
-import { Node } from "../interfaces";
+import { ListKind, Node, NodeKind } from "../interfaces";
 import { unreachable } from "../util";
 import {
   ListContentMatchKind,
@@ -7,6 +7,22 @@ import {
 } from "./interfaces";
 
 function inferSearchSettingsKind(node: Node): SearchSettingsKind {
+  if (
+    node.kind === NodeKind.List &&
+    [
+      ListKind.TightExpression,
+      ListKind.LooseExpression,
+      ListKind.CallArguments,
+      ListKind.TypeArguments,
+      ListKind.IfBranches,
+      ListKind.ObjectLiteralElement,
+      ListKind.UnknownTsNodeArray,
+      ListKind.TsNodeList,
+      ListKind.File,
+    ].includes(node.listKind)
+  ) {
+    return SearchSettingsKind.List;
+  }
   return SearchSettingsKind.Generic;
 }
 

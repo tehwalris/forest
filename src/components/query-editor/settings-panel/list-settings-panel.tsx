@@ -1,4 +1,7 @@
-import { ListSearchSettings } from "../../../logic/search/interfaces";
+import {
+  ListContentMatchKind,
+  ListSearchSettings,
+} from "../../../logic/search/interfaces";
 
 interface Props {
   settings: ListSearchSettings;
@@ -6,5 +9,24 @@ interface Props {
 }
 
 export const ListSettingsPanel = ({ settings, setSettings }: Props) => {
-  return <div>{JSON.stringify(settings)}</div>;
+  return (
+    <div>
+      <label>
+        Match content{" "}
+        <select
+          value={settings.contentMatch}
+          onChange={(ev) =>
+            setSettings({
+              ...settings,
+              contentMatch: ev.target.value as ListContentMatchKind,
+            })
+          }
+        >
+          <option value="Whole">Whole</option>
+          <option value="Subarray">Subarray</option>
+          <option value="Ignore">Ignore</option>
+        </select>
+      </label>
+    </div>
+  );
 };
