@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { promisify } from "util";
 import { FileSearch } from "./components/file-search";
 import { LinearEditor } from "./components/linear-editor";
-import { QueryEditor } from "./components/query-editor";
 import { Doc } from "./logic/interfaces";
 import { docFromAst } from "./logic/node-from-ts";
 import { astFromTypescriptFileContent } from "./logic/parse";
@@ -30,10 +29,6 @@ const styles = {
   `,
   contentWrapper: css`
     flex: 1 1 100px;
-    overflow: hidden;
-  `,
-  queryWrapper: css`
-    height: 200px;
     overflow: hidden;
   `,
   splitView: css`
@@ -154,9 +149,6 @@ export const App = () => {
         <button onClick={() => setShowTargetView((v) => !v)}>
           Toggle target view
         </button>
-      </div>
-      <div className={styles.queryWrapper}>
-        <QueryEditor />
       </div>
       <div className={styles.contentWrapper}>
         {showTargetView ? (

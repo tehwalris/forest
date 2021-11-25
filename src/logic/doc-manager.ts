@@ -40,6 +40,7 @@ import {
   getDocWithAllPlaceholders,
   getDocWithoutPlaceholdersNearCursors,
 } from "./placeholders";
+import { StructuralSearchQuery } from "./search/interfaces";
 import {
   checkTextRangesOverlap,
   getDocWithInsertions,
@@ -586,6 +587,9 @@ export class DocManager {
     this.cursorHistory.push(this.cursors);
     this.lastDoc = this.doc;
     this.reportUpdate();
+  }
+  search(query: StructuralSearchQuery) {
+    console.log('DEBUG query', query)
   }
   private reportUpdate() {
     let doc = this.doc;

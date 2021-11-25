@@ -1,14 +1,15 @@
-import { useState } from "react";
 import { unreachable } from "../../logic/util";
 import { Stage, State } from "./interfaces";
 import { SelectTargetExactEditor } from "./select-target-exact-editor";
 import { SelectTargetRoughEditor } from "./select-target-rough-editor";
 import { WriteDocEditor } from "./write-doc-editor";
 
-interface Props {}
+interface Props {
+  state: State;
+  setState: (state: State) => void;
+}
 
-export const QueryEditor = (_props: Props) => {
-  const [state, setState] = useState<State>({ stage: Stage.WriteDoc });
+export const QueryEditor = ({ state, setState }: Props) => {
   switch (state.stage) {
     case Stage.WriteDoc:
       return <WriteDocEditor state={state} setState={setState} />;
