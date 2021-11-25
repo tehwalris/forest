@@ -42,7 +42,7 @@ export const SelectTargetRoughEditor = ({
       state={docManagerState}
       codeDivRef={codeDivRef}
       onKeyDown={(ev, handleWithDocManager) => {
-        if (mode === Mode.Normal && ev.key === "s" && ev.ctrlKey) {
+        if (mode === Mode.Normal && ev.key === "Enter") {
           ev.preventDefault();
           ev.stopPropagation();
           if (roughTarget) {

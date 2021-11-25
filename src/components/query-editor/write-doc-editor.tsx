@@ -21,7 +21,7 @@ export const WriteDocEditor = ({ state: _state, setState }: Props) => {
       state={docManagerState}
       codeDivRef={codeDivRef}
       onKeyDown={(ev, handleWithDocManager) => {
-        if (mode === Mode.Normal && ev.key === "s" && ev.ctrlKey) {
+        if (mode === Mode.Normal && ev.key === "Enter") {
           ev.preventDefault();
           ev.stopPropagation();
           setState({ stage: Stage.SelectTargetRough, doc });
