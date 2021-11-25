@@ -6,6 +6,16 @@ import {
   UnevenPathRange,
 } from "./interfaces";
 import { nodeGetByPath } from "./tree-utils/access";
+export function stringFromPath(path: Path): string {
+  return JSON.stringify(path);
+}
+export function pathFromString(s: string): Path {
+  const path = JSON.parse(s);
+  if (!Array.isArray(path) || !path.every((v) => typeof v === "number")) {
+    throw new Error("invalid path string");
+  }
+  return path;
+}
 export function pathsAreEqual(a: Path, b: Path): boolean {
   return a === b || (a.length === b.length && a.every((v, i) => v === b[i]));
 }

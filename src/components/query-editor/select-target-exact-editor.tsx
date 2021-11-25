@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { last } from "ramda";
+import { useMemo, useState } from "react";
 import ts from "typescript";
 import {
   normalizeFocusInOnce,
@@ -14,6 +15,9 @@ import {
 import {
   asEvenPathRange,
   asUnevenPathRange,
+  pathFromString,
+  pathsAreEqual,
+  stringFromPath,
   uniqueByPath,
 } from "../../logic/path-utils";
 import { nodeGetByPath } from "../../logic/tree-utils/access";
@@ -52,10 +56,25 @@ export const SelectTargetExactEditor = ({
       return { node, path };
     });
   }, [doc, roughTarget]);
+  const [_selectedPathString, setSelectedPathString] = useState<string>();
+  const _selectedPath =
+    _selectedPathString === undefined
+      ? undefined
+      : pathFromString(_selectedPathString);
+  const selectedEquivalentNode: NodeWithPath | undefined =
+    (_selectedPath &&
+      equivalentNodes.find((e) => pathsAreEqual(e.path, _selectedPath))) ||
+    last(equivalentNodes);
+  if (!selectedEquivalentNode) {
+    throw new Error("expected at least one choice");
+  }
   return (
-    <ul>
-      {equivalentNodes.map(({ node, path }, i) => (
-        <li key={i}>
+    <select
+      value={stringFromPath(selectedEquivalentNode.path)}
+      onChange={(ev) => setSelectedPathString(ev.target.value)}
+    >
+      {equivalentNodes.map(({ node, path }) => (
+        <option key={stringFromPath(path)} value={stringFromPath(path)}>
           {[
             ["path", JSON.stringify(path)],
             ["node.kind", NodeKind[node.kind]],
@@ -70,8 +89,8 @@ export const SelectTargetExactEditor = ({
           ]
             .map((v) => v.join(": "))
             .join(", ")}
-        </li>
+        </option>
       ))}
-    </ul>
+    </select>
   );
 };
