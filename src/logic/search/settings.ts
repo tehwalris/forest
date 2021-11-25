@@ -73,13 +73,7 @@ function compileStringPredicate(
     "s",
     `return (${expression})`,
   ) as any;
-  const f: StringPredicate = (text) => {
-    const result = _f(text);
-    if (typeof result !== "boolean") {
-      throw new Error("result is not a boolean");
-    }
-    return result;
-  };
+  const f: StringPredicate = (text) => !!_f(text);
   cache.set(expression, f);
   return f;
 }
