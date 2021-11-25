@@ -1,27 +1,13 @@
 import { last } from "ramda";
 import { useMemo, useState } from "react";
 import ts from "typescript";
+import { getEquivalentNodes } from "../../logic/focus";
+import { ListKind, NodeKind, NodeWithPath } from "../../logic/interfaces";
 import {
-  normalizeFocusInOnce,
-  normalizeFocusOut,
-  whileUnevenFocusChanges,
-} from "../../logic/focus";
-import {
-  EvenPathRange,
-  ListKind,
-  NodeKind,
-  NodeWithPath,
-} from "../../logic/interfaces";
-import {
-  asEvenPathRange,
-  asUnevenPathRange,
   pathFromString,
   pathsAreEqual,
   stringFromPath,
-  uniqueByPath,
 } from "../../logic/path-utils";
-import { makeExactMatchQuery } from "../../logic/search/exact";
-import { nodeGetByPath } from "../../logic/tree-utils/access";
 import { SelectTargetExactState, Stage, State } from "./interfaces";
 
 interface Props {
@@ -33,30 +19,10 @@ export const SelectTargetExactEditor = ({
   state: { doc, roughTarget },
   setState,
 }: Props) => {
-  const equivalentNodes: NodeWithPath[] = useMemo(() => {
-    const equivalentFocuses: EvenPathRange[] = [];
-    whileUnevenFocusChanges(
-      asUnevenPathRange(
-        normalizeFocusOut(doc.root, { anchor: roughTarget, offset: 0 }),
-      ),
-      (focus) => normalizeFocusInOnce(doc.root, focus),
-      (focus) => equivalentFocuses.push(asEvenPathRange(focus)),
-    );
-    const equivalentPaths = uniqueByPath(
-      equivalentFocuses.filter((f) => !f.offset).map((f) => f.anchor),
-      (v) => v,
-    );
-    if (!equivalentPaths.length) {
-      throw new Error("unreachable");
-    }
-    return equivalentPaths.map((path) => {
-      const node = nodeGetByPath(doc.root, path);
-      if (!node) {
-        throw new Error("invalid path");
-      }
-      return { node, path };
-    });
-  }, [doc, roughTarget]);
+  const equivalentNodes: NodeWithPath[] = useMemo(
+    () => getEquivalentNodes(doc.root, roughTarget),
+    [doc, roughTarget],
+  );
   const [_selectedPathString, setSelectedPathString] = useState<string>();
   const _selectedPath =
     _selectedPathString === undefined
@@ -74,8 +40,9 @@ export const SelectTargetExactEditor = ({
       onSubmit={(ev) => {
         ev.preventDefault();
         setState({
-          stage: Stage.QueryReady,
-          query: makeExactMatchQuery(selectedEquivalentNode.node),
+          stage: Stage.Configure,
+          doc,
+          target: selectedEquivalentNode.path,
         });
       }}
     >

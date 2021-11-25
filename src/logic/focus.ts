@@ -2,6 +2,7 @@ import {
   EvenPathRange,
   ListNode,
   NodeKind,
+  Path,
   TextRange,
   UnevenPathRange,
 } from "./interfaces";
@@ -12,6 +13,7 @@ import {
   flipEvenPathRangeForward,
   getPathToTip,
   unevenPathRangesAreEqual,
+  uniqueByPath,
 } from "./path-utils";
 import { nodeGetByPath } from "./tree-utils/access";
 export function normalizeFocusInOnce(
@@ -126,6 +128,30 @@ export function untilEvenFocusChanges(
     }
     oldFocus = newFocus;
   }
+}
+export function getEquivalentNodes(root: ListNode, originalPath: Path) {
+  const equivalentFocuses: EvenPathRange[] = [];
+  whileUnevenFocusChanges(
+    asUnevenPathRange(
+      normalizeFocusOut(root, { anchor: originalPath, offset: 0 }),
+    ),
+    (focus) => normalizeFocusInOnce(root, focus),
+    (focus) => equivalentFocuses.push(asEvenPathRange(focus)),
+  );
+  const equivalentPaths = uniqueByPath(
+    equivalentFocuses.filter((f) => !f.offset).map((f) => f.anchor),
+    (v) => v,
+  );
+  if (!equivalentPaths.length) {
+    throw new Error("unreachable");
+  }
+  return equivalentPaths.map((path) => {
+    const node = nodeGetByPath(root, path);
+    if (!node) {
+      throw new Error("invalid path");
+    }
+    return { node, path };
+  });
 }
 export function isFocusOnEmptyListContent(
   root: ListNode,

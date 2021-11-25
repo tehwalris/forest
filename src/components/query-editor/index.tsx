@@ -1,4 +1,5 @@
 import { unreachable } from "../../logic/util";
+import { ConfigureEditor } from "./configure-editor";
 import { Stage, State } from "./interfaces";
 import { SelectTargetExactEditor } from "./select-target-exact-editor";
 import { WriteDocEditor } from "./write-doc-editor";
@@ -13,6 +14,8 @@ export const QueryEditor = ({ state, setState }: Props) => {
       return <WriteDocEditor state={state} setState={setState} />;
     case Stage.SelectTargetExact:
       return <SelectTargetExactEditor state={state} setState={setState} />;
+    case Stage.Configure:
+      return <ConfigureEditor state={state} setState={setState} />;
     case Stage.QueryReady:
       return null;
     default:
