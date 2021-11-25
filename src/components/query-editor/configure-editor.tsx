@@ -1,7 +1,8 @@
 import { css } from "@emotion/css";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useAutofocus } from "../../hooks/use-autofocus";
 import { useDocManager } from "../../hooks/use-doc-manager";
+import { useRenderTrigger } from "../../hooks/use-render-trigger";
 import { Mode } from "../../logic/doc-manager";
 import {
   getEquivalentNodes,
@@ -9,10 +10,15 @@ import {
   normalizeFocusOut,
 } from "../../logic/focus";
 import { NodeWithPath, Path } from "../../logic/interfaces";
+import { PathMap } from "../../logic/path-map";
+import { getCommonPathPrefix, pathsAreEqual } from "../../logic/path-utils";
 import { makeExactMatchQuery } from "../../logic/search/exact";
+import { StructuralSearchSettings } from "../../logic/search/interfaces";
+import { getDefaultStructuralSearchSettings } from "../../logic/search/settings";
 import { nodeGetByPath } from "../../logic/tree-utils/access";
 import { DocUi } from "../doc-ui";
 import { ConfigureState, Stage, State } from "./interfaces";
+import { SettingsPanel } from "./settings-panel";
 
 interface Props {
   state: ConfigureState;
@@ -39,6 +45,9 @@ export const ConfigureEditor = ({
   const [codeDivRef] = useAutofocus<HTMLDivElement>();
   const [docManager, docManagerState] = useDocManager(doc, true);
   const { mode, cursors } = docManagerState;
+  const settingsMap = useRef(new PathMap<StructuralSearchSettings>()).current;
+  const markSettingsChanged = useRenderTrigger();
+  useEffect(() => settingsMap.clear(), [settingsMap, doc]);
   const focusedPath = useMemo<Path | undefined>(() => {
     if (cursors.length !== 1) {
       return undefined;
@@ -84,7 +93,28 @@ export const ConfigureEditor = ({
           }}
         />
       </div>
-      <div className={styles.configureWrapper}>{equivalentNodes.length}</div>
+      <div className={styles.configureWrapper}>
+        {equivalentNodes
+          .filter(({ path }) =>
+            pathsAreEqual(
+              getCommonPathPrefix(path, searchRootPath),
+              searchRootPath,
+            ),
+          )
+          .map(({ node, path }) => (
+            <SettingsPanel
+              node={node}
+              settings={
+                settingsMap.get(path) ||
+                getDefaultStructuralSearchSettings(node)
+              }
+              setSettings={(s) => {
+                settingsMap.set(path, s);
+                markSettingsChanged();
+              }}
+            />
+          ))}
+      </div>
     </div>
   );
 };

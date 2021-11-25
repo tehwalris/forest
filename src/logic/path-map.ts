@@ -2,7 +2,7 @@ import { Path } from "./interfaces";
 import { pathsAreEqual } from "./path-utils";
 
 export class PathMap<T> {
-  private data: { key: Path; value: T }[];
+  private data: { key: Path; value: T }[] = [];
 
   private findIndex(key: Path): number {
     return this.data.findIndex((e) => pathsAreEqual(e.key, key));
