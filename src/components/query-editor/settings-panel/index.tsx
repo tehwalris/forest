@@ -7,6 +7,7 @@ import {
 import { unreachable } from "../../../logic/util";
 import { GenericSettingsPanel } from "./generic-settings-panel";
 import { ListSettingsPanel } from "./list-settings-panel";
+import { TextSettingsPanel } from "./text-settings-panel";
 
 interface Props {
   node: Node;
@@ -34,6 +35,10 @@ export const SettingsPanel = ({ node, settings, setSettings }: Props) => {
       case SearchSettingsKind.List:
         return (
           <ListSettingsPanel settings={settings} setSettings={setSettings} />
+        );
+      case SearchSettingsKind.Text:
+        return (
+          <TextSettingsPanel settings={settings} setSettings={setSettings} />
         );
       default:
         return unreachable(settings);

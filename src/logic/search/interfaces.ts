@@ -7,9 +7,13 @@ export interface StructuralSearchQuery {
 export enum SearchSettingsKind {
   Generic,
   List,
+  Text,
 }
 
-export type SearchSettings = GenericSearchSettings | ListSearchSettings;
+export type SearchSettings =
+  | GenericSearchSettings
+  | ListSearchSettings
+  | TextSearchSettings;
 
 export interface GenericSearchSettings {
   kind: SearchSettingsKind.Generic;
@@ -24,4 +28,10 @@ export enum ListContentMatchKind {
 export interface ListSearchSettings {
   kind: SearchSettingsKind.List;
   contentMatch: ListContentMatchKind;
+}
+
+export interface TextSearchSettings {
+  kind: SearchSettingsKind.Text;
+  exactMatch: boolean;
+  satisfyingExpression?: string;
 }
