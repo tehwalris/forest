@@ -16,6 +16,7 @@ import {
   CursorReduceSelectionSide,
 } from "./cursor/reduce-selection";
 import { multiCursorRename } from "./cursor/rename";
+import { multiCursorSearch } from "./cursor/search";
 import {
   CursorStartInsertSide,
   multiCursorStartInsert,
@@ -589,7 +590,13 @@ export class DocManager {
     this.reportUpdate();
   }
   search(query: StructuralSearchQuery) {
-    console.log('DEBUG query', query)
+    const result = multiCursorSearch({
+      root: this.doc.root,
+      cursors: this.cursors,
+      query,
+    });
+    this.cursors = result.cursors;
+    this.onUpdate();
   }
   private reportUpdate() {
     let doc = this.doc;

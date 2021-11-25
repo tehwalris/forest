@@ -18,7 +18,7 @@ export const QueryEditor = ({ state, setState }: Props) => {
     case Stage.SelectTargetExact:
       return <SelectTargetExactEditor state={state} setState={setState} />;
     case Stage.QueryReady:
-      return <div>TODO QueryReady</div>;
+      return null;
     default:
       return unreachable(state);
   }
