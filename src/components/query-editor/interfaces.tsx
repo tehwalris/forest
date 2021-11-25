@@ -3,24 +3,14 @@ import { StructuralSearchQuery } from "../../logic/search/interfaces";
 
 export enum Stage {
   WriteDoc,
-  SelectTargetRough,
   SelectTargetExact,
   QueryReady,
 }
 
-export type State =
-  | WriteDocState
-  | SelectTargetRoughState
-  | SelectTargetExactState
-  | QueryReadyState;
+export type State = WriteDocState | SelectTargetExactState | QueryReadyState;
 
 export interface WriteDocState {
   stage: Stage.WriteDoc;
-}
-
-export interface SelectTargetRoughState {
-  stage: Stage.SelectTargetRough;
-  doc: Doc;
 }
 
 export interface SelectTargetExactState {
