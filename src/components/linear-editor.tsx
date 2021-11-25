@@ -14,17 +14,18 @@ export const LinearEditor = ({ initialDoc, onSave }: Props) => {
   useEffect(() => {
     focusCodeDiv();
   }, [initialDoc, focusCodeDiv]);
-  const [docManager, state] = useDocManager(initialDoc);
+  const [docManager, docManagerState] = useDocManager(initialDoc);
+  const { doc, mode } = docManagerState;
   return (
     <DocUi
       docManager={docManager}
-      state={state}
+      state={docManagerState}
       codeDivRef={codeDivRef}
       onKeyDown={(ev, handleWithDocManager) => {
-        if (state.mode === Mode.Normal && ev.key === "s" && ev.ctrlKey) {
+        if (mode === Mode.Normal && ev.key === "s" && ev.ctrlKey) {
           ev.preventDefault();
           ev.stopPropagation();
-          onSave(state.doc);
+          onSave(doc);
         } else {
           handleWithDocManager();
         }

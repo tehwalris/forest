@@ -1,28 +1,31 @@
-import { css } from "@emotion/css";
 import React from "react";
+import { useDocManager } from "../../hooks/use-doc-manager";
+import { Mode } from "../../logic/doc-manager";
 import { emptyDoc } from "../../logic/doc-utils";
-import { LinearEditor } from "../linear-editor";
+import { DocUi } from "../doc-ui";
 import { Stage, State, WriteDocState } from "./interfaces";
-
-const styles = {
-  outerWrapper: css`
-    height: 100%;
-    overflow: hidden;
-  `,
-};
 
 interface Props {
   state: WriteDocState;
   setState: (state: State) => void;
 }
 
-export const WriteDocEditor = ({ state, setState }: Props) => {
+export const WriteDocEditor = ({ state: _state, setState }: Props) => {
+  const [docManager, docManagerState] = useDocManager(emptyDoc);
+  const { doc, mode } = docManagerState;
   return (
-    <div className={styles.outerWrapper}>
-      <LinearEditor
-        initialDoc={emptyDoc}
-        onSave={(doc) => setState({ stage: Stage.SelectTargetRough, doc })}
-      />
-    </div>
+    <DocUi
+      docManager={docManager}
+      state={docManagerState}
+      onKeyDown={(ev, handleWithDocManager) => {
+        if (mode === Mode.Normal && ev.key === "s" && ev.ctrlKey) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          setState({ stage: Stage.SelectTargetRough, doc });
+        } else {
+          handleWithDocManager();
+        }
+      }}
+    />
   );
 };
