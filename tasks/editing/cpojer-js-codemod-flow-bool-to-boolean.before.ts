@@ -1,4 +1,4 @@
-/* @flow */
+
 
 var a: bool = 10;
 var b: boolean = 10;

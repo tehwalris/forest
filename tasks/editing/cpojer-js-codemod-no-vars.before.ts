@@ -1,13 +1,8 @@
-/* eslint-disable one-var, prefer-const */
+var module = require("module");
 
-var module = require('module');
+for (var i = 0; i < 10; i++) {}
 
-for (var i = 0; i < 10; i++) {
-
-}
-
-for (i = 0; i < 10; i++) {
-}
+for (i = 0; i < 10; i++) {}
 
 var letItBe;
 var shouldBeLet = 0;
@@ -17,17 +12,17 @@ function mutate() {
   shouldBeLet = 1;
 }
 
-var array = ['a', 'b', 'c', 'd'];
+var array = ["a", "b", "c", "d"];
 
 for (var letter in array) {
   console.log(letter);
 }
 
 var object = {
-  'a': 1,
-  'b': 2,
-  'c': 3,
-  'd': 4,
+  a: 1,
+  b: 2,
+  c: 3,
+  d: 4,
 };
 
 for (var [key, value] of object.entries()) {
@@ -35,7 +30,7 @@ for (var [key, value] of object.entries()) {
 }
 
 for (var [keyTwo, valueTwo] of object.entries()) {
-  keyTwo = 'something';
+  keyTwo = "something";
   console.log(keyTwo, valueTwo);
 }
 
@@ -56,12 +51,16 @@ do {
   var a = 1;
 
   return (() => {
-    return _ = _ => _ => _ => _ => _ => { a = 7; };
+    return (_ = (_) => (_) => (_) => (_) => (_) => {
+      a = 7;
+    });
   })();
 })();
 
 (() => {
-  var a = 1, b = 2, c = 3;
+  var a = 1,
+    b = 2,
+    c = 3;
 
   a++;
 
@@ -74,7 +73,7 @@ do {
   }
 
   for (var j = 0; j < 10; j++) {
-    _.defer(function() {
+    _.defer(function () {
       console.log(j);
     });
   }
@@ -90,7 +89,7 @@ do {
 })();
 
 (() => {
-  var {foo, number} = bar;
+  var { foo, number } = bar;
   foo = xy;
   number++;
 })();
@@ -99,14 +98,14 @@ do {
   // should not destroy comments
   var querySet = {};
   if (true) {
-    ({querySet} = someComputation());
+    ({ querySet } = someComputation());
   }
 })();
 
 (() => {
-  var {...foo} = bar;
+  var { ...foo } = bar;
   bar = foo;
-  var {...foo2} = bar2;
+  var { ...foo2 } = bar2;
   foo2 = bar2;
 })();
 
@@ -140,10 +139,10 @@ for (var dangerousLoop = 0; dangerousLoop < 10; dangerousLoop++) {
 }
 
 console.log(destructuringAlias);
-var {destructuringToBeAliased: destructuringAlias} = whatever();
+var { destructuringToBeAliased: destructuringAlias } = whatever();
 
-var {destructuringB} = whatever();
-var {destructuringB} = whateverElse();
+var { destructuringB } = whatever();
+var { destructuringB } = whateverElse();
 
 var [, destructuringC, destructuringD] = whatever();
 
@@ -164,7 +163,6 @@ if (true) {
 function useUsedInAFunction() {
   console.log(usedInAFunction);
 }
-
 
 function jasklfjasklfjdsakl() {
   var {

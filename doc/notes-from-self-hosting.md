@@ -22,7 +22,7 @@
 - [x] Crash when inserting before a mark (sometimes? happened with an if statement)
   - `invalid focus`
   - same happens when deleting would change the path to a mark
-- [ ] Example files crash
+- [x] Example files crash
   - probably formatting related
 
 # Most important missing node support

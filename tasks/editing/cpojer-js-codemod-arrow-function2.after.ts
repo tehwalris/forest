@@ -1,10 +1,9 @@
-/* eslint-disable no-extra-bind */
-'use strict';
+"use strict";
 
 var fn1 = () => {
-  console.log('Banana!');
+  console.log("Banana!");
 };
 
 var fn2 = () => {
-  console.log('foo!');
+  console.log("foo!");
 };

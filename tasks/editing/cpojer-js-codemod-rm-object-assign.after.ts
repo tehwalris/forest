@@ -27,5 +27,5 @@ Object.assign({}, ...b);
   // comment 3
   ...c,
 
-  ...d /* comment 4 */,
+  ...d,
 });

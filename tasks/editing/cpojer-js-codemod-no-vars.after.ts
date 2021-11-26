@@ -1,13 +1,8 @@
-/* eslint-disable one-var, prefer-const */
+const module = require("module");
 
-const module = require('module');
+for (var i = 0; i < 10; i++) {}
 
-for (var i = 0; i < 10; i++) {
-
-}
-
-for (i = 0; i < 10; i++) {
-}
+for (i = 0; i < 10; i++) {}
 
 let letItBe;
 let shouldBeLet = 0;
@@ -17,17 +12,17 @@ function mutate() {
   shouldBeLet = 1;
 }
 
-const array = ['a', 'b', 'c', 'd'];
+const array = ["a", "b", "c", "d"];
 
 for (const letter in array) {
   console.log(letter);
 }
 
 const object = {
-  'a': 1,
-  'b': 2,
-  'c': 3,
-  'd': 4,
+  a: 1,
+  b: 2,
+  c: 3,
+  d: 4,
 };
 
 for (const [key, value] of object.entries()) {
@@ -35,7 +30,7 @@ for (const [key, value] of object.entries()) {
 }
 
 for (let [keyTwo, valueTwo] of object.entries()) {
-  keyTwo = 'something';
+  keyTwo = "something";
   console.log(keyTwo, valueTwo);
 }
 
@@ -56,12 +51,16 @@ do {
   let a = 1;
 
   return (() => {
-    return _ = _ => _ => _ => _ => _ => { a = 7; };
+    return (_ = (_) => (_) => (_) => (_) => (_) => {
+      a = 7;
+    });
   })();
 })();
 
 (() => {
-  let a = 1, b = 2, c = 3;
+  let a = 1,
+    b = 2,
+    c = 3;
 
   a++;
 
@@ -74,7 +73,7 @@ do {
   }
 
   for (var j = 0; j < 10; j++) {
-    _.defer(function() {
+    _.defer(function () {
       console.log(j);
     });
   }
@@ -90,7 +89,7 @@ do {
 })();
 
 (() => {
-  let {foo, number} = bar;
+  let { foo, number } = bar;
   foo = xy;
   number++;
 })();
@@ -99,14 +98,14 @@ do {
   // should not destroy comments
   let querySet = {};
   if (true) {
-    ({querySet} = someComputation());
+    ({ querySet } = someComputation());
   }
 })();
 
 (() => {
-  const {...foo} = bar;
+  const { ...foo } = bar;
   bar = foo;
-  let {...foo2} = bar2;
+  let { ...foo2 } = bar2;
   foo2 = bar2;
 })();
 
@@ -140,10 +139,10 @@ for (var dangerousLoop = 0; dangerousLoop < 10; dangerousLoop++) {
 }
 
 console.log(destructuringAlias);
-var {destructuringToBeAliased: destructuringAlias} = whatever();
+var { destructuringToBeAliased: destructuringAlias } = whatever();
 
-var {destructuringB} = whatever();
-var {destructuringB} = whateverElse();
+var { destructuringB } = whatever();
+var { destructuringB } = whateverElse();
 
 const [, destructuringC, destructuringD] = whatever();
 
@@ -164,7 +163,6 @@ if (true) {
 function useUsedInAFunction() {
   console.log(usedInAFunction);
 }
-
 
 function jasklfjasklfjdsakl() {
   let {
