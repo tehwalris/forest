@@ -2,7 +2,7 @@ import { Path } from "./interfaces";
 
 export class PathTree {
   private children: PathTree[] = [];
-  private leaf = Symbol();
+  private leaf: Symbol | undefined;
 
   traverse(
     onEnter: (path: Path, leafSymbol: Symbol) => void,

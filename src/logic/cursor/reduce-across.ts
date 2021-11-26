@@ -1,6 +1,13 @@
 import { last } from "ramda";
-import { groupOverlappingNonNestedRanges } from "../path-range-tree";
-import { flipEvenPathRangeForward } from "../path-utils";
+import { EvenPathRange } from "../interfaces";
+import {
+  groupOverlappingNonNestedRanges,
+  PathRangeTree,
+} from "../path-range-tree";
+import {
+  evenPathRangesAreEqual,
+  flipEvenPathRangeForward,
+} from "../path-utils";
 import { groupBy } from "../util";
 import { Cursor } from "./interfaces";
 import { adjustPostActionCursor } from "./post-action";
@@ -30,7 +37,28 @@ export function cursorReduceAcross({
       "CursorReduceAcrossSide.FixOverlap should be handled by multi cursor",
     );
   }
-  return { cursor: last(oldCursors)! };
+  const pathRangeTree = new PathRangeTree(oldCursors.map((c) => c.focus));
+  const openRanges: EvenPathRange[] = [];
+  let lastInnerRange: EvenPathRange | undefined;
+  pathRangeTree.traverse(
+    (range) => {
+      openRanges.push(range);
+      lastInnerRange = range;
+    },
+    () => {
+      if (!openRanges.length) {
+        throw new Error("underflow");
+      }
+      openRanges.pop();
+    },
+  );
+  const selectedCursor = oldCursors.find(
+    (c) => lastInnerRange && evenPathRangesAreEqual(c.focus, lastInnerRange),
+  );
+  if (!selectedCursor) {
+    throw new Error("unreachable");
+  }
+  return { cursor: selectedCursor };
 }
 interface MultiCursorReduceAcrossArgs {
   cursors: Cursor[];

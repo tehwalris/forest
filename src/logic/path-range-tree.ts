@@ -15,15 +15,17 @@ function getParent(range: EvenPathRange): Path {
   return range.anchor.slice(0, -1);
 }
 
+const fakeRootIndex = 9999;
+
 function addFakeRoot(r: EvenPathRange) {
   return {
-    anchor: [-1, ...r.anchor],
+    anchor: [fakeRootIndex, ...r.anchor],
     offset: r.offset,
   };
 }
 
 function removeFakeRoot(r: EvenPathRange) {
-  if (!r.anchor.length || r.anchor[0] !== -1) {
+  if (!r.anchor.length || r.anchor[0] !== fakeRootIndex) {
     throw new Error("range does not have fake root");
   }
   return { anchor: r.anchor.slice(1), offset: r.offset };
