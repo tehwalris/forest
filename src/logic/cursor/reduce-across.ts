@@ -1,5 +1,5 @@
 import { last } from "ramda";
-import { hasOverlappingNonNestedRanges } from "../path-range-tree";
+import { groupOverlappingNonNestedRanges } from "../path-range-tree";
 import { flipEvenPathRangeForward } from "../path-utils";
 import { groupBy } from "../util";
 import { Cursor } from "./interfaces";
@@ -26,9 +26,10 @@ export function cursorReduceAcross({
     throw new Error("no cursors");
   }
   if (side === CursorReduceAcrossSide.FixOverlap) {
-    return { cursor: oldCursors[0] };
+    throw new Error(
+      "CursorReduceAcrossSide.FixOverlap should be handled by multi cursor",
+    );
   }
-  // TODO
   return { cursor: last(oldCursors)! };
 }
 interface MultiCursorReduceAcrossArgs {
@@ -52,10 +53,22 @@ export function multiCursorReduceAcross({
       undefined,
     ),
   );
-  let groups: Cursor[][];
+  const overlapGroups = groupOverlappingNonNestedRanges(
+    cursors.map((c) => c.focus),
+  );
+  if (side === CursorReduceAcrossSide.FixOverlap) {
+    return { cursors: overlapGroups.map((g) => cursors[g[0]]) };
+  }
+  if (overlapGroups.some((g) => g.length > 1)) {
+    console.warn(
+      "can't reduce across cursors because some cursors have overlapping non-nested ranges",
+    );
+    return failResult;
+  }
+  let parentGroups: Cursor[][];
   while (true) {
-    groups = [...groupBy(cursors, (c) => last(c.parentPath)).values()];
-    if (groups.some((g) => g.length !== 1)) {
+    parentGroups = [...groupBy(cursors, (c) => last(c.parentPath)).values()];
+    if (parentGroups.some((g) => g.length !== 1)) {
       break;
     }
     if (cursors.every((c) => !c.parentPath.length)) {
@@ -66,18 +79,8 @@ export function multiCursorReduceAcross({
       parentPath: c.parentPath.slice(0, -1),
     }));
   }
-  if (side !== CursorReduceAcrossSide.FixOverlap) {
-    for (const g of groups) {
-      if (hasOverlappingNonNestedRanges(g.map((c) => c.focus))) {
-        console.warn(
-          "can't reduce across cursors because some cursors have overlapping non-nested ranges",
-        );
-        return failResult;
-      }
-    }
-  }
   return {
-    cursors: groups
+    cursors: parentGroups
       .map((g) => cursorReduceAcross({ cursors: g, side }).cursor)
       .map((c) =>
         adjustPostActionCursor(
