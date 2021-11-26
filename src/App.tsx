@@ -15,7 +15,7 @@ import { loadTasks } from "./logic/tasks/load";
 import { isBrowseTask, isCreationTask } from "./logic/tasks/util";
 // TODO you were here:
 //   - keep first/last/outer/inner cursor (per hierarchy level)
-//   - keep unique cursors (ignoring hierarchy)
+//   - remove overlapping non-nested cursors (ignoring hierarchy)
 const exampleFileText = `
         if (Date.now() % 100 == 0) {
           console.log("lucky you");

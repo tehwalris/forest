@@ -2,33 +2,43 @@ import { Path } from "./interfaces";
 
 export class PathTree {
   private children: PathTree[] = [];
-  private isLeaf = false;
+  private leaf = Symbol();
 
   traverse(
-    onEnter: (path: Path) => void,
+    onEnter: (path: Path, leafSymbol: Symbol) => void,
     onExit: () => void,
     prefix: Path = [],
   ) {
-    if (this.isLeaf) {
-      onEnter(prefix);
+    if (this.leaf) {
+      onEnter(prefix, this.leaf);
     }
     this.children.forEach((c, i) =>
       c.traverse(onEnter, onExit, [...prefix, i]),
     );
-    if (this.isLeaf) {
+    if (this.leaf) {
       onExit();
     }
   }
 
-  private insert(path: Path): boolean {
+  insert(path: Path): Symbol {
     if (path.length) {
       const i = path[0];
       this.children[i] = this.children[i] || new PathTree();
       return this.children[i].insert(path.slice(1));
     } else {
-      const existed = this.isLeaf;
-      this.isLeaf = true;
-      return existed;
+      if (!this.leaf) {
+        this.leaf = Symbol();
+      }
+      return this.leaf;
+    }
+  }
+
+  getLeafSymbol(path: Path): Symbol | undefined {
+    if (path.length) {
+      const i = path[0];
+      return this.children[i]?.getLeafSymbol(path.slice(1));
+    } else {
+      return this.leaf;
     }
   }
 }

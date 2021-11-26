@@ -61,10 +61,13 @@ export function checkAllItemsDefined<T>(
 ): values is T[] {
   return values.every((v) => v !== undefined);
 }
-export function groupBy<K, V>(values: V[], cb: (v: V) => K): Map<K, V[]> {
+export function groupBy<K, V>(
+  values: V[],
+  cb: (v: V, i: number) => K,
+): Map<K, V[]> {
   const result = new Map<K, V[]>();
-  for (const v of values) {
-    const k = cb(v);
+  for (const [i, v] of values.entries()) {
+    const k = cb(v, i);
     const group = result.get(k) || [];
     result.set(k, group);
     group.push(v);
