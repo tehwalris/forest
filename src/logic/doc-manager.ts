@@ -12,6 +12,10 @@ import { cursorMoveLeaf, CursorMoveLeafMode } from "./cursor/move-leaf";
 import { multiCursorPaste } from "./cursor/paste";
 import { adjustPostActionCursor } from "./cursor/post-action";
 import {
+  CursorReduceAcrossSide,
+  multiCursorReduceAcross,
+} from "./cursor/reduce-across";
+import {
   cursorReduceWithin,
   CursorReduceWithinSide,
 } from "./cursor/reduce-within";
@@ -246,7 +250,11 @@ export class DocManager {
             );
         });
       } else if (ev.key === "S") {
-        this.cursors = this.cursors.slice(0, 1);
+        const result = multiCursorReduceAcross({
+          cursors: this.cursors,
+          side: CursorReduceAcrossSide.First,
+        });
+        this.cursors = result.cursors;
       } else if (ev.key === "q") {
         this.queuedCursors = uniqueByEvenPathRange(
           [...this.cursors, ...this.queuedCursors],
