@@ -12,9 +12,9 @@ import { cursorMoveLeaf, CursorMoveLeafMode } from "./cursor/move-leaf";
 import { multiCursorPaste } from "./cursor/paste";
 import { adjustPostActionCursor } from "./cursor/post-action";
 import {
-  cursorReduceSelection,
-  CursorReduceSelectionSide,
-} from "./cursor/reduce-selection";
+  cursorReduceWithin,
+  CursorReduceWithinSide,
+} from "./cursor/reduce-within";
 import { multiCursorRename } from "./cursor/rename";
 import { multiCursorSearch } from "./cursor/search";
 import {
@@ -356,10 +356,10 @@ export class DocManager {
         ev.preventDefault?.();
         this.cursors = this.cursors.map(
           (cursor) =>
-            cursorReduceSelection({
+            cursorReduceWithin({
               root: this.doc.root,
               cursor: cursor,
-              side: CursorReduceSelectionSide.JustExtended,
+              side: CursorReduceWithinSide.JustExtended,
             }).cursor,
         );
       } else if (ev.key === "c") {
@@ -424,10 +424,10 @@ export class DocManager {
       ev.preventDefault?.();
       this.cursors = this.cursors.map(
         (cursor) =>
-          cursorReduceSelection({
+          cursorReduceWithin({
             root: this.doc.root,
             cursor: cursor,
-            side: CursorReduceSelectionSide.First,
+            side: CursorReduceWithinSide.First,
           }).cursor,
       );
       this.onUpdate();
@@ -451,10 +451,10 @@ export class DocManager {
       ev.preventDefault?.();
       this.cursors = this.cursors.map(
         (cursor) =>
-          cursorReduceSelection({
+          cursorReduceWithin({
             root: this.doc.root,
             cursor: cursor,
-            side: CursorReduceSelectionSide.Last,
+            side: CursorReduceWithinSide.Last,
           }).cursor,
       );
       this.onUpdate();

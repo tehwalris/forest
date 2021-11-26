@@ -9,27 +9,27 @@ import { nodeGetByPath } from "../tree-utils/access";
 import { unreachable } from "../util";
 import { Cursor } from "./interfaces";
 import { adjustPostActionCursor } from "./post-action";
-export enum CursorReduceSelectionSide {
+export enum CursorReduceWithinSide {
   First,
   Last,
   JustExtended,
 }
-interface CursorReduceSelectionArgs {
+interface CursorReduceWithinArgs {
   root: ListNode;
   cursor: Cursor;
-  side: CursorReduceSelectionSide;
+  side: CursorReduceWithinSide;
 }
-interface CursorReduceSelectionResult {
+interface CursorReduceWithinResult {
   cursor: Cursor;
   didReduce: boolean;
 }
-export function cursorReduceSelection({
+export function cursorReduceWithin({
   root,
   cursor: oldCursor,
   side,
-}: CursorReduceSelectionArgs): CursorReduceSelectionResult {
+}: CursorReduceWithinArgs): CursorReduceWithinResult {
   if (
-    (side === CursorReduceSelectionSide.JustExtended &&
+    (side === CursorReduceWithinSide.JustExtended &&
       !oldCursor.enableReduceToTip) ||
     isFocusOnEmptyListContent(root, oldCursor.focus)
   ) {
@@ -44,15 +44,15 @@ export function cursorReduceSelection({
   }
   let target: Path;
   switch (side) {
-    case CursorReduceSelectionSide.First:
+    case CursorReduceWithinSide.First:
       target = getFocusSkippingDelimitedLists(root, oldCursor.focus).anchor;
       break;
-    case CursorReduceSelectionSide.Last:
+    case CursorReduceWithinSide.Last:
       target = getPathToTip(
         getFocusSkippingDelimitedLists(root, oldCursor.focus),
       );
       break;
-    case CursorReduceSelectionSide.JustExtended:
+    case CursorReduceWithinSide.JustExtended:
       target = getPathToTip(oldCursor.focus);
       break;
     default:

@@ -13,6 +13,9 @@ import { configureRemoteFs, Fs } from "./logic/tasks/fs";
 import { Task } from "./logic/tasks/interfaces";
 import { loadTasks } from "./logic/tasks/load";
 import { isBrowseTask, isCreationTask } from "./logic/tasks/util";
+// TODO you were here:
+//   x nested cursors
+//   - keep first/last/outer/inner cursor (per hierarchy level)
 const exampleFileText = `
         if (Date.now() % 100 == 0) {
           console.log("lucky you");
