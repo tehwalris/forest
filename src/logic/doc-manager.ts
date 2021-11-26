@@ -112,6 +112,7 @@ export class DocManager {
   private lastMode = this.mode;
   private lastDoc;
   private insertState: InsertState | undefined;
+  private chordKey: string | undefined;
   private getDocWithoutPlaceholdersNearCursors = memoize(
     getDocWithoutPlaceholdersNearCursors,
   );
@@ -154,7 +155,23 @@ export class DocManager {
     this._onUpdate = () => {};
   }
   onKeyPress = (ev: MinimalKeyboardEvent) => {
+    ev = {
+      key: ev.key,
+      altKey: ev.altKey,
+      ctrlKey: ev.ctrlKey,
+      metaKey: ev.metaKey,
+      preventDefault: ev.preventDefault?.bind(ev),
+      stopPropagation: ev.stopPropagation?.bind(ev),
+    };
     if (this.mode === Mode.Normal) {
+      if (this.chordKey) {
+        ev.key = `${this.chordKey} ${ev.key}`;
+        this.chordKey = undefined;
+      } else if (ev.key === "S") {
+        this.chordKey = ev.key;
+        return;
+      }
+
       if (ev.key === "i" && !this.readOnly) {
         const result = multiCursorStartInsert({
           root: this.doc.root,
@@ -249,11 +266,15 @@ export class DocManager {
               ),
             );
         });
-      } else if (ev.key === "S") {
-        const result = multiCursorReduceAcross({
-          cursors: this.cursors,
-          side: CursorReduceAcrossSide.First,
-        });
+      } else if (ev.key.match(/^S [hljkf]$/)) {
+        const side = {
+          h: CursorReduceAcrossSide.First,
+          l: CursorReduceAcrossSide.Last,
+          j: CursorReduceAcrossSide.Inner,
+          k: CursorReduceAcrossSide.Outer,
+          f: CursorReduceAcrossSide.FixOverlap,
+        }[ev.key.split(" ")[1]]!;
+        const result = multiCursorReduceAcross({ cursors: this.cursors, side });
         this.cursors = result.cursors;
       } else if (ev.key === "q") {
         this.queuedCursors = uniqueByEvenPathRange(

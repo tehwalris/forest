@@ -29,7 +29,7 @@ export function cursorReduceAcross({
     return { cursor: oldCursors[0] };
   }
   // TODO
-  return { cursor: oldCursors[0] };
+  return { cursor: last(oldCursors)! };
 }
 interface MultiCursorReduceAcrossArgs {
   cursors: Cursor[];
