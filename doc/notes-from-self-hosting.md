@@ -20,6 +20,7 @@
   - `oldParent must be a list`
 - [ ] Crash when inserting before a mark (sometimes? happened with an if statement)
   - `invalid focus`
+  - same happens when deleting would change the path to a mark
 
 # Most important missing node support
 

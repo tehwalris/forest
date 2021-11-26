@@ -1,10 +1,6 @@
 import { isFocusOnEmptyListContent, normalizeFocusOut } from "../focus";
 import { ListNode, NodeKind, Path } from "../interfaces";
-import {
-  evenPathRangeIsValid,
-  flipEvenPathRangeForward,
-  uniqueByEvenPathRange,
-} from "../path-utils";
+import { evenPathRangeIsValid, flipEvenPathRangeForward } from "../path-utils";
 import { ListItemReplacement, replaceMultiple } from "../replace-multiple";
 import { nodeGetByPath } from "../tree-utils/access";
 import { withoutInvisibleNodes } from "../without-invisible";
@@ -103,11 +99,5 @@ export function multiCursorDelete({
     newFocus = flipEvenPathRangeForward(newFocus);
     return { ...c, focus: newFocus };
   });
-  newCursors = uniqueByEvenPathRange(newCursors, (c) => c.focus);
-  if (!newCursors.length) {
-    throw new Error(
-      "no cursors remaining after deletion - this should not happen",
-    );
-  }
   return { root: newRoot, cursors: newCursors };
 }
