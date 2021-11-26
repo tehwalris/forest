@@ -1,4 +1,6 @@
 import { last } from "ramda";
+import { hasOverlappingNonNestedRanges } from "../path-range-tree";
+import { flipEvenPathRangeForward } from "../path-utils";
 import { groupBy } from "../util";
 import { Cursor } from "./interfaces";
 import { adjustPostActionCursor } from "./post-action";
@@ -7,6 +9,7 @@ export enum CursorReduceAcrossSide {
   Last,
   Inner,
   Outer,
+  FixOverlap,
 }
 interface CursorReduceAcrossArgs {
   cursors: Cursor[];
@@ -22,9 +25,10 @@ export function cursorReduceAcross({
   if (!oldCursors.length) {
     throw new Error("no cursors");
   }
-  if (side !== CursorReduceAcrossSide.First) {
-    throw new Error("not implemented");
+  if (side === CursorReduceAcrossSide.FixOverlap) {
+    return { cursor: oldCursors[0] };
   }
+  // TODO
   return { cursor: oldCursors[0] };
 }
 interface MultiCursorReduceAcrossArgs {
@@ -38,23 +42,39 @@ export function multiCursorReduceAcross({
   cursors: oldCursors,
   side,
 }: MultiCursorReduceAcrossArgs): MultiCursorReduceAcrossResult {
+  const failResult: MultiCursorReduceAcrossResult = {
+    cursors: oldCursors.map((c) => adjustPostActionCursor(c, {}, undefined)),
+  };
+  let cursors = oldCursors.map((c) =>
+    adjustPostActionCursor(
+      c,
+      { enableReduceToTip: false, focus: flipEvenPathRangeForward(c.focus) },
+      undefined,
+    ),
+  );
   let groups: Cursor[][];
   while (true) {
-    groups = [...groupBy(oldCursors, (c) => last(c.parentPath)).values()];
+    groups = [...groupBy(cursors, (c) => last(c.parentPath)).values()];
     if (groups.some((g) => g.length !== 1)) {
       break;
     }
-    if (oldCursors.every((c) => !c.parentPath.length)) {
-      return {
-        cursors: oldCursors.map((c) =>
-          adjustPostActionCursor(c, {}, undefined),
-        ),
-      };
+    if (cursors.every((c) => !c.parentPath.length)) {
+      return failResult;
     }
-    oldCursors = oldCursors.map((c) => ({
+    cursors = cursors.map((c) => ({
       ...c,
       parentPath: c.parentPath.slice(0, -1),
     }));
+  }
+  if (side !== CursorReduceAcrossSide.FixOverlap) {
+    for (const g of groups) {
+      if (hasOverlappingNonNestedRanges(g.map((c) => c.focus))) {
+        console.warn(
+          "can't reduce across cursors because some cursors have overlapping non-nested ranges",
+        );
+        return failResult;
+      }
+    }
   }
   return {
     cursors: groups

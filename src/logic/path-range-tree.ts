@@ -1,7 +1,11 @@
 import { last, sortBy } from "ramda";
 import { EvenPathRange, Path } from "./interfaces";
 import { PathTree } from "./path-tree";
-import { getCommonPathPrefix, pathIsInRange } from "./path-utils";
+import {
+  getCommonPathPrefix,
+  pathIsInRange,
+  pathsAreEqual,
+} from "./path-utils";
 import { groupBy } from "./util";
 
 function getParent(range: EvenPathRange): Path {
@@ -35,14 +39,18 @@ function groupOverlappingRangesOnSameLevel(
     throw new Error("invalid prefix");
   }
   const prefix = ranges[0].anchor.slice(0, -1);
-  if (!ranges.every((r) => getCommonPathPrefix(r.anchor, prefix) === prefix)) {
+  if (
+    !ranges.every((r) =>
+      pathsAreEqual(getCommonPathPrefix(r.anchor, prefix), prefix),
+    )
+  ) {
     throw new Error("not all ranges have the same prefix");
   }
   if (ranges.some((r) => r.offset < 0)) {
     throw new Error("backwards path ranges are not allowed");
   }
   const getStart = (r: EvenPathRange) => last(r.anchor)!;
-  const getEnd = (r: EvenPathRange) => getStart(r) + r.offset - 1;
+  const getEnd = (r: EvenPathRange) => getStart(r) + r.offset;
   let current: { ranges: EvenPathRange[]; end: number } | undefined;
   const output: EvenPathRange[][] = [];
   for (const r of sortBy(getStart, ranges)) {
@@ -82,12 +90,18 @@ export function groupOverlappingNonNestedRanges(
   return output;
 }
 
+export function hasOverlappingNonNestedRanges(
+  ranges: EvenPathRange[],
+): boolean {
+  return groupOverlappingNonNestedRanges(ranges).some((g) => g.length > 1);
+}
+
 export class PathRangeTree {
   private rootRange: EvenPathRange = { anchor: [], offset: 0 };
   private rangesByParentRange: Map<EvenPathRange, EvenPathRange[]>;
 
   constructor(_ranges: EvenPathRange[]) {
-    if (groupOverlappingNonNestedRanges(_ranges).some((g) => g.length > 1)) {
+    if (hasOverlappingNonNestedRanges(_ranges)) {
       throw new Error("overlapping non-nested ranges are not allowed");
     }
     if (_ranges.some((r) => r.offset < 0)) {
