@@ -36,6 +36,7 @@ import { Doc, InsertState, NodeKind, Path } from "./interfaces";
 import { memoize } from "./memoize";
 import { docFromAst } from "./node-from-ts";
 import { astFromTypescriptFileContent } from "./parse";
+import { hasOverlappingNonNestedRanges } from "./path-range-tree";
 import {
   flipEvenPathRangeForward,
   pathIsInRange,
@@ -57,11 +58,16 @@ export enum Mode {
   Normal,
   Insert,
 }
+export enum CursorOverlapKind {
+  None,
+  Nested,
+  NonNested,
+}
 export interface DocManagerPublicState {
   doc: Doc;
   mode: Mode;
   cursors: Cursor[];
-  cursorsOverlap: boolean;
+  cursorsOverlap: CursorOverlapKind;
   queuedCursors: Cursor[];
 }
 const initialCursor: Cursor = {
@@ -76,7 +82,7 @@ export const initialDocManagerPublicState: DocManagerPublicState = {
   doc: emptyDoc,
   mode: Mode.Normal,
   cursors: [initialCursor],
-  cursorsOverlap: false,
+  cursorsOverlap: CursorOverlapKind.None,
   queuedCursors: [],
 };
 export interface MinimalKeyboardEvent {
@@ -657,11 +663,26 @@ export class DocManager {
       doc,
       mode: this.mode,
       cursors: this.cursors,
-      cursorsOverlap: checkTextRangesOverlap(
-        this.cursors.map((c) => textRangeFromFocus(this.doc.root, c.focus)),
-      ),
+      cursorsOverlap: this.getCursorOverlapKind(),
       queuedCursors: this.queuedCursors,
     });
+  }
+  private getCursorOverlapKind(): CursorOverlapKind {
+    if (
+      hasOverlappingNonNestedRanges(
+        this.cursors.map((c) => flipEvenPathRangeForward(c.focus)),
+      )
+    ) {
+      return CursorOverlapKind.NonNested;
+    }
+    if (
+      checkTextRangesOverlap(
+        this.cursors.map((c) => textRangeFromFocus(this.doc.root, c.focus)),
+      )
+    ) {
+      return CursorOverlapKind.Nested;
+    }
+    return CursorOverlapKind.None;
   }
   private updateDocText() {
     this.doc = getDocWithAllPlaceholders(this.doc).doc;

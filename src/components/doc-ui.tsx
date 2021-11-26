@@ -1,6 +1,11 @@
 import { css } from "@emotion/css";
 import * as React from "react";
-import { DocManager, DocManagerPublicState, Mode } from "../logic/doc-manager";
+import {
+  CursorOverlapKind,
+  DocManager,
+  DocManagerPublicState,
+  Mode,
+} from "../logic/doc-manager";
 import { renderLinesFromDoc } from "../logic/render";
 import { FollowLines } from "./follow-lines";
 type KeyboardEventHandler = (
@@ -48,7 +53,6 @@ const styles = {
   overlapWarning: css`
     margin: 5px;
     margin-top: 15px;
-    color: red;
   `,
 };
 function wrapThrowRestore<A extends any[]>(
@@ -117,8 +121,15 @@ export const DocUi = ({
         )}
       </div>
       <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
-      {cursorsOverlap && (
-        <div className={styles.overlapWarning}>Warning: cursors overlap</div>
+      {cursorsOverlap === CursorOverlapKind.Nested && (
+        <div className={styles.overlapWarning} style={{ color: "orange" }}>
+          Warning: cursors are nested
+        </div>
+      )}
+      {cursorsOverlap === CursorOverlapKind.NonNested && (
+        <div className={styles.overlapWarning} style={{ color: "red" }}>
+          Warning: cursors overlap in a non-nested way
+        </div>
       )}
     </div>
   );
