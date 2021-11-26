@@ -8,7 +8,7 @@ import {
   evenPathRangesAreEqual,
   flipEvenPathRangeForward,
 } from "../path-utils";
-import { groupBy } from "../util";
+import { groupBy, unreachable } from "../util";
 import { Cursor } from "./interfaces";
 import { adjustPostActionCursor } from "./post-action";
 export enum CursorReduceAcrossSide {
@@ -23,7 +23,7 @@ interface CursorReduceAcrossArgs {
   side: CursorReduceAcrossSide;
 }
 interface CursorReduceAcrossResult {
-  cursor: Cursor;
+  cursors: Cursor[];
 }
 export function cursorReduceAcross({
   cursors: oldCursors,
@@ -39,26 +39,52 @@ export function cursorReduceAcross({
   }
   const pathRangeTree = new PathRangeTree(oldCursors.map((c) => c.focus));
   const openRanges: EvenPathRange[] = [];
-  let lastInnerRange: EvenPathRange | undefined;
+  let lastEnteredRange: EvenPathRange | undefined;
+  let firstExitedRange: EvenPathRange | undefined;
+  let rangesWithoutChildren = new Set<EvenPathRange>();
+  let rangesWithoutParents: EvenPathRange[] = [];
   pathRangeTree.traverse(
     (range) => {
+      if (openRanges.length) {
+        rangesWithoutChildren.delete(last(openRanges)!);
+      } else {
+        rangesWithoutParents.push(range);
+      }
       openRanges.push(range);
-      lastInnerRange = range;
+      lastEnteredRange = range;
+      rangesWithoutChildren.add(range);
     },
     () => {
-      if (!openRanges.length) {
+      const exitedRange = openRanges.pop();
+      if (!exitedRange) {
         throw new Error("underflow");
       }
-      openRanges.pop();
+      if (!firstExitedRange) {
+        firstExitedRange = exitedRange;
+      }
     },
   );
-  const selectedCursor = oldCursors.find(
-    (c) => lastInnerRange && evenPathRangesAreEqual(c.focus, lastInnerRange),
+  const selectedRanges = ((): (EvenPathRange | undefined)[] => {
+    switch (side) {
+      case CursorReduceAcrossSide.First:
+        return [firstExitedRange];
+      case CursorReduceAcrossSide.Last:
+        return [lastEnteredRange];
+      case CursorReduceAcrossSide.Inner:
+        return [...rangesWithoutChildren.values()];
+      case CursorReduceAcrossSide.Outer:
+        return rangesWithoutParents;
+      default:
+        return unreachable(side);
+    }
+  })();
+  const selectedCursors = oldCursors.filter((c) =>
+    selectedRanges.some((r) => r && evenPathRangesAreEqual(c.focus, r)),
   );
-  if (!selectedCursor) {
-    throw new Error("unreachable");
+  if (!selectedCursors.length) {
+    throw new Error("no cursors remaining");
   }
-  return { cursor: selectedCursor };
+  return { cursors: selectedCursors };
 }
 interface MultiCursorReduceAcrossArgs {
   cursors: Cursor[];
@@ -109,7 +135,7 @@ export function multiCursorReduceAcross({
   }
   return {
     cursors: parentGroups
-      .map((g) => cursorReduceAcross({ cursors: g, side }).cursor)
+      .flatMap((g) => cursorReduceAcross({ cursors: g, side }).cursors)
       .map((c) =>
         adjustPostActionCursor(
           c,
