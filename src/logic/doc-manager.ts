@@ -604,10 +604,6 @@ export class DocManager {
       this.cursors = this.cursors.map((cursor) => ({
         ...cursor,
         focus: normalizeFocusOut(this.doc.root, cursor.focus),
-        marks: cursor.marks.map((m) => ({
-          ...m,
-          focus: normalizeFocusOut(this.doc.root, m.focus),
-        })),
       }));
       this.updateDocText();
       this.updateMarkRanges();

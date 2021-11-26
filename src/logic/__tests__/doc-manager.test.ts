@@ -579,6 +579,16 @@ describe("DocManager", () => {
       expectedText: "g(g)",
       skip: true,
     },
+    {
+      label: "deleting node which changes path to mark",
+      initialText: "x; y(a)",
+      events: [
+        ...eventsFromKeys("( m h h d shift-m a"),
+        ...eventsToTypeString(",b"),
+        ...eventsFromKeys("escape"),
+      ],
+      expectedText: "y(a, b)",
+    },
   ];
   for (const c of cases) {
     (c.skip ? test.skip : test)(c.label, () => {

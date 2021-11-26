@@ -18,9 +18,12 @@
   - This is not an issue with inserts (at the start of a list) because trailing commas are removed (like in `f(a,)`)
 - [ ] Crash when pasting if statement before existing if statement
   - `oldParent must be a list`
-- [ ] Crash when inserting before a mark (sometimes? happened with an if statement)
+  - Can't reproduce, but did see other weird behavior when pasting single `IfBranch` over a statement
+- [x] Crash when inserting before a mark (sometimes? happened with an if statement)
   - `invalid focus`
   - same happens when deleting would change the path to a mark
+- [ ] Example files crash
+  - probably formatting related
 
 # Most important missing node support
 
