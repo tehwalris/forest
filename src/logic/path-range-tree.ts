@@ -132,7 +132,7 @@ export class PathRangeTree {
     groupTree.traverse(
       (groupPath, childLeaf) => {
         openLeaves.push(childLeaf);
-        for (const parentLeaf of openLeaves.slice(0, -1)) {
+        for (const parentLeaf of openLeaves.slice(0, -1).reverse()) {
           for (const parentRange of getGroupByLeaf(parentLeaf)) {
             if (pathIsInRange(groupPath, parentRange)) {
               for (const childRange of getGroupByLeaf(childLeaf)) {

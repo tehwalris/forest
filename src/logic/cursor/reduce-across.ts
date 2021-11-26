@@ -45,9 +45,10 @@ export function cursorReduceAcross({
   let rangesWithoutParents: EvenPathRange[] = [];
   pathRangeTree.traverse(
     (range) => {
-      if (openRanges.length) {
-        rangesWithoutChildren.delete(last(openRanges)!);
-      } else {
+      for (const openRange of openRanges) {
+        rangesWithoutChildren.delete(openRange);
+      }
+      if (!openRanges.length) {
         rangesWithoutParents.push(range);
       }
       openRanges.push(range);
