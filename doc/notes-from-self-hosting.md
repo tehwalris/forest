@@ -44,6 +44,7 @@
 - [ ] Paste from system clipboard (in insert mode)
 - [ ] Lightweight initializer search
 - [x] Nested multi-cursor
+- [x] Removing nested cursors (select inner or outer)
 - [ ] Jump to definition
 - [ ] Multiple marks
 - [ ] Warn when closing unsaved file
