@@ -32,10 +32,11 @@ function cursorSearch({
   );
   return {
     cursors: matchPaths.map((path) =>
-      adjustPostActionCursor({
-        ...oldCursor,
-        focus: { anchor: path, offset: 0 },
-      }),
+      adjustPostActionCursor(
+        oldCursor,
+        { focus: { anchor: path, offset: 0 } },
+        oldCursor,
+      ),
     ),
   };
 }
@@ -57,7 +58,9 @@ export function multiCursorSearch({
   );
   if (!cursors.length) {
     console.warn("no search matches within any cursor");
-    return { cursors: oldCursors.map((c) => adjustPostActionCursor(c)) };
+    return {
+      cursors: oldCursors.map((c) => adjustPostActionCursor(c, {}, undefined)),
+    };
   }
   return { cursors };
 }

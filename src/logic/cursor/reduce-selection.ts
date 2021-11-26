@@ -34,7 +34,11 @@ export function cursorReduceSelection({
     isFocusOnEmptyListContent(root, oldCursor.focus)
   ) {
     return {
-      cursor: adjustPostActionCursor({ ...oldCursor, focus: oldCursor.focus }),
+      cursor: adjustPostActionCursor(
+        oldCursor,
+        { focus: oldCursor.focus },
+        undefined,
+      ),
       didReduce: false,
     };
   }
@@ -56,14 +60,18 @@ export function cursorReduceSelection({
   }
   if (!nodeGetByPath(root, target)) {
     return {
-      cursor: adjustPostActionCursor({ ...oldCursor, focus: oldCursor.focus }),
+      cursor: adjustPostActionCursor(
+        oldCursor,
+        { focus: oldCursor.focus },
+        undefined,
+      ),
       didReduce: false,
     };
   }
   let focus: EvenPathRange = { anchor: target, offset: 0 };
   focus = normalizeFocusIn(root, focus);
   return {
-    cursor: adjustPostActionCursor({ ...oldCursor, focus }),
+    cursor: adjustPostActionCursor(oldCursor, { focus }, undefined),
     didReduce: !evenPathRangesAreEqualIgnoringDirection(focus, oldCursor.focus),
   };
 }

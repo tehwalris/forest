@@ -51,7 +51,7 @@ export function multiCursorStartInsert({
   const newCursorsWithResults = sortBy(
     (c) => c.result.beforePos,
     oldCursors.map((cursor) => ({
-      cursor: adjustPostActionCursor(cursor),
+      cursor: adjustPostActionCursor(cursor, {}, undefined),
       result: cursorStartInsert({ root, cursor, side }),
     })),
   );

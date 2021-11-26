@@ -51,10 +51,13 @@ export function cursorMoveInOut({
     return unreachable(direction);
   }
   if (!focus) {
-    return { cursor: adjustPostActionCursor(oldCursor), didMove: false };
+    return {
+      cursor: adjustPostActionCursor(oldCursor, {}, undefined),
+      didMove: false,
+    };
   }
   return {
-    cursor: adjustPostActionCursor({ ...oldCursor, focus }),
+    cursor: adjustPostActionCursor(oldCursor, { focus }, undefined),
     didMove: !evenPathRangesAreEqualIgnoringDirection(focus, oldCursor.focus),
   };
 }
@@ -65,10 +68,11 @@ function cursorMoveOutSmall({
   const wrapResult = (
     focus: EvenPathRange | undefined,
   ): CursorMoveInOutResult => ({
-    cursor: adjustPostActionCursor({
-      ...oldCursor,
-      focus: focus || oldCursor.focus,
-    }),
+    cursor: adjustPostActionCursor(
+      oldCursor,
+      { focus: focus || oldCursor.focus },
+      undefined,
+    ),
     didMove:
       !!focus &&
       !evenPathRangesAreEqualIgnoringDirection(focus, oldCursor.focus),

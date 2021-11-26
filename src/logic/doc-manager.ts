@@ -61,6 +61,8 @@ export interface DocManagerPublicState {
   queuedCursors: Cursor[];
 }
 const initialCursor: Cursor = {
+  id: Symbol(),
+  parentPath: [],
   focus: { anchor: [], offset: 0 },
   enableReduceToTip: false,
   clipboard: undefined,
@@ -220,7 +222,7 @@ export class DocManager {
             isFocusOnEmptyListContent(this.doc.root, focus) ||
             !focus.offset
           ) {
-            return [adjustPostActionCursor(cursor)];
+            return [adjustPostActionCursor(cursor, {}, cursor)];
           }
           const parentPath = focus.anchor.slice(0, -1);
           const focusedNode = nodeGetByPath(this.doc.root, parentPath);
@@ -234,10 +236,13 @@ export class DocManager {
             .map((_child, i): Path => [...parentPath, i])
             .filter((path) => pathIsInRange(path, focus))
             .map((path) =>
-              adjustPostActionCursor({
-                ...cursor,
-                focus: { anchor: path, offset: 0 },
-              }),
+              adjustPostActionCursor(
+                cursor,
+                {
+                  focus: { anchor: path, offset: 0 },
+                },
+                cursor,
+              ),
             );
         });
       } else if (ev.key === "S") {
@@ -251,7 +256,9 @@ export class DocManager {
         if (!this.queuedCursors.length) {
           return;
         }
-        this.cursors = [...this.queuedCursors];
+        this.cursors = this.queuedCursors.map((c) =>
+          adjustPostActionCursor(c, {}, c),
+        );
         this.queuedCursors = [];
       } else if (ev.key === "l" && !hasAltLike(ev)) {
         this.cursors = this.cursors.map(

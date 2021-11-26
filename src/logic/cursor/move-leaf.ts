@@ -34,7 +34,10 @@ export function cursorMoveLeaf({
 }: CursorMoveLeafArgs): CursorMoveLeafResult {
   let focus = oldCursor.focus;
   if (mode === CursorMoveLeafMode.ShrinkSelection && focus.offset === 0) {
-    return { cursor: adjustPostActionCursor(oldCursor), didMove: false };
+    return {
+      cursor: adjustPostActionCursor(oldCursor, {}, undefined),
+      didMove: false,
+    };
   }
   if (direction === 1) {
     focus = flipEvenPathRangeForward(focus);
@@ -61,7 +64,7 @@ export function cursorMoveLeaf({
   );
   return {
     cursor: {
-      ...adjustPostActionCursor({ ...oldCursor, focus }),
+      ...adjustPostActionCursor(oldCursor, { focus }, undefined),
       enableReduceToTip: didMove && mode !== CursorMoveLeafMode.Move,
     },
     didMove,

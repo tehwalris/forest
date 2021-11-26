@@ -63,7 +63,7 @@ export function multiCursorRename({
 }: MultiCursorRenameArgs): MultiCursorRenameResult {
   const failResult: MultiCursorRenameResult = {
     root: oldRoot,
-    cursors: oldCursors.map((c) => adjustPostActionCursor(c)),
+    cursors: oldCursors.map((c) => adjustPostActionCursor(c, {}, undefined)),
   };
   const cursorResults = oldCursors.map((cursor) =>
     cursorRename({ root: oldRoot, cursor, rename }),
@@ -92,7 +92,11 @@ export function multiCursorRename({
   return {
     root: replaceResult.root,
     cursors: oldCursors.map((c, i) =>
-      adjustPostActionCursor({ ...c, focus: newContentRanges[i] }),
+      adjustPostActionCursor(
+        c,
+        { ...c, focus: newContentRanges[i] },
+        undefined,
+      ),
     ),
   };
 }

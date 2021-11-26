@@ -23,7 +23,7 @@ function cursorDelete({
   cursor: oldCursor,
 }: CursorDeleteArgs): CursorDeleteResult {
   const failResult: CursorDeleteResult = {
-    cursor: adjustPostActionCursor(oldCursor),
+    cursor: adjustPostActionCursor(oldCursor, {}, undefined),
   };
   if (isFocusOnEmptyListContent(root, oldCursor.focus)) {
     return failResult;
@@ -46,10 +46,11 @@ function cursorDelete({
       content: [],
       structKeys: parentNode.structKeys ? [] : undefined,
     },
-    cursor: adjustPostActionCursor({
-      ...oldCursor,
-      focus: { anchor: parentPath, offset: 0 },
-    }),
+    cursor: adjustPostActionCursor(
+      oldCursor,
+      { focus: { anchor: parentPath, offset: 0 } },
+      undefined,
+    ),
   };
 }
 interface MultiCursorDeleteArgs {

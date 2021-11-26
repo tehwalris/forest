@@ -18,7 +18,7 @@ export function cursorCopy({
   cursor: oldCursor,
 }: CursorCopyArgs): CursorCopyResult {
   if (isFocusOnEmptyListContent(root, oldCursor.focus)) {
-    return { cursor: adjustPostActionCursor(oldCursor) };
+    return { cursor: adjustPostActionCursor(oldCursor, {}, undefined) };
   }
   const focus = normalizeFocusOut(root, oldCursor.focus);
   let clipboard: Clipboard | undefined;
@@ -76,5 +76,7 @@ export function cursorCopy({
       isPartialCopy: false,
     };
   }
-  return { cursor: adjustPostActionCursor({ ...oldCursor, clipboard }) };
+  return {
+    cursor: adjustPostActionCursor(oldCursor, { clipboard }, undefined),
+  };
 }

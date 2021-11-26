@@ -30,11 +30,14 @@
 - [x] Scroll with cursor
 - [x] Paste should try every level of `equivalentToContent` target lists
   - Pasting `Identifier` over a `BindingElement` does not work because the paste targets the `BindingElement`, not its inner `Identifier`
-- [ ] Structural search
+- [x] Structural search
+- [ ] Repeat last search
+- [ ] Initialize search with content under cursor
 - [ ] Synchronized multi-cursor
 - [ ] Change command (instead of delete and insert)
 - [ ] No way to swap two values without adding temporary code
 - [ ] Paste from system clipboard (in insert mode)
+- [ ] Lightweight initializer search
 - [ ] Nested multi-cursor
 - [ ] Jump to definition
 - [ ] Multiple marks

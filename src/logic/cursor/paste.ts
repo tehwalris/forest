@@ -45,7 +45,10 @@ function cursorPaste({
       node: resetIdsDeep(oldCursor.clipboard.node),
     });
     return (
-      replacement && { cursor: adjustPostActionCursor(oldCursor), replacement }
+      replacement && {
+        cursor: adjustPostActionCursor(oldCursor, {}, undefined),
+        replacement,
+      }
     );
   }
   const parentPath = focus.anchor.slice(0, -1);
@@ -93,7 +96,7 @@ function cursorPaste({
     return undefined;
   }
   return {
-    cursor: adjustPostActionCursor(oldCursor),
+    cursor: adjustPostActionCursor(oldCursor, {}, undefined),
     replacement: {
       ...replacement,
       range: {
@@ -182,7 +185,7 @@ function cursorPasteEquivalent({
       });
       if (result) {
         return {
-          cursor: adjustPostActionCursor(oldCursor),
+          cursor: adjustPostActionCursor(oldCursor, {}, undefined),
           replacement: result.replacement,
         };
       }
@@ -204,7 +207,7 @@ export function multiCursorPaste({
 }: MultiCursorPasteArgs): MultiCursorPasteResult {
   const failResult: MultiCursorPasteResult = {
     root: oldRoot,
-    cursors: oldCursors.map((c) => adjustPostActionCursor(c)),
+    cursors: oldCursors.map((c) => adjustPostActionCursor(c, {}, undefined)),
   };
   const cursorResults = oldCursors.map((cursor) =>
     cursorPasteEquivalent({ root: oldRoot, cursor }),
@@ -231,7 +234,7 @@ export function multiCursorPaste({
   return {
     root: replaceResult.root,
     cursors: oldCursors.map((c, i) =>
-      adjustPostActionCursor({ ...c, focus: newContentRanges[i] }),
+      adjustPostActionCursor(c, { focus: newContentRanges[i] }, undefined),
     ),
   };
 }
