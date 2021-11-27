@@ -49,7 +49,7 @@
 - [x] Nested multi-cursor
 - [x] Removing nested cursors (select inner or outer)
 - [ ] Jump to definition
-- [ ] Multiple marks
+- [x] Multiple marks
 - [ ] Warn when closing unsaved file
 - [ ] Showing syntax errors while typing
 - [ ] Search for filenames

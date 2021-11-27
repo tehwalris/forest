@@ -173,7 +173,7 @@ export class DocManager {
       if (this.chordKey) {
         ev.key = `${this.chordKey} ${ev.key}`;
         this.chordKey = undefined;
-      } else if (ev.key === "S") {
+      } else if (["S", "m", "M"].includes(ev.key)) {
         this.chordKey = ev.key;
         return;
       }
@@ -232,15 +232,20 @@ export class DocManager {
         });
         this.doc = { ...this.doc, root: result.root };
         this.cursors = result.cursors;
-      } else if (ev.key === "m") {
+      } else if (ev.key.match(/^m [a-z]$/)) {
+        const markKey = ev.key.split(" ")[1];
         this.cursors = this.cursors.map((c) => ({
           ...c,
-          marks: [{ focus: c.focus }],
+          marks: [
+            ...c.marks.filter((m) => m.key !== markKey),
+            { key: markKey, focus: c.focus },
+          ],
         }));
-      } else if (ev.key === "M") {
+      } else if (ev.key.match(/^M [a-z]$/)) {
+        const markKey = ev.key.split(" ")[1];
         this.cursors = this.cursors.map((c) => ({
           ...c,
-          focus: c.marks[0]?.focus || c.focus,
+          focus: c.marks.find((m) => m.key === markKey)?.focus || c.focus,
         }));
       } else if (ev.key === "s") {
         this.cursors = this.cursors.flatMap((cursor): Cursor[] => {
