@@ -18,7 +18,11 @@ import {
   flipEvenPathRangeForward,
   uniqueByEvenPathRange,
 } from "../path-utils";
-import { ListItemReplacement, replaceMultiple } from "../replace-multiple";
+import {
+  checkAllItemsAreEvenPathRange,
+  ListItemReplacement,
+  replaceMultiple,
+} from "../replace-multiple";
 import { nodeGetByPath, resetIdsDeep } from "../tree-utils/access";
 import { checkAllItemsDefined } from "../util";
 import { Cursor } from "./interfaces";
@@ -224,7 +228,7 @@ export function multiCursorPaste({
   if (
     replaceResult.ambiguousOverlap ||
     !replaceResult.replacementWasUsed.every((v) => v) ||
-    !checkAllItemsDefined(newContentRanges)
+    !checkAllItemsAreEvenPathRange(newContentRanges)
   ) {
     console.warn(
       "not pasting because some replacements overlap or have no content",
@@ -234,7 +238,11 @@ export function multiCursorPaste({
   return {
     root: replaceResult.root,
     cursors: oldCursors.map((c, i) =>
-      adjustPostActionCursor(c, { focus: newContentRanges[i] }, undefined),
+      adjustPostActionCursor(
+        c,
+        { focus: newContentRanges[i].range },
+        undefined,
+      ),
     ),
   };
 }

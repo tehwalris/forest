@@ -1,5 +1,5 @@
 import { isFocusOnEmptyListContent } from "./focus";
-import { EvenPathRange, ListNode, Node, NodeKind } from "./interfaces";
+import { EvenPathRange, ListNode, Node, NodeKind, Path } from "./interfaces";
 import { makePlaceholderIdentifier } from "./make-valid";
 import {
   evenPathRangeIsValid,
@@ -13,6 +13,13 @@ export interface ListItemReplacement {
   structKeys?: string[];
   content: Node[];
 }
+interface EmptyPathRange {
+  before: Path;
+}
+type NewRange =
+  | { empty: false; range: EvenPathRange }
+  | { empty: true; range: EmptyPathRange }
+  | undefined;
 interface MultiReplaceArgs {
   root: ListNode;
   replacements: ListItemReplacement[];
@@ -20,8 +27,42 @@ interface MultiReplaceArgs {
 interface MultiReplaceResult {
   root: ListNode;
   replacementWasUsed: boolean[];
-  newContentRanges: (EvenPathRange | undefined)[];
+  newContentRanges: NewRange[];
   ambiguousOverlap: boolean;
+}
+function shiftNewRange(
+  range: NewRange,
+  offsetIndex: number,
+  offsetAmount: number,
+): NewRange {
+  if (offsetAmount === 0) {
+    return range;
+  }
+  if (range === undefined) {
+    return undefined;
+  } else if (range.empty) {
+    if (!range.range.before.length) {
+      throw new Error("unshiftable EmptyPathRange");
+    }
+    const newBefore = [...range.range.before];
+    newBefore[offsetIndex] += offsetAmount;
+    return { empty: true, range: { before: newBefore } };
+  } else {
+    if (!range.range.anchor.length) {
+      throw new Error("unshiftable EvenPathRange");
+    }
+    const newAnchor = [...range.range.anchor];
+    newAnchor[offsetIndex] += offsetAmount;
+    return {
+      empty: false,
+      range: { anchor: newAnchor, offset: range.range.offset },
+    };
+  }
+}
+export function checkAllItemsAreEvenPathRange(
+  values: (NewRange | undefined)[],
+): values is { empty: false; range: EvenPathRange }[] {
+  return values.every((v) => v && !v.empty);
 }
 export function replaceMultiple({
   root: oldRoot,
@@ -59,7 +100,7 @@ export function replaceMultiple({
     },
   );
   const usedReplacements = new Set<ListItemReplacement>();
-  const newContentRanges = new Map<ListItemReplacement, EvenPathRange>();
+  const newContentRanges = new Map<ListItemReplacement, NewRange>();
   let ambiguousOverlap = false;
   const newRoot = nodeMapDeep(
     oldRootWithEmptyListPlaceholders,
@@ -124,16 +165,20 @@ export function replaceMultiple({
             continue;
           }
           if (
-            !pathsAreEqual(getCommonPathPrefix(oldRange.anchor, path), path)
+            !pathsAreEqual(
+              getCommonPathPrefix(
+                oldRange.empty ? oldRange.range.before : oldRange.range.anchor,
+                path,
+              ),
+              path,
+            )
           ) {
             throw new Error("shiftedReplacement is not valid");
           }
-          const newAnchor = [...oldRange.anchor];
-          newAnchor[path.length] = newContent.length;
-          newContentRanges.set(shiftedReplacement, {
-            ...oldRange,
-            anchor: newAnchor,
-          });
+          newContentRanges.set(
+            shiftedReplacement,
+            shiftNewRange(oldRange, path.length, newContent.length - i),
+          );
         }
         const r = j === undefined ? undefined : replacementsThisList[j];
         if (!r) {
@@ -145,8 +190,18 @@ export function replaceMultiple({
           usedReplacements.add(r);
           if (r.content.length) {
             newContentRanges.set(r, {
-              anchor: [...path, newContent.length],
-              offset: r.content.length - 1,
+              empty: false,
+              range: {
+                anchor: [...path, newContent.length],
+                offset: r.content.length - 1,
+              },
+            });
+          } else {
+            newContentRanges.set(r, {
+              empty: true,
+              range: {
+                before: [...path, newContent.length],
+              },
             });
           }
           newContent.push(...r.content);

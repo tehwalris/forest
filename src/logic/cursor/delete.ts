@@ -1,5 +1,5 @@
 import { isFocusOnEmptyListContent, normalizeFocusOut } from "../focus";
-import { ListNode, NodeKind, Path } from "../interfaces";
+import { EvenPathRange, ListNode, NodeKind, Path } from "../interfaces";
 import { evenPathRangeIsValid, flipEvenPathRangeForward } from "../path-utils";
 import { ListItemReplacement, replaceMultiple } from "../replace-multiple";
 import { nodeGetByPath } from "../tree-utils/access";
@@ -75,9 +75,30 @@ export function multiCursorDelete({
   const replaceResult = replaceMultiple({ root: oldRoot, replacements });
   let newCursors: Cursor[] = [];
   for (const [i, used] of replaceResult.replacementWasUsed.entries()) {
-    if (used) {
-      newCursors.push(cursorResults[cursorIndexByReplacement[i]].cursor);
+    if (!used) {
+      continue;
     }
+    const newRange = replaceResult.newContentRanges[i];
+    let newFocus: EvenPathRange;
+    if (newRange === undefined) {
+      throw new Error("unreachable");
+    } else if (newRange.empty) {
+      newFocus = {
+        anchor: newRange.range.before.slice(0, -1),
+        offset: 0,
+      };
+    } else if (!newRange.empty) {
+      newFocus = {
+        anchor: newRange.range.anchor.slice(0, -1),
+        offset: 0,
+      };
+    } else {
+      throw new Error("unreachable");
+    }
+    newCursors.push({
+      ...cursorResults[cursorIndexByReplacement[i]].cursor,
+      focus: newFocus,
+    });
   }
   if (
     !newCursors.every((c) => evenPathRangeIsValid(replaceResult.root, c.focus))
@@ -93,6 +114,7 @@ export function multiCursorDelete({
       if (!newFocus.anchor.length) {
         throw new Error("unreachable");
       }
+      // TODO these ranges are wrong because replaceMultiple shifts them, but does not update them correctly, since these ranges are not replacements
       newFocus = { anchor: newFocus.anchor.slice(0, -1), offset: 0 };
     }
     newFocus = normalizeFocusOut(newRoot, newFocus);

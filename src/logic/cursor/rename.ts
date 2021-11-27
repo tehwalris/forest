@@ -1,7 +1,11 @@
 import ts from "typescript";
 import { ListNode } from "../interfaces";
 import { nodeFromTsNode } from "../node-from-ts";
-import { ListItemReplacement, replaceMultiple } from "../replace-multiple";
+import {
+  checkAllItemsAreEvenPathRange,
+  ListItemReplacement,
+  replaceMultiple,
+} from "../replace-multiple";
 import { nodeGetByPath, nodeGetStructKeyByPath } from "../tree-utils/access";
 import { isToken } from "../ts-type-predicates";
 import { checkAllItemsDefined } from "../util";
@@ -82,7 +86,7 @@ export function multiCursorRename({
   if (
     replaceResult.ambiguousOverlap ||
     !replaceResult.replacementWasUsed.every((v) => v) ||
-    !checkAllItemsDefined(newContentRanges)
+    !checkAllItemsAreEvenPathRange(newContentRanges)
   ) {
     console.warn(
       "not renaming because some replacements overlap or have no content",
@@ -94,7 +98,7 @@ export function multiCursorRename({
     cursors: oldCursors.map((c, i) =>
       adjustPostActionCursor(
         c,
-        { ...c, focus: newContentRanges[i] },
+        { ...c, focus: newContentRanges[i].range },
         undefined,
       ),
     ),
