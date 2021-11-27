@@ -577,7 +577,6 @@ describe("DocManager", () => {
       initialText: "f.g(f.g)",
       events: eventsFromKeys("alt-h q l l q shift-q d"),
       expectedText: "g(g)",
-      skip: true,
     },
     {
       label: "deleting node which changes path to mark",
@@ -588,6 +587,14 @@ describe("DocManager", () => {
         ...eventsFromKeys("escape"),
       ],
       expectedText: "y(a, b)",
+    },
+    {
+      label:
+        "pasting parts of a tight expression over itself in a call argument",
+      initialText: "f(a.b.c)",
+      events: eventsFromKeys("( c ctrl-shift-l p"),
+      expectedText: "f(a.a.b.c)",
+      skip: true,
     },
   ];
   for (const c of cases) {
