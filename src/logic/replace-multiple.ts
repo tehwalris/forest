@@ -70,7 +70,7 @@ export function replaceMultiple({
       const replacementsThisList = replacements.filter((r) =>
         pathsAreEqual(r.range.anchor.slice(0, -1), path),
       );
-      if (!replacementsThisList) {
+      if (!replacementsThisList.length) {
         return oldNode;
       }
       const possibleSourceIndices: number[][] = oldNode.content.map(() => []);
@@ -95,6 +95,8 @@ export function replaceMultiple({
         }
       }
       const replacementsInReplacedChild: ListItemReplacement[] = [];
+      const replacementsInShiftedChild: ListItemReplacement[][] =
+        chosenSourceIndices.map(() => []);
       for (const r of usedReplacements) {
         if (!pathsAreEqual(getCommonPathPrefix(r.range.anchor, path), path)) {
           continue;
@@ -103,7 +105,9 @@ export function replaceMultiple({
         if (childIndex === undefined) {
           throw new Error("unreachable");
         }
-        if (chosenSourceIndices[childIndex] !== undefined) {
+        if (chosenSourceIndices[childIndex] === undefined) {
+          replacementsInShiftedChild[childIndex].push(r);
+        } else {
           replacementsInReplacedChild.push(r);
         }
       }
@@ -114,6 +118,23 @@ export function replaceMultiple({
       const newContent: Node[] = [];
       const newStructKeys: string[] | undefined = oldNode.structKeys && [];
       for (const [i, j] of chosenSourceIndices.entries()) {
+        for (const shiftedReplacement of replacementsInShiftedChild[i]) {
+          const oldRange = newContentRanges.get(shiftedReplacement);
+          if (!oldRange) {
+            continue;
+          }
+          if (
+            !pathsAreEqual(getCommonPathPrefix(oldRange.anchor, path), path)
+          ) {
+            throw new Error("shiftedReplacement is not valid");
+          }
+          const newAnchor = [...oldRange.anchor];
+          newAnchor[path.length] = newContent.length;
+          newContentRanges.set(shiftedReplacement, {
+            ...oldRange,
+            anchor: newAnchor,
+          });
+        }
         const r = j === undefined ? undefined : replacementsThisList[j];
         if (!r) {
           newContent.push(oldNode.content[i]);

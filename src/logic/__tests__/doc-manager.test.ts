@@ -579,6 +579,15 @@ describe("DocManager", () => {
       expectedText: "g(g)",
     },
     {
+      label:
+        "multi-cursor paste where paste of outer cursor changes path of inner cursor",
+      initialText: "const x = () => { a; x; () => { b; x } }",
+      events: eventsFromKeys(
+        "{ ctrl-shift-h q shift-l { q shift-q c ctrl-shift-l p",
+      ),
+      expectedText: "const x = () => { a; a; x; () => { b; b; x } }",
+    },
+    {
       label: "deleting node which changes path to mark",
       initialText: "x; y(a)",
       events: [
