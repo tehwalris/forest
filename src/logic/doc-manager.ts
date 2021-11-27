@@ -528,10 +528,13 @@ export class DocManager {
         this.insertState.beforePos,
       );
       const insertions: Insertion[] =
-        cursorBeforePositionsAdjustedForPlaceholderRemoval.map((beforePos) => ({
-          beforePos,
-          text: this.insertState!.text,
-        }));
+        cursorBeforePositionsAdjustedForPlaceholderRemoval.map(
+          (beforePos, i) => ({
+            beforePos,
+            duplicateIndex: this.insertState!.duplicateIndices[i],
+            text: this.insertState!.text,
+          }),
+        );
       const astWithInsertBeforeFormatting = astFromTypescriptFileContent(
         getDocWithInsertions(oldDocWithoutPlaceholders, insertions).text,
       );
@@ -619,10 +622,12 @@ export class DocManager {
         focus: normalizeFocusIn(this.doc.root, m.focus),
       })),
     }));
-    this.cursors = sortBy(
-      (c) => textRangeFromFocus(this.doc.root, c.focus).pos,
-      this.cursors,
-    );
+    if (!this.insertState) {
+      this.cursors = sortBy(
+        (c) => textRangeFromFocus(this.doc.root, c.focus).pos,
+        this.cursors,
+      );
+    }
     this.cursorHistory.push(this.cursors);
     this.lastDoc = this.doc;
     this.reportUpdate();
@@ -649,10 +654,13 @@ export class DocManager {
       );
       doc = getDocWithInsertions(
         oldDocWithoutPlaceholders,
-        cursorBeforePositionsAdjustedForPlaceholderRemoval.map((beforePos) => ({
-          beforePos,
-          text: this.insertState!.text,
-        })),
+        cursorBeforePositionsAdjustedForPlaceholderRemoval.map(
+          (beforePos, i) => ({
+            beforePos,
+            duplicateIndex: this.insertState!.duplicateIndices[i],
+            text: this.insertState!.text,
+          }),
+        ),
       );
     }
     this._onUpdate({

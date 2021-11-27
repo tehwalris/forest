@@ -59,5 +59,6 @@ export interface NodeWithPath {
 }
 export interface InsertState {
   beforePos: number[];
+  duplicateIndices: number[];
   text: string;
 }

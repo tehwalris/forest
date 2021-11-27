@@ -134,6 +134,7 @@ function _prettyPrintTsSourceFile(unformattedAst: ts.SourceFile): string {
           kind: InsertionOrDeletionKind.Insertion,
           insertion: {
             beforePos: wrapUnwrap.nodeB.pos,
+            duplicateIndex: 0,
             text: unformattedText
               .slice(wrapUnwrap.outerNodeA.pos, wrapUnwrap.innerNodeA.pos)
               .trim(),
@@ -143,6 +144,7 @@ function _prettyPrintTsSourceFile(unformattedAst: ts.SourceFile): string {
           kind: InsertionOrDeletionKind.Insertion,
           insertion: {
             beforePos: wrapUnwrap.nodeB.end,
+            duplicateIndex: 0,
             text: unformattedText
               .slice(wrapUnwrap.innerNodeA.end, wrapUnwrap.outerNodeA.end)
               .trim(),

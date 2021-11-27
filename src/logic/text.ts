@@ -3,6 +3,7 @@ import { Doc, ListNode, Node, NodeKind, TextRange } from "./interfaces";
 import { assertSortedBy, unreachable } from "./util";
 export interface Insertion {
   beforePos: number;
+  duplicateIndex: number;
   text: string;
 }
 export enum InsertionOrDeletionKind {
@@ -49,12 +50,16 @@ export function checkTextRangesOverlap(ranges: TextRange[]): boolean {
 }
 export function makeNewPosFromOldPosForInsertions(
   insertions: Insertion[],
-): (oldPos: number) => number {
+): (oldPos: number, duplicateIndex?: number) => number {
   assertSortedBy(insertions, (insertion) => insertion.beforePos);
-  return (oldPos: number): number => {
+  return (oldPos: number, duplicateIndex: number = 0): number => {
     let totalInsertionLengthBefore = 0;
     for (const insertion of insertions) {
-      if (insertion.beforePos > oldPos) {
+      if (
+        insertion.beforePos > oldPos ||
+        (insertion.beforePos === oldPos &&
+          insertion.duplicateIndex > duplicateIndex)
+      ) {
         break;
       }
       totalInsertionLengthBefore += insertion.text.length;

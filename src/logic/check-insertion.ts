@@ -89,7 +89,7 @@ function _checkInsertion({
     newNodesByOldTraceableNodes.set(oldNode, newNode);
   });
   const insertionTextRanges: TextRange[] = insertions.map((insertion) => {
-    const end = newPosFromOldPos(insertion.beforePos);
+    const end = newPosFromOldPos(insertion.beforePos, insertion.duplicateIndex);
     const pos = end - insertion.text.length;
     return { pos, end };
   });

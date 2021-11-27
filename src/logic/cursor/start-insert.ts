@@ -1,7 +1,6 @@
 import { sortBy } from "ramda";
 import { textRangeFromFocus } from "../focus";
 import { InsertState, ListNode } from "../interfaces";
-import { checkTextRangesOverlap } from "../text";
 import { Cursor } from "./interfaces";
 import { adjustPostActionCursor } from "./post-action";
 export enum CursorStartInsertSide {
@@ -40,14 +39,6 @@ export function multiCursorStartInsert({
   cursors: oldCursors,
   side,
 }: MultiCursorStartInsertArgs): MultiCursorStartInsertResult | undefined {
-  if (
-    checkTextRangesOverlap(
-      oldCursors.map((c) => textRangeFromFocus(root, c.focus)),
-    )
-  ) {
-    console.warn("can't enter insert mode with overlapping cursors");
-    return undefined;
-  }
   const newCursorsWithResults = sortBy(
     (c) => c.result.beforePos,
     oldCursors.map((cursor) => ({
@@ -55,9 +46,19 @@ export function multiCursorStartInsert({
       result: cursorStartInsert({ root, cursor, side }),
     })),
   );
+  const seenPositionCount = new Map<number, number>();
+  const duplicateIndices: number[] = [];
+  for (const {
+    result: { beforePos },
+  } of newCursorsWithResults) {
+    const count = seenPositionCount.get(beforePos) || 0;
+    duplicateIndices.push(count);
+    seenPositionCount.set(beforePos, count + 1);
+  }
   return {
     insertState: {
       beforePos: newCursorsWithResults.map(({ result }) => result.beforePos),
+      duplicateIndices,
       text: "",
     },
     cursors: newCursorsWithResults.map(({ cursor }) => cursor),
