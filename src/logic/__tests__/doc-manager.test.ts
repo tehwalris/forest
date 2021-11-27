@@ -232,7 +232,7 @@ describe("DocManager", () => {
       label: "flatly change arithmetic expression",
       initialText: "1*2/3+4**5+6*7*8",
       events: [
-        ...eventsFromKeys("alt-h l l l l m l d shift-m a"),
+        ...eventsFromKeys("alt-h l l l l m a l d shift-m a a"),
         ...eventsToTypeString("**"),
         ...eventsFromKeys("escape"),
       ],
@@ -591,7 +591,7 @@ describe("DocManager", () => {
       label: "deleting node which changes path to mark",
       initialText: "x; y(a)",
       events: [
-        ...eventsFromKeys("( m h h d shift-m a"),
+        ...eventsFromKeys("( m a h h d shift-m a a"),
         ...eventsToTypeString(",b"),
         ...eventsFromKeys("escape"),
       ],
