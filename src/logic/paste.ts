@@ -22,6 +22,7 @@ import {
   isTsPostfixUnaryOperatorTokenWithExpectedParent,
   isTsPrefixUnaryOperatorTokenWithExpectedParent,
   isTsQuestionDotToken,
+  isTsVarLetConst,
 } from "./ts-type-predicates";
 export function acceptPasteRoot(
   clipboard: Clipboard,
@@ -275,6 +276,19 @@ function canPasteNestedIntoTsBlockOrFile({
     !!clipboardTs && matchesUnion<ts.Statement>(clipboardTs, unions.Statement)
   );
 }
+function canPasteNestedIntoTsVariableDeclarationList({
+  clipboardTs,
+  firstIndex,
+  lastIndex,
+}: NestedPasteReplaceArgs): boolean {
+  if (firstIndex > 0) {
+    return !!clipboardTs && ts.isVariableDeclaration(clipboardTs);
+  } else if (firstIndex === 0 && lastIndex === 0) {
+    return !!clipboardTs && isTsVarLetConst(clipboardTs);
+  } else {
+    return false;
+  }
+}
 function tryGetTemplateChildForGenericTsNodeStruct(
   node: ListNode,
   childIndex: number,
@@ -434,6 +448,8 @@ export function acceptPasteReplace(
         switch (node.tsNode?.kind) {
           case ts.SyntaxKind.Block:
             return canPasteNestedIntoTsBlockOrFile(_args);
+          case ts.SyntaxKind.VariableDeclarationList:
+            return canPasteNestedIntoTsVariableDeclarationList(_args);
           default: {
             return canPasteNestedIntoGenericTsNodeList(_args);
           }

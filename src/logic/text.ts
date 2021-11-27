@@ -52,13 +52,14 @@ export function makeNewPosFromOldPosForInsertions(
   insertions: Insertion[],
 ): (oldPos: number, duplicateIndex?: number) => number {
   assertSortedBy(insertions, (insertion) => insertion.beforePos);
-  return (oldPos: number, duplicateIndex: number = 0): number => {
+  return (oldPos: number, duplicateIndex?: number): number => {
     let totalInsertionLengthBefore = 0;
     for (const insertion of insertions) {
       if (
         insertion.beforePos > oldPos ||
-        (insertion.beforePos === oldPos &&
-          insertion.duplicateIndex > duplicateIndex)
+        (duplicateIndex !== undefined &&
+          insertion.duplicateIndex > duplicateIndex &&
+          insertion.beforePos === oldPos)
       ) {
         break;
       }
