@@ -82,7 +82,6 @@ do {
     console.log(i);
   }
 
-  // I should be left alone
   for (let z = 0; z < 10; z++) {
     setTimeout(() => console.log(z));
   }
@@ -95,7 +94,6 @@ do {
 })();
 
 (() => {
-  // should not destroy comments
   var querySet = {};
   if (true) {
     ({ querySet } = someComputation());

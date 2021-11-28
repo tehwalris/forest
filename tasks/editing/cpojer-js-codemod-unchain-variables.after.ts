@@ -1,6 +1,5 @@
 var foo = true;
 
-// A comment
 var bar = false;
 
 const baz = 1;

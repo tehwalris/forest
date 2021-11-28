@@ -35,16 +35,9 @@ test = "a\tbc"; // tab
 test = `a\u00A9${b}`; // unicode escape
 
 test = `hi\nhello${foo}`; // line break
-test =
-  // comment in the middle
-  `hi${foo}`;
-test =
-  // comment in the middle
-  `hi${foo}`;
-test =
-  // comment in the middle
-  // and in the middle again
-  `hifoo${foo}`; // and at the end
+test = `hi${foo}`;
+test = `hi${foo}`;
+test = `hifoo${foo}`; // and at the end
 
 test = "hifoo"; // template literal and string
 test = "hifoo"; // string and template literal

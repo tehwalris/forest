@@ -1,5 +1,4 @@
 var foo = true,
-  // A comment
   bar = false;
 const baz = 1,
   fiz = "2";
