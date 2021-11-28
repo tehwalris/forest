@@ -1,5 +1,12 @@
-import { StructuralSearchQuery } from "../../logic/search/interfaces";
-import { isFocusOnEmptyListContent, normalizeFocusOut } from "../focus";
+import {
+  SearchExecutionSettings,
+  StructuralSearchQuery,
+} from "../../logic/search/interfaces";
+import {
+  getEquivalentNodes,
+  isFocusOnEmptyListContent,
+  normalizeFocusOut,
+} from "../focus";
 import { ListNode, Path } from "../interfaces";
 import { nodeVisitDeepInRange } from "../tree-utils/access";
 import { Cursor } from "./interfaces";
@@ -8,6 +15,7 @@ interface CursorSearchArgs {
   root: ListNode;
   cursor: Cursor;
   query: StructuralSearchQuery;
+  settings: SearchExecutionSettings;
 }
 interface CursorSearchResult {
   cursors: Cursor[];
@@ -16,20 +24,35 @@ function cursorSearch({
   root,
   cursor: oldCursor,
   query,
+  settings,
 }: CursorSearchArgs): CursorSearchResult {
   if (isFocusOnEmptyListContent(root, oldCursor.focus)) {
     return { cursors: [] };
   }
   const matchPaths: Path[] = [];
-  nodeVisitDeepInRange(
-    root,
-    normalizeFocusOut(root, oldCursor.focus),
-    (node, path) => {
-      if (query.match(node)) {
-        matchPaths.push(path);
+  if (settings.shallowSearchForRoot) {
+    const focus = normalizeFocusOut(root, oldCursor.focus);
+    if (focus.offset === 0) {
+      for (const { node, path } of getEquivalentNodes(
+        root,
+        oldCursor.focus.anchor,
+      )) {
+        if (query.match(node)) {
+          matchPaths.push(path);
+        }
       }
-    },
-  );
+    }
+  } else {
+    nodeVisitDeepInRange(
+      root,
+      normalizeFocusOut(root, oldCursor.focus),
+      (node, path) => {
+        if (query.match(node)) {
+          matchPaths.push(path);
+        }
+      },
+    );
+  }
   return {
     cursors: matchPaths.map((path) =>
       adjustPostActionCursor(
@@ -40,10 +63,8 @@ function cursorSearch({
     ),
   };
 }
-interface MultiCursorSearchArgs {
-  root: ListNode;
+interface MultiCursorSearchArgs extends Omit<CursorSearchArgs, "cursor"> {
   cursors: Cursor[];
-  query: StructuralSearchQuery;
   strict: boolean;
 }
 interface MultiCursorSearchResult {
@@ -54,10 +75,11 @@ export function multiCursorSearch({
   root,
   cursors: oldCursors,
   query,
+  settings,
   strict,
 }: MultiCursorSearchArgs): MultiCursorSearchResult {
   const results = oldCursors.map((cursor) =>
-    cursorSearch({ root, cursor, query }),
+    cursorSearch({ root, cursor, query, settings }),
   );
   const cursors = results.flatMap((r) => r.cursors);
   const failMask = strict ? results.map((r) => !r.cursors.length) : undefined;

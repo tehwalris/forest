@@ -1,5 +1,8 @@
 import { Doc, Path } from "../../logic/interfaces";
-import { StructuralSearchQuery } from "../../logic/search/interfaces";
+import {
+  SearchExecutionSettings,
+  StructuralSearchQuery,
+} from "../../logic/search/interfaces";
 
 export enum Stage {
   WriteDoc,
@@ -28,9 +31,11 @@ export interface ConfigureState {
   stage: Stage.Configure;
   doc: Doc;
   target: Path;
+  executionSettings: SearchExecutionSettings;
 }
 
 export interface QueryReadyState {
   stage: Stage.QueryReady;
   query: StructuralSearchQuery;
+  executionSettings: SearchExecutionSettings;
 }

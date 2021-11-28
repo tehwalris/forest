@@ -43,6 +43,7 @@ export const SelectTargetExactEditor = ({
           stage: Stage.Configure,
           doc,
           target: selectedEquivalentNode.path,
+          executionSettings: { shallowSearchForRoot: false },
         });
       }}
     >

@@ -2,6 +2,7 @@ import {
   EvenPathRange,
   ListNode,
   NodeKind,
+  NodeWithPath,
   Path,
   TextRange,
   UnevenPathRange,
@@ -129,7 +130,10 @@ export function untilEvenFocusChanges(
     oldFocus = newFocus;
   }
 }
-export function getEquivalentNodes(root: ListNode, originalPath: Path) {
+export function getEquivalentNodes(
+  root: ListNode,
+  originalPath: Path,
+): NodeWithPath[] {
   const equivalentFocuses: EvenPathRange[] = [];
   whileUnevenFocusChanges(
     asUnevenPathRange(

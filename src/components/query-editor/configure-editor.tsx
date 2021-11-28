@@ -40,10 +40,8 @@ const styles = {
   `,
 };
 
-export const ConfigureEditor = ({
-  state: { doc, target: searchRootPath },
-  setState,
-}: Props) => {
+export const ConfigureEditor = ({ state, setState }: Props) => {
+  const { doc, target: searchRootPath, executionSettings } = state;
   const [codeDivRef] = useAutofocus<HTMLDivElement>();
   const [docManager, docManagerState] = useDocManager(doc, true);
   const { mode, cursors } = docManagerState;
@@ -88,6 +86,7 @@ export const ConfigureEditor = ({
                   searchRootPath,
                   settingsMap.clone(),
                 ),
+                executionSettings,
               });
             } else {
               handleWithDocManager();
@@ -96,6 +95,34 @@ export const ConfigureEditor = ({
         />
       </div>
       <div className={styles.configureWrapper}>
+        {equivalentNodes.find(({ path }) =>
+          pathsAreEqual(path, searchRootPath),
+        ) && (
+          <>
+            <div>
+              <div>Execution settings</div>
+              <div>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={executionSettings.shallowSearchForRoot}
+                    onChange={(ev) =>
+                      setState({
+                        ...state,
+                        executionSettings: {
+                          ...executionSettings,
+                          shallowSearchForRoot: ev.target.checked,
+                        },
+                      })
+                    }
+                  />
+                  Check if selection matches query (do not search subtrees)
+                </label>
+              </div>
+            </div>
+            <hr />
+          </>
+        )}
         {equivalentNodes
           .filter(({ path }) =>
             pathsAreEqual(

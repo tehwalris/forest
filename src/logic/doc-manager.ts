@@ -46,7 +46,10 @@ import {
   getDocWithAllPlaceholders,
   getDocWithoutPlaceholdersNearCursors,
 } from "./placeholders";
-import { StructuralSearchQuery } from "./search/interfaces";
+import {
+  SearchExecutionSettings,
+  StructuralSearchQuery,
+} from "./search/interfaces";
 import {
   checkTextRangesOverlap,
   getDocWithInsertions,
@@ -819,13 +822,14 @@ export class DocManager {
       }
     }
   }
-  search(query: StructuralSearchQuery) {
+  search(query: StructuralSearchQuery, settings: SearchExecutionSettings) {
     this.multiCursorHelper(
       (strict) =>
         multiCursorSearch({
           root: this.doc.root,
           cursors: this.cursors,
           query,
+          settings,
           strict,
         }),
       (result) => {

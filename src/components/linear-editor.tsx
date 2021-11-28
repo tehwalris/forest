@@ -21,7 +21,7 @@ export const LinearEditor = ({ initialDoc, onSave }: Props) => {
   const [queryState, setQueryState] = useState<QueryState>();
   useEffect(() => {
     if (queryState?.stage === Stage.QueryReady) {
-      docManager.search(queryState.query);
+      docManager.search(queryState.query, queryState.executionSettings);
       setQueryState(undefined);
     }
   }, [queryState, docManager]);

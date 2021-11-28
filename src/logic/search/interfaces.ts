@@ -35,3 +35,7 @@ export interface TextSearchSettings {
   exactMatch: boolean;
   satisfyingExpression?: string;
 }
+
+export interface SearchExecutionSettings {
+  shallowSearchForRoot: boolean;
+}
