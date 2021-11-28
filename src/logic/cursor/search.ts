@@ -60,14 +60,16 @@ export function multiCursorSearch({
     cursorSearch({ root, cursor, query }),
   );
   const cursors = results.flatMap((r) => r.cursors);
+  const failMask = strict ? results.map((r) => !r.cursors.length) : undefined;
   if (!cursors.length) {
     console.warn("no search matches within any cursor");
     return {
       cursors: oldCursors.map((c) => adjustPostActionCursor(c, {}, undefined)),
+      failMask,
     };
   }
   return {
     cursors,
-    failMask: strict ? results.map((r) => !r.cursors.length) : undefined,
+    failMask,
   };
 }
