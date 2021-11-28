@@ -1,9 +1,9 @@
 import { css } from "@emotion/css";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAutofocus } from "../../hooks/use-autofocus";
 import { useDocManager } from "../../hooks/use-doc-manager";
 import { useRenderTrigger } from "../../hooks/use-render-trigger";
-import { Mode } from "../../logic/doc-manager";
+import { DocManager, Mode } from "../../logic/doc-manager";
 import {
   getEquivalentNodes,
   isFocusOnEmptyListContent,
@@ -43,7 +43,17 @@ const styles = {
 export const ConfigureEditor = ({ state, setState }: Props) => {
   const { doc, target: searchRootPath, executionSettings } = state;
   const [codeDivRef] = useAutofocus<HTMLDivElement>();
-  const [docManager, docManagerState] = useDocManager(doc, true);
+  const initDocManager = useCallback(
+    (docManager: DocManager) => {
+      docManager.setFocus({ anchor: searchRootPath, offset: 0 });
+    },
+    [searchRootPath],
+  );
+  const [docManager, docManagerState] = useDocManager(
+    doc,
+    true,
+    initDocManager,
+  );
   const { mode, cursors } = docManagerState;
   const settingsMap = useRef(new PathMap<SearchSettings>()).current;
   const markSettingsChanged = useRenderTrigger();

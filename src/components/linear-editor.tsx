@@ -16,7 +16,11 @@ export const LinearEditor = ({ initialDoc, onSave }: Props) => {
   useEffect(() => {
     focusCodeDiv();
   }, [initialDoc, focusCodeDiv]);
-  const [docManager, docManagerState] = useDocManager(initialDoc, false);
+  const [docManager, docManagerState] = useDocManager(
+    initialDoc,
+    false,
+    undefined,
+  );
   const { doc, mode } = docManagerState;
   const [queryState, setQueryState] = useState<QueryState>();
   useEffect(() => {

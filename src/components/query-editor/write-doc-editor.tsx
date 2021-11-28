@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { useAutofocus } from "../../hooks/use-autofocus";
 import { useDocManager } from "../../hooks/use-doc-manager";
-import { Mode } from "../../logic/doc-manager";
+import { DocManager, Mode } from "../../logic/doc-manager";
 import { emptyDoc } from "../../logic/doc-utils";
 import {
   isFocusOnEmptyListContent,
@@ -16,9 +16,17 @@ interface Props {
   setState: (state: State) => void;
 }
 
+const initDocManager = (docManager: DocManager) => {
+  docManager.onKeyPress({ key: "i" });
+};
+
 export const WriteDocEditor = ({ state: _state, setState }: Props) => {
   const [codeDivRef] = useAutofocus<HTMLDivElement>();
-  const [docManager, docManagerState] = useDocManager(emptyDoc, false);
+  const [docManager, docManagerState] = useDocManager(
+    emptyDoc,
+    false,
+    initDocManager,
+  );
   const { doc, mode, cursors } = docManagerState;
   const roughTarget = useMemo<Path | undefined>(() => {
     if (cursors.length !== 1) {

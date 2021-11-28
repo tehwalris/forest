@@ -32,12 +32,13 @@ import {
   normalizeFocusOut,
   textRangeFromFocus,
 } from "./focus";
-import { Doc, InsertState, NodeKind, Path } from "./interfaces";
+import { Doc, EvenPathRange, InsertState, NodeKind, Path } from "./interfaces";
 import { memoize } from "./memoize";
 import { docFromAst } from "./node-from-ts";
 import { astFromTypescriptFileContent } from "./parse";
 import { hasOverlappingNonNestedRanges } from "./path-range-tree";
 import {
+  evenPathRangeIsValid,
   flipEvenPathRangeForward,
   pathIsInRange,
   uniqueByEvenPathRange,
@@ -186,9 +187,6 @@ export class DocManager {
     DocManager.copyDocManagerFields(other, this);
   }
   forceUpdate() {
-    if (this.mode !== Mode.Normal) {
-      throw new Error("forceUpdate can only be called in normal mode");
-    }
     this.onUpdate();
     this.insertHistory = [];
   }
@@ -837,6 +835,24 @@ export class DocManager {
       },
     );
     this.onUpdate();
+  }
+  setFocus(focus: EvenPathRange) {
+    if (
+      !evenPathRangeIsValid(this.doc.root, focus) &&
+      !isFocusOnEmptyListContent(this.doc.root, focus)
+    ) {
+      throw new Error("invalid focus");
+    }
+    this.cursors = [
+      {
+        id: Symbol(),
+        parentPath: [],
+        focus,
+        enableReduceToTip: false,
+        clipboard: undefined,
+        marks: [],
+      },
+    ];
   }
   private reportUpdate() {
     let doc = this.doc;
