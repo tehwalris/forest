@@ -6,11 +6,13 @@ import { Doc, EvenPathRange, ListNode } from "../logic/interfaces";
 import { getPathToTip } from "../logic/path-utils";
 import { nodeGetByPath, nodeVisitDeep } from "../logic/tree-utils/access";
 export enum CharSelection {
-  Normal = 1,
-  Tip = 2,
-  Queued = 4,
-  Placeholder = 8,
-  PrimaryCursor = 16,
+  Normal = 1 << 0,
+  Tip = 1 << 1,
+  Queued = 1 << 2,
+  Placeholder = 1 << 3,
+  PrimaryCursor = 1 << 4,
+  Success = 1 << 5,
+  Failure = 1 << 6,
 }
 const numCharSelections = Object.entries(CharSelection).length / 2;
 for (let i = 0; i < numCharSelections; i++) {
@@ -48,7 +50,7 @@ function setCharSelectionsForFocus({
   fillBitwiseOr(
     selectionsByChar,
     isPrimaryCursor
-      ? (CharSelection.Normal | CharSelection.PrimaryCursor)
+      ? CharSelection.Normal | CharSelection.PrimaryCursor
       : CharSelection.Normal,
     focusRange.pos,
     focusRange.end,
@@ -132,6 +134,8 @@ export function getStyleForSelection(
     [CharSelection.Queued]: { background: "rgb(189, 189, 189)" },
     [CharSelection.Placeholder]: { color: "#888" },
     [CharSelection.PrimaryCursor]: {},
+    [CharSelection.Success]: { background: "rgba(85, 202, 56, 0.37)" },
+    [CharSelection.Failure]: { background: "rgba(245, 102, 102, 0.5)" },
   };
   const style: React.CSSProperties = {};
   for (let i = 0; i < numCharSelections; i++) {
@@ -145,7 +149,10 @@ export function renderLinesFromDoc(
   doc: Doc,
   mode: Mode,
   cursors: Cursor[],
-  queuedCursors: Cursor[],
+  fillRanges: {
+    range: EvenPathRange;
+    value: CharSelection;
+  }[],
 ): DocRenderLine[] {
   const selectionsByChar = new Uint8Array(doc.text.length);
   setCharSelectionsForPlaceholders({ selectionsByChar, root: doc.root });
@@ -159,14 +166,9 @@ export function renderLinesFromDoc(
         isPrimaryCursor: iCursor === 0,
       });
     }
-    for (const cursor of queuedCursors) {
-      const focusRange = textRangeFromFocus(doc.root, cursor.focus);
-      fillBitwiseOr(
-        selectionsByChar,
-        CharSelection.Queued,
-        focusRange.pos,
-        focusRange.end,
-      );
+    for (const { range, value } of fillRanges) {
+      const focusRange = textRangeFromFocus(doc.root, range);
+      fillBitwiseOr(selectionsByChar, value, focusRange.pos, focusRange.end);
     }
   }
   const lines: DocRenderLine[] = [];

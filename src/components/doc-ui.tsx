@@ -7,7 +7,11 @@ import {
   Mode,
   MultiCursorMode,
 } from "../logic/doc-manager";
-import { renderLinesFromDoc } from "../logic/render";
+import {
+  CharSelection,
+  DocRenderLine,
+  renderLinesFromDoc,
+} from "../logic/render";
 import { FollowLines } from "./follow-lines";
 type KeyboardEventHandler = (
   ev: React.KeyboardEvent<HTMLDivElement>,
@@ -74,7 +78,7 @@ export const DocUi = ({
     doc,
     mode,
     multiCursorMode,
-    failedCursors,
+    multiCursorFailure,
     cursors,
     cursorsOverlap,
     queuedCursors,
@@ -85,7 +89,37 @@ export const DocUi = ({
   onKeyDown = defaultKeyboardEventHandler,
   onKeyUp = defaultKeyboardEventHandler,
 }: Props) => {
-  const lines = renderLinesFromDoc(doc, mode, cursors, queuedCursors);
+  let lines: DocRenderLine[];
+  if (multiCursorFailure?.visualize) {
+    lines = renderLinesFromDoc(
+      multiCursorFailure.doc,
+      Mode.Normal,
+      [
+        ...multiCursorFailure.successfulCursors,
+        ...multiCursorFailure.failedCursors,
+      ],
+      [
+        ...multiCursorFailure.successfulCursors.map((c) => ({
+          range: c.focus,
+          value: CharSelection.Success,
+        })),
+        ...multiCursorFailure.failedCursors.map((c) => ({
+          range: c.focus,
+          value: CharSelection.Failure,
+        })),
+      ],
+    );
+  } else {
+    lines = renderLinesFromDoc(
+      doc,
+      mode,
+      cursors,
+      queuedCursors.map((c) => ({
+        range: c.focus,
+        value: CharSelection.Queued,
+      })),
+    );
+  }
   return (
     <div className={styles.wrapper}>
       <div
@@ -133,11 +167,13 @@ export const DocUi = ({
           {" | "}
           <span>
             {cursors.length} cursor{cursors.length === 1 ? "" : "s"}
-            {failedCursors && (
+            {multiCursorFailure && (
               <span style={{ color: "orange" }}>
                 {" "}
-                ({failedCursors.failure}/
-                {failedCursors.success + failedCursors.failure} failed)
+                ({multiCursorFailure.failedCursors.length}/
+                {multiCursorFailure.successfulCursors.length +
+                  multiCursorFailure.failedCursors.length}{" "}
+                failed)
               </span>
             )}
           </span>

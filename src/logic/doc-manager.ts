@@ -63,9 +63,15 @@ export enum MultiCursorMode {
   Drop,
   Strict,
 }
-export interface MultiCursorFailure {
+interface MultiCursorFailure {
   failedCursorIds: Symbol[];
   beforeFailure: DocManager;
+}
+export interface PublicMultiCursorFailure {
+  doc: Doc;
+  successfulCursors: Cursor[];
+  failedCursors: Cursor[];
+  visualize: boolean;
 }
 enum MultiCursorFailureResolution {
   Ignore,
@@ -85,7 +91,7 @@ export interface DocManagerPublicState {
   doc: Doc;
   mode: Mode;
   multiCursorMode: MultiCursorMode;
-  failedCursors: { success: number; failure: number } | undefined;
+  multiCursorFailure: PublicMultiCursorFailure | undefined;
   cursors: Cursor[];
   cursorsOverlap: CursorOverlapKind;
   queuedCursors: Cursor[];
@@ -103,7 +109,7 @@ export const initialDocManagerPublicState: DocManagerPublicState = {
   doc: emptyDoc,
   mode: Mode.Normal,
   multiCursorMode: MultiCursorMode.Relaxed,
-  failedCursors: undefined,
+  multiCursorFailure: undefined,
   cursors: [initialCursor],
   cursorsOverlap: CursorOverlapKind.None,
   queuedCursors: [],
@@ -854,25 +860,24 @@ export class DocManager {
       doc,
       mode: this.mode,
       multiCursorMode: this.multiCursorMode,
-      failedCursors: this.countMultiCursorFailure(),
+      multiCursorFailure: this.getPublicMultiCursorFailure(),
       cursors: this.cursors,
       cursorsOverlap: this.getCursorOverlapKind(),
       queuedCursors: this.queuedCursors,
       chord: this.chordKey === undefined ? undefined : { key: this.chordKey },
     });
   }
-  private countMultiCursorFailure():
-    | { success: number; failure: number }
-    | undefined {
+  private getPublicMultiCursorFailure(): PublicMultiCursorFailure | undefined {
     if (!this.multiCursorFailure) {
       return undefined;
     }
     const failedCursorIds = new Set(this.multiCursorFailure.failedCursorIds);
     const cursors = this.multiCursorFailure.beforeFailure.cursors;
-    const failedCursors = cursors.filter((c) => failedCursorIds.has(c.id));
     return {
-      success: cursors.length - failedCursors.length,
-      failure: failedCursors.length,
+      doc: this.multiCursorFailure.beforeFailure.doc,
+      successfulCursors: cursors.filter((c) => !failedCursorIds.has(c.id)),
+      failedCursors: cursors.filter((c) => failedCursorIds.has(c.id)),
+      visualize: this.chordKey === "Y",
     };
   }
   private getCursorOverlapKind(): CursorOverlapKind {
