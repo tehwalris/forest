@@ -626,6 +626,9 @@ export class DocManager {
         },
       );
       this.onUpdate();
+    } else if (this.mode === Mode.Normal && ev.key === "Escape") {
+      this.chordKey = undefined;
+      this.onUpdate();
     } else if (this.mode === Mode.Insert && ev.key === "Escape") {
       const finalStuff = () => {
         this.mode = Mode.Normal;
