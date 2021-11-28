@@ -74,7 +74,7 @@ export const DocUi = ({
     doc,
     mode,
     multiCursorMode,
-    failedCursorCount,
+    failedCursors,
     cursors,
     cursorsOverlap,
     queuedCursors,
@@ -132,10 +132,11 @@ export const DocUi = ({
           {" | "}
           <span>
             {cursors.length} cursor{cursors.length === 1 ? "" : "s"}
-            {failedCursorCount > 0 && (
+            {failedCursors && (
               <span style={{ color: "orange" }}>
                 {" "}
-                (+{failedCursorCount} failed)
+                ({failedCursors.failure}/
+                {failedCursors.success + failedCursors.failure} failed)
               </span>
             )}
           </span>

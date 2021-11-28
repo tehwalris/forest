@@ -81,7 +81,7 @@ export interface DocManagerPublicState {
   doc: Doc;
   mode: Mode;
   multiCursorMode: MultiCursorMode;
-  failedCursorCount: number;
+  failedCursors: { success: number; failure: number } | undefined;
   cursors: Cursor[];
   cursorsOverlap: CursorOverlapKind;
   queuedCursors: Cursor[];
@@ -98,7 +98,7 @@ export const initialDocManagerPublicState: DocManagerPublicState = {
   doc: emptyDoc,
   mode: Mode.Normal,
   multiCursorMode: MultiCursorMode.Relaxed,
-  failedCursorCount: 0,
+  failedCursors: undefined,
   cursors: [initialCursor],
   cursorsOverlap: CursorOverlapKind.None,
   queuedCursors: [],
@@ -840,13 +840,25 @@ export class DocManager {
       doc,
       mode: this.mode,
       multiCursorMode: this.multiCursorMode,
-      failedCursorCount: this.multiCursorFailure
-        ? new Set(this.multiCursorFailure.failedCursorIds).size
-        : 0,
+      failedCursors: this.countMultiCursorFailure(),
       cursors: this.cursors,
       cursorsOverlap: this.getCursorOverlapKind(),
       queuedCursors: this.queuedCursors,
     });
+  }
+  private countMultiCursorFailure():
+    | { success: number; failure: number }
+    | undefined {
+    if (!this.multiCursorFailure) {
+      return undefined;
+    }
+    const failedCursorIds = new Set(this.multiCursorFailure.failedCursorIds);
+    const cursors = this.multiCursorFailure.beforeFailure.cursors;
+    const failedCursors = cursors.filter((c) => failedCursorIds.has(c.id));
+    return {
+      success: cursors.length - failedCursors.length,
+      failure: failedCursors.length,
+    };
   }
   private getCursorOverlapKind(): CursorOverlapKind {
     if (
