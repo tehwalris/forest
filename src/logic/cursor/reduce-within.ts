@@ -23,7 +23,7 @@ interface CursorReduceWithinResult {
   cursor: Cursor;
   didReduce: boolean;
 }
-export function cursorReduceWithin({
+function cursorReduceWithin({
   root,
   cursor: oldCursor,
   side,
@@ -97,4 +97,29 @@ function getFocusSkippingDelimitedLists(
     }
   }
   return focus;
+}
+interface MultiCursorReduceWithinArgs
+  extends Omit<CursorReduceWithinArgs, "cursor"> {
+  cursors: Cursor[];
+  strict: boolean;
+}
+interface MultiCursorReduceWithinResult {
+  cursors: Cursor[];
+  failMask?: boolean[];
+}
+export function multiCursorReduceWithin({
+  cursors: oldCursors,
+  strict,
+  ...restArgs
+}: MultiCursorReduceWithinArgs): MultiCursorReduceWithinResult {
+  const results = oldCursors.map((cursor) =>
+    cursorReduceWithin({
+      ...restArgs,
+      cursor: cursor,
+    }),
+  );
+  return {
+    cursors: results.map((r) => r.cursor),
+    failMask: strict ? results.map((r) => !r.didReduce) : undefined,
+  };
 }

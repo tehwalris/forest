@@ -8,11 +8,7 @@ import {
   CursorMoveInOutDirection,
   multiCursorMoveInOut,
 } from "./cursor/move-in-out";
-import {
-  cursorMoveLeaf,
-  CursorMoveLeafMode,
-  multiCursorMoveLeaf,
-} from "./cursor/move-leaf";
+import { CursorMoveLeafMode, multiCursorMoveLeaf } from "./cursor/move-leaf";
 import { multiCursorPaste } from "./cursor/paste";
 import { adjustPostActionCursor } from "./cursor/post-action";
 import {
@@ -20,8 +16,8 @@ import {
   multiCursorReduceAcross,
 } from "./cursor/reduce-across";
 import {
-  cursorReduceWithin,
   CursorReduceWithinSide,
+  multiCursorReduceWithin,
 } from "./cursor/reduce-within";
 import { multiCursorRename } from "./cursor/rename";
 import { multiCursorSearch } from "./cursor/search";
@@ -452,13 +448,17 @@ export class DocManager {
         );
       } else if (ev.key === " ") {
         ev.preventDefault?.();
-        this.cursors = this.cursors.map(
-          (cursor) =>
-            cursorReduceWithin({
+        this.multiCursorHelper(
+          (strict) =>
+            multiCursorReduceWithin({
               root: this.doc.root,
-              cursor: cursor,
+              cursors: this.cursors,
               side: CursorReduceWithinSide.JustExtended,
-            }).cursor,
+              strict,
+            }),
+          (result) => {
+            this.cursors = result.cursors;
+          },
         );
       } else if (ev.key === "c") {
         this.cursors = this.cursors.map(
@@ -520,25 +520,33 @@ export class DocManager {
       hasAltLike(ev)
     ) {
       ev.preventDefault?.();
-      this.cursors = this.cursors.map(
-        (cursor) =>
-          cursorReduceWithin({
+      this.multiCursorHelper(
+        (strict) =>
+          multiCursorReduceWithin({
             root: this.doc.root,
-            cursor: cursor,
+            cursors: this.cursors,
             side: CursorReduceWithinSide.First,
-          }).cursor,
+            strict,
+          }),
+        (result) => {
+          this.cursors = result.cursors;
+        },
       );
       this.onUpdate();
     } else if (this.mode === Mode.Normal && ev.key === "H" && ev.ctrlKey) {
       ev.preventDefault?.();
-      this.cursors = this.cursors.map(
-        (cursor) =>
-          cursorMoveLeaf({
+      this.multiCursorHelper(
+        (strict) =>
+          multiCursorMoveLeaf({
             root: this.doc.root,
-            cursor: cursor,
+            cursors: this.cursors,
             direction: -1,
             mode: CursorMoveLeafMode.ShrinkSelection,
-          }).cursor,
+            strict,
+          }),
+        (result) => {
+          this.cursors = result.cursors;
+        },
       );
       this.onUpdate();
     } else if (
@@ -547,25 +555,33 @@ export class DocManager {
       hasAltLike(ev)
     ) {
       ev.preventDefault?.();
-      this.cursors = this.cursors.map(
-        (cursor) =>
-          cursorReduceWithin({
+      this.multiCursorHelper(
+        (strict) =>
+          multiCursorReduceWithin({
             root: this.doc.root,
-            cursor: cursor,
+            cursors: this.cursors,
             side: CursorReduceWithinSide.Last,
-          }).cursor,
+            strict,
+          }),
+        (result) => {
+          this.cursors = result.cursors;
+        },
       );
       this.onUpdate();
     } else if (this.mode === Mode.Normal && ev.key === "L" && ev.ctrlKey) {
       ev.preventDefault?.();
-      this.cursors = this.cursors.map(
-        (cursor) =>
-          cursorMoveLeaf({
+      this.multiCursorHelper(
+        (strict) =>
+          multiCursorMoveLeaf({
             root: this.doc.root,
-            cursor: cursor,
+            cursors: this.cursors,
             direction: 1,
             mode: CursorMoveLeafMode.ShrinkSelection,
-          }).cursor,
+            strict,
+          }),
+        (result) => {
+          this.cursors = result.cursors;
+        },
       );
       this.onUpdate();
     } else if (this.mode === Mode.Insert && ev.key === "Escape") {

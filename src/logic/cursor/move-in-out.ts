@@ -21,7 +21,7 @@ interface CursorMoveInOutResult {
   didMove: boolean;
 }
 type MatchFn = (node: ListNode) => boolean;
-export function cursorMoveInOut({
+function cursorMoveInOut({
   root,
   cursor: oldCursor,
   direction,

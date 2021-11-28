@@ -26,7 +26,7 @@ interface CursorMoveLeafResult {
   cursor: Cursor;
   didMove: boolean;
 }
-export function cursorMoveLeaf({
+function cursorMoveLeaf({
   root,
   cursor: oldCursor,
   direction,
