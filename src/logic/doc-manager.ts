@@ -62,6 +62,15 @@ export enum MultiCursorMode {
   Relaxed,
   Strict,
 }
+interface MultiCursorFailure {
+  failedCursorIds: Symbol[];
+  beforeFailure: DocManager;
+}
+enum MultiCursorFailureResolution {
+  Ignore,
+  RevertSuccess,
+  RevertFailure,
+}
 export enum CursorOverlapKind {
   None,
   Nested,
@@ -121,9 +130,10 @@ export class DocManager {
   private cursorHistory: Cursor[][] = [];
   private cursorRedoHistory: Cursor[][] = [];
   private mode = Mode.Normal;
-  private lastMode = this.mode;
+  private lastMode: Mode = this.mode;
   private multiCursorMode = MultiCursorMode.Relaxed;
-  private lastDoc;
+  private multiCursorFailure: MultiCursorFailure | undefined;
+  private lastDoc: Doc;
   private insertState: InsertState | undefined;
   private chordKey: string | undefined;
   private getDocWithoutPlaceholdersNearCursors = memoize(
@@ -180,7 +190,7 @@ export class DocManager {
       if (this.chordKey) {
         ev.key = `${this.chordKey} ${ev.key}`;
         this.chordKey = undefined;
-      } else if (["S", "m", "M", "C"].includes(ev.key)) {
+      } else if (["S", "m", "M", "C", "y"].includes(ev.key)) {
         this.chordKey = ev.key;
         return;
       }
@@ -305,6 +315,34 @@ export class DocManager {
         }[ev.key.split(" ")[1]]!;
         const result = multiCursorReduceAcross({ cursors: this.cursors, side });
         this.cursors = result.cursors;
+      } else if (ev.key.match(/^y [isf]$/)) {
+        const failure = this.multiCursorFailure;
+        if (!failure) {
+          return;
+        }
+        const resolution = {
+          i: MultiCursorFailureResolution.Ignore,
+          s: MultiCursorFailureResolution.RevertSuccess,
+          f: MultiCursorFailureResolution.RevertFailure,
+        }[ev.key.split(" ")[1]]!;
+        if (resolution === MultiCursorFailureResolution.Ignore) {
+          this.multiCursorFailure = undefined;
+        } else {
+          const failedCursorIds = new Set(failure.failedCursorIds);
+          const newCursors = failure.beforeFailure.cursors.filter((c) =>
+            resolution === MultiCursorFailureResolution.RevertSuccess
+              ? !failedCursorIds.has(c.id)
+              : failedCursorIds.has(c.id),
+          );
+          if (!newCursors.length) {
+            console.warn(
+              "chosen multi cursor failure resolution would leave no cursors",
+            );
+            return;
+          }
+          this.fillFromOther(failure.beforeFailure);
+          this.cursors = newCursors;
+        }
       } else if (ev.key === "q") {
         this.queuedCursors = uniqueByEvenPathRange(
           [...this.cursors, ...this.queuedCursors],
@@ -722,9 +760,23 @@ export class DocManager {
     }
     if (strict && result.failMask!.some((v) => v)) {
       console.warn("action rejected because some cursors failed");
-      return;
+      if (this.multiCursorFailure) {
+        this.multiCursorFailure = {
+          failedCursorIds: this.multiCursorFailure.failedCursorIds,
+          beforeFailure: this.multiCursorFailure.beforeFailure,
+        };
+      } else {
+        this.multiCursorFailure = {
+          failedCursorIds: [],
+          beforeFailure: this.clone(),
+        };
+      }
+      this.multiCursorFailure.failedCursorIds.push(
+        ...this.cursors.filter((_c, i) => result.failMask![i]).map((c) => c.id),
+      );
+    } else {
+      applyAction(result);
     }
-    applyAction(result);
   }
   search(query: StructuralSearchQuery) {
     this.multiCursorHelper(
