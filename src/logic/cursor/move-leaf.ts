@@ -109,12 +109,15 @@ function tryMoveThroughLeavesOnce(
 }
 interface MultiCursorMoveLeafArgs extends Omit<CursorMoveLeafArgs, "cursor"> {
   cursors: Cursor[];
+  strict: boolean;
 }
 interface MultiCursorMoveLeafResult {
   cursors: Cursor[];
+  failMask?: boolean[];
 }
 export function multiCursorMoveLeaf({
   cursors: oldCursors,
+  strict,
   ...restArgs
 }: MultiCursorMoveLeafArgs): MultiCursorMoveLeafResult {
   const results = oldCursors.map((cursor) =>
@@ -123,5 +126,8 @@ export function multiCursorMoveLeaf({
       cursor: cursor,
     }),
   );
-  return { cursors: results.map((r) => r.cursor) };
+  return {
+    cursors: results.map((r) => r.cursor),
+    failMask: strict ? results.map((r) => !r.didMove) : undefined,
+  };
 }

@@ -317,37 +317,61 @@ export class DocManager {
         );
         this.queuedCursors = [];
       } else if (ev.key === "l" && !hasAltLike(ev)) {
-        const result = multiCursorMoveLeaf({
-          root: this.doc.root,
-          cursors: this.cursors,
-          direction: 1,
-          mode: CursorMoveLeafMode.Move,
-        });
-        this.cursors = result.cursors;
+        this.multiCursorHelper(
+          (strict) =>
+            multiCursorMoveLeaf({
+              root: this.doc.root,
+              cursors: this.cursors,
+              direction: 1,
+              mode: CursorMoveLeafMode.Move,
+              strict,
+            }),
+          (result) => {
+            this.cursors = result.cursors;
+          },
+        );
       } else if (ev.key === "L" && !ev.ctrlKey) {
-        const result = multiCursorMoveLeaf({
-          root: this.doc.root,
-          cursors: this.cursors,
-          direction: 1,
-          mode: CursorMoveLeafMode.ExtendSelection,
-        });
-        this.cursors = result.cursors;
+        this.multiCursorHelper(
+          (strict) =>
+            multiCursorMoveLeaf({
+              root: this.doc.root,
+              cursors: this.cursors,
+              direction: 1,
+              mode: CursorMoveLeafMode.ExtendSelection,
+              strict,
+            }),
+          (result) => {
+            this.cursors = result.cursors;
+          },
+        );
       } else if (ev.key === "h" && !hasAltLike(ev)) {
-        const result = multiCursorMoveLeaf({
-          root: this.doc.root,
-          cursors: this.cursors,
-          direction: -1,
-          mode: CursorMoveLeafMode.Move,
-        });
-        this.cursors = result.cursors;
+        this.multiCursorHelper(
+          (strict) =>
+            multiCursorMoveLeaf({
+              root: this.doc.root,
+              cursors: this.cursors,
+              direction: -1,
+              mode: CursorMoveLeafMode.Move,
+              strict,
+            }),
+          (result) => {
+            this.cursors = result.cursors;
+          },
+        );
       } else if (ev.key === "H" && !ev.ctrlKey) {
-        const result = multiCursorMoveLeaf({
-          root: this.doc.root,
-          cursors: this.cursors,
-          direction: -1,
-          mode: CursorMoveLeafMode.ExtendSelection,
-        });
-        this.cursors = result.cursors;
+        this.multiCursorHelper(
+          (strict) =>
+            multiCursorMoveLeaf({
+              root: this.doc.root,
+              cursors: this.cursors,
+              direction: -1,
+              mode: CursorMoveLeafMode.ExtendSelection,
+              strict,
+            }),
+          (result) => {
+            this.cursors = result.cursors;
+          },
+        );
       } else if (ev.key === "k") {
         this.cursors = this.cursors.map(
           (cursor) =>
@@ -644,6 +668,21 @@ export class DocManager {
     this.cursorHistory.push(this.cursors);
     this.lastDoc = this.doc;
     this.reportUpdate();
+  }
+  private multiCursorHelper<T extends { failMask?: boolean[] }>(
+    planAction: (strict: boolean) => T,
+    applyAction: (result: T) => void,
+  ) {
+    const strict = this.multiCursorMode === MultiCursorMode.Strict;
+    const result = planAction(strict);
+    if (!result.failMask !== !strict) {
+      throw new Error("failMask must be defined iff strict mode is used");
+    }
+    if (strict && result.failMask!.some((v) => v)) {
+      console.warn("action rejected because some cursors failed");
+      return;
+    }
+    applyAction(result);
   }
   search(query: StructuralSearchQuery) {
     const result = multiCursorSearch({
