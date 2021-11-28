@@ -1,4 +1,8 @@
-import { isFocusOnEmptyListContent, normalizeFocusIn } from "../focus";
+import {
+  isFocusOnEmptyListContent,
+  normalizeFocusIn,
+  normalizeFocusOut,
+} from "../focus";
 import { EvenPathRange, ListNode, NodeKind, Path } from "../interfaces";
 import { evenPathRangesAreEqualIgnoringDirection } from "../path-utils";
 import { nodeGetByPath, nodeVisitDeepInRange } from "../tree-utils/access";
@@ -56,6 +60,7 @@ function cursorMoveInOut({
       didMove: false,
     };
   }
+  focus = normalizeFocusOut(root, focus);
   return {
     cursor: adjustPostActionCursor(oldCursor, { focus }, undefined),
     didMove: !evenPathRangesAreEqualIgnoringDirection(focus, oldCursor.focus),
