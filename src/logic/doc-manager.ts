@@ -71,6 +71,7 @@ enum MultiCursorFailureResolution {
   Ignore,
   RevertSuccess,
   RevertFailure,
+  RevertAll,
 }
 export enum CursorOverlapKind {
   None,
@@ -264,7 +265,7 @@ export class DocManager {
           d: MultiCursorMode.Drop,
           s: MultiCursorMode.Strict,
         }[ev.key.split(" ")[1]]!;
-      } else if (ev.key.match(/^Y [isf]$/)) {
+      } else if (ev.key.match(/^Y [isfa]$/)) {
         const failure = this.multiCursorFailure;
         if (!failure) {
           return;
@@ -273,15 +274,18 @@ export class DocManager {
           i: MultiCursorFailureResolution.Ignore,
           s: MultiCursorFailureResolution.RevertSuccess,
           f: MultiCursorFailureResolution.RevertFailure,
+          a: MultiCursorFailureResolution.RevertAll,
         }[ev.key.split(" ")[1]]!;
         if (resolution === MultiCursorFailureResolution.Ignore) {
           this.multiCursorFailure = undefined;
         } else {
           const failedCursorIds = new Set(failure.failedCursorIds);
-          const newCursors = failure.beforeFailure.cursors.filter((c) =>
-            resolution === MultiCursorFailureResolution.RevertSuccess
-              ? !failedCursorIds.has(c.id)
-              : failedCursorIds.has(c.id),
+          const newCursors = failure.beforeFailure.cursors.filter(
+            (c) =>
+              resolution === MultiCursorFailureResolution.RevertAll ||
+              (resolution === MultiCursorFailureResolution.RevertSuccess
+                ? !failedCursorIds.has(c.id)
+                : failedCursorIds.has(c.id)),
           );
           if (!newCursors.length) {
             console.warn(
