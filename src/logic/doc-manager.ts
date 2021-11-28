@@ -8,7 +8,11 @@ import {
   cursorMoveInOut,
   CursorMoveInOutDirection,
 } from "./cursor/move-in-out";
-import { cursorMoveLeaf, CursorMoveLeafMode } from "./cursor/move-leaf";
+import {
+  cursorMoveLeaf,
+  CursorMoveLeafMode,
+  multiCursorMoveLeaf,
+} from "./cursor/move-leaf";
 import { multiCursorPaste } from "./cursor/paste";
 import { adjustPostActionCursor } from "./cursor/post-action";
 import {
@@ -313,45 +317,37 @@ export class DocManager {
         );
         this.queuedCursors = [];
       } else if (ev.key === "l" && !hasAltLike(ev)) {
-        this.cursors = this.cursors.map(
-          (cursor) =>
-            cursorMoveLeaf({
-              root: this.doc.root,
-              cursor: cursor,
-              direction: 1,
-              mode: CursorMoveLeafMode.Move,
-            }).cursor,
-        );
+        const result = multiCursorMoveLeaf({
+          root: this.doc.root,
+          cursors: this.cursors,
+          direction: 1,
+          mode: CursorMoveLeafMode.Move,
+        });
+        this.cursors = result.cursors;
       } else if (ev.key === "L" && !ev.ctrlKey) {
-        this.cursors = this.cursors.map(
-          (cursor) =>
-            cursorMoveLeaf({
-              root: this.doc.root,
-              cursor: cursor,
-              direction: 1,
-              mode: CursorMoveLeafMode.ExtendSelection,
-            }).cursor,
-        );
+        const result = multiCursorMoveLeaf({
+          root: this.doc.root,
+          cursors: this.cursors,
+          direction: 1,
+          mode: CursorMoveLeafMode.ExtendSelection,
+        });
+        this.cursors = result.cursors;
       } else if (ev.key === "h" && !hasAltLike(ev)) {
-        this.cursors = this.cursors.map(
-          (cursor) =>
-            cursorMoveLeaf({
-              root: this.doc.root,
-              cursor: cursor,
-              direction: -1,
-              mode: CursorMoveLeafMode.Move,
-            }).cursor,
-        );
+        const result = multiCursorMoveLeaf({
+          root: this.doc.root,
+          cursors: this.cursors,
+          direction: -1,
+          mode: CursorMoveLeafMode.Move,
+        });
+        this.cursors = result.cursors;
       } else if (ev.key === "H" && !ev.ctrlKey) {
-        this.cursors = this.cursors.map(
-          (cursor) =>
-            cursorMoveLeaf({
-              root: this.doc.root,
-              cursor: cursor,
-              direction: -1,
-              mode: CursorMoveLeafMode.ExtendSelection,
-            }).cursor,
-        );
+        const result = multiCursorMoveLeaf({
+          root: this.doc.root,
+          cursors: this.cursors,
+          direction: -1,
+          mode: CursorMoveLeafMode.ExtendSelection,
+        });
+        this.cursors = result.cursors;
       } else if (ev.key === "k") {
         this.cursors = this.cursors.map(
           (cursor) =>

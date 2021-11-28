@@ -107,3 +107,21 @@ function tryMoveThroughLeavesOnce(
     ? { anchor: focus.anchor, tip: currentPath }
     : { anchor: currentPath, tip: currentPath };
 }
+interface MultiCursorMoveLeafArgs extends Omit<CursorMoveLeafArgs, "cursor"> {
+  cursors: Cursor[];
+}
+interface MultiCursorMoveLeafResult {
+  cursors: Cursor[];
+}
+export function multiCursorMoveLeaf({
+  cursors: oldCursors,
+  ...restArgs
+}: MultiCursorMoveLeafArgs): MultiCursorMoveLeafResult {
+  const results = oldCursors.map((cursor) =>
+    cursorMoveLeaf({
+      ...restArgs,
+      cursor: cursor,
+    }),
+  );
+  return { cursors: results.map((r) => r.cursor) };
+}
