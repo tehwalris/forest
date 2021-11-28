@@ -212,12 +212,18 @@ export class DocManager {
           this.cursors = result.cursors;
         }
       } else if (ev.key === "d" && !this.readOnly) {
-        const result = multiCursorDelete({
-          root: this.doc.root,
-          cursors: this.cursors,
-        });
-        this.doc = { ...this.doc, root: result.root };
-        this.cursors = result.cursors;
+        this.multiCursorHelper(
+          (strict) =>
+            multiCursorDelete({
+              root: this.doc.root,
+              cursors: this.cursors,
+              strict,
+            }),
+          (result) => {
+            this.doc = { ...this.doc, root: result.root };
+            this.cursors = result.cursors;
+          },
+        );
       } else if (ev.key === "r" && !this.readOnly) {
         const renameFunctionBody = prompt(
           'Enter an JS expression to perform renaming with. "s" is the old name. Example: "s.toLowerCase()"',

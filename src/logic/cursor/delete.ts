@@ -52,14 +52,17 @@ function cursorDelete({
 interface MultiCursorDeleteArgs {
   root: ListNode;
   cursors: Cursor[];
+  strict: boolean;
 }
 interface MultiCursorDeleteResult {
   root: ListNode;
   cursors: Cursor[];
+  failMask?: boolean[];
 }
 export function multiCursorDelete({
   root: oldRoot,
   cursors: oldCursors,
+  strict,
 }: MultiCursorDeleteArgs): MultiCursorDeleteResult {
   const cursorResults = oldCursors.map((cursor) =>
     cursorDelete({ root: oldRoot, cursor }),
@@ -73,9 +76,11 @@ export function multiCursorDelete({
     }
   }
   const replaceResult = replaceMultiple({ root: oldRoot, replacements });
+  const failMask: boolean[] = cursorResults.map((r) => !r.replacement);
   let newCursors: Cursor[] = [];
   for (const [i, used] of replaceResult.replacementWasUsed.entries()) {
     if (!used) {
+      failMask[cursorIndexByReplacement[i]] = true;
       continue;
     }
     const newRange = replaceResult.newContentRanges[i];
@@ -121,5 +126,9 @@ export function multiCursorDelete({
     newFocus = flipEvenPathRangeForward(newFocus);
     return { ...c, focus: newFocus };
   });
-  return { root: newRoot, cursors: newCursors };
+  return {
+    root: newRoot,
+    cursors: newCursors,
+    failMask: strict ? failMask : undefined,
+  };
 }
