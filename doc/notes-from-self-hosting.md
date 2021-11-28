@@ -41,7 +41,7 @@
 - [x] Structural search
 - [ ] Repeat last search
 - [ ] Initialize search with content under cursor
-- [ ] Synchronized multi-cursor
+- [x] Synchronized multi-cursor
 - [ ] Change command (instead of delete and insert)
 - [ ] No way to swap two values without adding temporary code
 - [ ] Paste from system clipboard (in insert mode)
