@@ -179,3 +179,27 @@ function tryMoveToParent(
   }
   return undefined;
 }
+interface MultiCursorMoveInOutArgs extends Omit<CursorMoveInOutArgs, "cursor"> {
+  cursors: Cursor[];
+  strict: boolean;
+}
+interface MultiCursorMoveInOutResult {
+  cursors: Cursor[];
+  failMask?: boolean[];
+}
+export function multiCursorMoveInOut({
+  cursors: oldCursors,
+  strict,
+  ...restArgs
+}: MultiCursorMoveInOutArgs): MultiCursorMoveInOutResult {
+  const results = oldCursors.map((cursor) =>
+    cursorMoveInOut({
+      ...restArgs,
+      cursor: cursor,
+    }),
+  );
+  return {
+    cursors: results.map((r) => r.cursor),
+    failMask: strict ? results.map((r) => !r.didMove) : undefined,
+  };
+}

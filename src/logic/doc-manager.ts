@@ -5,8 +5,8 @@ import { multiCursorDelete } from "./cursor/delete";
 import { cursorArraysAreEqual } from "./cursor/equal";
 import { Cursor, Mark } from "./cursor/interfaces";
 import {
-  cursorMoveInOut,
   CursorMoveInOutDirection,
+  multiCursorMoveInOut,
 } from "./cursor/move-in-out";
 import {
   cursorMoveLeaf,
@@ -373,56 +373,76 @@ export class DocManager {
           },
         );
       } else if (ev.key === "k") {
-        this.cursors = this.cursors.map(
-          (cursor) =>
-            cursorMoveInOut({
+        this.multiCursorHelper(
+          (strict) =>
+            multiCursorMoveInOut({
               root: this.doc.root,
-              cursor: cursor,
+              cursors: this.cursors,
               direction: CursorMoveInOutDirection.Out,
               bigStep: false,
-            }).cursor,
+              strict,
+            }),
+          (result) => {
+            this.cursors = result.cursors;
+          },
         );
       } else if (ev.key === "K") {
-        this.cursors = this.cursors.map(
-          (cursor) =>
-            cursorMoveInOut({
+        this.multiCursorHelper(
+          (strict) =>
+            multiCursorMoveInOut({
               root: this.doc.root,
-              cursor: cursor,
+              cursors: this.cursors,
               direction: CursorMoveInOutDirection.Out,
               bigStep: true,
-            }).cursor,
+              strict,
+            }),
+          (result) => {
+            this.cursors = result.cursors;
+          },
         );
       } else if ([")", "]", "}", ">"].includes(ev.key)) {
-        this.cursors = this.cursors.map(
-          (cursor) =>
-            cursorMoveInOut({
+        this.multiCursorHelper(
+          (strict) =>
+            multiCursorMoveInOut({
               root: this.doc.root,
-              cursor: cursor,
+              cursors: this.cursors,
               direction: CursorMoveInOutDirection.Out,
               bigStep: true,
               delimiter: ev.key,
-            }).cursor,
+              strict,
+            }),
+          (result) => {
+            this.cursors = result.cursors;
+          },
         );
       } else if (ev.key === "j") {
-        this.cursors = this.cursors.map(
-          (cursor) =>
-            cursorMoveInOut({
+        this.multiCursorHelper(
+          (strict) =>
+            multiCursorMoveInOut({
               root: this.doc.root,
-              cursor: cursor,
+              cursors: this.cursors,
               direction: CursorMoveInOutDirection.In,
               bigStep: true,
-            }).cursor,
+              strict,
+            }),
+          (result) => {
+            this.cursors = result.cursors;
+          },
         );
       } else if (["(", "[", "{", "<"].includes(ev.key)) {
-        this.cursors = this.cursors.map(
-          (cursor) =>
-            cursorMoveInOut({
+        this.multiCursorHelper(
+          (strict) =>
+            multiCursorMoveInOut({
               root: this.doc.root,
-              cursor: cursor,
+              cursors: this.cursors,
               direction: CursorMoveInOutDirection.In,
               bigStep: true,
               delimiter: ev.key,
-            }).cursor,
+              strict,
+            }),
+          (result) => {
+            this.cursors = result.cursors;
+          },
         );
       } else if (ev.key === " ") {
         ev.preventDefault?.();
