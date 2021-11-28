@@ -78,6 +78,7 @@ export const DocUi = ({
     cursors,
     cursorsOverlap,
     queuedCursors,
+    chord,
   },
   codeDivRef,
   onKeyPress = defaultKeyboardEventHandler,
@@ -140,6 +141,12 @@ export const DocUi = ({
               </span>
             )}
           </span>
+          {chord && (
+            <>
+              {" | "}
+              <span>Chord: {chord.key}</span>
+            </>
+          )}
         </div>
         {cursorsOverlap === CursorOverlapKind.Nested && (
           <div style={{ color: "orange" }}>Warning: cursors are nested</div>

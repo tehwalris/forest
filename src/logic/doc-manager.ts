@@ -63,7 +63,7 @@ export enum MultiCursorMode {
   Drop,
   Strict,
 }
-interface MultiCursorFailure {
+export interface MultiCursorFailure {
   failedCursorIds: Symbol[];
   beforeFailure: DocManager;
 }
@@ -78,6 +78,9 @@ export enum CursorOverlapKind {
   Nested,
   NonNested,
 }
+export interface ChordInfo {
+  key: string;
+}
 export interface DocManagerPublicState {
   doc: Doc;
   mode: Mode;
@@ -86,6 +89,7 @@ export interface DocManagerPublicState {
   cursors: Cursor[];
   cursorsOverlap: CursorOverlapKind;
   queuedCursors: Cursor[];
+  chord: ChordInfo | undefined;
 }
 const initialCursor: Cursor = {
   id: Symbol(),
@@ -103,6 +107,7 @@ export const initialDocManagerPublicState: DocManagerPublicState = {
   cursors: [initialCursor],
   cursorsOverlap: CursorOverlapKind.None,
   queuedCursors: [],
+  chord: undefined,
 };
 export interface MinimalKeyboardEvent {
   key: string;
@@ -196,6 +201,7 @@ export class DocManager {
         this.chordKey = undefined;
       } else if (["S", "m", "M", "y", "Y"].includes(ev.key)) {
         this.chordKey = ev.key;
+        this.onUpdate();
         return;
       }
 
@@ -268,6 +274,7 @@ export class DocManager {
       } else if (ev.key.match(/^Y [isfa]$/)) {
         const failure = this.multiCursorFailure;
         if (!failure) {
+          this.onUpdate();
           return;
         }
         const resolution = {
@@ -851,6 +858,7 @@ export class DocManager {
       cursors: this.cursors,
       cursorsOverlap: this.getCursorOverlapKind(),
       queuedCursors: this.queuedCursors,
+      chord: this.chordKey === undefined ? undefined : { key: this.chordKey },
     });
   }
   private countMultiCursorFailure():
