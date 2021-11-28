@@ -60,6 +60,7 @@ export enum Mode {
 }
 export enum MultiCursorMode {
   Relaxed,
+  Drop,
   Strict,
 }
 interface MultiCursorFailure {
@@ -192,7 +193,7 @@ export class DocManager {
       if (this.chordKey) {
         ev.key = `${this.chordKey} ${ev.key}`;
         this.chordKey = undefined;
-      } else if (["S", "m", "M", "C", "y"].includes(ev.key)) {
+      } else if (["S", "m", "M", "y", "Y"].includes(ev.key)) {
         this.chordKey = ev.key;
         return;
       }
@@ -257,11 +258,40 @@ export class DocManager {
         });
         this.doc = { ...this.doc, root: result.root };
         this.cursors = result.cursors;
-      } else if (ev.key.match(/^C [rs]$/)) {
+      } else if (ev.key.match(/^y [rds]$/)) {
         this.multiCursorMode = {
           r: MultiCursorMode.Relaxed,
+          d: MultiCursorMode.Drop,
           s: MultiCursorMode.Strict,
         }[ev.key.split(" ")[1]]!;
+      } else if (ev.key.match(/^Y [isf]$/)) {
+        const failure = this.multiCursorFailure;
+        if (!failure) {
+          return;
+        }
+        const resolution = {
+          i: MultiCursorFailureResolution.Ignore,
+          s: MultiCursorFailureResolution.RevertSuccess,
+          f: MultiCursorFailureResolution.RevertFailure,
+        }[ev.key.split(" ")[1]]!;
+        if (resolution === MultiCursorFailureResolution.Ignore) {
+          this.multiCursorFailure = undefined;
+        } else {
+          const failedCursorIds = new Set(failure.failedCursorIds);
+          const newCursors = failure.beforeFailure.cursors.filter((c) =>
+            resolution === MultiCursorFailureResolution.RevertSuccess
+              ? !failedCursorIds.has(c.id)
+              : failedCursorIds.has(c.id),
+          );
+          if (!newCursors.length) {
+            console.warn(
+              "chosen multi cursor failure resolution would leave no cursors",
+            );
+            return;
+          }
+          this.fillFromOther(failure.beforeFailure);
+          this.cursors = newCursors;
+        }
       } else if (ev.key.match(/^m [a-z]$/)) {
         const markKey = ev.key.split(" ")[1];
         this.cursors = this.cursors.map((c) => ({
@@ -317,34 +347,6 @@ export class DocManager {
         }[ev.key.split(" ")[1]]!;
         const result = multiCursorReduceAcross({ cursors: this.cursors, side });
         this.cursors = result.cursors;
-      } else if (ev.key.match(/^y [isf]$/)) {
-        const failure = this.multiCursorFailure;
-        if (!failure) {
-          return;
-        }
-        const resolution = {
-          i: MultiCursorFailureResolution.Ignore,
-          s: MultiCursorFailureResolution.RevertSuccess,
-          f: MultiCursorFailureResolution.RevertFailure,
-        }[ev.key.split(" ")[1]]!;
-        if (resolution === MultiCursorFailureResolution.Ignore) {
-          this.multiCursorFailure = undefined;
-        } else {
-          const failedCursorIds = new Set(failure.failedCursorIds);
-          const newCursors = failure.beforeFailure.cursors.filter((c) =>
-            resolution === MultiCursorFailureResolution.RevertSuccess
-              ? !failedCursorIds.has(c.id)
-              : failedCursorIds.has(c.id),
-          );
-          if (!newCursors.length) {
-            console.warn(
-              "chosen multi cursor failure resolution would leave no cursors",
-            );
-            return;
-          }
-          this.fillFromOther(failure.beforeFailure);
-          this.cursors = newCursors;
-        }
       } else if (ev.key === "q") {
         this.queuedCursors = uniqueByEvenPathRange(
           [...this.cursors, ...this.queuedCursors],
@@ -755,16 +757,21 @@ export class DocManager {
     planAction: (strict: boolean) => T,
     applyAction: (result: T) => void,
   ) {
-    const strict = this.multiCursorMode === MultiCursorMode.Strict;
+    const backup = this.clone();
+    const multiCursorMode = this.multiCursorMode;
+    const strict = multiCursorMode !== MultiCursorMode.Relaxed;
     const result = planAction(strict);
     if (!result.failMask !== !strict) {
       throw new Error("failMask must be defined iff strict mode is used");
     }
-    if (strict && result.failMask!.some((v) => v)) {
-      console.warn("action rejected because some cursors failed");
+    const someFailed = !!result.failMask?.some((v) => v);
+    const failedCursorIds = new Set(
+      this.cursors.filter((_c, i) => result.failMask?.[i]).map((c) => c.id),
+    );
+    if (strict && someFailed) {
       if (this.multiCursorFailure) {
         this.multiCursorFailure = {
-          failedCursorIds: this.multiCursorFailure.failedCursorIds,
+          failedCursorIds: [...this.multiCursorFailure.failedCursorIds],
           beforeFailure: this.multiCursorFailure.beforeFailure,
         };
       } else {
@@ -776,8 +783,20 @@ export class DocManager {
       this.multiCursorFailure.failedCursorIds.push(
         ...this.cursors.filter((_c, i) => result.failMask![i]).map((c) => c.id),
       );
+    }
+    if (multiCursorMode === MultiCursorMode.Strict && someFailed) {
+      console.warn("action rejected because some cursors failed");
     } else {
       applyAction(result);
+    }
+    if (multiCursorMode === MultiCursorMode.Drop && someFailed) {
+      const newCursors = this.cursors.filter((c) => !failedCursorIds.has(c.id));
+      if (newCursors.length) {
+        this.cursors = newCursors;
+      } else {
+        console.warn("refusing to drop all cursors");
+        this.fillFromOther(backup);
+      }
     }
   }
   search(query: StructuralSearchQuery) {
