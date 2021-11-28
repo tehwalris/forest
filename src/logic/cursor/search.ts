@@ -44,23 +44,30 @@ interface MultiCursorSearchArgs {
   root: ListNode;
   cursors: Cursor[];
   query: StructuralSearchQuery;
+  strict: boolean;
 }
 interface MultiCursorSearchResult {
   cursors: Cursor[];
+  failMask?: boolean[];
 }
 export function multiCursorSearch({
   root,
   cursors: oldCursors,
   query,
+  strict,
 }: MultiCursorSearchArgs): MultiCursorSearchResult {
-  const cursors = oldCursors.flatMap(
-    (cursor) => cursorSearch({ root, cursor, query }).cursors,
+  const results = oldCursors.map((cursor) =>
+    cursorSearch({ root, cursor, query }),
   );
+  const cursors = results.flatMap((r) => r.cursors);
   if (!cursors.length) {
     console.warn("no search matches within any cursor");
     return {
       cursors: oldCursors.map((c) => adjustPostActionCursor(c, {}, undefined)),
     };
   }
-  return { cursors };
+  return {
+    cursors,
+    failMask: strict ? results.map((r) => !r.cursors.length) : undefined,
+  };
 }

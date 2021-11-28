@@ -727,12 +727,18 @@ export class DocManager {
     applyAction(result);
   }
   search(query: StructuralSearchQuery) {
-    const result = multiCursorSearch({
-      root: this.doc.root,
-      cursors: this.cursors,
-      query,
-    });
-    this.cursors = result.cursors;
+    this.multiCursorHelper(
+      (strict) =>
+        multiCursorSearch({
+          root: this.doc.root,
+          cursors: this.cursors,
+          query,
+          strict,
+        }),
+      (result) => {
+        this.cursors = result.cursors;
+      },
+    );
     this.onUpdate();
   }
   private reportUpdate() {
