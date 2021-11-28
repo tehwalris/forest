@@ -47,13 +47,8 @@ const styles = {
       filter: grayscale(1);
     }
   `,
-  modeLine: css`
+  statusArea: css`
     margin: 5px;
-    margin-top: 15px;
-  `,
-  overlapWarning: css`
-    margin: 5px;
-    margin-top: 15px;
   `,
 };
 function wrapThrowRestore<A extends any[]>(
@@ -75,7 +70,15 @@ function wrapThrowRestore<A extends any[]>(
 }
 export const DocUi = ({
   docManager,
-  state: { doc, mode, multiCursorMode, cursors, cursorsOverlap, queuedCursors },
+  state: {
+    doc,
+    mode,
+    multiCursorMode,
+    failedCursorCount,
+    cursors,
+    cursorsOverlap,
+    queuedCursors,
+  },
   codeDivRef,
   onKeyPress = defaultKeyboardEventHandler,
   onKeyDown = defaultKeyboardEventHandler,
@@ -121,19 +124,31 @@ export const DocUi = ({
           </div>
         )}
       </div>
-      <div className={styles.modeLine}>
-        Mode: {Mode[mode]} ({MultiCursorMode[multiCursorMode]})
+      <div className={styles.statusArea}>
+        <div>
+          <span>
+            {Mode[mode]}-{MultiCursorMode[multiCursorMode]}
+          </span>
+          {" | "}
+          <span>
+            {cursors.length} cursor{cursors.length === 1 ? "" : "s"}
+            {failedCursorCount > 0 && (
+              <span style={{ color: "orange" }}>
+                {" "}
+                (+{failedCursorCount} failed)
+              </span>
+            )}
+          </span>
+        </div>
+        {cursorsOverlap === CursorOverlapKind.Nested && (
+          <div style={{ color: "orange" }}>Warning: cursors are nested</div>
+        )}
+        {cursorsOverlap === CursorOverlapKind.NonNested && (
+          <div style={{ color: "red" }}>
+            Warning: cursors overlap in a non-nested way
+          </div>
+        )}
       </div>
-      {cursorsOverlap === CursorOverlapKind.Nested && (
-        <div className={styles.overlapWarning} style={{ color: "orange" }}>
-          Warning: cursors are nested
-        </div>
-      )}
-      {cursorsOverlap === CursorOverlapKind.NonNested && (
-        <div className={styles.overlapWarning} style={{ color: "red" }}>
-          Warning: cursors overlap in a non-nested way
-        </div>
-      )}
     </div>
   );
 };

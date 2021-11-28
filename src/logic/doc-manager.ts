@@ -80,6 +80,7 @@ export interface DocManagerPublicState {
   doc: Doc;
   mode: Mode;
   multiCursorMode: MultiCursorMode;
+  failedCursorCount: number;
   cursors: Cursor[];
   cursorsOverlap: CursorOverlapKind;
   queuedCursors: Cursor[];
@@ -96,6 +97,7 @@ export const initialDocManagerPublicState: DocManagerPublicState = {
   doc: emptyDoc,
   mode: Mode.Normal,
   multiCursorMode: MultiCursorMode.Relaxed,
+  failedCursorCount: 0,
   cursors: [initialCursor],
   cursorsOverlap: CursorOverlapKind.None,
   queuedCursors: [],
@@ -819,6 +821,9 @@ export class DocManager {
       doc,
       mode: this.mode,
       multiCursorMode: this.multiCursorMode,
+      failedCursorCount: this.multiCursorFailure
+        ? new Set(this.multiCursorFailure.failedCursorIds).size
+        : 0,
       cursors: this.cursors,
       cursorsOverlap: this.getCursorOverlapKind(),
       queuedCursors: this.queuedCursors,
