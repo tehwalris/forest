@@ -58,6 +58,10 @@ export enum Mode {
   Normal,
   Insert,
 }
+export enum MultiCursorMode {
+  Relaxed,
+  Strict,
+}
 export enum CursorOverlapKind {
   None,
   Nested,
@@ -66,6 +70,7 @@ export enum CursorOverlapKind {
 export interface DocManagerPublicState {
   doc: Doc;
   mode: Mode;
+  multiCursorMode: MultiCursorMode;
   cursors: Cursor[];
   cursorsOverlap: CursorOverlapKind;
   queuedCursors: Cursor[];
@@ -81,6 +86,7 @@ const initialCursor: Cursor = {
 export const initialDocManagerPublicState: DocManagerPublicState = {
   doc: emptyDoc,
   mode: Mode.Normal,
+  multiCursorMode: MultiCursorMode.Relaxed,
   cursors: [initialCursor],
   cursorsOverlap: CursorOverlapKind.None,
   queuedCursors: [],
@@ -116,6 +122,7 @@ export class DocManager {
   private cursorRedoHistory: Cursor[][] = [];
   private mode = Mode.Normal;
   private lastMode = this.mode;
+  private multiCursorMode = MultiCursorMode.Relaxed;
   private lastDoc;
   private insertState: InsertState | undefined;
   private chordKey: string | undefined;
@@ -173,7 +180,7 @@ export class DocManager {
       if (this.chordKey) {
         ev.key = `${this.chordKey} ${ev.key}`;
         this.chordKey = undefined;
-      } else if (["S", "m", "M"].includes(ev.key)) {
+      } else if (["S", "m", "M", "C"].includes(ev.key)) {
         this.chordKey = ev.key;
         return;
       }
@@ -232,6 +239,11 @@ export class DocManager {
         });
         this.doc = { ...this.doc, root: result.root };
         this.cursors = result.cursors;
+      } else if (ev.key.match(/^C [rs]$/)) {
+        this.multiCursorMode = {
+          r: MultiCursorMode.Relaxed,
+          s: MultiCursorMode.Strict,
+        }[ev.key.split(" ")[1]]!;
       } else if (ev.key.match(/^m [a-z]$/)) {
         const markKey = ev.key.split(" ")[1];
         this.cursors = this.cursors.map((c) => ({
@@ -671,6 +683,7 @@ export class DocManager {
     this._onUpdate({
       doc,
       mode: this.mode,
+      multiCursorMode: this.multiCursorMode,
       cursors: this.cursors,
       cursorsOverlap: this.getCursorOverlapKind(),
       queuedCursors: this.queuedCursors,

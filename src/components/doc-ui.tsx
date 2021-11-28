@@ -5,6 +5,7 @@ import {
   DocManager,
   DocManagerPublicState,
   Mode,
+  MultiCursorMode,
 } from "../logic/doc-manager";
 import { renderLinesFromDoc } from "../logic/render";
 import { FollowLines } from "./follow-lines";
@@ -74,7 +75,7 @@ function wrapThrowRestore<A extends any[]>(
 }
 export const DocUi = ({
   docManager,
-  state: { doc, mode, cursors, cursorsOverlap, queuedCursors },
+  state: { doc, mode, multiCursorMode, cursors, cursorsOverlap, queuedCursors },
   codeDivRef,
   onKeyPress = defaultKeyboardEventHandler,
   onKeyDown = defaultKeyboardEventHandler,
@@ -120,7 +121,9 @@ export const DocUi = ({
           </div>
         )}
       </div>
-      <div className={styles.modeLine}>Mode: {Mode[mode]}</div>
+      <div className={styles.modeLine}>
+        Mode: {Mode[mode]} ({MultiCursorMode[multiCursorMode]})
+      </div>
       {cursorsOverlap === CursorOverlapKind.Nested && (
         <div className={styles.overlapWarning} style={{ color: "orange" }}>
           Warning: cursors are nested
