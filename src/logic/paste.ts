@@ -260,6 +260,8 @@ function canPasteNestedIntoObjectLiteralElement({
     }
     case ts.SyntaxKind.SpreadAssignment: {
       if (firstIndex === 0) {
+        return false;
+      } else if (firstIndex === 1) {
         return matchesUnion(clipboardTs, unions.Expression);
       } else {
         throw new Error("invalid firstIndex");
