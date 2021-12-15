@@ -1,3 +1,5 @@
+import * as fs from "fs";
+import * as path from "path";
 import { repeat } from "ramda";
 import {
   DocManager,
@@ -121,6 +123,22 @@ describe("DocManager", () => {
     ...makeRoundTripTest(text),
     skip: true,
   });
+  const makeEditingTaskTest = (
+    taskName: string,
+    events: EventWithHandler[],
+  ): TestCase => {
+    const loadText = (suffix: string) =>
+      fs.readFileSync(
+        path.join(__dirname, `../../../tasks/editing/${taskName}.${suffix}.ts`),
+        "utf-8",
+      );
+    return {
+      label: `editing task: ${taskName}`,
+      initialText: loadText("before"),
+      events: events,
+      expectedText: loadText("after"),
+    };
+  };
   const cases: TestCase[] = [
     makeRoundTripTest('console.log("walrus")'),
     makeRoundTripTest.skip("f(async <T>(x: T, y) => x + y)"),
@@ -605,6 +623,17 @@ describe("DocManager", () => {
       expectedText: "f(a.a.b.c)",
       skip: true,
     },
+    makeEditingTaskTest("multi-cursor-marks", [
+      ...eventsFromKeys("{ i"),
+      ...eventsToTypeString("if(debug){console.log({})}"),
+      ...eventsFromKeys("escape { { } m a } } shift-h space j a"),
+      ...eventsToTypeString(",debug:boolean=false"),
+      ...eventsFromKeys("escape k ctrl-shift-h s m b alt-h c shift-m a j a"),
+      ...eventsToTypeString("x: {current: x, default: x},"),
+      ...eventsFromKeys(
+        "escape alt-h p l l p l l m c shift-m b alt-l c shift-m c p",
+      ),
+    ]),
   ];
   for (const c of cases) {
     (c.skip ? test.skip : test)(c.label, () => {
