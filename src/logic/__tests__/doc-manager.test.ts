@@ -634,6 +634,13 @@ describe("DocManager", () => {
         "escape alt-h p l l p l l m c shift-m b alt-l c shift-m c p",
       ),
     ]),
+    makeEditingTaskTest("multi-cursor-reduce-across", [
+      ...eventsFromKeys("s ( s a"),
+      ...eventsToTypeString(":number"),
+      ...eventsFromKeys("escape shift-s h ) a"),
+      ...eventsToTypeString(":number"),
+      ...eventsFromKeys("escape"),
+    ]),
   ];
   for (const c of cases) {
     (c.skip ? test.skip : test)(c.label, () => {
