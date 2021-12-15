@@ -16,7 +16,7 @@
 - [ ] Can't append to multiple lists where some are empty because the leading separator gets in the way
   - Example: Try to append argument `a` to both `f(x)` and `f()` - doesn't work in second case because you get `f(,a)`
   - This is not an issue with inserts (at the start of a list) because trailing commas are removed (like in `f(a,)`)
-- [ ] Crash when pasting if statement before existing if statement
+- [x] Crash when pasting if statement before existing if statement
   - `oldParent must be a list`
   - Can't reproduce, but did see other weird behavior when pasting single `IfBranch` over a statement
 - [x] Crash when inserting before a mark (sometimes? happened with an if statement)

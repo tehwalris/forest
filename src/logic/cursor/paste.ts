@@ -152,7 +152,10 @@ function cursorPasteEquivalent({
         }
         return { node, isPartialCopy: false };
       } else {
-        const oldParent = nodeGetByPath(root, focus.anchor.slice(0, -1));
+        const oldParent = nodeGetByPath(
+          oldClipboard.node,
+          focus.anchor.slice(0, -1),
+        );
         if (oldParent?.kind !== NodeKind.List) {
           throw new Error("oldParent must be a list");
         }
