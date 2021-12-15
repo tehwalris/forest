@@ -1,13 +1,14 @@
 import * as fs from "fs";
 import * as path from "path";
 import { repeat } from "ramda";
+import ts from "typescript";
 import {
   DocManager,
   initialDocManagerPublicState,
   MinimalKeyboardEvent,
   Mode,
 } from "../doc-manager";
-import { Doc } from "../interfaces";
+import { Doc, NodeKind } from "../interfaces";
 import { docFromAst } from "../node-from-ts";
 import { astFromTypescriptFileContent } from "../parse";
 import { prettyPrintTsString } from "../print";
@@ -109,7 +110,7 @@ describe("DocManager", () => {
   interface TestCase {
     label: string;
     initialText: string;
-    events: EventWithHandler[];
+    events: (EventWithHandler | ((docManager: DocManager) => void))[];
     expectedText: string;
     skip?: boolean;
   }
@@ -125,7 +126,7 @@ describe("DocManager", () => {
   });
   const makeEditingTaskTest = (
     taskName: string,
-    events: EventWithHandler[],
+    events: TestCase["events"],
   ): TestCase => {
     const loadText = (suffix: string) =>
       fs.readFileSync(
@@ -135,10 +136,13 @@ describe("DocManager", () => {
     return {
       label: `editing task: ${taskName}`,
       initialText: loadText("before"),
-      events: events,
+      events,
       expectedText: loadText("after"),
     };
   };
+  makeEditingTaskTest.skip = (
+    ...args: Parameters<typeof makeEditingTaskTest>
+  ) => ({ ...makeEditingTaskTest(...args), skip: true });
   const cases: TestCase[] = [
     makeRoundTripTest('console.log("walrus")'),
     makeRoundTripTest.skip("f(async <T>(x: T, y) => x + y)"),
@@ -641,6 +645,45 @@ describe("DocManager", () => {
       ...eventsToTypeString(":number"),
       ...eventsFromKeys("escape"),
     ]),
+    makeEditingTaskTest.skip("cpojer-js-codemod-rm-object-assign", [
+      ...eventsFromKeys("s ( alt-h y s"),
+      (docManager: DocManager) =>
+        docManager.search(
+          {
+            match: (node) =>
+              node.tsNode?.kind === ts.SyntaxKind.ObjectLiteralExpression,
+          },
+          { shallowSearchForRoot: true },
+        ),
+      ...eventsFromKeys("shift-y s k ctrl-shift-l"),
+      (docManager: DocManager) =>
+        docManager.search(
+          {
+            match: (node) => node.tsNode?.kind === ts.SyntaxKind.SpreadElement,
+          },
+          { shallowSearchForRoot: false },
+        ),
+      ...eventsFromKeys("shift-y f k a"),
+      ...eventsToTypeString(",{}"),
+      ...eventsFromKeys("escape k ctrl-shift-h s c ) alt-l { a"),
+      ...eventsToTypeString("...(x),"),
+      ...eventsFromKeys("escape ( p shift-s h } c ) k i"),
+      ...eventsToTypeString("(x)&&"),
+      ...eventsFromKeys("escape ( p ) k ctrl-shift-l d { s alt-l"),
+      (docManager: DocManager) =>
+        docManager.search(
+          {
+            match: (node) =>
+              node.tsNode?.kind === ts.SyntaxKind.ParenthesizedExpression &&
+              node.kind === NodeKind.List &&
+              node.content[0]?.tsNode?.kind ===
+                ts.SyntaxKind.ObjectLiteralExpression,
+          },
+          { shallowSearchForRoot: true },
+        ),
+      ...eventsFromKeys("shift-y f ( c ) p shift-s h"),
+      // TODO would need to save and restore cursors, because otherwise the object literals which did not contain a match for the last search can never be reached again
+    ]),
   ];
   for (const c of cases) {
     (c.skip ? test.skip : test)(c.label, () => {
@@ -654,8 +697,13 @@ describe("DocManager", () => {
         false,
       );
       docManager.forceUpdate();
-      for (const { handler, event } of c.events) {
-        docManager[handler](event);
+      for (const eventOrFunction of c.events) {
+        if (typeof eventOrFunction === "function") {
+          eventOrFunction(docManager);
+        } else {
+          const { handler, event } = eventOrFunction;
+          docManager[handler](event);
+        }
       }
       expect(publicState.doc.text).toEqual(asPrettyDoc(c.expectedText).text);
       expect(publicState.mode === Mode.Normal);
