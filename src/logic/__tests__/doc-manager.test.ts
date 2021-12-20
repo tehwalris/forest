@@ -684,6 +684,13 @@ describe("DocManager", () => {
       ...eventsFromKeys("shift-y f ( c ) p shift-s h"),
       // TODO would need to save and restore cursors, because otherwise the object literals which did not contain a match for the last search can never be reached again
     ]),
+    makeEditingTaskTest("cpojer-js-codemod-unchain-variables", [
+      ...eventsFromKeys("ctrl-shift-h s ctrl-shift-l s m a c k i"),
+      ...eventsToTypeString("var x;"),
+      ...eventsFromKeys(
+        "escape alt-l p m b shift-m a k alt-h c shift-m b h p shift-s h shift-m a k d",
+      ),
+    ]),
   ];
   for (const c of cases) {
     (c.skip ? test.skip : test)(c.label, () => {

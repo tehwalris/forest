@@ -1,7 +1,5 @@
 var foo = true;
-
 var bar = false;
-
 const baz = 1;
 const fiz = "2";
 let buzz = 3.3;
