@@ -1,0 +1,38 @@
+This is a list of codemods from https://github.com/sejoker/awesome-jscodeshift.
+
+- react-codemod
+- js-codemod
+- js-transforms
+- rackt-codemod
+- coffee-to-es2015-codemod
+- 5to6-codemod
+- es5-function-to-class-codemod
+- webpack-babel-codemod
+- lodash-to-lodash-amd-codemods
+- rm-debugger
+- AMD Transformer
+- preact-codemod
+- mocha2ava-codemod
+- undecorate-codemod
+- vue-codemods
+  - general notes
+    - obviously can't work with vue files directly, but could do some equivalent task with plain js
+  - codemods
+    - sort_keys (no)
+      - no sort feature
+    - uppercase_constants (no)
+      - note: generally not a very correct codemod
+      - can't filter top-level statements
+      - can't find all usages
+        - either correctly with built in support
+        - or roughly by searching for an identifier from the selection
+      - can't search for more copies of the same literal
+      - can't match one of multiple types (string _or_ regex _or_ number)
+      - can't search up until a result is found
+        - a node _within_ some surrounding node must match
+    - extract non instance methods (almost)
+      - can't filter by usages in template
+        - can't filter by usages in general
+      - can't remove `this` from calls after extracting method
+        - can't find all usages
+      - shorthand function-in-property syntax is not supported
