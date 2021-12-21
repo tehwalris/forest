@@ -1,107 +1,107 @@
-This is a list of codemods from https://github.com/sejoker/awesome-jscodeshift.
-
-- `react-codemod`
-- `js-codemod`
-- `js-transforms`
-- `rackt-codemod`
-- `coffee-to-es2015-codemod`
-- `5to6-codemod`
-- `es5-function-to-class-codemod` (no)
-  - general notes
-    - no support for classes
-    - likely other issues would arise (missing jump to definition?)
-- `webpack-babel-codemod`
-  - general notes
-    - this just converts a very specific type of `require` to an `import`
-  - codemods
-    - `dynamic-require-import` (almost)
-      - no support for imports
-        - no reason why adding it wouldn't work
-      - adding after first import _or_ as first statement if no imports doesn't work
-        - can only do one or the other
-- `lodash-to-lodash-amd-codemods`
-  - general notes
-    - I don't get what this does
-- `rm-debugger`
-  - general notes
-    - irrelevantly simple
-      - this really only removes `debugger` calls
-- `AMD Transformer`
-  - general notes
-    - not a very relevant example
-    - probably possible to do, since it's nearly just a find-replace
-- `preact-codemod`
-  - codemods
-    - `import-declarations` (almost)
-      - can't edit multiple files
-        - can't get once-per-file behavior with only one file
-        - can simulate multiple files using functions
-      - can't add both conditional named imports (`render` and `Component`)
-        - would require cursor snapshots
-    - `component` (almost)
-      - finding calls with only good properties is hacky
-        - search for call, search for bad properties, reduce to first cursor, go up to call
-      - "calling" both sub-transforms is hacky
-        - assumes that the first transform removes all `createClass` calls that it was called with
-    - `component-sfc` (yes)
-      - note: actually drops some allowed options (e.g. `defaultProps`)
-      - note: some movements this is doing are not safe
-        - `closest`, `find`, `closest` might not be a noop
-    - `component-class` (no)
+- https://github.com/sejoker/awesome-jscodeshift
+  - `react-codemod`
+  - `js-codemod`
+  - `js-transforms`
+  - `rackt-codemod`
+  - `coffee-to-es2015-codemod`
+  - `5to6-codemod`
+  - `es5-function-to-class-codemod` (no)
+    - general notes
       - no support for classes
-        - would probably be possible with class support
-    - `props` (yes)
-      - ignoring the fact that there's no JSX or class support
-      - might not work with nested functions
-    - `state` (yes)
-      - adding `props` parameter if missing is hacky
-        - add `state` first, then check if it's the only one and add `props`
-        - would be slightly better with cursor snapshots
-    - `removePropTypes` (yes)
-- `mocha2ava-codemod`
-  - codemods
-    - `add-pass-test` (almost)
-      - can't match one of multiple types (function _or_ arrow)
-      - can't unwrap `co.wrap` and later combine it with other cursors
-      - can't strictly check that `t` is used
-        - no strict find uses (but codemod doesn't do that either)
-        - lookup table for asserts is possible with regex but impractical
-    - `mocha2ava`
-      - `extractDescribes` (no)
-        - can do the flatten sometimes, but not in the general case
-          - would need "move cursors up to common ancestor cursor" command
-        - can't do renaming
-          - can't work with strings
-          - can't collect path of ancestors to construct name from
-          - can't write complex logic
-      - `it2test` (maybe)
-      - `this2content` (yes)
-      - `insertRequires` (no)
-        - import statements are not supported
-        - can't check whether import statements are used an then branch on that
+      - likely other issues would arise (missing jump to definition?)
+  - `webpack-babel-codemod`
+    - general notes
+      - this just converts a very specific type of `require` to an `import`
+    - codemods
+      - `dynamic-require-import` (almost)
+        - no support for imports
+          - no reason why adding it wouldn't work
+        - adding after first import _or_ as first statement if no imports doesn't work
+          - can only do one or the other
+  - `lodash-to-lodash-amd-codemods`
+    - general notes
+      - I don't get what this does
+  - `rm-debugger`
+    - general notes
+      - irrelevantly simple
+        - this really only removes `debugger` calls
+  - `AMD Transformer`
+    - general notes
+      - not a very relevant example
+      - probably possible to do, since it's nearly just a find-replace
+  - `preact-codemod`
+    - codemods
+      - `import-declarations` (almost)
+        - can't edit multiple files
+          - can't get once-per-file behavior with only one file
+          - can simulate multiple files using functions
+        - can't add both conditional named imports (`render` and `Component`)
           - would require cursor snapshots
-- `undecorate-codemod` (no)
-  - general notes
-    - can't work with classes or decorators
-- `vue-codemods`
-  - general notes
-    - obviously can't work with vue files directly, but could do some equivalent task with plain js
-  - codemods
-    - `sort_keys` (no)
-      - no sort feature
-    - `uppercase_constants` (no)
-      - note: generally not a very correct codemod
-      - can't filter top-level statements
-      - can't find all usages
-        - either correctly with built in support
-        - or roughly by searching for an identifier from the selection
-      - can't search for more copies of the same literal
-      - can't match one of multiple types (string _or_ regex _or_ number)
-      - can't search up until a result is found
-        - a node _within_ some surrounding node must match
-    - `extract_non_instance_methods` (almost)
-      - can't filter by usages in template
-        - can't filter by usages in general
-      - can't remove `this` from calls after extracting method
+      - `component` (almost)
+        - finding calls with only good properties is hacky
+          - search for call, search for bad properties, reduce to first cursor, go up to call
+        - "calling" both sub-transforms is hacky
+          - assumes that the first transform removes all `createClass` calls that it was called with
+      - `component-sfc` (yes)
+        - note: actually drops some allowed options (e.g. `defaultProps`)
+        - note: some movements this is doing are not safe
+          - `closest`, `find`, `closest` might not be a noop
+      - `component-class` (no)
+        - no support for classes
+          - would probably be possible with class support
+      - `props` (yes)
+        - ignoring the fact that there's no JSX or class support
+        - might not work with nested functions
+      - `state` (yes)
+        - adding `props` parameter if missing is hacky
+          - add `state` first, then check if it's the only one and add `props`
+          - would be slightly better with cursor snapshots
+      - `removePropTypes` (yes)
+  - `mocha2ava-codemod`
+    - codemods
+      - `add-pass-test` (almost)
+        - can't match one of multiple types (function _or_ arrow)
+        - can't unwrap `co.wrap` and later combine it with other cursors
+        - can't strictly check that `t` is used
+          - no strict find uses (but codemod doesn't do that either)
+          - lookup table for asserts is possible with regex but impractical
+      - `mocha2ava`
+        - `extractDescribes` (no)
+          - can do the flatten sometimes, but not in the general case
+            - would need "move cursors up to common ancestor cursor" command
+          - can't do renaming
+            - can't work with strings
+            - can't collect path of ancestors to construct name from
+            - can't write complex logic
+        - `it2test` (maybe)
+        - `this2content` (yes)
+        - `insertRequires` (no)
+          - import statements are not supported
+          - can't check whether import statements are used an then branch on that
+            - would require cursor snapshots
+  - `undecorate-codemod` (no)
+    - general notes
+      - can't work with classes or decorators
+  - `vue-codemods`
+    - general notes
+      - obviously can't work with vue files directly, but could do some equivalent task with plain js
+    - codemods
+      - `sort_keys` (no)
+        - no sort feature
+      - `uppercase_constants` (no)
+        - note: generally not a very correct codemod
+        - can't filter top-level statements
         - can't find all usages
-      - shorthand function-in-property syntax is not supported
+          - either correctly with built in support
+          - or roughly by searching for an identifier from the selection
+        - can't search for more copies of the same literal
+        - can't match one of multiple types (string _or_ regex _or_ number)
+        - can't search up until a result is found
+          - a node _within_ some surrounding node must match
+      - `extract_non_instance_methods` (almost)
+        - can't filter by usages in template
+          - can't filter by usages in general
+        - can't remove `this` from calls after extracting method
+          - can't find all usages
+        - shorthand function-in-property syntax is not supported
+- https://github.com/rajasegar/awesome-codemods
