@@ -6,11 +6,30 @@ This is a list of codemods from https://github.com/sejoker/awesome-jscodeshift.
 - `rackt-codemod`
 - `coffee-to-es2015-codemod`
 - `5to6-codemod`
-- `es5-function-to-class-codemod`
+- `es5-function-to-class-codemod` (no)
+  - general notes
+    - no support for classes
+    - likely other issues would arise (missing jump to definition?)
 - `webpack-babel-codemod`
+  - general notes
+    - this just converts a very specific type of `require` to an `import`
+  - codemods
+    - `dynamic-require-import` (almost)
+      - no support for imports
+        - no reason why adding it wouldn't work
+      - adding after first import _or_ as first statement if no imports doesn't work
+        - can only do one or the other
 - `lodash-to-lodash-amd-codemods`
+  - general notes
+    - I don't get what this does
 - `rm-debugger`
+  - general notes
+    - irrelevantly simple
+      - this really only removes `debugger` calls
 - `AMD Transformer`
+  - general notes
+    - not a very relevant example
+    - probably possible to do, since it's nearly just a find-replace
 - `preact-codemod`
   - codemods
     - `import-declarations` (almost)
