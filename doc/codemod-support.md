@@ -1,10 +1,47 @@
 - https://github.com/sejoker/awesome-jscodeshift
+
   - `react-codemod`
   - `js-codemod`
   - `js-transforms`
   - `rackt-codemod`
+    - general notes
+      - API change codemods for `react-router` and `history`
+    - `react-router/deprecate-Link-location-props` (no)
+      - no JSX support
+    - `react-router/deprecate-context-history` (almost)
+      - would have to handle each of the 3 cases separately
+      - note: example replacement is not very accurate
+    - `deprecate-isActive-query` (no)
+      - can't find calls with exactly one argument
+      - can't select second argument on all cursors (!)
+      - would have to repeat edit manually for missing query argument vs null query
+    - `deprecate-createPath-createHref-query` (yes)
+      - note: this codemod replaces positional arguments with an object of named arguments
+      - there's some untested parsing logic which couldn't be supported
+    - `deprecate-pushState-replaceState` (ignore)
+      - same as `deprecate-createPath-createHref-query`
   - `coffee-to-es2015-codemod`
+    - general notes
+      - this transforms coffeescript compiler output to be more like handwritten js
+      - potentially worth looking at later
   - `5to6-codemod`
+    - codemods
+      - `amd` (no)
+        - no support for imports
+        - no support for zipping lists of cursors (import file names and identifiers)
+      - `cjs` (no)
+        - no support for imports
+        - too complex
+          - same basic task as ``webpack-babel-codemod/dynamic-require-import`, but way more complex and accurate
+      - `no strict` (yes)
+        - just search for `ExpressionStatement` `"use strict"` and delete
+      - `exports` (no)
+        - too complex
+      - `named-export-generation` (no)
+        - too complex
+      - `let` (yes)
+      - `simple-arrow` (almost)
+        - has same nested copy-paste problem as `js-codemod/jest-arrow`
   - `es5-function-to-class-codemod` (no)
     - general notes
       - no support for classes
@@ -18,14 +55,14 @@
           - no reason why adding it wouldn't work
         - adding after first import _or_ as first statement if no imports doesn't work
           - can only do one or the other
-  - `lodash-to-lodash-amd-codemods`
+  - `lodash-to-lodash-amd-codemods` (ignore)
     - general notes
       - I don't get what this does
-  - `rm-debugger`
+  - `rm-debugger` (ignore)
     - general notes
       - irrelevantly simple
         - this really only removes `debugger` calls
-  - `AMD Transformer`
+  - `AMD Transformer` (ignore)
     - general notes
       - not a very relevant example
       - probably possible to do, since it's nearly just a find-replace
@@ -104,4 +141,5 @@
         - can't remove `this` from calls after extracting method
           - can't find all usages
         - shorthand function-in-property syntax is not supported
+
 - https://github.com/rajasegar/awesome-codemods
