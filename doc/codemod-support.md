@@ -12,6 +12,33 @@ This is a list of codemods from https://github.com/sejoker/awesome-jscodeshift.
 - `rm-debugger`
 - `AMD Transformer`
 - `preact-codemod`
+  - codemods
+    - `import-declarations` (almost)
+      - can't edit multiple files
+        - can't get once-per-file behavior with only one file
+        - can simulate multiple files using functions
+      - can't add both conditional named imports (`render` and `Component`)
+        - would require cursor snapshots
+    - `component` (almost)
+      - finding calls with only good properties is hacky
+        - search for call, search for bad properties, reduce to first cursor, go up to call
+      - "calling" both sub-transforms is hacky
+        - assumes that the first transform removes all `createClass` calls that it was called with
+    - `component-sfc` (yes)
+      - note: actually drops some allowed options (e.g. `defaultProps`)
+      - note: some movements this is doing are not safe
+        - `closest`, `find`, `closest` might not be a noop
+    - `component-class` (no)
+      - no support for classes
+        - would probably be possible with class support
+    - `props` (yes)
+      - ignoring the fact that there's no JSX or class support
+      - might not work with nested functions
+    - `state` (yes)
+      - adding `props` parameter if missing is hacky
+        - add `state` first, then check if it's the only one and add `props`
+        - would be slightly better with cursor snapshots
+    - `removePropTypes` (yes)
 - `mocha2ava-codemod`
   - codemods
     - `add-pass-test` (almost)
