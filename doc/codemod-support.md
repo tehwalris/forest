@@ -1,26 +1,49 @@
 This is a list of codemods from https://github.com/sejoker/awesome-jscodeshift.
 
-- react-codemod
-- js-codemod
-- js-transforms
-- rackt-codemod
-- coffee-to-es2015-codemod
-- 5to6-codemod
-- es5-function-to-class-codemod
-- webpack-babel-codemod
-- lodash-to-lodash-amd-codemods
-- rm-debugger
-- AMD Transformer
-- preact-codemod
-- mocha2ava-codemod
-- undecorate-codemod
-- vue-codemods
+- `react-codemod`
+- `js-codemod`
+- `js-transforms`
+- `rackt-codemod`
+- `coffee-to-es2015-codemod`
+- `5to6-codemod`
+- `es5-function-to-class-codemod`
+- `webpack-babel-codemod`
+- `lodash-to-lodash-amd-codemods`
+- `rm-debugger`
+- `AMD Transformer`
+- `preact-codemod`
+- `mocha2ava-codemod`
+  - codemods
+    - `add-pass-test` (almost)
+      - can't match one of multiple types (function _or_ arrow)
+      - can't unwrap `co.wrap` and later combine it with other cursors
+      - can't strictly check that `t` is used
+        - no strict find uses (but codemod doesn't do that either)
+        - lookup table for asserts is possible with regex but impractical
+    - `mocha2ava`
+      - `extractDescribes` (no)
+        - can do the flatten sometimes, but not in the general case
+          - would need "move cursors up to common ancestor cursor" command
+        - can't do renaming
+          - can't work with strings
+          - can't collect path of ancestors to construct name from
+          - can't write complex logic
+      - `it2test` (maybe)
+      - `this2content` (yes)
+      - `insertRequires` (no)
+        - import statements are not supported
+        - can't check whether import statements are used an then branch on that
+          - would require cursor snapshots
+- `undecorate-codemod` (no)
+  - general notes
+    - can't work with classes or decorators
+- `vue-codemods`
   - general notes
     - obviously can't work with vue files directly, but could do some equivalent task with plain js
   - codemods
-    - sort_keys (no)
+    - `sort_keys` (no)
       - no sort feature
-    - uppercase_constants (no)
+    - `uppercase_constants` (no)
       - note: generally not a very correct codemod
       - can't filter top-level statements
       - can't find all usages
@@ -30,7 +53,7 @@ This is a list of codemods from https://github.com/sejoker/awesome-jscodeshift.
       - can't match one of multiple types (string _or_ regex _or_ number)
       - can't search up until a result is found
         - a node _within_ some surrounding node must match
-    - extract non instance methods (almost)
+    - `extract_non_instance_methods` (almost)
       - can't filter by usages in template
         - can't filter by usages in general
       - can't remove `this` from calls after extracting method
