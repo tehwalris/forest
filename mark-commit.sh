@@ -19,7 +19,8 @@ while true; do
   fi
 
   clear
-  git show "$commit_hash"
+  GIT_PAGER="less -+F -RSX" git show "$commit_hash"
+  clear
   read -p "Was that commit ($commit_offset_rev) interesting?" -n 1 -r
   echo "$commit_hash" "$REPLY" >> $1
 
