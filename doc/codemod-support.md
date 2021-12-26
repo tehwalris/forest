@@ -3,23 +3,53 @@
   - `react-codemod`
   - `js-codemod`
   - `js-transforms`
+    - codemods
+      - `bind-this-to-bind-expression` (ignore)
+        - uses non-standard bind operator
+      - `call-expression-bind-this-to-arrow-function-expression` (almost)
+        - note: similar to `js-codemod/jest-arrow`
+        - matching is different because of search in flattened AST
+        - manual parenthesizing required if return value is an object literal
+        - have to search twice
+          - would be slightly better with cursor snapshots
+        - nesting would be an issue
+      - `function-expression-to-arrow-function-expression` (almost)
+        - note: same problems as to `call-expression-bind-this-to-arrow-function-expression`
+        - note: check for `this` is too conservative
+          - also in the original script
+      - `props-to-destructuring` (no)
+        - too complicated
+          - reuse existing props destructure if there is one
+          - check if variable is already in scope and came from props
+        - working with variable scopes is not supported
+        - keyword whitelist is not supported
+        - no way to avoid creating two destructure entries for two uses of the same prop
+      - `pure-to-composite-component` (almost)
+        - note: example does not support directly destructured or renamed props argument
+        - note: search for `props` in script is not very precise
+        - paste into return is broken
+        - no class or JSX support
+        - have to search twice
+          - would be slightly better with cursor snapshots
+        - nesting would be an issue
   - `rackt-codemod`
     - general notes
       - API change codemods for `react-router` and `history`
-    - `react-router/deprecate-Link-location-props` (no)
-      - no JSX support
-    - `react-router/deprecate-context-history` (almost)
-      - would have to handle each of the 3 cases separately
-      - note: example replacement is not very accurate
-    - `deprecate-isActive-query` (no)
-      - can't find calls with exactly one argument
-      - can't select second argument on all cursors (!)
-      - would have to repeat edit manually for missing query argument vs null query
-    - `deprecate-createPath-createHref-query` (yes)
-      - note: this codemod replaces positional arguments with an object of named arguments
-      - there's some untested parsing logic which couldn't be supported
-    - `deprecate-pushState-replaceState` (ignore)
-      - same as `deprecate-createPath-createHref-query`
+    - codemods
+      - `react-router/deprecate-Link-location-props` (no)
+        - no JSX support
+      - `react-router/deprecate-context-history` (almost)
+        - would have to handle each of the 3 cases separately
+        - note: example replacement is not very accurate
+      - `deprecate-isActive-query` (no)
+        - can't find calls with exactly one argument
+        - can't select second argument on all cursors (!)
+        - would have to repeat edit manually for missing query argument vs null query
+      - `deprecate-createPath-createHref-query` (yes)
+        - note: this codemod replaces positional arguments with an object of named arguments
+        - there's some untested parsing logic which couldn't be supported
+      - `deprecate-pushState-replaceState` (ignore)
+        - same as `deprecate-createPath-createHref-query`
   - `coffee-to-es2015-codemod`
     - general notes
       - this transforms coffeescript compiler output to be more like handwritten js
