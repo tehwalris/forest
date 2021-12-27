@@ -1,3 +1,4 @@
+import { Options as PrettierOptions } from "prettier";
 import ts from "typescript";
 import { Doc, ListNode, Node, NodeKind, Path, TextRange } from "./interfaces";
 import { makeNodeValidTs } from "./make-valid";
@@ -67,7 +68,10 @@ function _withCopiedPlaceholdersAndIds(
   }
   throw new Error("unreachable");
 }
-export function getDocWithAllPlaceholders(docWithoutPlaceholders: Doc): {
+export function getDocWithAllPlaceholders(
+  docWithoutPlaceholders: Doc,
+  prettierOptions: PrettierOptions,
+): {
   doc: Doc;
   pathMapper: PathMapper;
 } {
@@ -76,6 +80,7 @@ export function getDocWithAllPlaceholders(docWithoutPlaceholders: Doc): {
   const uglySourceFile = tsNodeFromNode(validRoot) as ts.SourceFile;
   const prettySourceFile = prettyPrintTsSourceFile(
     uglyPrintTsSourceFile(uglySourceFile),
+    prettierOptions,
   );
   const parsedDoc = docFromAst(prettySourceFile);
   if (!prettyPrinterAdjustedEquality(validRoot, parsedDoc.root)) {

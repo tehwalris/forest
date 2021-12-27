@@ -8,7 +8,7 @@ import { LinearEditor } from "./components/linear-editor";
 import { Doc } from "./logic/interfaces";
 import { docFromAst } from "./logic/node-from-ts";
 import { astFromTypescriptFileContent } from "./logic/parse";
-import { prettyPrintTsString } from "./logic/print";
+import { defaultPrettierOptions, prettyPrintTsString } from "./logic/print";
 import { configureRemoteFs, Fs } from "./logic/tasks/fs";
 import { Task } from "./logic/tasks/interfaces";
 import { loadTasks } from "./logic/tasks/load";
@@ -80,7 +80,9 @@ export const App = () => {
   const initialDoc = useMemo(
     () =>
       docFromAst(
-        astFromTypescriptFileContent(prettyPrintTsString(initialDocInfo.text)),
+        astFromTypescriptFileContent(
+          prettyPrintTsString(initialDocInfo.text, defaultPrettierOptions),
+        ),
       ),
     [initialDocInfo],
   );
@@ -101,7 +103,10 @@ export const App = () => {
       return undefined;
     }
     try {
-      return prettyPrintTsString(selectedTask.contentAfter);
+      return prettyPrintTsString(
+        selectedTask.contentAfter,
+        defaultPrettierOptions,
+      );
     } catch (err) {
       console.warn("failed to pretty print selectedTask.contentAfter", err);
       return selectedTask.contentAfter;

@@ -14,10 +14,12 @@ import { DocManager, initialDocManagerPublicState, Mode } from "../doc-manager";
 import { Doc, NodeKind } from "../interfaces";
 import { docFromAst } from "../node-from-ts";
 import { astFromTypescriptFileContent } from "../parse";
-import { prettyPrintTsString } from "../print";
+import { defaultPrettierOptions, prettyPrintTsString } from "../print";
 function asPrettyDoc(uglyText: string): Doc {
   return docFromAst(
-    astFromTypescriptFileContent(prettyPrintTsString(uglyText)),
+    astFromTypescriptFileContent(
+      prettyPrintTsString(uglyText, defaultPrettierOptions),
+    ),
   );
 }
 describe("DocManager", () => {
@@ -615,6 +617,7 @@ describe("DocManager", () => {
           publicState = s;
         },
         false,
+        defaultPrettierOptions,
       );
       docManager.forceUpdate();
       for (const eventOrFunction of c.events) {

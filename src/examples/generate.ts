@@ -10,13 +10,19 @@ import { Doc } from "../logic/interfaces";
 import { docFromAst } from "../logic/node-from-ts";
 import { astFromTypescriptFileContent } from "../logic/parse";
 import { defaultPrettierOptions, prettyPrintTsString } from "../logic/print";
+import { CharSelection, renderLinesFromDoc } from "../logic/render";
 import { examples } from "./examples";
 import { Example } from "./interfaces";
 import { eventsFromEventCreator } from "./keys";
 
-const allExamplesOutputDir = path.join(__dirname, `../../latex-out/examples`);
-fs.rmSync(allExamplesOutputDir, { recursive: true, force: true });
-fs.mkdirSync(allExamplesOutputDir, { recursive: true });
+const prettierOptions = {
+  ...defaultPrettierOptions,
+  printWidth: 55,
+};
+
+const outputDir = path.join(__dirname, `../../latex-out/examples`);
+fs.rmSync(outputDir, { recursive: true, force: true });
+fs.mkdirSync(outputDir, { recursive: true });
 for (const example of examples) {
   console.log(example.name);
   const history = runExample(example);
@@ -26,10 +32,7 @@ for (const example of examples) {
 function asPrettyDoc(uglyText: string): Doc {
   return docFromAst(
     astFromTypescriptFileContent(
-      prettyPrintTsString(uglyText, {
-        ...defaultPrettierOptions,
-        printWidth: 55,
-      }),
+      prettyPrintTsString(uglyText, prettierOptions),
     ),
   );
 }
@@ -49,6 +52,7 @@ function runExample(example: Example): DocManagerPublicState[] {
       publicState = s;
     },
     false,
+    prettierOptions,
   );
   docManager.forceUpdate();
   const history = [publicState];
@@ -71,11 +75,84 @@ function runExample(example: Example): DocManagerPublicState[] {
 }
 
 function writeExample(example: Example, history: DocManagerPublicState[]) {
-  const exampleOutputDir = path.join(allExamplesOutputDir, example.name);
-  fs.mkdirSync(exampleOutputDir);
   for (const [i, state] of history.entries()) {
-    fs.writeFileSync(path.join(exampleOutputDir, `${i}.ts`), state.doc.text, {
-      encoding: "utf-8",
-    });
+    fs.writeFileSync(
+      path.join(outputDir, `${example.name}-${i}.ts.tex`),
+      generateEscapedTs(state),
+      {
+        encoding: "utf-8",
+      },
+    );
   }
+  fs.writeFileSync(
+    path.join(outputDir, `${example.name}.tex`),
+    generateExampleTex(example, history),
+    { encoding: "utf-8" },
+  );
+}
+
+function generateEscapedTs({
+  doc,
+  mode,
+  cursors,
+  queuedCursors,
+}: DocManagerPublicState): string {
+  const lines = renderLinesFromDoc(
+    doc,
+    mode,
+    cursors,
+    queuedCursors.map((c) => ({
+      range: c.focus,
+      value: CharSelection.Queued,
+    })),
+  );
+  const verbatimLines = lines
+    .map((l) =>
+      l.regions
+        .map((r) => {
+          const saveVerb = String.raw`\SaveVerb{Verb}^${r.text}^`;
+          const useVerb = String.raw`\strut\UseVerb{Verb}`;
+          const wrapped = (() => {
+            if (r.selection & CharSelection.Normal) {
+              return String.raw`\adjustbox{bgcolor=green}{${useVerb}}`;
+            }
+            return useVerb;
+          })();
+          return `${saveVerb}${wrapped}`;
+        })
+        .join(""),
+    )
+    .join("\\\\\n");
+  return String.raw`
+    \begin{flushleft}
+      \setlength{\fboxsep}{0pt}
+      ${verbatimLines}
+    \end{flushleft}
+  `;
+}
+
+function generateExampleTex(
+  example: Example,
+  history: DocManagerPublicState[],
+): string {
+  function generateStep(i: number) {
+    return String.raw`
+      \begin{examplestep}
+        \small
+        \input{examples/${example.name}-${i}.ts.tex}
+        \normalsize
+        \captionof{figure}{${
+          i === 0 ? "Initial state" : example.describedGroups[i - 1].description
+        }}
+      \end{examplestep}
+    `;
+  }
+
+  return String.raw`
+\FloatBarrier
+\subsection{${example.name}}
+\label{example:${example.name}}
+${history.map((_entry, i) => generateStep(i)).join("\n")}
+\FloatBarrier
+  `;
 }

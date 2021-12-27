@@ -1,3 +1,4 @@
+import { Options as PrettierOptions } from "prettier";
 import { sortBy } from "ramda";
 import { checkInsertion } from "./check-insertion";
 import { cursorCopy } from "./cursor/copy";
@@ -162,6 +163,7 @@ export class DocManager {
     private doc: Doc,
     private _onUpdate: (publicState: DocManagerPublicState) => void,
     private readOnly: boolean,
+    private prettierOptions: PrettierOptions,
   ) {
     this.initialDoc = doc;
     this.lastDoc = doc;
@@ -179,7 +181,12 @@ export class DocManager {
     }
   }
   clone(): DocManager {
-    const other = new DocManager(this.initialDoc, this.onUpdate, this.readOnly);
+    const other = new DocManager(
+      this.initialDoc,
+      this.onUpdate,
+      this.readOnly,
+      this.prettierOptions,
+    );
     DocManager.copyDocManagerFields(this, other);
     return other;
   }
@@ -918,7 +925,7 @@ export class DocManager {
     return CursorOverlapKind.None;
   }
   private updateDocText() {
-    this.doc = getDocWithAllPlaceholders(this.doc).doc;
+    this.doc = getDocWithAllPlaceholders(this.doc, this.prettierOptions).doc;
   }
   private updateMarkRanges() {
     const oldRanges = this.cursors.flatMap((c) => c.marks).map((m) => m.focus);

@@ -173,7 +173,7 @@ export function uglyPrintTsSourceFile(
 }
 export function prettyPrintTsSourceFile(
   unformattedAst: ts.SourceFile,
-  prettierOptions: PrettierOptions = defaultPrettierOptions,
+  prettierOptions: PrettierOptions,
 ): ts.SourceFile {
   return assertNoSyntaxErrors(
     astFromTypescriptFileContent(
@@ -183,7 +183,7 @@ export function prettyPrintTsSourceFile(
 }
 export function prettyPrintTsString(
   unformattedText: string,
-  prettierOptions: PrettierOptions = defaultPrettierOptions,
+  prettierOptions: PrettierOptions,
 ): string {
   return _prettyPrintTsSourceFile(
     assertNoSyntaxErrors(astFromTypescriptFileContent(unformattedText)),

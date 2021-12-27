@@ -5,6 +5,7 @@ import {
   initialDocManagerPublicState,
 } from "../logic/doc-manager";
 import { Doc } from "../logic/interfaces";
+import { defaultPrettierOptions } from "../logic/print";
 export function useDocManager(
   initialDoc: Doc,
   readOnly: boolean,
@@ -14,7 +15,12 @@ export function useDocManager(
     initialDocManagerPublicState,
   );
   const [docManager, setDocManager] = useState(
-    new DocManager(initialDoc, setPublicState, readOnly),
+    new DocManager(
+      initialDoc,
+      setPublicState,
+      readOnly,
+      defaultPrettierOptions,
+    ),
   );
   useEffect(() => {
     setDocManager((oldDocManager) => {
@@ -27,6 +33,7 @@ export function useDocManager(
           }
         },
         readOnly,
+        defaultPrettierOptions,
       );
       init?.(newDocManager);
       initDone = true;
