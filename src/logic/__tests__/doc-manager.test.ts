@@ -640,7 +640,7 @@ describe("DocManager", () => {
       // shift-m a j a - insert inside marked empty object literal
       // type: x: {current: x, default: x},
       // escape - finish inserting
-      // alt-h p l l p - paste name over first two "x"s and move to last "x"
+      // alt-h p l l p - paste name over first two "x"s
       // l l m c - move to last "x" and mark it
       // shift-m b alt-l c - jump to marked parameter declaration and copy initializer
       // shift-m c p - jump to last "x" and paste initializer
