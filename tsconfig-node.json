@@ -17,6 +17,6 @@
     "noFallthroughCasesInSwitch": true,
     "outDir": "dist"
   },
-  "exclude": ["playground", "tasks"],
+  "exclude": ["playground", "tasks", "dist", "latex-out"],
   "include": ["src"]
 }
