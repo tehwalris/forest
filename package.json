@@ -38,7 +38,9 @@
     "eject": "react-scripts eject",
     "format": "prettier --write .",
     "check-format": "prettier --check .",
-    "generate-templates": "node src/logic/legacy-templates/generate-templates.js && prettier --write src/logic/legacy-templates/templates.ts"
+    "generate-templates": "node src/logic/legacy-templates/generate-templates.js && prettier --write src/logic/legacy-templates/templates.ts",
+    "build-node": "tsc --build tsconfig-node.json",
+    "build-node-watch": "tsc --build tsconfig-node.json --watch --incremental"
   },
   "eslintConfig": {
     "extends": "react-app"
