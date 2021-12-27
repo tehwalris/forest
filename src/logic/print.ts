@@ -1,4 +1,4 @@
-import type { Options } from "prettier";
+import type { Options as PrettierOptions } from "prettier";
 import parserTypescript from "prettier/parser-typescript";
 import { format as prettierFormat } from "prettier/standalone";
 import ts from "typescript";
@@ -11,7 +11,7 @@ import {
   InsertionOrDeletionKind,
 } from "./text";
 import { nodesAreEqualExceptRangesAndPlaceholdersAndIds } from "./tree-utils/equal";
-const PRETTIER_OPTIONS: Options = {
+export const defaultPrettierOptions: PrettierOptions = {
   parser: "typescript",
   printWidth: 80,
   trailingComma: "all",
@@ -58,9 +58,12 @@ interface PrettierUnwrap {
   nodeB: ts.TextRange;
 }
 type PrettierWrapUnwrap = PrettierWrap | PrettierUnwrap;
-function _prettyPrintTsSourceFile(unformattedAst: ts.SourceFile): string {
+function _prettyPrintTsSourceFile(
+  unformattedAst: ts.SourceFile,
+  prettierOptions: PrettierOptions,
+): string {
   const unformattedText = unformattedAst.text;
-  const formattedText = prettierFormat(unformattedText, PRETTIER_OPTIONS);
+  const formattedText = prettierFormat(unformattedText, prettierOptions);
   const formattedAst = assertNoSyntaxErrors(
     astFromTypescriptFileContent(formattedText),
   );
@@ -170,14 +173,21 @@ export function uglyPrintTsSourceFile(
 }
 export function prettyPrintTsSourceFile(
   unformattedAst: ts.SourceFile,
+  prettierOptions: PrettierOptions = defaultPrettierOptions,
 ): ts.SourceFile {
   return assertNoSyntaxErrors(
-    astFromTypescriptFileContent(_prettyPrintTsSourceFile(unformattedAst)),
+    astFromTypescriptFileContent(
+      _prettyPrintTsSourceFile(unformattedAst, prettierOptions),
+    ),
   );
 }
-export function prettyPrintTsString(unformattedText: string): string {
+export function prettyPrintTsString(
+  unformattedText: string,
+  prettierOptions: PrettierOptions = defaultPrettierOptions,
+): string {
   return _prettyPrintTsSourceFile(
     assertNoSyntaxErrors(astFromTypescriptFileContent(unformattedText)),
+    prettierOptions,
   );
 }
 export function prettyPrinterAdjustedEquality(a: Node, b: Node): boolean {

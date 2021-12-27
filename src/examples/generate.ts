@@ -9,7 +9,7 @@ import {
 import { Doc } from "../logic/interfaces";
 import { docFromAst } from "../logic/node-from-ts";
 import { astFromTypescriptFileContent } from "../logic/parse";
-import { prettyPrintTsString } from "../logic/print";
+import { defaultPrettierOptions, prettyPrintTsString } from "../logic/print";
 import { examples } from "./examples";
 import { Example } from "./interfaces";
 import { eventsFromEventCreator } from "./keys";
@@ -25,7 +25,12 @@ for (const example of examples) {
 
 function asPrettyDoc(uglyText: string): Doc {
   return docFromAst(
-    astFromTypescriptFileContent(prettyPrintTsString(uglyText)),
+    astFromTypescriptFileContent(
+      prettyPrintTsString(uglyText, {
+        ...defaultPrettierOptions,
+        printWidth: 55,
+      }),
+    ),
   );
 }
 
