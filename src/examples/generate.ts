@@ -1,5 +1,3 @@
-import { Example } from "./interfaces";
+import { examples } from "./examples";
 
-const examples: Example[] = [];
-
-console.log("walrus");
+console.log("walrus", examples);

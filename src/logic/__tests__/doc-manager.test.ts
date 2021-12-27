@@ -2,6 +2,8 @@ import * as fs from "fs";
 import * as path from "path";
 import { repeat } from "ramda";
 import ts from "typescript";
+import { examples } from "../../examples/examples";
+import { EventCreatorKind, Example } from "../../examples/interfaces";
 import {
   DocManager,
   initialDocManagerPublicState,
@@ -71,7 +73,7 @@ function parseKeyCombo(combo: string): EventWithHandler {
     } else {
       const specialKey = specialKeys.find((s) => s.name === part);
       if (!specialKey) {
-        throw new Error(`unknown special key: ${specialKey}`);
+        throw new Error(`unknown special key: ${part}`);
       }
       usedSpecialKeys.push(specialKey);
       if (specialKey.key) {
@@ -143,6 +145,19 @@ describe("DocManager", () => {
   makeEditingTaskTest.skip = (
     ...args: Parameters<typeof makeEditingTaskTest>
   ) => ({ ...makeEditingTaskTest(...args), skip: true });
+  const testFromExample = (example: Example): TestCase => ({
+    ...makeEditingTaskTest(
+      example.name,
+      example.describedGroups
+        .flatMap((g) => g.eventCreators)
+        .flatMap((c) =>
+          c.kind === EventCreatorKind.FromKeys
+            ? eventsFromKeys(c.keys)
+            : eventsToTypeString(c.string),
+        ),
+    ),
+    label: `example: ${example.name}`,
+  });
   const cases: TestCase[] = [
     makeRoundTripTest('console.log("walrus")'),
     makeRoundTripTest.skip("f(async <T>(x: T, y) => x + y)"),
@@ -627,33 +642,6 @@ describe("DocManager", () => {
       expectedText: "f(a.a.b.c)",
       skip: true,
     },
-    makeEditingTaskTest("multi-cursor-marks", [
-      // { i - insert at start of function body
-      // type: if(debug){console.log({})}
-      // escape - finish inserting
-      // { {} m a - select and mark empty object literal
-      // } } shift-h space j a - append function parameter
-      // type: ,debug:boolean=false
-      // escape - finish inserting
-      // k ctrl-shift-h s - select parameters except debug and split cursor
-      // m b alt-h c - mark parameter and copy parameter name
-      // shift-m a j a - insert inside marked empty object literal
-      // type: x: {current: x, default: x},
-      // escape - finish inserting
-      // alt-h p l l p - paste name over first two "x"s
-      // l l m c - move to last "x" and mark it
-      // shift-m b alt-l c - jump to marked parameter declaration and copy initializer
-      // shift-m c p - jump to last "x" and paste initializer
-      ...eventsFromKeys("{ i"),
-      ...eventsToTypeString("if(debug){console.log({})}"),
-      ...eventsFromKeys("escape { { } m a } } shift-h space j a"),
-      ...eventsToTypeString(",debug:boolean=false"),
-      ...eventsFromKeys("escape k ctrl-shift-h s m b alt-h c shift-m a j a"),
-      ...eventsToTypeString("x: {current: x, default: x},"),
-      ...eventsFromKeys(
-        "escape alt-h p l l p l l m c shift-m b alt-l c shift-m c p",
-      ),
-    ]),
     makeEditingTaskTest("multi-cursor-reduce-across", [
       ...eventsFromKeys("s ( s a"),
       ...eventsToTypeString(":number"),
@@ -707,6 +695,7 @@ describe("DocManager", () => {
         "escape alt-l p m b shift-m a k alt-h c shift-m b h p shift-s h shift-m a k d",
       ),
     ]),
+    ...examples.map((e) => testFromExample(e)),
   ];
   for (const c of cases) {
     (c.skip ? test.skip : test)(c.label, () => {

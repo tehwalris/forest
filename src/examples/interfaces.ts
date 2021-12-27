@@ -1,6 +1,6 @@
 export interface Example {
   name: string;
-  describedGroups: DescribedGroup;
+  describedGroups: DescribedGroup[];
 }
 
 export interface DescribedGroup {
