@@ -629,31 +629,21 @@ describe("DocManager", () => {
     },
     makeEditingTaskTest("multi-cursor-marks", [
       // { i - insert at start of function body
-      // cursors: A11
       // type: if(debug){console.log({})}
       // escape - finish inserting
       // { {} m a - select and mark empty object literal
-      // cursors: A12:24
       // } } shift-h space j a - append function parameter
-      // cursors: A8
       // type: ,debug:boolean=false
       // escape - finish inserting
       // k ctrl-shift-h s - select parameters except debug and split cursor
-      // cursors: B1:4, C5:8
       // m b alt-h c - mark parameter and copy parameter name
-      // cursors: B1:2, C5:6
       // shift-m a j a - insert inside marked empty object literal
       // type: x: {current: x, default: x},
       // escape - finish inserting
-      // cursors: B13:23 (not really), C?
       // alt-h p l l p - paste name over first two "x"s
-      // cursors: B17:19, C?
       // l l m c - move to last "x" and mark it
-      // cursors: B22:23, C?
       // shift-m b alt-l c - jump to marked parameter declaration and copy initializer
-      // cursors: B3:4, C7:8
       // shift-m c p - jump to last "x" and paste initializer
-      // cursors: B22:23, C?
       ...eventsFromKeys("{ i"),
       ...eventsToTypeString("if(debug){console.log({})}"),
       ...eventsFromKeys("escape { { } m a } } shift-h space j a"),
