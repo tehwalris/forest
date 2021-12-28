@@ -58,6 +58,40 @@ const eventCreatorSearchForJestCalls: EventCreator = {
 
 export const examples: Example[] = [
   {
+    name: "multi-cursor-reduce-across",
+    describedGroups: [
+      {
+        description: "Split cursor (one per function)",
+        eventCreators: [fromKeys("s")],
+      },
+      {
+        description: "Go to parameters and split cursor (one per parameter)",
+        eventCreators: [fromKeys("( s")],
+      },
+      {
+        description: "Add type annotation to parameter",
+        eventCreators: [
+          fromKeys("a"),
+          toTypeString(":number"),
+          fromKeys("escape"),
+        ],
+      },
+      {
+        label: "reduce",
+        description: "Remove all cursors except the first (per function)",
+        eventCreators: [fromKeys("shift-s h")],
+      },
+      {
+        description: "Add return type annotation",
+        eventCreators: [
+          fromKeys(") a"),
+          toTypeString(":number"),
+          fromKeys("escape"),
+        ],
+      },
+    ],
+  },
+  {
     name: "multi-cursor-marks",
     describedGroups: [
       {
@@ -112,40 +146,6 @@ export const examples: Example[] = [
       {
         description: 'Jump to last "x" and paste initializer',
         eventCreators: [fromKeys("shift-m c p")],
-      },
-    ],
-  },
-  {
-    name: "multi-cursor-reduce-across",
-    describedGroups: [
-      {
-        description: "Split cursor (one per function)",
-        eventCreators: [fromKeys("s")],
-      },
-      {
-        description: "Go to parameters and split cursor (one per parameter)",
-        eventCreators: [fromKeys("( s")],
-      },
-      {
-        description: "Add type annotation to parameter",
-        eventCreators: [
-          fromKeys("a"),
-          toTypeString(":number"),
-          fromKeys("escape"),
-        ],
-      },
-      {
-        label: "reduce",
-        description: "Remove all cursors except the first (per function)",
-        eventCreators: [fromKeys("shift-s h")],
-      },
-      {
-        description: "Add return type annotation",
-        eventCreators: [
-          fromKeys(") a"),
-          toTypeString(":number"),
-          fromKeys("escape"),
-        ],
       },
     ],
   },
