@@ -11,8 +11,9 @@ import { docFromAst } from "../logic/node-from-ts";
 import { astFromTypescriptFileContent } from "../logic/parse";
 import { defaultPrettierOptions, prettyPrintTsString } from "../logic/print";
 import { CharSelection, renderLinesFromDoc } from "../logic/render";
+import { unreachable } from "../logic/util";
 import { examples } from "./examples";
-import { Example } from "./interfaces";
+import { EventCreator, EventCreatorKind, Example } from "./interfaces";
 import { eventsFromEventCreator } from "./keys";
 
 const prettierOptions = {
@@ -20,13 +21,15 @@ const prettierOptions = {
   printWidth: 55,
 };
 
-const outputDir = path.join(__dirname, `../../latex-out/examples`);
-fs.rmSync(outputDir, { recursive: true, force: true });
-fs.mkdirSync(outputDir, { recursive: true });
-for (const example of examples) {
-  console.log(example.name);
-  const history = runExample(example);
-  writeExample(example, history);
+function main() {
+  const outputDir = path.join(__dirname, `../../latex-out/examples`);
+  fs.rmSync(outputDir, { recursive: true, force: true });
+  fs.mkdirSync(outputDir, { recursive: true });
+  for (const example of examples) {
+    console.log(example.name);
+    const history = runExample(example);
+    writeExample(example, history, outputDir);
+  }
 }
 
 function asPrettyDoc(uglyText: string): Doc {
@@ -74,11 +77,18 @@ function runExample(example: Example): DocManagerPublicState[] {
   return history;
 }
 
-function writeExample(example: Example, history: DocManagerPublicState[]) {
+function writeExample(
+  example: Example,
+  history: DocManagerPublicState[],
+  outputDir: string,
+) {
   for (const [i, state] of history.entries()) {
     fs.writeFileSync(
-      path.join(outputDir, `${example.name}-${i}.ts.tex`),
-      generateEscapedTs(state),
+      path.join(outputDir, `${example.name}-${i}.tex`),
+      generateStepTex(
+        state,
+        i === 0 ? [] : example.describedGroups[i - 1].eventCreators,
+      ),
       {
         encoding: "utf-8",
       },
@@ -91,13 +101,58 @@ function writeExample(example: Example, history: DocManagerPublicState[]) {
   );
 }
 
-function generateEscapedTs({
-  doc,
-  mode,
-  cursors,
-  queuedCursors,
-}: DocManagerPublicState): string {
-  const lines = renderLinesFromDoc(
+const latexKeyMapping = new Map<string, string>([
+  ["escape", "\\esc"],
+  ["ctrl", "\\ctrl"],
+  ["shift", "\\shift"],
+  ["alt", "\\Alt"],
+  ["space", "\\SPACE"],
+  ["backspace", "\\backspace"],
+  ["h", "\\arrowkeyleft"],
+  ["l", "\\arrowkeyright"],
+  ["k", "\\arrowkeyup"],
+  ["j", "\\arrowkeydown"],
+  ...["{", "}", "[", "]"].map((k): [string, string] => [k, `\\${k}`]),
+  ...["(", ")"].map((k): [string, string] => [k, k]),
+]);
+
+function latexFromEventCreator(eventCreator: EventCreator): string {
+  switch (eventCreator.kind) {
+    case EventCreatorKind.FromKeys: {
+      return eventCreator.keys
+        .split(/\s+/)
+        .map((combo) =>
+          combo
+            .split("-")
+            .map((key) => {
+              const latexKey = latexKeyMapping.get(key);
+              if (latexKey) {
+                return latexKey;
+              }
+              if (key.match(/^[a-z]$/)) {
+                return key;
+              }
+              throw new Error(`unmapped key: ${key}`);
+            })
+            .join("+"),
+        )
+        .map((combo) => `\\keys{${combo}}`)
+        .join("\\hspace{2mm}");
+    }
+    case EventCreatorKind.ToTypeString: {
+      return String.raw`Type \SaveVerb{Verb}^${eventCreator.string}^\adjustbox{bgcolor={HTML}{F2F2F2}}{\strut\UseVerb{Verb}}`;
+    }
+    default: {
+      return unreachable(eventCreator);
+    }
+  }
+}
+
+function generateStepTex(
+  { doc, mode, cursors, queuedCursors }: DocManagerPublicState,
+  eventCreators: EventCreator[],
+): string {
+  const renderLines = renderLinesFromDoc(
     doc,
     mode,
     cursors,
@@ -106,7 +161,7 @@ function generateEscapedTs({
       value: CharSelection.Queued,
     })),
   );
-  const verbatimLines = lines
+  const latexCodeLines = renderLines
     .map((l) =>
       l.regions
         .map((r) => {
@@ -114,7 +169,7 @@ function generateEscapedTs({
           const useVerb = String.raw`\strut\UseVerb{Verb}`;
           const wrapped = (() => {
             if (r.selection & CharSelection.Normal) {
-              return String.raw`\adjustbox{bgcolor=green}{${useVerb}}`;
+              return String.raw`\adjustbox{bgcolor={HTML}{A5BFFF}}{${useVerb}}`;
             }
             return useVerb;
           })();
@@ -123,10 +178,20 @@ function generateEscapedTs({
         .join(""),
     )
     .join("\\\\\n");
+  const eventLines = eventCreators
+    .map((c) => latexFromEventCreator(c))
+    .join("\\\\\n");
   return String.raw`
+    \adjustbox{bgcolor={HTML}{F2F2F2}}{
+      \begin{minipage}{\columnwidth}
+        \begin{flushleft}
+          \setlength{\fboxsep}{0pt}
+          ${latexCodeLines}
+        \end{flushleft}
+      \end{minipage}
+    }
     \begin{flushleft}
-      \setlength{\fboxsep}{0pt}
-      ${verbatimLines}
+      ${eventLines}
     \end{flushleft}
   `;
 }
@@ -135,11 +200,11 @@ function generateExampleTex(
   example: Example,
   history: DocManagerPublicState[],
 ): string {
-  function generateStep(i: number) {
+  function generateStepWrapper(i: number) {
     return String.raw`
       \begin{examplestep}
         \small
-        \input{examples/${example.name}-${i}.ts.tex}
+        \input{examples/${example.name}-${i}.tex}
         \normalsize
         \captionof{figure}{${
           i === 0 ? "Initial state" : example.describedGroups[i - 1].description
@@ -152,7 +217,9 @@ function generateExampleTex(
 \FloatBarrier
 \subsection{${example.name}}
 \label{example:${example.name}}
-${history.map((_entry, i) => generateStep(i)).join("\n")}
+${history.map((_entry, i) => generateStepWrapper(i)).join("\n")}
 \FloatBarrier
   `;
 }
+
+main();
