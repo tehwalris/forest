@@ -120,11 +120,13 @@ export const examples: Example[] = [
       },
       {
         description: "Move up to statement (cursors overlap)",
+        label: "statement-overlap",
         eventCreators: [fromKeys("k")],
       },
       {
         description:
           "Insert new statements (multiple copies inserted due to overlapping cursors)",
+        label: "insert",
         eventCreators: [
           fromKeys("i"),
           toTypeString("var x;"),
@@ -138,6 +140,7 @@ export const examples: Example[] = [
       },
       {
         description: "Go to old keyword, copy it, and jump back, and paste it.",
+        label: "keyword-overlap",
         eventCreators: [fromKeys("shift-m a k alt-h c shift-m b h p")],
       },
       {
