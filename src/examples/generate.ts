@@ -67,8 +67,12 @@ function runExample(example: Example): DocManagerPublicState[] {
   for (const group of example.describedGroups) {
     for (const eventCreator of group.eventCreators) {
       for (const eventOrFunction of eventsFromEventCreator(eventCreator)) {
-        const { handler, event } = eventOrFunction;
-        docManager[handler](event);
+        if (typeof eventOrFunction === "function") {
+          eventOrFunction(docManager);
+        } else {
+          const { handler, event } = eventOrFunction;
+          docManager[handler](event);
+        }
       }
     }
     history.push(publicState);
@@ -146,6 +150,9 @@ function latexFromEventCreator(eventCreator: EventCreator): string {
     }
     case EventCreatorKind.ToTypeString: {
       return String.raw`Type \SaveVerb{Verb}^${eventCreator.string}^\adjustbox{bgcolor={HTML}{F2F2F2}}{\strut\UseVerb{Verb}}`;
+    }
+    case EventCreatorKind.Function: {
+      return eventCreator.description;
     }
     default: {
       return unreachable(eventCreator);

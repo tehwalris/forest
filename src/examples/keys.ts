@@ -1,4 +1,5 @@
-import { MinimalKeyboardEvent } from "../logic/doc-manager";
+import { DocManager, MinimalKeyboardEvent } from "../logic/doc-manager";
+import { unreachable } from "../logic/util";
 import { EventCreator, EventCreatorKind } from "./interfaces";
 
 export type EventHandler = "onKeyUp" | "onKeyDown" | "onKeyPress";
@@ -90,8 +91,17 @@ export function eventsFromKeys(keys: string): EventWithHandler[] {
 export function eventsToTypeString(keys: string): EventWithHandler[] {
   return [...keys].map((key) => ({ handler: "onKeyPress", event: { key } }));
 }
-export function eventsFromEventCreator(c: EventCreator): EventWithHandler[] {
-  return c.kind === EventCreatorKind.FromKeys
-    ? eventsFromKeys(c.keys)
-    : eventsToTypeString(c.string);
+export function eventsFromEventCreator(
+  c: EventCreator,
+): (EventWithHandler | ((docManager: DocManager) => void))[] {
+  switch (c.kind) {
+    case EventCreatorKind.FromKeys:
+      return eventsFromKeys(c.keys);
+    case EventCreatorKind.ToTypeString:
+      return eventsToTypeString(c.string);
+    case EventCreatorKind.Function:
+      return [c.function];
+    default:
+      return unreachable(c);
+  }
 }

@@ -1,3 +1,5 @@
+import ts from "typescript";
+import { DocManager } from "../logic/doc-manager";
 import {
   EventCreatorFromKeys,
   EventCreatorKind,
@@ -147,6 +149,42 @@ export const examples: Example[] = [
         description:
           "Delete all cursors except the first (per old statement). Delete the old statement.",
         eventCreators: [fromKeys("shift-s h shift-m a k d")],
+      },
+    ],
+  },
+  {
+    name: "cpojer-js-codemod-jest-arrow-flat",
+    describedGroups: [
+      {
+        description: "Search for function expressions",
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for function expressions (with any content)",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) =>
+                    node.tsNode?.kind === ts.SyntaxKind.FunctionExpression,
+                },
+                { shallowSearchForRoot: false },
+              ),
+          },
+        ],
+      },
+      { description: "Copy function body", eventCreators: [fromKeys("{ } c")] },
+      {
+        description: "Create arrow function and paste body",
+        eventCreators: [
+          fromKeys("k i"),
+          toTypeString("()=>{},"),
+          fromKeys("escape { } p"),
+        ],
+      },
+      {
+        description: "Delete function expression",
+        eventCreators: [fromKeys("shift-l space d")],
       },
     ],
   },
