@@ -2,6 +2,8 @@ import ts from "typescript";
 import { DocManager } from "../logic/doc-manager";
 import { ListKind, NodeKind } from "../logic/interfaces";
 import {
+  DescribedGroup,
+  EventCreator,
   EventCreatorFromKeys,
   EventCreatorKind,
   EventCreatorToTypeString,
@@ -15,6 +17,44 @@ function fromKeys(keys: string): EventCreatorFromKeys {
 function toTypeString(string: string): EventCreatorToTypeString {
   return { kind: EventCreatorKind.ToTypeString, string };
 }
+
+const eventCreatorSearchForJestCalls: EventCreator = {
+  kind: EventCreatorKind.Function,
+  description:
+    "Use structural search UI (not shown) to find calls with callee names matching a regular expression and having a function expression as the second argument",
+  function: (docManager: DocManager) =>
+    docManager.search(
+      {
+        match: (node) => {
+          function tsNodeIsItDescribe(node: ts.Node | undefined): boolean {
+            return (
+              !!node &&
+              ts.isIdentifier(node) &&
+              !!node.text.match(/^x?(?:it|describe)$/)
+            );
+          }
+          function tsNodeIsString(node: ts.Node | undefined): boolean {
+            return !!node && ts.isStringLiteral(node);
+          }
+          function tsNodeIsFunction(node: ts.Node | undefined): boolean {
+            return !!node && ts.isFunctionExpression(node);
+          }
+          return (
+            node.kind === NodeKind.List &&
+            node.listKind === ListKind.TightExpression &&
+            node.content.length === 2 &&
+            tsNodeIsItDescribe(node.content[0].tsNode) &&
+            node.content[1].kind === NodeKind.List &&
+            node.content[1].listKind === ListKind.CallArguments &&
+            node.content[1].content.length === 2 &&
+            tsNodeIsString(node.content[1].content[0].tsNode) &&
+            tsNodeIsFunction(node.content[1].content[1].tsNode)
+          );
+        },
+      },
+      { shallowSearchForRoot: false },
+    ),
+};
 
 export const examples: Example[] = [
   {
@@ -194,51 +234,7 @@ export const examples: Example[] = [
     describedGroups: [
       {
         description: "Search for ``it'' and ``describe'' calls",
-        eventCreators: [
-          {
-            kind: EventCreatorKind.Function,
-            description:
-              "Use structural search UI (not shown) to search calls with callee names matching a regular expression and having a function expression as the second argument",
-            function: (docManager: DocManager) =>
-              docManager.search(
-                {
-                  match: (node) => {
-                    function tsNodeIsItDescribe(
-                      node: ts.Node | undefined,
-                    ): boolean {
-                      return (
-                        !!node &&
-                        ts.isIdentifier(node) &&
-                        !!node.text.match(/^x?(?:it|describe)$/)
-                      );
-                    }
-                    function tsNodeIsString(
-                      node: ts.Node | undefined,
-                    ): boolean {
-                      return !!node && ts.isStringLiteral(node);
-                    }
-                    function tsNodeIsFunction(
-                      node: ts.Node | undefined,
-                    ): boolean {
-                      return !!node && ts.isFunctionExpression(node);
-                    }
-                    return (
-                      node.kind === NodeKind.List &&
-                      node.listKind === ListKind.TightExpression &&
-                      node.content.length === 2 &&
-                      tsNodeIsItDescribe(node.content[0].tsNode) &&
-                      node.content[1].kind === NodeKind.List &&
-                      node.content[1].listKind === ListKind.CallArguments &&
-                      node.content[1].content.length === 2 &&
-                      tsNodeIsString(node.content[1].content[0].tsNode) &&
-                      tsNodeIsFunction(node.content[1].content[1].tsNode)
-                    );
-                  },
-                },
-                { shallowSearchForRoot: false },
-              ),
-          },
-        ],
+        eventCreators: [eventCreatorSearchForJestCalls],
       },
       { description: "Copy function body", eventCreators: [fromKeys("{ } c")] },
       {
@@ -254,6 +250,37 @@ export const examples: Example[] = [
         description: "Delete function expression",
         eventCreators: [fromKeys("shift-l space d")],
       },
+    ],
+  },
+  {
+    name: "cpojer-js-codemod-jest-arrow",
+    describedGroups: [
+      ...[1, 2, 3].flatMap((i): DescribedGroup[] => [
+        {
+          description: `Pass ${i}: Search for ${"``it`` and ``describe''"} calls. Delete all cursors except innermost.`,
+          eventCreators: [
+            eventCreatorSearchForJestCalls,
+            fromKeys("shift-s j"),
+          ],
+        },
+        {
+          description: `Pass ${i}: Copy function body. Create arrow function. Paste body. Delete function expression.`,
+          eventCreators: [
+            fromKeys("{ } c k i"),
+            toTypeString("()=>{},"),
+            fromKeys("escape { } p shift-l space d"),
+          ],
+        },
+        ...(i === 3
+          ? []
+          : [
+              {
+                description:
+                  "Select whole document and remove duplicate cursors.",
+                eventCreators: [fromKeys(") ) ) k k shift-s f")],
+              },
+            ]),
+      ]),
     ],
   },
 ];

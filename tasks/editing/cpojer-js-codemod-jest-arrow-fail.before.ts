@@ -1,23 +1,12 @@
-describe('describe', function() {
-  it('should be happy', function() {
-    console.log('actually forwards body');
+describe("describe", function () {
+  it("should be happy", function () {
+    console.log("actually forwards body");
   });
-  it('should leave existing arrow functions alone', () => {
+  it("should leave arrow functions", () => {});
+  describe("nested describe", function () {
+    xit("disabled still counts", function () {});
+    xdescribe("disabled describe", function () {});
   });
-  describe('nested describe', function() {
-    xit('disabled one still count', function() {
-
-    });
-    xdescribe('disabled describe as well', function() {
-
-    });
-  });
-
-  beforeEach(function() {});
-  afterEach(function() {});
 });
-
-function containsit() {
-}
-containsit(function() {
-});
+function containsit() {}
+containsit(function () {});
