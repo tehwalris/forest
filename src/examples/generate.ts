@@ -35,6 +35,7 @@ function main() {
     const history = runExample(example);
     writeExample(example, history, outputDir);
   }
+  writeIndex(examples, outputDir);
 }
 
 function asPrettyDoc(uglyText: string): Doc {
@@ -84,6 +85,14 @@ function runExample(example: Example): DocManagerPublicState[] {
     throw new Error("final mode is not Mode.Normal");
   }
   return history;
+}
+
+function writeIndex(examples: Example[], outputDir: string) {
+  fs.writeFileSync(
+    path.join(outputDir, `index.tex`),
+    examples.map((e) => `\\input{examples/${e.name}}`).join("\n"),
+    { encoding: "utf-8" },
+  );
 }
 
 function writeExample(

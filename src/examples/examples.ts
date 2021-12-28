@@ -1,5 +1,6 @@
 import ts from "typescript";
 import { DocManager } from "../logic/doc-manager";
+import { ListKind, NodeKind } from "../logic/interfaces";
 import {
   EventCreatorFromKeys,
   EventCreatorKind,
@@ -176,6 +177,73 @@ export const examples: Example[] = [
       { description: "Copy function body", eventCreators: [fromKeys("{ } c")] },
       {
         description: "Create arrow function and paste body",
+        eventCreators: [
+          fromKeys("k i"),
+          toTypeString("()=>{},"),
+          fromKeys("escape { } p"),
+        ],
+      },
+      {
+        description: "Delete function expression",
+        eventCreators: [fromKeys("shift-l space d")],
+      },
+    ],
+  },
+  {
+    name: "cpojer-js-codemod-jest-arrow-fail",
+    describedGroups: [
+      {
+        description: "Search for ``it'' and ``describe'' calls",
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search calls with callee names matching a regular expression and having a function expression as the second argument",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) => {
+                    function tsNodeIsItDescribe(
+                      node: ts.Node | undefined,
+                    ): boolean {
+                      return (
+                        !!node &&
+                        ts.isIdentifier(node) &&
+                        !!node.text.match(/^x?(?:it|describe)$/)
+                      );
+                    }
+                    function tsNodeIsString(
+                      node: ts.Node | undefined,
+                    ): boolean {
+                      return !!node && ts.isStringLiteral(node);
+                    }
+                    function tsNodeIsFunction(
+                      node: ts.Node | undefined,
+                    ): boolean {
+                      return !!node && ts.isFunctionExpression(node);
+                    }
+                    return (
+                      node.kind === NodeKind.List &&
+                      node.listKind === ListKind.TightExpression &&
+                      node.content.length === 2 &&
+                      tsNodeIsItDescribe(node.content[0].tsNode) &&
+                      node.content[1].kind === NodeKind.List &&
+                      node.content[1].listKind === ListKind.CallArguments &&
+                      node.content[1].content.length === 2 &&
+                      tsNodeIsString(node.content[1].content[0].tsNode) &&
+                      tsNodeIsFunction(node.content[1].content[1].tsNode)
+                    );
+                  },
+                },
+                { shallowSearchForRoot: false },
+              ),
+          },
+        ],
+      },
+      { description: "Copy function body", eventCreators: [fromKeys("{ } c")] },
+      {
+        description:
+          "Create arrow function and paste body. This is the problematic step. Changes from inner cursors are lost, because they were made after the function body was copied.",
         eventCreators: [
           fromKeys("k i"),
           toTypeString("()=>{},"),
