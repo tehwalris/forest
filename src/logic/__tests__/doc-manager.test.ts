@@ -552,13 +552,6 @@ describe("DocManager", () => {
       expectedText: "f(a.a.b.c)",
       skip: true,
     },
-    makeEditingTaskTest("multi-cursor-reduce-across", [
-      ...eventsFromKeys("s ( s a"),
-      ...eventsToTypeString(":number"),
-      ...eventsFromKeys("escape shift-s h ) a"),
-      ...eventsToTypeString(":number"),
-      ...eventsFromKeys("escape"),
-    ]),
     makeEditingTaskTest.skip("cpojer-js-codemod-rm-object-assign", [
       ...eventsFromKeys("s ( alt-h y s"),
       (docManager: DocManager) =>

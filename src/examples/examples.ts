@@ -18,7 +18,7 @@ export const examples: Example[] = [
     name: "multi-cursor-marks",
     describedGroups: [
       {
-        description: "insert at start of function body",
+        description: "Insert at start of function body",
         eventCreators: [
           fromKeys("{ i"),
           toTypeString("if(debug){console.log({})}"),
@@ -26,11 +26,11 @@ export const examples: Example[] = [
         ],
       },
       {
-        description: "select and mark empty object literal",
+        description: "Select and mark empty object literal",
         eventCreators: [fromKeys("{ { } m a")],
       },
       {
-        description: "append function parameter",
+        description: "Append function parameter",
         eventCreators: [
           fromKeys("} } shift-h space j a"),
           toTypeString(",debug:boolean=false"),
@@ -38,15 +38,15 @@ export const examples: Example[] = [
         ],
       },
       {
-        description: "select parameters except debug and split cursor",
+        description: "Select parameters except debug and split cursor",
         eventCreators: [fromKeys("k ctrl-shift-h s")],
       },
       {
-        description: "mark parameter and copy parameter name",
+        description: "Mark parameter and copy parameter name",
         eventCreators: [fromKeys("m b alt-h c")],
       },
       {
-        description: "insert inside marked empty object literal",
+        description: "Insert inside marked empty object literal",
         eventCreators: [
           fromKeys("shift-m a j a"),
           toTypeString("x: {current: x, default: x},"),
@@ -54,21 +54,54 @@ export const examples: Example[] = [
         ],
       },
       {
-        description: 'paste name over first two "x"s',
+        description: 'Paste name over first two "x"s',
         eventCreators: [fromKeys("alt-h p l l p")],
       },
       {
-        description: 'move to last "x" and mark it',
+        description: 'Move to last "x" and mark it',
         eventCreators: [fromKeys("l l m c")],
       },
       {
         description:
-          "jump to marked parameter declaration and copy initializer",
+          "Jump to marked parameter declaration and copy initializer",
         eventCreators: [fromKeys("shift-m b alt-l c")],
       },
       {
-        description: 'jump to last "x" and paste initializer',
+        description: 'Jump to last "x" and paste initializer',
         eventCreators: [fromKeys("shift-m c p")],
+      },
+    ],
+  },
+  {
+    name: "multi-cursor-reduce-across",
+    describedGroups: [
+      {
+        description: "Split cursor (one per function)",
+        eventCreators: [fromKeys("s")],
+      },
+      {
+        description: "Go to parameters and split cursor (one per parameter)",
+        eventCreators: [fromKeys("( s")],
+      },
+      {
+        description: "Add type annotation to parameter",
+        eventCreators: [
+          fromKeys("a"),
+          toTypeString(":number"),
+          fromKeys("escape"),
+        ],
+      },
+      {
+        description: "Remove all cursors except the first (per function)",
+        eventCreators: [fromKeys("shift-s h")],
+      },
+      {
+        description: "Add return type annotation",
+        eventCreators: [
+          fromKeys(") a"),
+          toTypeString(":number"),
+          fromKeys("escape"),
+        ],
       },
     ],
   },

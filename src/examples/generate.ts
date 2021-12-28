@@ -217,6 +217,7 @@ function generateExampleTex(
 \FloatBarrier
 \subsection{${example.name}}
 \label{example:${example.name}}
+\setcounter{figure}{0}
 ${history.map((_entry, i) => generateStepWrapper(i)).join("\n")}
 \FloatBarrier
   `;
