@@ -90,7 +90,7 @@ function runExample(example: Example): DocManagerPublicState[] {
 function writeIndex(examples: Example[], outputDir: string) {
   fs.writeFileSync(
     path.join(outputDir, `index.tex`),
-    examples.map((e) => `\\input{examples/${e.name}}`).join("\n"),
+    examples.map((e) => `\\input{examples/${e.name}}\\clearpage`).join("\n"),
     { encoding: "utf-8" },
   );
 }
