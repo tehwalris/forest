@@ -92,6 +92,7 @@ export const examples: Example[] = [
         ],
       },
       {
+        label: "reduce",
         description: "Remove all cursors except the first (per function)",
         eventCreators: [fromKeys("shift-s h")],
       },

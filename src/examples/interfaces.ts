@@ -5,6 +5,7 @@ export interface Example {
 
 export interface DescribedGroup {
   description: string;
+  label?: string;
   eventCreators: EventCreator[];
 }
 

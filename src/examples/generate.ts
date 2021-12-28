@@ -13,7 +13,12 @@ import { defaultPrettierOptions, prettyPrintTsString } from "../logic/print";
 import { CharSelection, renderLinesFromDoc } from "../logic/render";
 import { unreachable } from "../logic/util";
 import { examples } from "./examples";
-import { EventCreator, EventCreatorKind, Example } from "./interfaces";
+import {
+  DescribedGroup,
+  EventCreator,
+  EventCreatorKind,
+  Example,
+} from "./interfaces";
 import { eventsFromEventCreator } from "./keys";
 
 const prettierOptions = {
@@ -201,14 +206,15 @@ function generateExampleTex(
   history: DocManagerPublicState[],
 ): string {
   function generateStepWrapper(i: number) {
+    const g: DescribedGroup | undefined =
+      i === 0 ? undefined : example.describedGroups[i - 1];
     return String.raw`
       \begin{examplestep}
         \small
         \input{examples/${example.name}-${i}.tex}
         \normalsize
-        \captionof{figure}{${
-          i === 0 ? "Initial state" : example.describedGroups[i - 1].description
-        }}
+        \captionof{figure}{${g?.description ?? "Initial state"}}
+        ${g?.label ? `\\label{step:${example.name}:${g.label}}` : ""}
       \end{examplestep}
     `;
   }
