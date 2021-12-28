@@ -2,6 +2,8 @@ import ts from "typescript";
 import { DocManager } from "../logic/doc-manager";
 import { ListKind, NodeKind } from "../logic/interfaces";
 import {
+  DescribedGroup,
+  EventCreator,
   EventCreatorFromKeys,
   EventCreatorKind,
   EventCreatorToTypeString,
@@ -15,6 +17,51 @@ function fromKeys(keys: string): EventCreatorFromKeys {
 function toTypeString(string: string): EventCreatorToTypeString {
   return { kind: EventCreatorKind.ToTypeString, string };
 }
+
+const eventCreatorSearchForJestCall: EventCreator = {
+  kind: EventCreatorKind.Function,
+  description:
+    "Use structural search UI (not shown) to search calls with callee names matching a regular expression",
+  function: (docManager: DocManager) =>
+    docManager.search(
+      {
+        match: (node) => {
+          function tsNodeIsItDescribe(node: ts.Node | undefined): boolean {
+            return (
+              !!node &&
+              ts.isIdentifier(node) &&
+              !!node.text.match(/^x?(?:it|describe|beforeEach|afterEach)$/)
+            );
+          }
+          return (
+            node.kind === NodeKind.List &&
+            node.listKind === ListKind.TightExpression &&
+            node.content.length === 2 &&
+            tsNodeIsItDescribe(node.content[0].tsNode) &&
+            node.content[1].kind === NodeKind.List &&
+            node.content[1].listKind === ListKind.CallArguments
+          );
+        },
+      },
+      { shallowSearchForRoot: false },
+    ),
+};
+const eventCreatorsSelectArrowArguments: EventCreator[] = [
+  fromKeys("( s"),
+  {
+    kind: EventCreatorKind.Function,
+    description:
+      "Use structural search UI (not shown) to delete cursors which are not function expressions",
+    function: (docManager: DocManager) =>
+      docManager.search(
+        {
+          match: (node) =>
+            node.tsNode?.kind === ts.SyntaxKind.FunctionExpression,
+        },
+        { shallowSearchForRoot: false },
+      ),
+  },
+];
 
 export const examples: Example[] = [
   {
@@ -193,52 +240,9 @@ export const examples: Example[] = [
     name: "cpojer-js-codemod-jest-arrow-fail",
     describedGroups: [
       {
-        description: "Search for ``it'' and ``describe'' calls",
-        eventCreators: [
-          {
-            kind: EventCreatorKind.Function,
-            description:
-              "Use structural search UI (not shown) to search calls with callee names matching a regular expression and having a function expression as the second argument",
-            function: (docManager: DocManager) =>
-              docManager.search(
-                {
-                  match: (node) => {
-                    function tsNodeIsItDescribe(
-                      node: ts.Node | undefined,
-                    ): boolean {
-                      return (
-                        !!node &&
-                        ts.isIdentifier(node) &&
-                        !!node.text.match(/^x?(?:it|describe)$/)
-                      );
-                    }
-                    function tsNodeIsString(
-                      node: ts.Node | undefined,
-                    ): boolean {
-                      return !!node && ts.isStringLiteral(node);
-                    }
-                    function tsNodeIsFunction(
-                      node: ts.Node | undefined,
-                    ): boolean {
-                      return !!node && ts.isFunctionExpression(node);
-                    }
-                    return (
-                      node.kind === NodeKind.List &&
-                      node.listKind === ListKind.TightExpression &&
-                      node.content.length === 2 &&
-                      tsNodeIsItDescribe(node.content[0].tsNode) &&
-                      node.content[1].kind === NodeKind.List &&
-                      node.content[1].listKind === ListKind.CallArguments &&
-                      node.content[1].content.length === 2 &&
-                      tsNodeIsString(node.content[1].content[0].tsNode) &&
-                      tsNodeIsFunction(node.content[1].content[1].tsNode)
-                    );
-                  },
-                },
-                { shallowSearchForRoot: false },
-              ),
-          },
-        ],
+        description:
+          "Search for ``it'', ``describe'', ``beforeEach'', and ``afterEach'' calls",
+        eventCreators: [eventCreatorSearchForJestCall],
       },
       { description: "Copy function body", eventCreators: [fromKeys("{ } c")] },
       {
@@ -254,6 +258,48 @@ export const examples: Example[] = [
         description: "Delete function expression",
         eventCreators: [fromKeys("shift-l space d")],
       },
+    ],
+  },
+  {
+    name: "cpojer-js-codemod-jest-arrow",
+    describedGroups: [
+      // TODO You were here. The problem is that beforeEach/afterEach have 1 argument, so split does not work the same way on them.
+
+      ...[1, 2, 3].flatMap((i): DescribedGroup[] => [
+        {
+          description: `Search for function expressions in ${"``it'', ``describe'', ``beforeEach'', and ``afterEach''"} calls. Delete all cursors except the innermost. (pass ${i})`,
+          eventCreators: [
+            {
+              kind: EventCreatorKind.Function,
+              description: "DEBUG",
+              function: () => {
+                console.log("DEBUG i", i);
+              },
+            },
+            eventCreatorSearchForJestCall,
+            ...eventCreatorsSelectArrowArguments,
+            fromKeys("shift-s j"),
+          ],
+        },
+        {
+          description: `Copy function body. Create arrow function. Paste body. Delete function. (pass ${i})`,
+          eventCreators: [
+            fromKeys("{ } c k i"),
+            toTypeString("()=>{},"),
+            fromKeys("escape m a { } p shift-l space d shift-m a"),
+          ],
+        },
+        ...(i === 3
+          ? []
+          : [
+              {
+                description: "Go to top of file",
+                eventCreators: [
+                  fromKeys("shift-s h } } } } } } } k k k k k k k k k"),
+                ],
+              },
+            ]),
+      ]),
     ],
   },
 ];

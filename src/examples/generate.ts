@@ -79,6 +79,7 @@ function runExample(example: Example): DocManagerPublicState[] {
     history.push(publicState);
   }
   if (publicState.doc.text !== asPrettyDoc(loadText("after")).text) {
+    console.log(publicState.doc.text);
     throw new Error(`final text does not match ${example.name}.after.ts`);
   }
   if (publicState.mode !== Mode.Normal) {
