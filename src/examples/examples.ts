@@ -289,11 +289,13 @@ export const examples: Example[] = [
       {
         description:
           "Split cursors (one per call) and select its arguments. Switch to multi-cursor strict mode.",
+        label: "get-object-assign",
         eventCreators: [fromKeys("s ( y s")],
       },
       {
         description:
           "Check whether first argument is an object and show successful/failed cursors",
+        label: "check-object-literal",
         eventCreators: [
           fromKeys("alt-h"),
           {
@@ -315,11 +317,13 @@ export const examples: Example[] = [
       {
         description:
           "Keep successful cursors. Select all arguments except first.",
+        label: "keep-object-literal",
         eventCreators: [fromKeys("s k ctrl-shift-l")],
       },
       {
         description:
           "Search for spread elements and show successful/failed cursors",
+        label: "check-spread",
         eventCreators: [
           {
             kind: EventCreatorKind.Function,
@@ -340,6 +344,7 @@ export const examples: Example[] = [
       {
         description:
           "Keep failed cursors. Append object literal to argument list. Select other arguments and split cursor (one for each old argument).",
+        label: "keep-no-spread",
         eventCreators: [
           fromKeys("f k a"),
           toTypeString(",{}"),
