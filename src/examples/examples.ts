@@ -375,4 +375,40 @@ export const examples: Example[] = [
       },
     ],
   },
+  {
+    name: "wrap-handlers",
+    describedGroups: [
+      {
+        description:
+          "Select all properties and split cursor (cursor per property)",
+        eventCreators: [fromKeys("{ s")],
+      },
+      {
+        description: "Select, copy and delete property value.",
+        eventCreators: [fromKeys("alt-l c d")],
+      },
+      {
+        description:
+          "Add call to ``warnOnError'' and paste old property value inside.",
+        eventCreators: [
+          fromKeys("a"),
+          toTypeString("warnOnError(x)"),
+          fromKeys("escape ( p"),
+        ],
+      },
+      {
+        description:
+          "Remove all cursors except the last and add a new property.",
+        eventCreators: [
+          fromKeys("shift-s l shift-h k a"),
+          toTypeString(',"ctrl-x": ignoreError(cut)'),
+          fromKeys("escape"),
+        ],
+      },
+      {
+        description: "Delete the loop that would wrap each property.",
+        eventCreators: [fromKeys("} shift-l space d")],
+      },
+    ],
+  },
 ];
