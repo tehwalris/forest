@@ -179,6 +179,11 @@ export class DocManager {
         (target as any)[k] = v;
       }
     }
+    for (const k of Object.keys(target)) {
+      if (k in target && !(k in source)) {
+        delete (target as any)[k];
+      }
+    }
   }
   clone(): DocManager {
     const other = new DocManager(
