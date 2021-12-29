@@ -8,6 +8,7 @@ export interface Example {
 export interface DescribedGroup {
   description: string;
   label?: string;
+  hide?: boolean;
   eventCreators: EventCreator[];
 }
 

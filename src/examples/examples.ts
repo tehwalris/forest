@@ -283,4 +283,91 @@ export const examples: Example[] = [
       ]),
     ],
   },
+  {
+    name: "cpojer-js-codemod-rm-object-assign-basic",
+    describedGroups: [
+      {
+        description:
+          "Split cursors (one per call) and select the call itself. Switch to multi-cursor strict mode.",
+        eventCreators: [fromKeys("s ( y s")],
+      },
+      {
+        description:
+          "Check whether first argument is an object and show successful/failed cursors",
+        eventCreators: [
+          fromKeys("alt-h"),
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to check whether the selected node is an object literal",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) =>
+                    node.tsNode?.kind === ts.SyntaxKind.ObjectLiteralExpression,
+                },
+                { shallowSearchForRoot: true },
+              ),
+          },
+          fromKeys("shift-y"),
+        ],
+      },
+      {
+        description:
+          "Keep successful cursors. Select all arguments except first.",
+        eventCreators: [fromKeys("s k ctrl-shift-l")],
+      },
+      {
+        description:
+          "Search for spread elements and show successful/failed cursors",
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for spread elements",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) =>
+                    node.tsNode?.kind === ts.SyntaxKind.SpreadElement,
+                },
+                { shallowSearchForRoot: false },
+              ),
+          },
+          fromKeys("shift-y"),
+        ],
+      },
+      {
+        description:
+          "Keep failed cursors. Append object literal to argument list. Select other arguments and split cursor (one for each old argument).",
+        eventCreators: [
+          fromKeys("f k a"),
+          toTypeString(",{}"),
+          fromKeys("escape k ctrl-shift-h s"),
+        ],
+      },
+      {
+        description:
+          "Copy argument. Insert placeholder spread element into object. Paste argument.",
+        eventCreators: [
+          fromKeys("c ) alt-l { a"),
+          toTypeString("...(x),"),
+          fromKeys("escape ( p"),
+        ],
+      },
+      {
+        description:
+          "Remove all cursors except first. Copy new object literal. Insert placeholder where it will later be pasted.",
+        eventCreators: [
+          fromKeys("shift-s h } c ) k i"),
+          toTypeString("(x) &&"),
+          fromKeys("escape"),
+        ],
+      },
+      {
+        description: "Paste object literal and delete ``Object.assign'' call.",
+        eventCreators: [fromKeys("( p ) k ctrl-shift-l d { s alt-l")],
+      },
+    ],
+  },
 ];
