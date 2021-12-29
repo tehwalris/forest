@@ -288,7 +288,7 @@ export const examples: Example[] = [
     describedGroups: [
       {
         description:
-          "Split cursors (one per call) and select the call itself. Switch to multi-cursor strict mode.",
+          "Split cursors (one per call) and select its arguments. Switch to multi-cursor strict mode.",
         eventCreators: [fromKeys("s ( y s")],
       },
       {
