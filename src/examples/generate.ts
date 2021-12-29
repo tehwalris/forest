@@ -170,17 +170,37 @@ function latexFromEventCreator(eventCreator: EventCreator): string {
 }
 
 function generateStepTex(
-  { doc, mode, cursors, queuedCursors }: DocManagerPublicState,
+  {
+    doc,
+    mode,
+    cursors,
+    queuedCursors,
+    multiCursorFailure,
+  }: DocManagerPublicState,
   eventCreators: EventCreator[],
 ): string {
   const renderLines = renderLinesFromDoc(
     doc,
     mode,
-    cursors,
-    queuedCursors.map((c) => ({
-      range: c.focus,
-      value: CharSelection.Queued,
-    })),
+    [
+      ...cursors,
+      ...(multiCursorFailure?.successfulCursors || []),
+      ...(multiCursorFailure?.failedCursors || []),
+    ],
+    [
+      ...queuedCursors.map((c) => ({
+        range: c.focus,
+        value: CharSelection.Queued,
+      })),
+      ...(multiCursorFailure?.successfulCursors || []).map((c) => ({
+        range: c.focus,
+        value: CharSelection.Success,
+      })),
+      ...(multiCursorFailure?.failedCursors || []).map((c) => ({
+        range: c.focus,
+        value: CharSelection.Failure,
+      })),
+    ],
   );
   const latexCodeLines = renderLines
     .map((l) =>
@@ -189,8 +209,18 @@ function generateStepTex(
           const saveVerb = String.raw`\SaveVerb{Verb}^${r.text}^`;
           const useVerb = String.raw`\strut\UseVerb{Verb}`;
           const wrapped = (() => {
+            let color: string | undefined;
             if (r.selection & CharSelection.Normal) {
-              return String.raw`\adjustbox{bgcolor={HTML}{A5BFFF}}{${useVerb}}`;
+              color = "A5BFFF";
+            }
+            if (r.selection & CharSelection.Success) {
+              color = "C0EBB5";
+            }
+            if (r.selection & CharSelection.Failure) {
+              color = "FAB2B2";
+            }
+            if (color) {
+              return String.raw`\adjustbox{bgcolor={HTML}{${color}}}{${useVerb}}`;
             }
             return useVerb;
           })();
