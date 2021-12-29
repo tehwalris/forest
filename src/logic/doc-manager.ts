@@ -817,9 +817,7 @@ export class DocManager {
         ...this.cursors.filter((_c, i) => result.failMask![i]).map((c) => c.id),
       );
     }
-    if (multiCursorMode === MultiCursorMode.Strict && someFailed) {
-      console.warn("action rejected because some cursors failed");
-    } else {
+    if (multiCursorMode !== MultiCursorMode.Strict || !someFailed) {
       applyAction(result);
     }
     if (multiCursorMode === MultiCursorMode.Drop && someFailed) {
