@@ -16,6 +16,9 @@ jobs:
           node-version: 16.x
       - run: yarn install --frozen-lockfile
       - run: yarn generate-templates
+      - run: yarn check-format
+      - run: yarn test
+      - run: yarn build-node
       - run: yarn build
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
