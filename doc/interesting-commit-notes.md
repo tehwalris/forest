@@ -130,7 +130,7 @@
   - same edit in multiple locations (3)
 - 5afc3a862d0eff43f903debc6558489bc7bfabd1
   - add required property (3)
-  - same edit in multiple location (4)
+  - same edit in multiple locations (4)
     - note: remove every assignment to a variable, but don't delete the variable itself
     - note: each assignment is identical
 - 2dbe50f586a6a96c23202d474334ca3d9a4a2c03
@@ -169,24 +169,78 @@
 - 2ba0dccf6824261168e3a0db4224cfbc2a091e0b
   - add required argument (4)
 - 25ac8799dbc590f253407a0279cfe23e59160e9a
+  - same edit in multiple locations (2)
+    - note: Forest probably wouldn't help with this
+    - note: requires moving the content of a string into a regular expression literal
 - 60eb0c2a5625352143a7e3782c6867a5d299e39f
+  - extract expression to variable (3)
+  - rename-like replace (5)
+    - note: replace every location where a property is accessed, based on type of receiver
+    - note: this edit overlaps with the "extract expression" edit
 - 8c3cda572dbfaa396a9ccbb9f3c15347acf50f6e
+  - rename-like replace (5)
+    - note: replace `console.log` with `printReason`
+    - note: also requires removing the prefix of a string literal, which Forest can do
 - daea70d1764ff7481c9afd90ab5bae4d3fa2c04f
+  - note: nothing where multi-cursor would be useful
 - 7cee60b44339b17a99473470f6909f518145308a
+  - add required property (3)
 - 21e37891e63e85ccfb695a724cf8321695f231b2
+  - same edit in multiple locations (4)
+    - note: wrap returned expression in object
+  - rename-like replace (9)
+    - note: required because of wrapping introduced in previous edit
+  - add required property (8)
+    - note: two locations have a different value than the others
 - 398f478ff11385e5b0dd3f35804ee85a57febcf1
+  - rename-like replace (9)
+    - note: replace `node` with `nodeForDisplay`
+  - same edit in multiple locations (9)
+    - note: add destructured property to parameter in every function definition
 - f96f8a3b737abe13a94ea27a59912f3fb549b2b0
+  - same edit in multiple locations (5)
+    - note: wrap most expressions in an array with a function call
 - 73e756848ec9fa18430c256d0930e82daf5f7609
+  - delete a declaration and everything related (30)
+    - note: deleting all code related to meta level
+  - rename-like replace (9)
+    - note: replace `nodeForDisplay` with `node`
+  - rename-like replace (8)
+    - note: replace `apparentPath` with `parentIndexEntry.path`
+  - rename-like replace (2)
+    - note: replace `trueKeyPath` with `keyPath`
 - e10f6dbdfed64e899d5f9b0291e926e2b225f051
+  - flatten variable declarations (88)
 - 0e94ddc66b49bce395f275cf1f93f1d9f217433f
+  - delete a declaration and everything related (4)
+  - same edit in multiple locations (5)
+    - note: wrap returned expression in function call
 - 669d5dbdbbccd4b202695c3898ee30d06bd23110
+  - add required argument (3)
+  - same insertion in multiple locations (2)
+  - same insertion in multiple locations (2)
 - a56707b9db66197b2003b8a753d6df47c0e81c9c
+  - note: adds multiple properties and arguments, all used to pass one value through the call hierarchy
+  - note: Forest probably wouldn't help with this
+  - note: the values are different in each location
 - c080e94a353b0c4446cbe914420c478fee6737c5
+  - same edit in multiple locations (5)
+    - note: replaces `as` expression with argument type annotation
 - c2b83f591a7c3f74da6b4d5da4f4ce8c2e066406
+  - note: just a rename
 - a6aaa285da5fc58308c42346437f185709cfa3c9
+  - same edit in multiple locations (2)
+    - note: wrap every usage of a specific type in a function call
 - ab3f54bdcd46ffe86352456f3c2d87cced171b3f
+  - add required argument (3)
+    - note: Forest probably wouldn't help with this
+    - note: the values are different in each location
 - 95f79b633aa9b4f015eafbc184b41e90bdddf2d6
+  - rename-like replace (4)
+    - note: replace `fromTsNode` with `nextFromTsNode`
 - f8efa34d96301d96367e4de653440c45f70f7e79
+  - same edit in multiple locations (8)
+    - note: replace every return of a specific in a function call and make some further adjustments
 - 6a170d125f99ea4b5b43818740e13fe92c64f8f6
 - b767dd25f750f52fc16656d254272baa6ce245b3
 - 872afbfc25ff304f780739970882870d07400138
