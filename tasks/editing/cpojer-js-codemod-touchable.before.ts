@@ -1,10 +1,10 @@
-<TouchableBounce onPress={function() {}}>
-  <View style={{color: 'red'}} />
+<TouchableBounce onPress={function () {}}>
+  <View style={{ color: "red" }} />
 </TouchableBounce>;
 
 <View>
   <TouchableBounce>
-    <View style={{color: 'red'}}>
+    <View style={{ color: "red" }}>
       <Image />
       <Image />
     </View>
@@ -12,7 +12,7 @@
 </View>;
 
 <TouchableBounce>
-  <CustomView style={{color: 'red'}}>
+  <CustomView style={{ color: "red" }}>
     <Image />
   </CustomView>
 </TouchableBounce>;
@@ -22,10 +22,10 @@
   <View>2</View>
 </TouchableBounce>;
 
-<TouchableOpacity onPress={function() {}}>
-  <View style={{color: 'red'}} />
+<TouchableOpacity onPress={function () {}}>
+  <View style={{ color: "red" }} />
 </TouchableOpacity>;
 
-<TouchableHighlight onPress={function() {}}>
-  <View style={{color: 'red'}} />
+<TouchableHighlight onPress={function () {}}>
+  <View style={{ color: "red" }} />
 </TouchableHighlight>;

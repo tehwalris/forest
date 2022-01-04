@@ -7,17 +7,17 @@ expect(1).toNotThrow();
 
 expect(1).toBeA(a);
 expect(1).toBeAn(a);
-expect(1).toBeA('string');
-expect(1).toBeAn('string');
+expect(1).toBeA("string");
+expect(1).toBeAn("string");
 expect(1).toNotBeA(a);
 expect(1).toNotBeAn(a);
-expect(1).toNotBeA('string');
-expect(1).toNotBeAn('string');
+expect(1).toNotBeA("string");
+expect(1).toNotBeAn("string");
 
-expect(1).toMatch('string');
-expect(1).toMatch({object: true});
-expect(1).toNotMatch('string');
-expect(1).toNotMatch({object: true});
+expect(1).toMatch("string");
+expect(1).toMatch({ object: true });
+expect(1).toNotMatch("string");
+expect(1).toNotMatch({ object: true });
 
 expect(1).toBeFewerThan();
 expect(1).toBeLessThanOrEqualTo();

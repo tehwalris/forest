@@ -1,11 +1,11 @@
-fooBar(function() {
+fooBar(function () {
   return 20000000000;
 });
 
-fooBarfooBarfooBarf(function() {
+fooBarfooBarfooBarf(function () {
   return 20000000000;
 });
 
-fooBarfooBarfooBarfo(function() {
+fooBarfooBarfooBarfo(function () {
   return 20000000000;
 });

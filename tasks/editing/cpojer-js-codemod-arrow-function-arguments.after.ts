@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 var fn1 = (...args) => console.log(args);
 
@@ -14,10 +14,13 @@ var fn3 = (a, b, args) => {
   return arguments;
 };
 
-var fn4 = function(a, b, c) {
+var fn4 = function (a, b, c) {
   console.log(arguments);
   var fn5 = (...args) => args;
-  var fn6 = () => (function() { return arguments; });
+  var fn6 = () =>
+    function () {
+      return arguments;
+    };
   class A {
     constructor() {
       console.log(arguments);

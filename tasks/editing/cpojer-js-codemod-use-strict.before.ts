@@ -1,3 +1,3 @@
 function x() {
-  console.log('Banana');
+  console.log("Banana");
 }

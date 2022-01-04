@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 function x() {
-  console.log('Banana');
+  console.log("Banana");
 }
