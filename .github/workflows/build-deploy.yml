@@ -19,6 +19,7 @@ jobs:
       - run: yarn check-format
       - run: yarn test
       - run: yarn build-node
+      - run: node dist/examples/generate.js
       - run: yarn build
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
