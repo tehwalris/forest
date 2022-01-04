@@ -13,10 +13,10 @@
   - same insertion in multiple locations (3)
 - 8d8ac11f5d8faae6868d7a003beb7b04eeea5ed0
   - same edit in multiple locations (5)
-  - note: this commit introduces `multiCursorHelper`
+    - note: switching to `multiCursorHelper`
 - 510dcabfe3ea8d7b38d5350db047d7298e003a5b
   - same edit in multiple locations (2)
-  - note: extracting duplicate code into function
+    - note: extracting duplicate code into function
 - d00fcd2f5779fdee4d15dd2a21bfb5bdb68c1d1d
   - rename-like replace (3)
 - b2e4e96d0340051b07407a4b735bd32fd6989cc6
@@ -25,7 +25,7 @@
   - remove required property (9)
 - ca8ec9d58ba821148b8f06b6b3d9803756250657
   - same edit in multiple locations (10)
-  - note: removing unneeded export keywords from functions
+    - note: removing unneeded export keywords from functions
 - 6e1ebe557f26da366b6d5bebff6311d2585ec433
   - same edit in multiple locations (3)
   - same edit in multiple locations (3)
@@ -34,15 +34,46 @@
 - 9ca1e69a70720cd490134a6bf799b6cf5d7daaf7
   - same edit in multiple locations (4)
 - c8ef6026d72bf4550ec15d1cb95b3a6c0de59a2f
+  - add destructured argument destructure/type/value (6)
 - 15c3e054af0bf72a6f152bd4ffe7b27bedb7c4bc
+  - same edit in multiple locations (2)
 - 1618d678e0cb0c4b99a60ccd1f7314644552d5ad
+  - same edit in multiple locations (6)
+    - note: wrap returned boolean in object
 - 67e27be7ee4839ee8ba867036b3b38d28f615720
+  - same edit in multiple locations (3)
+    - note: removing unneeded export keywords from functions
+  - same edit in multiple locations (5)
+    - note: switching to `multiCursorHelper`
 - 4ddb3616bff5a1d974e4f40f1dfa0ad9369d3fac
+  - rename-like replace (3)
 - 784f66080851d150616773a12bf675fd003fcff9
+  - add required argument (2)
+  - add required argument (3)
+    - note: argument value is not a constant, but comes from the scope
+    - note: argument value is different at one call site
+  - same insertion in multiple locations (5)
 - 9714f3e3cee2f49c6fa5e828e2f1e7f45953ef40
+  - add required argument (2)
+  - same edit in multiple locations (2)
+    - note: edit applies to the function calls where the required argument was just added
+  - note: this commit also uses the "convert arguments to destructure" refactor, which is not counted as a multi-cursor edit
 - a325fd599819af5211d36ccda90ff23271d6572e
+  - delete a declaration and everything related (20)
+    - note: delete interface and all usages with the least deletions possible
+    - note: 17/20 deletions are initializers for an abstract property
 - 1bcb5ee068f32b1247ea846322f3210c94360fca
+  - same edit in multiple locations (10)
+    - note: adding `clone` method to every `Node`
+  - same edit in multiple locations (12)
+    - note: assigning `id` whenever a `Node` is constructed
 - d6f74b4278a45d88edb2744e248358fd7965c576
+  - rename-like replace (5)
+    - note: wrapping in property access
+    - note: the type which gets wrapped is used an array element
+    - note: some wrapped accesses are direct and some are aliased through a variable
+  - same edit in multiple locations (4)
+    - note: adjust every call to a function whose argument got wrapped
 - 63f77cd89b3e41803ac6d691b631798c3cc73474
 - 1f63a0329da6edc7d467cd4cff3f32f2f16243c1
 - f3ad92f06aa290ef34a9ecd4554f675bedde6992
