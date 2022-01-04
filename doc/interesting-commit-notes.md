@@ -1,17 +1,38 @@
-- b07ef060f17cd9c1e32ac37658ae59ba14ccd0d6
 - 2a1dda715df34c119b47a87d799910d85196fa92
+  - remove required argument (2-3)
+  - remove required property (2-3)
 - 131b9bbd254be35172dcf6a06b45caba6bddc1c5
+  - same insertion in multiple locations (2)
 - 0eb30848a307fc161205385b33d9b47c4861d23c
+  - rename-like replace (2)
+  - add required argument (>10)
+  - rename-like replace (3)
 - fe5ee0134aa00588d696331b9ad27eaa5a167c62
+  - rename-like replace (2)
 - d67b01605918c901d33734a1e001404197c9fec4
+  - same insertion in multiple locations (3)
 - 8d8ac11f5d8faae6868d7a003beb7b04eeea5ed0
+  - same edit in multiple locations (5)
+  - note: this commit introduces `multiCursorHelper`
 - 510dcabfe3ea8d7b38d5350db047d7298e003a5b
+  - same edit in multiple locations (2)
+  - note: extracting duplicate code into function
 - d00fcd2f5779fdee4d15dd2a21bfb5bdb68c1d1d
+  - rename-like replace (3)
 - b2e4e96d0340051b07407a4b735bd32fd6989cc6
+  - same edit in multiple locations (2)
 - b151c68ed30bbe882aae6224459a00b4b2522e38
+  - remove required property (9)
 - ca8ec9d58ba821148b8f06b6b3d9803756250657
+  - same edit in multiple locations (10)
+  - note: removing unneeded export keywords from functions
 - 6e1ebe557f26da366b6d5bebff6311d2585ec433
+  - same edit in multiple locations (3)
+  - same edit in multiple locations (3)
+  - same edit in multiple locations (6)
+  - same edit in multiple locations (2)
 - 9ca1e69a70720cd490134a6bf799b6cf5d7daaf7
+  - same edit in multiple locations (4)
 - c8ef6026d72bf4550ec15d1cb95b3a6c0de59a2f
 - 15c3e054af0bf72a6f152bd4ffe7b27bedb7c4bc
 - 1618d678e0cb0c4b99a60ccd1f7314644552d5ad
