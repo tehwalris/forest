@@ -75,34 +75,99 @@
   - same edit in multiple locations (4)
     - note: adjust every call to a function whose argument got wrapped
 - 63f77cd89b3e41803ac6d691b631798c3cc73474
+  - same insertion in multiple locations (2)
 - 1f63a0329da6edc7d467cd4cff3f32f2f16243c1
+  - same edit in multiple locations (3)
+    - note: adjust every call to a function whose argument got wrapped
 - f3ad92f06aa290ef34a9ecd4554f675bedde6992
+  - note: not really solvable with multi cursor
+  - note: same identifier gets added in multiple locations, but for different purposes
 - c73ecb4552f267e4d3b5d7bef5fca4bfec9a5c15
+  - same edit in multiple locations (2)
+    - note: quite interesting, because multiple parts of the AST which are linked by an expression are combined
 - 12d1c5ef1e9db5379a0da555b1061a7747f34cf3
+  - rename-like replace (14)
+    - note: every usage of `Node<{}>` is replaced by `Node<unknown>`
 - 0c5d99f62049a8af48f97084262277aa1694fb2f
+  - note: nothing where multi-cursor would be useful
 - 45bf3a3474f04496695158f1abab89ecf096773b
+  - same edit in multiple locations (3)
+    - note: replace every call to a function by a call to a wrapper function
+  - same edit in multiple locations (2)
+    - note: inserting an expression which is the same except for a small part
 - 44df2e6ba178b33e075e554565a615216338f476
+  - same edit in multiple locations (9)
+    - note: removing a function call and instead adding an argument nearby
+    - note: there are two slightly different cases for how to insert the argument
 - 318e16d2cb24fc835e14c21c2780ebe02f56dda0
+  - extract expression into function (4)
+    - note: one call is negated
 - a64a80694fa3c0d5618d2ab60d43c6ed0c75d841
+  - same edit in multiple locations (2)
+    - note: wrapping each call to a function in `if`
 - a34661bb42e205e784a0e84e0eb36b4aaee3afc5
+  - same edit in multiple locations (2)
+    - note: adding new branch to similar `if` statements
 - 245877a7b73dd3b81d63fe382c23f3eb17c79b31
+  - same edit in multiple locations (4)
+    - note: replacing a boolean argument with an enum value
 - 28dfdc6114534e9186f8720c76d4b8b97a88efdc
+  - rename-like replace (2)
+    - note: moving property access from function call site into function body
+    - note: hard to actually do with multi cursor
 - 5cfcd7ba2714eafd3323c7bd4cdc3c627e9e9566
+  - add required argument (4)
+    - note: added to a base class method and all of its overrides
+  - add required argument (2)
+    - note: value comes variable with same name in scope
 - 7145f1024468386c996406d261b8b85845894a48
+  - same edit in multiple locations (2)
+    - note: delete condition in `if` around each call site
 - a0a89686995d7dac99c04efec065f8072106f7ef
+  - same edit in multiple locations (3)
+    - note: wrap every prop value in a function call
 - cc101f89a50fce91ba2beb7b7d6adc4177da0f7e
+  - same edit in multiple locations (3)
 - 5afc3a862d0eff43f903debc6558489bc7bfabd1
+  - add required property (3)
+  - same edit in multiple location (4)
+    - note: remove every assignment to a variable, but don't delete the variable itself
+    - note: each assignment is identical
 - 2dbe50f586a6a96c23202d474334ca3d9a4a2c03
+  - rename-like replace (4)
+  - same edit in multiple locations (2)
+    - note: inserting an expression which is the same except for a small part
+  - delete a declaration and everything related (3)
+    - note: delete a method and all calls
 - f1658c7dd20a9a212d8d81a86629909fa49843cf
+  - same edit in multiple locations (2)
+    - note: inserting an expression which is the same except for a small part
 - e3269673c032670b970fd7302b8697a6fd2245b2
+  - add destructured argument destructure/type/value (9)
+    - note: nothing where multi-cursor would be useful
 - 8438ee14dd71fc4d629890bc585e847e64e4073b
+  - note: nothing where multi-cursor would be useful
 - 652ad33cae40ed323a80765345fc5b12f8e31657
+  - note: nothing where multi-cursor would be useful
+  - note: too complicated
 - 7db0f8f4e688fa5b8acdb9b670a01348bfcd4b7d
+  - add required property (3)
 - 7ae3e40f0ee0ae51130d88f64b12b1d4363ad022
+  - same edit in multiple locations (5)
+    - note: inserting pairs of properties which are the same except for one part
+    - note: the property value used by each of the 5 cursors is different
+    - note: this edit was caused by adding a required property
+    - note: Forest probably wouldn't help with this
 - 598c5b2f58d291cb55dd5a283cfce8443a7833dd
+  - note: nothing where multi-cursor would be useful
+  - note: this is a hacky use of rename to repurpose a function
 - b93373dd8dba83f6bcb701fb007d2fdf25dc283f
+  - note: just multiple related renames
 - d559fe216eb53de1db5ff5dc806dd31a23a7f02d
+  - note: nothing where multi-cursor would be useful
+  - note: replacing calls to a function by its argument, but only in one location
 - 2ba0dccf6824261168e3a0db4224cfbc2a091e0b
+  - add required argument (4)
 - 25ac8799dbc590f253407a0279cfe23e59160e9a
 - 60eb0c2a5625352143a7e3782c6867a5d299e39f
 - 8c3cda572dbfaa396a9ccbb9f3c15347acf50f6e
