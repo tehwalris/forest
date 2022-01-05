@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const assert = require("assert");
+const { groupBy, countBy } = require("ramda");
 
 function last(arr) {
   assert(Array.isArray(arr));
@@ -59,6 +60,38 @@ function asString(line) {
   return line;
 }
 
+function cleanCursorCount(c) {
+  if (c.match(/^\d+$/)) {
+    if (+c > 10) {
+      return ">10";
+    }
+    return c;
+  }
+  switch (c) {
+    case "2-3":
+      return "2";
+    case ">10":
+      return ">10";
+    default:
+      throw new Error(`Unhandled cursor count: ${c}`);
+  }
+}
+
+function asCoarseEditType(t) {
+  return (
+    {
+      "remove required argument": "add/remove required argument/property",
+      "remove required property": "add/remove required argument/property",
+      "add required argument": "add/remove required argument/property",
+      "add destructured argument destructure/type/value": "other",
+      "extract expression into function": "other",
+      "add required property": "add/remove required argument/property",
+      "extract expression to variable": "other",
+      "flatten variable declarations": "other",
+    }[t] || t
+  );
+}
+
 const commits = groupedLines
   .filter((g) => g.length > 1)
   .map((c) => ({
@@ -78,6 +111,25 @@ const commits = groupedLines
       .map(tryAsNote)
       .filter((v) => v),
   }));
-
 assert(commits.length === 71);
-console.log(JSON.stringify(commits, null, 2));
+
+const results = {
+  commitsWithNoEditsNotes: commits
+    .filter((c) => !c.edits.length)
+    .map((c) => c.notes),
+  commitsByNumberOfEdits: countBy((c) => c.edits.length, commits),
+  totalEdits: commits.reduce((sum, c) => sum + c.edits.length, 0),
+  editsByType: countBy(
+    (e) => e.type,
+    commits.flatMap((c) => c.edits),
+  ),
+  editsByCoarseType: countBy(
+    (e) => asCoarseEditType(e.type),
+    commits.flatMap((c) => c.edits),
+  ),
+  editsByCursors: countBy(
+    (e) => cleanCursorCount(e.cursors),
+    commits.flatMap((c) => c.edits),
+  ),
+};
+console.log(JSON.stringify(results, null, 2));
