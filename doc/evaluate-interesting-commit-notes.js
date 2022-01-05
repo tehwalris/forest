@@ -83,11 +83,7 @@ function asCoarseEditType(t) {
       "remove required argument": "add/remove required argument/property",
       "remove required property": "add/remove required argument/property",
       "add required argument": "add/remove required argument/property",
-      "add destructured argument destructure/type/value": "other",
-      "extract expression into function": "other",
       "add required property": "add/remove required argument/property",
-      "extract expression to variable": "other",
-      "flatten variable declarations": "other",
     }[t] || t
   );
 }

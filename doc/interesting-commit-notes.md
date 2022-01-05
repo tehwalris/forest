@@ -10,29 +10,36 @@
 - fe5ee0134aa00588d696331b9ad27eaa5a167c62
   - rename-like replace (2)
 - d67b01605918c901d33734a1e001404197c9fec4
-  - same insertion in multiple locations (3)
+  - same insertion in multiple locations (4)
+    - note: switching to `multiCursorHelper`
 - 8d8ac11f5d8faae6868d7a003beb7b04eeea5ed0
   - same edit in multiple locations (5)
     - note: switching to `multiCursorHelper`
 - 510dcabfe3ea8d7b38d5350db047d7298e003a5b
-  - same edit in multiple locations (2)
-    - note: extracting duplicate code into function
+  - extract expression into function (2)
 - d00fcd2f5779fdee4d15dd2a21bfb5bdb68c1d1d
   - rename-like replace (3)
 - b2e4e96d0340051b07407a4b735bd32fd6989cc6
-  - same edit in multiple locations (2)
+  - wrap expression (2)
+    - note: wrap part of a property access chain in a function call
 - b151c68ed30bbe882aae6224459a00b4b2522e38
   - remove required property (9)
 - ca8ec9d58ba821148b8f06b6b3d9803756250657
   - same edit in multiple locations (10)
     - note: removing unneeded export keywords from functions
 - 6e1ebe557f26da366b6d5bebff6311d2585ec433
-  - same edit in multiple locations (3)
-  - same edit in multiple locations (3)
+  - wrap expression (3)
+    - note: replace an argument by an expression-wrapped version for each call to a set of functions
+  - same edit in multiple locations (4)
+    - note: replace a parameter by a wrapped version for a set of function declarations
   - same edit in multiple locations (6)
-  - same edit in multiple locations (2)
+    - note: add identical argument to every call of a function
+  - wrap expression (2)
+    - note: slightly different wrapping in both cases, but multi-cursors could be useful
 - 9ca1e69a70720cd490134a6bf799b6cf5d7daaf7
   - same edit in multiple locations (4)
+    - note: replace calls to `tryMoveOutOfList` and `tryMoveIntoList` by `cursorMoveInOut`
+    - note: changed passed arguments and handling of return value
 - c8ef6026d72bf4550ec15d1cb95b3a6c0de59a2f
   - add destructured argument destructure/type/value (6)
 - 15c3e054af0bf72a6f152bd4ffe7b27bedb7c4bc
