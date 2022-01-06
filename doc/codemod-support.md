@@ -1,7 +1,5 @@
-- https://github.com/sejoker/awesome-jscodeshift
-
-  - `react-codemod`
-    - TODO
+- raw results
+  - `react-codemod` (ignore)
   - `js-codemod`
     - codemods
       - `arrow-function-arguments` (no)
@@ -196,20 +194,19 @@
         - can't strictly check that `t` is used
           - no strict find uses (but codemod doesn't do that either)
           - lookup table for asserts is possible with regex but impractical
-      - `mocha2ava`
-        - `extractDescribes` (no)
-          - can do the flatten sometimes, but not in the general case
-            - would need "move cursors up to common ancestor cursor" command
-          - can't do renaming
-            - can't work with strings
-            - can't collect path of ancestors to construct name from
-            - can't write complex logic
-        - `it2test` (maybe)
-        - `this2content` (yes)
-        - `insertRequires` (no)
-          - import statements are not supported
-          - can't check whether import statements are used an then branch on that
-            - would require cursor snapshots
+      - `extractDescribes` (no)
+        - can do the flatten sometimes, but not in the general case
+          - would need "move cursors up to common ancestor cursor" command
+        - can't do renaming
+          - can't work with strings
+          - can't collect path of ancestors to construct name from
+          - can't write complex logic
+      - `it2test` (maybe)
+      - `this2content` (yes)
+      - `insertRequires` (no)
+        - import statements are not supported
+        - can't check whether import statements are used an then branch on that
+          - would require cursor snapshots
   - `undecorate-codemod` (no)
     - general notes
       - can't work with classes or decorators
@@ -235,9 +232,6 @@
         - can't remove `this` from calls after extracting method
           - can't find all usages
         - shorthand function-in-property syntax is not supported
-
-- https://github.com/rajasegar/awesome-codemods
-
 - reasons (TODO add counts for `react-codemod` and `js-transforms`)
   - (3) matching is different because of search in flattened AST
   - (3) manual parenthesizing required
