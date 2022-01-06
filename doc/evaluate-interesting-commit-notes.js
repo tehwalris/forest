@@ -88,6 +88,8 @@ function asCoarseEditType(t) {
         "extract expression into function/variable",
       "extract expression into variable":
         "extract expression into function/variable",
+      "wrap expression": "wrap expression/statement",
+      "wrap statements": "wrap expression/statement",
     }[t] || t
   );
 }

@@ -2,7 +2,7 @@
   - remove required argument (2-3)
   - remove required property (2-3)
 - 131b9bbd254be35172dcf6a06b45caba6bddc1c5
-  - same insertion in multiple locations (2)
+  - identical insertion (2)
     - note: add two statements around an existing statement
 - 0eb30848a307fc161205385b33d9b47c4861d23c
   - rename-like replace (2)
@@ -33,7 +33,7 @@
     - note: replace an argument by an expression-wrapped version for each call to a set of functions
   - specialized edit (4)
     - note: replace a parameter by a wrapped version for a set of function declarations
-  - specialized edit (6)
+  - identical insertion (6)
     - note: add identical argument to every call of a function
   - wrap expression (2)
     - note: slightly different wrapping in both cases, but multi-cursors could be useful
@@ -62,7 +62,7 @@
   - add required argument (3)
     - note: argument value is not a constant, but comes from the scope
     - note: argument value is different at one call site
-  - same insertion in multiple locations (5)
+  - identical insertion (5)
     - note: append to condition of if statement
 - 9714f3e3cee2f49c6fa5e828e2f1e7f45953ef40
   - add required argument (2)
@@ -88,12 +88,13 @@
   - specialized edit (4)
     - note: adjust every call to a function whose argument got wrapped
 - 63f77cd89b3e41803ac6d691b631798c3cc73474
-  - same insertion in multiple locations (2)
+  - insertion with small unique part (2)
     - note: write two if statement branches with content
     - note: a small area is later modified separately for each cursor
 - 1f63a0329da6edc7d467cd4cff3f32f2f16243c1
-  - specialized edit (3)
+  - wrap expression (3)
     - note: adjust every call to a function whose argument got wrapped
+    - note: wrap the last argument in a single element array literal
 - f3ad92f06aa290ef34a9ecd4554f675bedde6992
   - note: not really solvable with multi cursor
   - note: same identifier gets added in multiple locations, but for different purposes
@@ -108,7 +109,7 @@
 - 45bf3a3474f04496695158f1abab89ecf096773b
   - specialized edit (3)
     - note: replace every call to a function by a call to a wrapper function
-  - specialized edit (2)
+  - insertion with small unique part (2)
     - note: inserting an expression which is the same except for a small part
 - 44df2e6ba178b33e075e554565a615216338f476
   - specialized edit (9)
@@ -151,12 +152,12 @@
     - note: each assignment is identical
 - 2dbe50f586a6a96c23202d474334ca3d9a4a2c03
   - rename-like replace (4)
-  - specialized edit (2)
+  - insertion with small unique part (2)
     - note: inserting an expression which is the same except for a small part
   - delete a declaration and everything related (3)
     - note: delete a method and all calls
 - f1658c7dd20a9a212d8d81a86629909fa49843cf
-  - specialized edit (2)
+  - insertion with small unique part (2)
     - note: inserting an expression which is the same except for a small part
 - e3269673c032670b970fd7302b8697a6fd2245b2
   - add destructured argument destructure/type/value (9)
@@ -211,7 +212,7 @@
 - 398f478ff11385e5b0dd3f35804ee85a57febcf1
   - rename-like replace (9)
     - note: replace `node` with `nodeForDisplay`
-  - same insertion in multiple locations (9)
+  - identical insertion (9)
     - note: add destructured property to parameter in every function definition
 - f96f8a3b737abe13a94ea27a59912f3fb549b2b0
   - wrap expression (5)
@@ -233,9 +234,9 @@
     - note: wrap returned expression in function call
 - 669d5dbdbbccd4b202695c3898ee30d06bd23110
   - add required argument (3)
-  - same insertion in multiple locations (2)
+  - identical insertion (2)
     - note: add a property to an interface
-  - same insertion in multiple locations (2)
+  - identical insertion (2)
     - note: add a property to an interface
 - a56707b9db66197b2003b8a753d6df47c0e81c9c
   - note: adds multiple properties and arguments, all used to pass one value through the call hierarchy
