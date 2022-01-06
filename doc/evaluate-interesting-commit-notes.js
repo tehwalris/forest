@@ -90,6 +90,8 @@ function asCoarseEditType(t) {
         "extract expression into function/variable",
       "wrap expression": "wrap expression/statement",
       "wrap statements": "wrap expression/statement",
+      "add destructured argument destructure/type/value":
+        "add destructure, type and value",
     }[t] || t
   );
 }
