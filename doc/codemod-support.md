@@ -60,11 +60,11 @@
       - `unchain-variables` (yes)
       - `underscore-to-lodash-native` (no)
         - lookup tables are possible but impractical
-      - `unquote-properties` (no)
+      - `unquote-properties` (ignore)
         - non-standard syntax
       - `updated-computed-props` (ignore)
         - no example code
-      - `use-strict ` (almost)
+      - `use-strict` (almost)
         - can't edit multiple files
   - `js-transforms`
     - codemods
@@ -240,28 +240,30 @@
 
 - reasons (TODO add counts for `react-codemod` and `js-transforms`)
   - (3) matching is different because of search in flattened AST
-  - (2) manual parenthesizing required
+  - (3) manual parenthesizing required
     - probably not listed in all examples
-  - (4) have to recreate cursors multiple times
+  - (6) have to recreate cursors multiple times
     - would be solved by cursor snapshots
-  - (5) nested copy-paste would be an issue
-  - (4) too complicated
-  - (2) lookup tables are possible but impractical
-  - (1) can't remove duplicate items
-  - (1) bug in paste
-  - (11) unsupported syntax
+  - (6) nested copy-paste would be an issue
+  - (7) too complicated
+  - (4) lookup tables are possible but impractical
+  - (2) can't remove duplicate items
+  - (2) bug in paste
+  - (1) none-one-many issue
+  - (13) unsupported syntax
     - import, class, JSX
-  - (5) can't handle separately found locations together
+  - (6) can't handle separately found locations together
   - (1) can't filter for exactly one item in list
+  - (1) can't filter for exactly one search match
   - (1) can't select second list item (!)
   - (2) can't create AST by parsing arbitrary string using JS
   - (1) no support for zipping lists of cursors
   - (1) adding after first import _or_ as first statement if no imports doesn't work
-  - (1) can't edit multiple files
+  - (2) can't edit multiple files
   - (1) adding `props` parameter if missing is hacky
-  - (4) no strict ``find usages of variable''
+  - (5) no strict ``find usages of variable''
     - TODO what does "can't filter by usages in template" mean?
-  - (1) no strict ``find declarations of variable''
+  - (2) no strict ``find declarations of variable''
   - (1) can do the flatten sometimes, but not in the general case
     - would need "move cursors up to common ancestor cursor" command
   - (1) can't collect path of ancestors
@@ -269,7 +271,7 @@
     - TODO look at what this means again
     - this has something to do with cursor snapshots?
   - (1) no sort feature
-  - (1) can't filter top-level statements
-  - (1) can't search for dynamic query
+  - (2) can't filter top-level statements
+  - (2) can't search for dynamic query
     - can't search for more copies of the same literal
   - (1) can't search up
