@@ -1,0 +1,41 @@
+[
+  [
+    "matching is different because of search in flattened AST",
+    "search_flat_ast"
+  ],
+  ["manual parenthesizing required", "manual_paren"],
+  ["have to recreate cursors multiple times", "recreate_cursors"],
+  ["nested copy-paste would be an issue", "nested_copy_paste"],
+  ["too complicated", "complicated"],
+  ["lookup tables are possible but impractical", "lookup_tables"],
+  ["can't remove duplicate items", "duplicate_items"],
+  ["bug in paste", "bug_in_paste"],
+  ["none-one-many issue", "none_one_many"],
+  ["unsupported syntax", "syntax"],
+  ["can't handle separately found locations together", "separately_found"],
+  ["can't filter for exactly one item in list", "one_item_list"],
+  ["can't filter for exactly one search match", "one_result_search"],
+  ["can't select second list item (!)", "select_second"],
+  ["can't create AST by parsing arbitrary string using JS", "using_js"],
+  ["no support for zipping lists of cursors", "zip"],
+  [
+    "adding after first import _or_ as first statement if no imports doesn't work",
+    ""
+  ],
+  ["can't edit multiple files", "multiple_files"],
+  ["adding `props` parameter if missing is hacky", ""],
+  ["no strict ``find usages of variable''", "find_usages"],
+  ["no strict ``find declarations of variable''", "find_declarations"],
+  [
+    "can do the flatten sometimes, but not in the general case",
+    "general_flatten"
+  ],
+  ["can't collect path of ancestors", "ancestor_path"],
+  ["can't check whether import statements are used an then branch on that", ""],
+  ["no sort feature", "sort"],
+  ["can't filter top-level statements", "top_level"],
+  ["can't search for dynamic query", "dynamic_query"],
+  ["can't search up", "search_up"],
+  ["note", "note"],
+  ["ignore", "ignore"]
+]
