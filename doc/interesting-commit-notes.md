@@ -3,6 +3,7 @@
   - remove required property (2-3)
 - 131b9bbd254be35172dcf6a06b45caba6bddc1c5
   - same insertion in multiple locations (2)
+    - note: add two statements around an existing statement
 - 0eb30848a307fc161205385b33d9b47c4861d23c
   - rename-like replace (2)
   - add required argument (>10)
@@ -44,6 +45,8 @@
   - add destructured argument destructure/type/value (6)
 - 15c3e054af0bf72a6f152bd4ffe7b27bedb7c4bc
   - same edit in multiple locations (2)
+    - note: replace an expression by an expression wrapped version
+    - note: uses the inner expression multiple times
 - 1618d678e0cb0c4b99a60ccd1f7314644552d5ad
   - same edit in multiple locations (6)
     - note: wrap returned boolean in object
@@ -83,6 +86,8 @@
     - note: adjust every call to a function whose argument got wrapped
 - 63f77cd89b3e41803ac6d691b631798c3cc73474
   - same insertion in multiple locations (2)
+    - note: write two if statement branches with content
+    - note: a small area is later modified separately for each cursor
 - 1f63a0329da6edc7d467cd4cff3f32f2f16243c1
   - same edit in multiple locations (3)
     - note: adjust every call to a function whose argument got wrapped
@@ -135,6 +140,7 @@
     - note: wrap every prop value in a function call
 - cc101f89a50fce91ba2beb7b7d6adc4177da0f7e
   - same edit in multiple locations (3)
+    - note: insert an element into an array, by copying it from a nearby array
 - 5afc3a862d0eff43f903debc6558489bc7bfabd1
   - add required property (3)
   - same edit in multiple locations (4)
@@ -225,7 +231,9 @@
 - 669d5dbdbbccd4b202695c3898ee30d06bd23110
   - add required argument (3)
   - same insertion in multiple locations (2)
+    - note: add a property to an interface
   - same insertion in multiple locations (2)
+    - note: add a property to an interface
 - a56707b9db66197b2003b8a753d6df47c0e81c9c
   - note: adds multiple properties and arguments, all used to pass one value through the call hierarchy
   - note: Forest probably wouldn't help with this
