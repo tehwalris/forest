@@ -3,7 +3,69 @@
   - `react-codemod`
     - TODO
   - `js-codemod`
-    - TODO
+    - codemods
+      - `arrow-function-arguments` (no)
+        - have to recreate cursors multiple times
+        - no strict "find declarations of variable"
+        - (a little) too complicated
+      - `arrow-function` (almost)
+        - bug: can't paste argument lists
+        - can't handle separately found locations together
+        - have to recreate cursors multiple times
+        - took a long time
+      - `expect` (no)
+        - lookup tables are possible but impractical
+      - `flow-bool-to-boolean` (ignore)
+        - non-standard syntax
+      - `invalid-requires` (ignore)
+        - same as `unchain-variables`
+      - `jest-11-update` (ignore)
+        - no example code
+      - `jest-arrow` (almost)
+        - nested copy-paste would be an issue
+      - `jest-remove-describe` (maybe)
+        - can’t filter top-level statements
+        - can’t filter for exactly one search match
+      - `jest-remove-disable-automock` (yes)
+      - `jest-rm-mock` (ignore)
+        - no example code
+      - `jest-update` (ignore)
+        - no example code
+      - `no-reassign-params` (ignore)
+        - no example code
+      - `no-vars` (no)
+        - too complicated
+      - `object-shorthand` (no)
+        - can’t search for dynamic query
+          - note: needed to find properties like `x: y` where `x` and `y` are the same identifier
+      - `outline-require` (ignore)
+        - no example code
+      - `rm-copyProperties` (no)
+        - too complicated
+      - `rm-merge` (yes)
+        - have to recreate cursors multiple times
+        - manual parenthesizing required
+      - `rm-object-assign` (almost)
+        - none-one-many issue
+      - `rm-requires` (no)
+        - no strict "find usages of variable"
+        - can’t remove duplicate items
+      - `template-literals` (no)
+        - unsupported syntax
+      - `touchable` (no)
+        - unsupported syntax
+      - `trailing-commas` (ignore)
+        - only about formatting
+        - no example code
+      - `unchain-variables` (yes)
+      - `underscore-to-lodash-native` (no)
+        - lookup tables are possible but impractical
+      - `unquote-properties` (no)
+        - non-standard syntax
+      - `updated-computed-props` (ignore)
+        - no example code
+      - `use-strict ` (almost)
+        - can't edit multiple files
   - `js-transforms`
     - codemods
       - `bind-this-to-bind-expression` (ignore)
@@ -185,7 +247,7 @@
   - (5) nested copy-paste would be an issue
   - (4) too complicated
   - (2) lookup tables are possible but impractical
-  - (1) can't avoid duplicate items
+  - (1) can't remove duplicate items
   - (1) bug in paste
   - (11) unsupported syntax
     - import, class, JSX
@@ -199,7 +261,7 @@
   - (1) adding `props` parameter if missing is hacky
   - (4) no strict ``find usages of variable''
     - TODO what does "can't filter by usages in template" mean?
-  - (1) no strict ``find definitions of variable''
+  - (1) no strict ``find declarations of variable''
   - (1) can do the flatten sometimes, but not in the general case
     - would need "move cursors up to common ancestor cursor" command
   - (1) can't collect path of ancestors

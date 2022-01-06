@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const assert = require("assert");
-const { groupBy, countBy } = require("ramda");
+const { countBy } = require("ramda");
 
 function last(arr) {
   assert(Array.isArray(arr));
