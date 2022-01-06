@@ -84,6 +84,10 @@ function asCoarseEditType(t) {
       "remove required property": "add/remove required argument/property",
       "add required argument": "add/remove required argument/property",
       "add required property": "add/remove required argument/property",
+      "extract expression into function":
+        "extract expression into function/variable",
+      "extract expression into variable":
+        "extract expression into function/variable",
     }[t] || t
   );
 }

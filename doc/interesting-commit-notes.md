@@ -11,10 +11,10 @@
 - fe5ee0134aa00588d696331b9ad27eaa5a167c62
   - rename-like replace (2)
 - d67b01605918c901d33734a1e001404197c9fec4
-  - same insertion in multiple locations (4)
+  - specialized edit (4)
     - note: switching to `multiCursorHelper`
 - 8d8ac11f5d8faae6868d7a003beb7b04eeea5ed0
-  - same edit in multiple locations (5)
+  - specialized edit (5)
     - note: switching to `multiCursorHelper`
 - 510dcabfe3ea8d7b38d5350db047d7298e003a5b
   - extract expression into function (2)
@@ -26,34 +26,34 @@
 - b151c68ed30bbe882aae6224459a00b4b2522e38
   - remove required property (9)
 - ca8ec9d58ba821148b8f06b6b3d9803756250657
-  - same edit in multiple locations (10)
+  - add/remove modifier (10)
     - note: removing unneeded export keywords from functions
 - 6e1ebe557f26da366b6d5bebff6311d2585ec433
   - wrap expression (3)
     - note: replace an argument by an expression-wrapped version for each call to a set of functions
-  - same edit in multiple locations (4)
+  - specialized edit (4)
     - note: replace a parameter by a wrapped version for a set of function declarations
-  - same edit in multiple locations (6)
+  - specialized edit (6)
     - note: add identical argument to every call of a function
   - wrap expression (2)
     - note: slightly different wrapping in both cases, but multi-cursors could be useful
 - 9ca1e69a70720cd490134a6bf799b6cf5d7daaf7
-  - same edit in multiple locations (4)
+  - specialized edit (4)
     - note: replace calls to `tryMoveOutOfList` and `tryMoveIntoList` by `cursorMoveInOut`
     - note: changed passed arguments and handling of return value
 - c8ef6026d72bf4550ec15d1cb95b3a6c0de59a2f
   - add destructured argument destructure/type/value (6)
 - 15c3e054af0bf72a6f152bd4ffe7b27bedb7c4bc
-  - same edit in multiple locations (2)
+  - specialized edit (2)
     - note: replace an expression by an expression wrapped version
     - note: uses the inner expression multiple times
 - 1618d678e0cb0c4b99a60ccd1f7314644552d5ad
-  - same edit in multiple locations (6)
+  - wrap expression (6)
     - note: wrap returned boolean in object
 - 67e27be7ee4839ee8ba867036b3b38d28f615720
-  - same edit in multiple locations (3)
+  - add/remove modifier (3)
     - note: removing unneeded export keywords from functions
-  - same edit in multiple locations (5)
+  - specialized edit (5)
     - note: switching to `multiCursorHelper`
 - 4ddb3616bff5a1d974e4f40f1dfa0ad9369d3fac
   - rename-like replace (3)
@@ -63,39 +63,42 @@
     - note: argument value is not a constant, but comes from the scope
     - note: argument value is different at one call site
   - same insertion in multiple locations (5)
+    - note: append to condition of if statement
 - 9714f3e3cee2f49c6fa5e828e2f1e7f45953ef40
   - add required argument (2)
-  - same edit in multiple locations (2)
+  - specialized edit (2)
     - note: edit applies to the function calls where the required argument was just added
+    - note: duplicate and modify an if statement branch
   - note: this commit also uses the "convert arguments to destructure" refactor, which is not counted as a multi-cursor edit
 - a325fd599819af5211d36ccda90ff23271d6572e
   - delete a declaration and everything related (20)
     - note: delete interface and all usages with the least deletions possible
     - note: 17/20 deletions are initializers for an abstract property
 - 1bcb5ee068f32b1247ea846322f3210c94360fca
-  - same edit in multiple locations (10)
+  - specialized edit (10)
     - note: adding `clone` method to every `Node`
-  - same edit in multiple locations (12)
+    - note: writing the method body requires using information from constructor
+  - specialized edit (12)
     - note: assigning `id` whenever a `Node` is constructed
 - d6f74b4278a45d88edb2744e248358fd7965c576
   - rename-like replace (5)
     - note: wrapping in property access
     - note: the type which gets wrapped is used an array element
     - note: some wrapped accesses are direct and some are aliased through a variable
-  - same edit in multiple locations (4)
+  - specialized edit (4)
     - note: adjust every call to a function whose argument got wrapped
 - 63f77cd89b3e41803ac6d691b631798c3cc73474
   - same insertion in multiple locations (2)
     - note: write two if statement branches with content
     - note: a small area is later modified separately for each cursor
 - 1f63a0329da6edc7d467cd4cff3f32f2f16243c1
-  - same edit in multiple locations (3)
+  - specialized edit (3)
     - note: adjust every call to a function whose argument got wrapped
 - f3ad92f06aa290ef34a9ecd4554f675bedde6992
   - note: not really solvable with multi cursor
   - note: same identifier gets added in multiple locations, but for different purposes
 - c73ecb4552f267e4d3b5d7bef5fca4bfec9a5c15
-  - same edit in multiple locations (2)
+  - specialized edit (2)
     - note: quite interesting, because multiple parts of the AST which are linked by an expression are combined
 - 12d1c5ef1e9db5379a0da555b1061a7747f34cf3
   - rename-like replace (14)
@@ -103,25 +106,25 @@
 - 0c5d99f62049a8af48f97084262277aa1694fb2f
   - note: nothing where multi-cursor would be useful
 - 45bf3a3474f04496695158f1abab89ecf096773b
-  - same edit in multiple locations (3)
+  - specialized edit (3)
     - note: replace every call to a function by a call to a wrapper function
-  - same edit in multiple locations (2)
+  - specialized edit (2)
     - note: inserting an expression which is the same except for a small part
 - 44df2e6ba178b33e075e554565a615216338f476
-  - same edit in multiple locations (9)
+  - specialized edit (9)
     - note: removing a function call and instead adding an argument nearby
     - note: there are two slightly different cases for how to insert the argument
 - 318e16d2cb24fc835e14c21c2780ebe02f56dda0
   - extract expression into function (4)
     - note: one call is negated
 - a64a80694fa3c0d5618d2ab60d43c6ed0c75d841
-  - same edit in multiple locations (2)
+  - wrap statements (2)
     - note: wrapping each call to a function in `if`
 - a34661bb42e205e784a0e84e0eb36b4aaee3afc5
-  - same edit in multiple locations (2)
+  - specialized edit (2)
     - note: adding new branch to similar `if` statements
 - 245877a7b73dd3b81d63fe382c23f3eb17c79b31
-  - same edit in multiple locations (4)
+  - specialized edit (4)
     - note: replacing a boolean argument with an enum value
 - 28dfdc6114534e9186f8720c76d4b8b97a88efdc
   - rename-like replace (2)
@@ -133,27 +136,27 @@
   - add required argument (2)
     - note: value comes variable with same name in scope
 - 7145f1024468386c996406d261b8b85845894a48
-  - same edit in multiple locations (2)
+  - specialized edit (2)
     - note: delete condition in `if` around each call site
 - a0a89686995d7dac99c04efec065f8072106f7ef
-  - same edit in multiple locations (3)
+  - wrap expression (3)
     - note: wrap every prop value in a function call
 - cc101f89a50fce91ba2beb7b7d6adc4177da0f7e
-  - same edit in multiple locations (3)
+  - specialized edit (3)
     - note: insert an element into an array, by copying it from a nearby array
 - 5afc3a862d0eff43f903debc6558489bc7bfabd1
   - add required property (3)
-  - same edit in multiple locations (4)
+  - specialized edit (4)
     - note: remove every assignment to a variable, but don't delete the variable itself
     - note: each assignment is identical
 - 2dbe50f586a6a96c23202d474334ca3d9a4a2c03
   - rename-like replace (4)
-  - same edit in multiple locations (2)
+  - specialized edit (2)
     - note: inserting an expression which is the same except for a small part
   - delete a declaration and everything related (3)
     - note: delete a method and all calls
 - f1658c7dd20a9a212d8d81a86629909fa49843cf
-  - same edit in multiple locations (2)
+  - specialized edit (2)
     - note: inserting an expression which is the same except for a small part
 - e3269673c032670b970fd7302b8697a6fd2245b2
   - add destructured argument destructure/type/value (9)
@@ -166,7 +169,7 @@
 - 7db0f8f4e688fa5b8acdb9b670a01348bfcd4b7d
   - add required property (3)
 - 7ae3e40f0ee0ae51130d88f64b12b1d4363ad022
-  - same edit in multiple locations (5)
+  - specialized edit (5)
     - note: inserting pairs of properties which are the same except for one part
     - note: the property value used by each of the 5 cursors is different
     - note: this edit was caused by adding a required property
@@ -182,11 +185,11 @@
 - 2ba0dccf6824261168e3a0db4224cfbc2a091e0b
   - add required argument (4)
 - 25ac8799dbc590f253407a0279cfe23e59160e9a
-  - same edit in multiple locations (2)
+  - specialized edit (2)
     - note: Forest probably wouldn't help with this
     - note: requires moving the content of a string into a regular expression literal
 - 60eb0c2a5625352143a7e3782c6867a5d299e39f
-  - extract expression to variable (3)
+  - extract expression into variable (3)
   - rename-like replace (5)
     - note: replace every location where a property is accessed, based on type of receiver
     - note: this edit overlaps with the "extract expression" edit
@@ -199,7 +202,7 @@
 - 7cee60b44339b17a99473470f6909f518145308a
   - add required property (3)
 - 21e37891e63e85ccfb695a724cf8321695f231b2
-  - same edit in multiple locations (4)
+  - wrap expression (4)
     - note: wrap returned expression in object
   - rename-like replace (9)
     - note: required because of wrapping introduced in previous edit
@@ -208,10 +211,10 @@
 - 398f478ff11385e5b0dd3f35804ee85a57febcf1
   - rename-like replace (9)
     - note: replace `node` with `nodeForDisplay`
-  - same edit in multiple locations (9)
+  - same insertion in multiple locations (9)
     - note: add destructured property to parameter in every function definition
 - f96f8a3b737abe13a94ea27a59912f3fb549b2b0
-  - same edit in multiple locations (5)
+  - wrap expression (5)
     - note: wrap most expressions in an array with a function call
 - 73e756848ec9fa18430c256d0930e82daf5f7609
   - delete a declaration and everything related (30)
@@ -226,7 +229,7 @@
   - flatten variable declarations (88)
 - 0e94ddc66b49bce395f275cf1f93f1d9f217433f
   - delete a declaration and everything related (4)
-  - same edit in multiple locations (5)
+  - wrap expression (5)
     - note: wrap returned expression in function call
 - 669d5dbdbbccd4b202695c3898ee30d06bd23110
   - add required argument (3)
@@ -239,12 +242,12 @@
   - note: Forest probably wouldn't help with this
   - note: the values are different in each location
 - c080e94a353b0c4446cbe914420c478fee6737c5
-  - same edit in multiple locations (5)
+  - specialized edit (5)
     - note: replaces `as` expression with argument type annotation
 - c2b83f591a7c3f74da6b4d5da4f4ce8c2e066406
   - note: just a rename
 - a6aaa285da5fc58308c42346437f185709cfa3c9
-  - same edit in multiple locations (2)
+  - wrap expression (2)
     - note: wrap every usage of a specific type in a function call
 - ab3f54bdcd46ffe86352456f3c2d87cced171b3f
   - add required argument (3)
@@ -254,8 +257,8 @@
   - rename-like replace (4)
     - note: replace `fromTsNode` with `nextFromTsNode`
 - f8efa34d96301d96367e4de653440c45f70f7e79
-  - same edit in multiple locations (8)
-    - note: replace every return of a specific in a function call and make some further adjustments
+  - specialized edit (8)
+    - note: replace every return of a specific type in a function call and make some further adjustments
 - 6a170d125f99ea4b5b43818740e13fe92c64f8f6
 - b767dd25f750f52fc16656d254272baa6ce245b3
 - 872afbfc25ff304f780739970882870d07400138
