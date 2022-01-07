@@ -144,7 +144,7 @@
     - `dynamic-require-import` (almost)
       - syntax: no support for imports
         - no reason why adding it wouldn't work
-      - adding_after_first_import_or_as_first_statement: adding after first import _or_ as first statement if no imports doesn't work
+      - adding_after_first_import_or_as_first_statement: adding after first import or as first statement if no imports doesn't work
         - can only do one or the other
 - `lodash-to-lodash-amd-codemods` (ignore)
   - general notes
@@ -188,7 +188,7 @@
 - `mocha2ava-codemod`
   - codemods
     - `add-pass-test` (almost)
-      - separately_found: can't match one of multiple types (function _or_ arrow)
+      - separately_found: can't match one of multiple types (function or arrow)
       - separately_found: can't unwrap `co.wrap` and later combine it with other cursors
       - find_usages: can't strictly check that `t` is used
         - no strict find uses (but codemod doesn't do that either)
@@ -222,7 +222,7 @@
         - either correctly with built in support
         - or roughly by searching for an identifier from the selection
       - dynamic_query: can't search for more copies of the same literal
-      - separately_found: can't match one of multiple types (string _or_ regex _or_ number)
+      - separately_found: can't match one of multiple types (string or regex or number)
       - search_up: can't search up until a result is found
         - a node _within_ some surrounding node must match
     - `extract_non_instance_methods` (almost)
