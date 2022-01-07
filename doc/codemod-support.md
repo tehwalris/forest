@@ -174,7 +174,7 @@
       - note: actually drops some allowed options (e.g. `defaultProps`)
       - note: some movements this is doing are not safe
         - `closest`, `find`, `closest` might not be a noop
-    - `component-class` (no)
+    - `component-class` (maybe)
       - syntax: no support for classes
         - would probably be possible with class support
     - `props` (yes)

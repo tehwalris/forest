@@ -172,7 +172,8 @@ console.log(JSON.stringify(results, null, 2));
 const resultsBySlug = new Map(
   [...reasonsBySlug.keys()].map((slug) => [slug, []]),
 );
-for (const codemod of results.repos.flatMap((r) => r.codemods)) {
+const codemods = results.repos.flatMap((r) => r.codemods);
+for (const codemod of codemods) {
   for (const issue of codemod.issues) {
     resultsBySlug.get(issue.slug).push(codemod.result);
   }
@@ -193,3 +194,8 @@ const latexOutput = sortedSlugs
   })
   .join("\n");
 console.log(latexOutput);
+
+console.log({
+  ...R.countBy((c) => c.result, codemods),
+  totalWithoutIgnore: codemods.filter((c) => c.result !== "ignore").length,
+});
