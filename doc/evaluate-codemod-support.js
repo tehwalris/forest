@@ -1,14 +1,12 @@
 const fs = require("fs");
 const path = require("path");
 const assert = require("assert");
-const { SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION } = require("constants");
+const R = require("ramda");
 
 const notesPath = path.join(__dirname, "codemod-support.md");
 const mapFromJson = (filename) =>
   new Map(JSON.parse(fs.readFileSync(path.join(__dirname, filename), "utf-8")));
 const invertMap = (m) => new Map([...m.entries()].map(([k, v]) => [v, k]));
-const reasonsByExactReason = mapFromJson("codemod-support-reason-mapping.json");
-const exactReasonsByReason = invertMap(reasonsByExactReason);
 const slugsByReason = mapFromJson("codemod-support-reason-slugs.json");
 const reasonsBySlug = invertMap(slugsByReason);
 
@@ -82,7 +80,7 @@ function parseCodemodNameLine(lines) {
   assert(typeof lines === "string");
   const m = lines.match(/^`(.*)` \((no|maybe|almost|yes|ignore)\)$/);
   assert(m);
-  return { name: m[1], result: m[2] };
+  return { name: m[1], result: m[2] === "almost" ? "maybe" : m[2] };
 }
 
 function parseCodemod(lines) {
@@ -126,6 +124,12 @@ function parseResultsForRepo(lines) {
       assert(false);
     }
   }
+  if (!output.notes) {
+    output.notes = [];
+  }
+  if (!output.codemods) {
+    output.codemods = [];
+  }
   return output;
 }
 
@@ -133,6 +137,22 @@ function parseResults(lines) {
   return {
     repos: lines.map(parseResultsForRepo),
   };
+}
+
+function summarizeResults(results) {
+  assert(
+    Array.isArray(results) &&
+      results.every((r) => ["no", "maybe", "yes"].includes(r)),
+  );
+  return [
+    results.length,
+    ...["no", "maybe", "yes"].map((target) =>
+      [
+        results.filter((r) => r === target).length,
+        target[0].toUpperCase(),
+      ].join(""),
+    ),
+  ].join(", ");
 }
 
 const notes = fs.readFileSync(notesPath, "utf-8");
@@ -146,4 +166,30 @@ for (const line of notes.trim().split("\n")) {
   groupedLines = appendAtDepth(groupedLines, m[2], indent);
 }
 
-console.log(JSON.stringify(parseResults(groupedLines), null, 2));
+const results = parseResults(groupedLines);
+console.log(JSON.stringify(results, null, 2));
+
+const resultsBySlug = new Map(
+  [...reasonsBySlug.keys()].map((slug) => [slug, []]),
+);
+for (const codemod of results.repos.flatMap((r) => r.codemods)) {
+  for (const issue of codemod.issues) {
+    resultsBySlug.get(issue.slug).push(codemod.result);
+  }
+}
+console.log(resultsBySlug);
+
+const sortedSlugs = R.sortBy(
+  (slug) => -resultsBySlug.get(slug).length,
+  R.sortBy((slug) => reasonsBySlug.get(slug), [...reasonsBySlug.keys()]),
+).filter((slug) => resultsBySlug.get(slug).length);
+console.log(sortedSlugs);
+
+const latexOutput = sortedSlugs
+  .map((slug) => {
+    const results = resultsBySlug.get(slug);
+    const exactReason = reasonsBySlug.get(slug);
+    return `\\item (${summarizeResults(results)}) ${exactReason}`;
+  })
+  .join("\n");
+console.log(latexOutput);
