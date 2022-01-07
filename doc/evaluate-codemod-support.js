@@ -1,6 +1,16 @@
 const fs = require("fs");
 const path = require("path");
 const assert = require("assert");
+const { SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION } = require("constants");
+
+const notesPath = path.join(__dirname, "codemod-support.md");
+const mapFromJson = (filename) =>
+  new Map(JSON.parse(fs.readFileSync(path.join(__dirname, filename), "utf-8")));
+const invertMap = (m) => new Map([...m.entries()].map(([k, v]) => [v, k]));
+const reasonsByExactReason = mapFromJson("codemod-support-reason-mapping.json");
+const exactReasonsByReason = invertMap(reasonsByExactReason);
+const slugsByReason = mapFromJson("codemod-support-reason-slugs.json");
+const reasonsBySlug = invertMap(slugsByReason);
 
 function last(arr) {
   assert(Array.isArray(arr));
@@ -20,24 +30,6 @@ function appendAtDepth(tree, value, depth) {
   const result = appendAtDepth(last(tree), value, depth - 1);
   return [...tree.slice(0, -1), result];
 }
-
-const notesPath = path.join(__dirname, "codemod-support.md");
-
-const notes = fs.readFileSync(notesPath, "utf-8");
-let groupedLines = [];
-for (const line of notes.trim().split("\n")) {
-  const m = line.match(/^(\s*)- (.*)$/);
-  if (!m) {
-    throw new Error(`Invalid line: ${line}`);
-  }
-  const indent = Math.floor(m[1].length / 2);
-  groupedLines = appendAtDepth(groupedLines, m[2], indent);
-}
-assert(
-  groupedLines.length === 2 &&
-    groupedLines[0][0] === "raw results" &&
-    groupedLines[1][0].startsWith("reasons"),
-);
 
 function parseRepoNotes(lines) {
   assert(
@@ -61,10 +53,19 @@ function issuesToNotes({ issues, notes }) {
   };
 }
 
+function parseIssueLine(lines) {
+  assert(typeof lines === "string");
+  const m = lines.match(/^([a-z_]+): (.+)$/);
+  assert(m);
+  const slug = m[1];
+  assert(reasonsBySlug.has(slug));
+  return { slug, exactReason: m[2] };
+}
+
 function parseCodemodBullet(lines) {
   if (typeof lines === "string") {
-    if (lines.startsWith("note: ")) {
-      return { issues: [], notes: lines.slice("note: ") };
+    if (lines.startsWith("note: ") || lines.startsWith("ignore: ")) {
+      return { issues: [], notes: lines };
     } else {
       return { issues: [lines], notes: [] };
     }
@@ -94,6 +95,7 @@ function parseCodemod(lines) {
     output,
     output.result === "ignore" ? issuesToNotes(bullets) : bullets,
   );
+  output.issues = output.issues.map(parseIssueLine);
   return output;
 }
 
@@ -128,45 +130,20 @@ function parseResultsForRepo(lines) {
 }
 
 function parseResults(lines) {
-  assert(
-    Array.isArray(lines) && lines.length >= 2 && lines[0] === "raw results",
-  );
   return {
-    repos: lines.slice(1).map(parseResultsForRepo),
+    repos: lines.map(parseResultsForRepo),
   };
 }
 
-function flattenLines(lines) {
-  if (typeof lines === "string") {
-    return [lines];
+const notes = fs.readFileSync(notesPath, "utf-8");
+let groupedLines = [];
+for (const line of notes.trim().split("\n")) {
+  const m = line.match(/^(\s*)- (.*)$/);
+  if (!m) {
+    throw new Error(`Invalid line: ${line}`);
   }
-  assert(Array.isArray(lines));
-  return lines.flatMap((l) => flattenLines(l));
+  const indent = Math.floor(m[1].length / 2);
+  groupedLines = appendAtDepth(groupedLines, m[2], indent);
 }
 
-function parseReason(lines) {
-  assert(
-    Array.isArray(lines) && lines.length >= 1 && typeof lines[0] === "string",
-  );
-  const m = lines[0].match(/^\((\d+)\) (.*)$/);
-  assert(m);
-  return { reason: m[2], count: +m[1], notes: flattenLines(lines.slice(1)) };
-}
-
-function parseReasons(lines) {
-  assert(
-    Array.isArray(lines) && lines.length >= 2 && lines[0].startsWith("reasons"),
-  );
-  return lines.slice(1).map(parseReason);
-}
-
-console.log(
-  JSON.stringify(
-    {
-      results: parseResults(groupedLines[0]),
-      reasons: parseReasons(groupedLines[1]),
-    },
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(parseResults(groupedLines), null, 2));
