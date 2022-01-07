@@ -15,7 +15,6 @@
   ["cannot handle separately found locations together", "separately_found"],
   ["cannot filter for exactly one item in list", "one_item_list"],
   ["cannot filter for exactly one search match", "one_result_search"],
-  ["cannot select second list item", "select_second"],
   ["cannot create AST by parsing arbitrary string using JS", "using_js"],
   ["no support for zipping lists of cursors", "zip"],
   [

@@ -104,7 +104,7 @@
       - note: example replacement is not very accurate
     - `deprecate-isActive-query` (no)
       - one_item_list: can't find calls with exactly one argument
-      - select_second: can't select second argument on all cursors (!)
+      - none_one_many: can't select second argument on all cursors (!)
       - separately_found: would have to repeat edit manually for missing query argument vs null query
     - `deprecate-createPath-createHref-query` (yes)
       - note: this codemod replaces positional arguments with an object of named arguments
