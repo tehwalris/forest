@@ -1,8 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 const assert = require("assert");
-const { countBy, flatten } = require("ramda");
-const { createNoSubstitutionTemplateLiteral } = require("typescript");
 
 function last(arr) {
   assert(Array.isArray(arr));

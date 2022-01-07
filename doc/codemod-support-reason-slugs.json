@@ -20,7 +20,7 @@
   ["no support for zipping lists of cursors", "zip"],
   [
     "adding after first import _or_ as first statement if no imports doesn't work",
-    ""
+    "adding_after_first_import_or_as_first_statement"
   ],
   ["can't edit multiple files", "multiple_files"],
   ["adding `props` parameter if missing is hacky", ""],

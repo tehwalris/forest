@@ -2,16 +2,16 @@
 - `js-codemod`
   - codemods
     - `arrow-function-arguments` (no)
-      - have to recreate cursors multiple times
-      - no strict "find declarations of variable"
-      - (a little) too complicated
+      - recreate_cursors: have to recreate cursors multiple times
+      - find_declarations: no strict "find declarations of variable"
+      - complicated: (a little) too complicated
     - `arrow-function` (almost)
-      - bug: can't paste argument lists
-      - can't handle separately found locations together
-      - have to recreate cursors multiple times
-      - took a long time
+      - bug_in_paste: bug: can't paste argument lists
+      - separately_found: can't handle separately found locations together
+      - recreate_cursors: have to recreate cursors multiple times
+      - ignore: took a long time
     - `expect` (no)
-      - lookup tables are possible but impractical
+      - lookup_tables: lookup tables are possible but impractical
     - `flow-bool-to-boolean` (ignore)
       - non-standard syntax
     - `invalid-requires` (ignore)
@@ -19,10 +19,10 @@
     - `jest-11-update` (ignore)
       - no example code
     - `jest-arrow` (almost)
-      - nested copy-paste would be an issue
+      - nested_copy_paste: nested copy-paste would be an issue
     - `jest-remove-describe` (maybe)
-      - can’t filter top-level statements
-      - can’t filter for exactly one search match
+      - top_level: can’t filter top-level statements
+      - one_result_search: can’t filter for exactly one search match
     - `jest-remove-disable-automock` (yes)
     - `jest-rm-mock` (ignore)
       - no example code
@@ -31,84 +31,84 @@
     - `no-reassign-params` (ignore)
       - no example code
     - `no-vars` (no)
-      - too complicated
+      - complicated: too complicated
     - `object-shorthand` (no)
-      - can’t search for dynamic query
+      - dynamic_query: can’t search for dynamic query
         - note: needed to find properties like `x: y` where `x` and `y` are the same identifier
     - `outline-require` (ignore)
       - no example code
     - `rm-copyProperties` (no)
-      - too complicated
+      - complicated: too complicated
     - `rm-merge` (yes)
-      - have to recreate cursors multiple times
-      - manual parenthesizing required
+      - recreate_cursors: have to recreate cursors multiple times
+      - manual_paren: manual parenthesizing required
     - `rm-object-assign` (almost)
-      - none-one-many issue
+      - none_one_many: none-one-many issue
     - `rm-requires` (no)
-      - no strict "find usages of variable"
-      - can’t remove duplicate items
+      - find_usages: no strict "find usages of variable"
+      - duplicate_items: can’t remove duplicate items
     - `template-literals` (no)
-      - unsupported syntax
+      - syntax: unsupported syntax
     - `touchable` (no)
-      - unsupported syntax
+      - syntax: unsupported syntax
     - `trailing-commas` (ignore)
       - only about formatting
       - no example code
     - `unchain-variables` (yes)
     - `underscore-to-lodash-native` (no)
-      - lookup tables are possible but impractical
+      - lookup_tables: lookup tables are possible but impractical
     - `unquote-properties` (ignore)
       - non-standard syntax
     - `updated-computed-props` (ignore)
       - no example code
     - `use-strict` (almost)
-      - can't edit multiple files
+      - multiple_files: can't edit multiple files
 - `js-transforms`
   - codemods
     - `bind-this-to-bind-expression` (ignore)
       - uses non-standard bind operator
     - `call-expression-bind-this-to-arrow-function-expression` (almost)
       - note: similar to `js-codemod/jest-arrow`
-      - matching is different because of search in flattened AST
-      - manual parenthesizing required if return value is an object literal
-      - have to search twice
+      - search_flat_ast: matching is different because of search in flattened AST
+      - manual_paren: manual parenthesizing required if return value is an object literal
+      - recreate_cursors: have to search twice
         - would be slightly better with cursor snapshots
-      - nesting would be an issue
+      - nested_copy_paste: nesting would be an issue
     - `function-expression-to-arrow-function-expression` (almost)
       - note: same problems as to `call-expression-bind-this-to-arrow-function-expression`
       - note: check for `this` is too conservative
         - also in the original script
     - `props-to-destructuring` (no)
-      - too complicated
+      - complicated: too complicated
         - reuse existing props destructure if there is one
         - check if variable is already in scope and came from props
-      - working with variable scopes is not supported
-      - keyword whitelist is not supported
-      - no way to avoid creating two destructure entries for two uses of the same prop
+      - find_declarations: working with variable scopes is not supported
+      - lookup_tables: keyword whitelist is not supported
+      - duplicate_items: no way to avoid creating two destructure entries for two uses of the same prop
     - `pure-to-composite-component` (almost)
       - note: example does not support directly destructured or renamed props argument
       - note: search for `props` in script is not very precise
-      - paste into return is broken
-      - no class or JSX support
-      - have to search twice
+      - bug_in_paste: paste into return is broken
+      - syntax: no class or JSX support
+      - recreate_cursors: have to search twice
         - would be slightly better with cursor snapshots
-      - nesting would be an issue
+      - nested_copy_paste: nesting would be an issue
 - `rackt-codemod`
   - general notes
     - API change codemods for `react-router` and `history`
   - codemods
     - `react-router/deprecate-Link-location-props` (no)
-      - no JSX support
+      - syntax: no JSX support
     - `react-router/deprecate-context-history` (almost)
-      - would have to handle each of the 3 cases separately
+      - separately_found: would have to handle each of the 3 cases separately
       - note: example replacement is not very accurate
     - `deprecate-isActive-query` (no)
-      - can't find calls with exactly one argument
-      - can't select second argument on all cursors (!)
-      - would have to repeat edit manually for missing query argument vs null query
+      - one_item_list: can't find calls with exactly one argument
+      - select_second: can't select second argument on all cursors (!)
+      - separately_found: would have to repeat edit manually for missing query argument vs null query
     - `deprecate-createPath-createHref-query` (yes)
       - note: this codemod replaces positional arguments with an object of named arguments
-      - there's some untested parsing logic which couldn't be supported
+      - ignore: there's some untested parsing logic which couldn't be supported
     - `deprecate-pushState-replaceState` (ignore)
       - same as `deprecate-createPath-createHref-query`
 - `coffee-to-es2015-codemod` (ignore)
@@ -118,21 +118,21 @@
 - `5to6-codemod`
   - codemods
     - `amd` (no)
-      - no support for imports
-      - no support for zipping lists of cursors (import file names and identifiers)
+      - syntax: no support for imports
+      - zip: no support for zipping lists of cursors (import file names and identifiers)
     - `cjs` (no)
-      - no support for imports
-      - too complex
+      - syntax: no support for imports
+      - complicated: too complex
         - same basic task as ``webpack-babel-codemod/dynamic-require-import`, but way more complex and accurate
     - `no strict` (yes)
-      - just search for `ExpressionStatement` `"use strict"` and delete
+      - note: just search for `ExpressionStatement` `"use strict"` and delete
     - `exports` (no)
-      - too complex
+      - complicated: too complex
     - `named-export-generation` (no)
-      - too complex
+      - complicated: too complex
     - `let` (yes)
     - `simple-arrow` (almost)
-      - has same nested copy-paste problem as `js-codemod/jest-arrow`
+      - nested_copy_paste: has same nested copy-paste problem as `js-codemod/jest-arrow`
 - `es5-function-to-class-codemod` (no)
   - general notes
     - no support for classes
@@ -142,9 +142,9 @@
     - this just converts a very specific type of `require` to an `import`
   - codemods
     - `dynamic-require-import` (almost)
-      - no support for imports
+      - syntax: no support for imports
         - no reason why adding it wouldn't work
-      - adding after first import _or_ as first statement if no imports doesn't work
+      - adding_after_first_import_or_as_first_statement: adding after first import _or_ as first statement if no imports doesn't work
         - can only do one or the other
 - `lodash-to-lodash-amd-codemods` (ignore)
   - general notes
@@ -160,51 +160,51 @@
 - `preact-codemod`
   - codemods
     - `import-declarations` (almost)
-      - can't edit multiple files
+      - multiple_files: can't edit multiple files
         - can't get once-per-file behavior with only one file
         - can simulate multiple files using functions
-      - can't add both conditional named imports (`render` and `Component`)
+      - recreate_cursors: can't add both conditional named imports (`render` and `Component`)
         - would require cursor snapshots
     - `component` (almost)
-      - finding calls with only good properties is hacky
+      - note: finding calls with only good properties is hacky
         - search for call, search for bad properties, reduce to first cursor, go up to call
-      - "calling" both sub-transforms is hacky
+      - recreate_cursors: "calling" both sub-transforms is hacky
         - assumes that the first transform removes all `createClass` calls that it was called with
     - `component-sfc` (yes)
       - note: actually drops some allowed options (e.g. `defaultProps`)
       - note: some movements this is doing are not safe
         - `closest`, `find`, `closest` might not be a noop
     - `component-class` (no)
-      - no support for classes
+      - syntax: no support for classes
         - would probably be possible with class support
     - `props` (yes)
-      - ignoring the fact that there's no JSX or class support
-      - might not work with nested functions
+      - syntax: ignoring the fact that there's no JSX or class support
+      - nested_copy_paste: might not work with nested functions
     - `state` (yes)
-      - adding `props` parameter if missing is hacky
+      - ignore: adding `props` parameter if missing is hacky
         - add `state` first, then check if it's the only one and add `props`
         - would be slightly better with cursor snapshots
     - `removePropTypes` (yes)
 - `mocha2ava-codemod`
   - codemods
     - `add-pass-test` (almost)
-      - can't match one of multiple types (function _or_ arrow)
-      - can't unwrap `co.wrap` and later combine it with other cursors
-      - can't strictly check that `t` is used
+      - separately_found: can't match one of multiple types (function _or_ arrow)
+      - separately_found: can't unwrap `co.wrap` and later combine it with other cursors
+      - find_usages: can't strictly check that `t` is used
         - no strict find uses (but codemod doesn't do that either)
         - lookup table for asserts is possible with regex but impractical
     - `extractDescribes` (no)
-      - can do the flatten sometimes, but not in the general case
+      - general_flatten: can do the flatten sometimes, but not in the general case
         - would need "move cursors up to common ancestor cursor" command
-      - can't do renaming
+      - using_js: can't do renaming
         - can't work with strings
         - can't collect path of ancestors to construct name from
         - can't write complex logic
     - `it2test` (maybe)
     - `this2content` (yes)
     - `insertRequires` (no)
-      - import statements are not supported
-      - can't check whether import statements are used an then branch on that
+      - syntax: import statements are not supported
+      - recreate_cursors: can't check whether import statements are used an then branch on that
         - would require cursor snapshots
 - `undecorate-codemod` (no)
   - general notes
@@ -214,20 +214,20 @@
     - obviously can't work with vue files directly, but could do some equivalent task with plain js
   - codemods
     - `sort_keys` (no)
-      - no sort feature
+      - sort: no sort feature
     - `uppercase_constants` (no)
       - note: generally not a very correct codemod
-      - can't filter top-level statements
-      - can't find all usages
+      - top_level: can't filter top-level statements
+      - find_usages: can't find all usages
         - either correctly with built in support
         - or roughly by searching for an identifier from the selection
-      - can't search for more copies of the same literal
-      - can't match one of multiple types (string _or_ regex _or_ number)
-      - can't search up until a result is found
+      - dynamic_query: can't search for more copies of the same literal
+      - separately_found: can't match one of multiple types (string _or_ regex _or_ number)
+      - search_up: can't search up until a result is found
         - a node _within_ some surrounding node must match
     - `extract_non_instance_methods` (almost)
-      - can't filter by usages in template
+      - find_usages: can't filter by usages in template
         - can't filter by usages in general
-      - can't remove `this` from calls after extracting method
+      - find_usages: can't remove `this` from calls after extracting method
         - can't find all usages
-      - shorthand function-in-property syntax is not supported
+      - syntax: shorthand function-in-property syntax is not supported

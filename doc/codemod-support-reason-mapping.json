@@ -135,10 +135,7 @@
     "might not work with nested functions",
     "nested copy-paste would be an issue"
   ],
-  [
-    "adding `props` parameter if missing is hacky",
-    "adding `props` parameter if missing is hacky"
-  ],
+  ["adding `props` parameter if missing is hacky", "ignore"],
   [
     "can't match one of multiple types (function _or_ arrow)",
     "can't handle separately found locations together"
@@ -162,7 +159,7 @@
   ["import statements are not supported", "unsupported syntax"],
   [
     "can't check whether import statements are used an then branch on that",
-    "can't check whether import statements are used an then branch on that"
+    "have to recreate cursors multiple times"
   ],
   ["no sort feature", "no sort feature"],
   ["can't filter top-level statements", "can't filter top-level statements"],
