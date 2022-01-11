@@ -139,20 +139,22 @@ function parseResults(lines) {
   };
 }
 
+function capitalize(s) {
+  assert(typeof s === "string" && s.length);
+  return s[0].toUpperCase() + s.slice(1);
+}
+
 function summarizeResults(results) {
   assert(
     Array.isArray(results) &&
       results.every((r) => ["no", "maybe", "yes"].includes(r)),
   );
   return [
-    results.length,
-    ...["no", "maybe", "yes"].map((target) =>
-      [
-        results.filter((r) => r === target).length,
-        target[0].toUpperCase(),
-      ].join(""),
+    ...["no", "maybe", "yes"].map(
+      (target) => results.filter((r) => r === target).length,
     ),
-  ].join(", ");
+    results.length,
+  ].join(" & ");
 }
 
 const notes = fs.readFileSync(notesPath, "utf-8");
@@ -190,7 +192,9 @@ const latexOutput = sortedSlugs
   .map((slug) => {
     const results = resultsBySlug.get(slug);
     const exactReason = reasonsBySlug.get(slug);
-    return `\\item (${summarizeResults(results)}) ${exactReason}`;
+    return String.raw`\hangindent=0.2cm ${capitalize(
+      exactReason,
+    )} & ${summarizeResults(results)} \\`;
   })
   .join("\n");
 console.log(latexOutput);
