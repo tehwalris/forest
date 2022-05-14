@@ -33,7 +33,7 @@ export const RepoSwitcher = ({ fsChoice }: Props) => {
         tabIndex={-1}
         onClick={() => switchRepo("https://github.com/tehwalris/forest")}
       >
-        Load Forest repo
+        Load Forest repo (required for examples)
       </button>
       <button
         tabIndex={-1}
@@ -47,7 +47,7 @@ export const RepoSwitcher = ({ fsChoice }: Props) => {
           }
         }}
       >
-        Load custom repo
+        Load custom repo (must have src folder)
       </button>
     </>
   );

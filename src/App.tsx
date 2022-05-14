@@ -148,17 +148,14 @@ export const App = () => {
       </div>
       {!fsChoice.probablyEmpty && (
         <div>
-          <FileSearch fsChoice={fsChoice} onSelect={setInitialDocInfo} />
-        </div>
-      )}
-      {!fsChoice.probablyEmpty && (
-        <div>
+          Examples from{" "}
+          <a href="https://doi.org/10.3929/ethz-b-000526812">thesis</a>:{" "}
           <select
             value={selectedTask?.name || ""}
             onChange={(ev) => setSelectedTaskName(ev.target.value)}
           >
             <option key="" value="">
-              Select task...
+              Select example...
             </option>
             {tasks.map((t) => (
               <option key={t.name} value={t.name}>
@@ -169,6 +166,12 @@ export const App = () => {
           <button onClick={() => setShowTargetView((v) => !v)}>
             Toggle target view
           </button>
+        </div>
+      )}
+      {!fsChoice.probablyEmpty && (
+        <div>
+          Real files:{" "}
+          <FileSearch fsChoice={fsChoice} onSelect={setInitialDocInfo} />
         </div>
       )}
       <div className={styles.contentWrapper}>
