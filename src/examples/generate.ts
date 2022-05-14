@@ -50,7 +50,7 @@ function runExample(example: Example): DocManagerPublicState[] {
   const loadText = (suffix: string) =>
     fs.readFileSync(
       path.join(__dirname, `../../tasks/editing/${example.name}.${suffix}.ts`),
-      "utf-8",
+      "utf8",
     );
 
   const initialDoc = asPrettyDoc(loadText("before"));
@@ -91,7 +91,7 @@ function writeIndex(examples: Example[], outputDir: string) {
   fs.writeFileSync(
     path.join(outputDir, `index.tex`),
     examples.map((e) => `\\input{examples/${e.name}}\\clearpage`).join("\n"),
-    { encoding: "utf-8" },
+    { encoding: "utf8" },
   );
 }
 
@@ -108,14 +108,14 @@ function writeExample(
         i === 0 ? [] : example.describedGroups[i - 1].eventCreators,
       ),
       {
-        encoding: "utf-8",
+        encoding: "utf8",
       },
     );
   }
   fs.writeFileSync(
     path.join(outputDir, `${example.name}.tex`),
     generateExampleTex(example, history),
-    { encoding: "utf-8" },
+    { encoding: "utf8" },
   );
 }
 

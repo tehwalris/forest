@@ -47,7 +47,7 @@ describe("DocManager", () => {
     const loadText = (suffix: string) =>
       fs.readFileSync(
         path.join(__dirname, `../../../tasks/editing/${taskName}.${suffix}.ts`),
-        "utf-8",
+        "utf8",
       );
     return {
       label: `editing task: ${taskName}`,

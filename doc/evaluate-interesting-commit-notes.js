@@ -24,7 +24,7 @@ function appendAtDepth(tree, value, depth) {
 
 const notesPath = path.join(__dirname, "interesting-commit-notes.md");
 
-const notes = fs.readFileSync(notesPath, "utf-8");
+const notes = fs.readFileSync(notesPath, "utf8");
 let groupedLines = [];
 for (const line of notes.trim().split("\n")) {
   const m = line.match(/^(\s*)- (.*)$/);

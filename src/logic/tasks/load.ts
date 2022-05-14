@@ -1,6 +1,6 @@
 import * as path from "path";
 import { promisify } from "util";
-import { Fs } from "./fs";
+import { ChosenFs } from "./fs";
 import { Task } from "./interfaces";
 import {
   beforePathFromAfterPath,
@@ -8,16 +8,13 @@ import {
   isExplicitBeforePath,
   taskNameFromPath,
 } from "./util";
-const browseTaskPaths = [
-  "src/logic/doc-manager.ts",
-  "src/logic/node-from-ts.ts",
-  "src/components/linear-editor.tsx",
-];
-export async function loadTasks(fs: Fs): Promise<Task[]> {
-  const taskPaths: string[] = [...browseTaskPaths];
+export async function loadTasks(fsChoice: ChosenFs): Promise<Task[]> {
+  const taskPaths: string[] = [];
   for (const subdirName of ["creation", "editing"]) {
-    const subdirPath = path.join("./tasks", subdirName);
-    for (const taskFilename of await promisify(fs.readdir)(subdirPath)) {
+    const subdirPath = path.join(fsChoice.projectRootDir, "tasks", subdirName);
+    for (const taskFilename of await promisify(fsChoice.fs.readdir)(
+      subdirPath,
+    )) {
       const taskPath = path.join(subdirPath, taskFilename);
       if (!isExplicitBeforePath(taskPath)) {
         taskPaths.push(taskPath);
@@ -25,16 +22,13 @@ export async function loadTasks(fs: Fs): Promise<Task[]> {
     }
   }
   const loadText = (path: string): Promise<string> =>
-    promisify(fs.readFile)(path, { encoding: "utf-8" });
+    promisify(fsChoice.fs.readFile)(path, { encoding: "utf8" });
   return await Promise.all(
     taskPaths.map(async (afterPath) => {
       const contentAfter = await loadText(afterPath);
       let contentBefore = "";
       if (isExplicitAfterPath(afterPath)) {
         contentBefore = await loadText(beforePathFromAfterPath(afterPath));
-      }
-      if (browseTaskPaths.includes(afterPath)) {
-        contentBefore = contentAfter;
       }
       return {
         name: taskNameFromPath(afterPath),

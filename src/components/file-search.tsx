@@ -1,10 +1,11 @@
+import * as path from "path";
 import { join as pathJoin } from "path";
 import { sortBy } from "ramda";
 import { useEffect, useState } from "react";
 import { promisify } from "util";
-import { Fs } from "../logic/tasks/fs";
+import { ChosenFs, Fs } from "../logic/tasks/fs";
 interface Props {
-  fs: Fs;
+  fsChoice: ChosenFs;
   onSelect: (file: FileWithPath) => void;
 }
 interface FileWithPath {
@@ -22,10 +23,10 @@ async function getAllPaths(fs: Fs, root: string): Promise<string[]> {
   );
   return files.flat();
 }
-export const FileSearch = ({ fs, onSelect }: Props) => {
+export const FileSearch = ({ fsChoice, onSelect }: Props) => {
   const [paths, setPaths] = useState<string[]>([]);
   useEffect(() => {
-    getAllPaths(fs, "src")
+    getAllPaths(fsChoice.fs, path.join(fsChoice.projectRootDir, "src"))
       .then((paths) =>
         setPaths(
           sortBy(
@@ -35,7 +36,7 @@ export const FileSearch = ({ fs, onSelect }: Props) => {
         ),
       )
       .catch((err) => console.error("getAllPaths failed", err));
-  }, [fs]);
+  }, [fsChoice]);
   const [selectedPath, setSelectedPath] = useState("");
   useEffect(() => {
     if (!selectedPath) {
@@ -43,8 +44,8 @@ export const FileSearch = ({ fs, onSelect }: Props) => {
     }
     let didCancel = false;
     (async () => {
-      const text = await promisify(fs.readFile)(selectedPath, {
-        encoding: "utf-8",
+      const text = await promisify(fsChoice.fs.readFile)(selectedPath, {
+        encoding: "utf8",
       });
       if (!didCancel) {
         onSelect({ path: selectedPath, text });
@@ -55,7 +56,7 @@ export const FileSearch = ({ fs, onSelect }: Props) => {
     return () => {
       didCancel = true;
     };
-  }, [selectedPath, onSelect, fs]);
+  }, [selectedPath, onSelect, fsChoice.fs]);
   return (
     <select
       value={selectedPath}

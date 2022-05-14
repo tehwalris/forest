@@ -5,7 +5,7 @@ const R = require("ramda");
 
 const notesPath = path.join(__dirname, "codemod-support.md");
 const mapFromJson = (filename) =>
-  new Map(JSON.parse(fs.readFileSync(path.join(__dirname, filename), "utf-8")));
+  new Map(JSON.parse(fs.readFileSync(path.join(__dirname, filename), "utf8")));
 const invertMap = (m) => new Map([...m.entries()].map(([k, v]) => [v, k]));
 const slugsByReason = mapFromJson("codemod-support-reason-slugs.json");
 const reasonsBySlug = invertMap(slugsByReason);
@@ -152,7 +152,7 @@ function summarizeResults(results) {
   ].join(" & ");
 }
 
-const notes = fs.readFileSync(notesPath, "utf-8");
+const notes = fs.readFileSync(notesPath, "utf8");
 let groupedLines = [];
 for (const line of notes.trim().split("\n")) {
   const m = line.match(/^(\s*)- (.*)$/);

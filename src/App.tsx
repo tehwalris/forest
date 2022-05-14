@@ -5,11 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { promisify } from "util";
 import { FileSearch } from "./components/file-search";
 import { LinearEditor } from "./components/linear-editor";
+import { RepoSwitcher } from "./components/repo-switcher";
 import { Doc } from "./logic/interfaces";
 import { docFromAst } from "./logic/node-from-ts";
 import { astFromTypescriptFileContent } from "./logic/parse";
 import { defaultPrettierOptions, prettyPrintTsString } from "./logic/print";
-import { configureRemoteFs, Fs } from "./logic/tasks/fs";
+import { ChosenFs, configureFs } from "./logic/tasks/fs";
 import { Task } from "./logic/tasks/interfaces";
 import { loadTasks } from "./logic/tasks/load";
 import { isBrowseTask, isCreationTask } from "./logic/tasks/util";
@@ -48,20 +49,24 @@ const styles = {
   `,
 };
 export const App = () => {
-  const [fs, setFs] = useState<Fs>();
+  const [fsChoice, setFsChoice] = useState<ChosenFs>();
   useEffect(() => {
     (async () => {
-      const _fs = await configureRemoteFs();
-      setFs(_fs);
+      const _fs = await configureFs(
+        false,
+        undefined,
+        window.location.hash === "#demo",
+      );
+      setFsChoice(_fs);
     })().catch((err) => console.error("failed to configure remote fs", err));
   }, []);
   const [tasks, setTasks] = useState<Task[]>([]);
   useEffect(() => {
-    if (!fs) {
+    if (!fsChoice) {
       return;
     }
     (async () => {
-      const tasks = await loadTasks(fs);
+      const tasks = await loadTasks(fsChoice);
       setTasks(
         sortBy(
           (t) =>
@@ -72,7 +77,7 @@ export const App = () => {
         ),
       );
     })().catch((err) => console.error("failed to load tasks", err));
-  }, [fs]);
+  }, [fsChoice]);
   const [initialDocInfo, setInitialDocInfo] = useState<{
     path?: string;
     text: string;
@@ -113,7 +118,7 @@ export const App = () => {
     }
   }, [selectedTask]);
   const [showTargetView, setShowTargetView] = useState(false);
-  if (!fs) {
+  if (!fsChoice) {
     return <div>Connecting to remote filesystem...</div>;
   }
   const editor = (
@@ -125,9 +130,13 @@ export const App = () => {
             console.warn("open file has no save path");
             return;
           }
-          await promisify(fs.writeFile)(initialDocInfo.path, doc.text, {
-            encoding: "utf-8",
-          });
+          await promisify(fsChoice.fs.writeFile)(
+            initialDocInfo.path,
+            doc.text,
+            {
+              encoding: "utf8",
+            },
+          );
         })().catch((err) => console.warn("failed to save file", err))
       }
     />
@@ -135,26 +144,33 @@ export const App = () => {
   return (
     <div className={styles.outerWrapper}>
       <div>
-        <FileSearch fs={fs} onSelect={setInitialDocInfo} />
+        <RepoSwitcher fsChoice={fsChoice} />
       </div>
-      <div>
-        <select
-          value={selectedTask?.name || ""}
-          onChange={(ev) => setSelectedTaskName(ev.target.value)}
-        >
-          <option key="" value="">
-            Select task...
-          </option>
-          {tasks.map((t) => (
-            <option key={t.name} value={t.name}>
-              {isBrowseTask(t) ? "b" : isCreationTask(t) ? "c" : "e"}:{t.name}
+      {!fsChoice.probablyEmpty && (
+        <div>
+          <FileSearch fsChoice={fsChoice} onSelect={setInitialDocInfo} />
+        </div>
+      )}
+      {!fsChoice.probablyEmpty && (
+        <div>
+          <select
+            value={selectedTask?.name || ""}
+            onChange={(ev) => setSelectedTaskName(ev.target.value)}
+          >
+            <option key="" value="">
+              Select task...
             </option>
-          ))}
-        </select>
-        <button onClick={() => setShowTargetView((v) => !v)}>
-          Toggle target view
-        </button>
-      </div>
+            {tasks.map((t) => (
+              <option key={t.name} value={t.name}>
+                {isBrowseTask(t) ? "b" : isCreationTask(t) ? "c" : "e"}:{t.name}
+              </option>
+            ))}
+          </select>
+          <button onClick={() => setShowTargetView((v) => !v)}>
+            Toggle target view
+          </button>
+        </div>
+      )}
       <div className={styles.contentWrapper}>
         {showTargetView ? (
           <div className={styles.splitView}>
