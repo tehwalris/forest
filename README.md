@@ -1,25 +1,13 @@
-![Banner with screenshot of Forest](https://raw.githubusercontent.com/tehwalris/forest-tutorials/master/images/general/banner-1.png)
-
 # Forest
 
-_A prototype tree editor for TypeScript_
+_A multi-cursor structural editor prototype for TypeScript_
 
-Forest lets you write TypeScript programs [as trees](https://en.wikipedia.org/wiki/Abstract_syntax_tree) instead of as text. This software is a prototype - it's confusing, it's buggy and it's often slow. It's also the only tree editor for TypeScript, so it's pretty fun to try.
+Forest is a structural editor for TypeScript. Being structural means that most editing commands modify the [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree) of the program and the text is printed to match. In Forest code is still shown as text and new code can be typed almost normally, but under the hood it's very different from a normal text editor.
 
-**Warning: breaking changes.** I'm starting a major new phase of changes as part of my master's thesis. This means that the [latest demo](https://forest.walr.is) doesn't match the [tutorial](https://www.youtube.com/watch?v=9OcT_a8V1nc) for now.
+Forest is also built from the ground up with multi-cursor editing in mind. It's the only structural editor which specially integrates multi-cursor features. This makes Forest an interactive equivalent to AST refactoring scripts (like jscodeshift scripts). By using the right combination of commands with multiple cursors, you can accomplish some tasks that you might normally write basic scripts for.
 
 ## Try it
 
-- Check out the ["Hello world" tutorial video](https://www.youtube.com/watch?v=9OcT_a8V1nc) (or [text version](https://github.com/tehwalris/forest-tutorials/blob/master/hello-world.md))
-- [Play with Forest](https://forest.walr.is) (see warning above)
-- Watch the ["Beyond hello world" tutorial video](https://www.youtube.com/watch?v=yYMt7e5i2xs)
+Forest is a prototype - it's confusing, some basic stuff is unsupported and it sometimes slow. You'll need patience. I hope you have fun trying it anyway, since it's a pretty unique thing.
 
-## Why another tree editor?
-
-People have made [quite a few](https://www.reddit.com/r/nosyntax/wiki/projects) of these "tree editors" or "structure editors" already. Most of them support either their own custom languages (which are designed to be edited as trees) or languages with relatively minimal syntax (like Clojure or Lisp). Forest is unique because it's an editor for (all of) TypeScript - a language with lots of syntax and many features. Forest lets us see how tree editing feels with a complex real world language.
-
-## More
-
-- The [developer guide](./doc/dev.md) explains how to compile Forest yourself
-- There's a guide to [using Forest with your real filesystem](./doc/filesystem.md)
-- ~~There's also an [outdated roadmap](./doc/roadmap.md)~~
+My [master's thesis presentation](https://youtu.be/ze_nJlKkckg) explains the concepts behind Forest and shows it in action. There's an [online demo of Forest](https://forest.walr.is/) which you can try for yourself. You'll need the list of keyboard shortcuts which are in the appendix of my [thesis](https://doi.org/10.3929/ethz-b-000526812). If you click "Load Forest repo" in the online demo you'll also get copies of all the examples.
