@@ -37,17 +37,12 @@ export const LinearEditor = ({ initialDoc, onSave }: Props) => {
       docManager={docManager}
       state={docManagerState}
       codeDivRef={codeDivRef}
-      onKeyPress={(ev, handleWithDocManager) => {
+      onKeyDown={(ev, handleWithDocManager) => {
         if (mode === Mode.Normal && ev.key === "/") {
           ev.preventDefault();
           ev.stopPropagation();
           setQueryState({ stage: Stage.WriteDoc });
-        } else {
-          handleWithDocManager();
-        }
-      }}
-      onKeyDown={(ev, handleWithDocManager) => {
-        if (mode === Mode.Normal && ev.key === "s" && ev.ctrlKey) {
+        } else if (mode === Mode.Normal && ev.key === "s" && ev.ctrlKey) {
           ev.preventDefault();
           ev.stopPropagation();
           onSave(doc);

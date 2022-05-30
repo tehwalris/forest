@@ -21,7 +21,6 @@ interface Props {
   docManager: DocManager;
   state: DocManagerPublicState;
   codeDivRef?: React.RefObject<HTMLDivElement>;
-  onKeyPress?: KeyboardEventHandler;
   onKeyDown?: KeyboardEventHandler;
   onKeyUp?: KeyboardEventHandler;
 }
@@ -85,7 +84,6 @@ export const DocUi = ({
     chord,
   },
   codeDivRef,
-  onKeyPress = defaultKeyboardEventHandler,
   onKeyDown = defaultKeyboardEventHandler,
   onKeyUp = defaultKeyboardEventHandler,
 }: Props) => {
@@ -126,14 +124,6 @@ export const DocUi = ({
         ref={codeDivRef}
         className={styles.doc}
         tabIndex={0}
-        onKeyPress={(ev) => {
-          onKeyPress(
-            ev,
-            wrapThrowRestore(docManager, () =>
-              docManager.onKeyPress(ev.nativeEvent),
-            ),
-          );
-        }}
         onKeyDown={(ev) => {
           onKeyDown(
             ev,

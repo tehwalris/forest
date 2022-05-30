@@ -205,7 +205,7 @@ export class DocManager {
   disableUpdates() {
     this._onUpdate = () => {};
   }
-  onKeyPress = (ev: MinimalKeyboardEvent) => {
+  onKeyDown = (ev: MinimalKeyboardEvent) => {
     ev = {
       key: ev.key,
       altKey: ev.altKey,
@@ -214,6 +214,7 @@ export class DocManager {
       preventDefault: ev.preventDefault?.bind(ev),
       stopPropagation: ev.stopPropagation?.bind(ev),
     };
+
     if (this.mode === Mode.Normal) {
       if (this.chordKey) {
         ev.key = `${this.chordKey} ${ev.key}`;
@@ -235,6 +236,7 @@ export class DocManager {
           this.insertState = result.insertState;
           this.cursors = result.cursors;
         }
+        this.onUpdate();
       } else if (ev.key === "a" && !this.readOnly) {
         const result = multiCursorStartInsert({
           root: this.doc.root,
@@ -246,6 +248,7 @@ export class DocManager {
           this.insertState = result.insertState;
           this.cursors = result.cursors;
         }
+        this.onUpdate();
       } else if (ev.key === "d" && !this.readOnly) {
         this.multiCursorHelper(
           (strict) =>
@@ -259,6 +262,7 @@ export class DocManager {
             this.cursors = result.cursors;
           },
         );
+        this.onUpdate();
       } else if (ev.key === "r" && !this.readOnly) {
         const renameFunctionBody = prompt(
           'Enter an JS expression to perform renaming with. "s" is the old name. Example: "s.toLowerCase()"',
@@ -284,12 +288,14 @@ export class DocManager {
         });
         this.doc = { ...this.doc, root: result.root };
         this.cursors = result.cursors;
+        this.onUpdate();
       } else if (ev.key.match(/^y [rds]$/)) {
         this.multiCursorMode = {
           r: MultiCursorMode.Relaxed,
           d: MultiCursorMode.Drop,
           s: MultiCursorMode.Strict,
         }[ev.key.split(" ")[1]]!;
+        this.onUpdate();
       } else if (ev.key.match(/^Y [isfa]$/)) {
         const failure = this.multiCursorFailure;
         if (!failure) {
@@ -322,6 +328,7 @@ export class DocManager {
           this.fillFromOther(failure.beforeFailure);
           this.cursors = newCursors;
         }
+        this.onUpdate();
       } else if (ev.key.match(/^m [a-z]$/)) {
         const markKey = ev.key.split(" ")[1];
         this.cursors = this.cursors.map((c) => ({
@@ -331,12 +338,14 @@ export class DocManager {
             { key: markKey, focus: c.focus },
           ],
         }));
+        this.onUpdate();
       } else if (ev.key.match(/^M [a-z]$/)) {
         const markKey = ev.key.split(" ")[1];
         this.cursors = this.cursors.map((c) => ({
           ...c,
           focus: c.marks.find((m) => m.key === markKey)?.focus || c.focus,
         }));
+        this.onUpdate();
       } else if (ev.key === "s") {
         this.cursors = this.cursors.flatMap((cursor): Cursor[] => {
           const focus = flipEvenPathRangeForward(cursor.focus);
@@ -367,6 +376,7 @@ export class DocManager {
               ),
             );
         });
+        this.onUpdate();
       } else if (ev.key.match(/^S [hljkf]$/)) {
         const side = {
           h: CursorReduceAcrossSide.First,
@@ -377,11 +387,13 @@ export class DocManager {
         }[ev.key.split(" ")[1]]!;
         const result = multiCursorReduceAcross({ cursors: this.cursors, side });
         this.cursors = result.cursors;
+        this.onUpdate();
       } else if (ev.key === "q") {
         this.queuedCursors = uniqueByEvenPathRange(
           [...this.cursors, ...this.queuedCursors],
           (c) => flipEvenPathRangeForward(c.focus),
         );
+        this.onUpdate();
       } else if (ev.key === "Q") {
         if (!this.queuedCursors.length) {
           return;
@@ -390,6 +402,7 @@ export class DocManager {
           adjustPostActionCursor(c, {}, c),
         );
         this.queuedCursors = [];
+        this.onUpdate();
       } else if (ev.key === "l" && !hasAltLike(ev)) {
         this.multiCursorHelper(
           (strict) =>
@@ -404,6 +417,22 @@ export class DocManager {
             this.cursors = result.cursors;
           },
         );
+        this.onUpdate();
+      } else if (ev.key.toLowerCase() === "l" && hasAltLike(ev)) {
+        ev.preventDefault?.();
+        this.multiCursorHelper(
+          (strict) =>
+            multiCursorReduceWithin({
+              root: this.doc.root,
+              cursors: this.cursors,
+              side: CursorReduceWithinSide.Last,
+              strict,
+            }),
+          (result) => {
+            this.cursors = result.cursors;
+          },
+        );
+        this.onUpdate();
       } else if (ev.key === "L" && !ev.ctrlKey) {
         this.multiCursorHelper(
           (strict) =>
@@ -418,6 +447,23 @@ export class DocManager {
             this.cursors = result.cursors;
           },
         );
+        this.onUpdate();
+      } else if (ev.key === "L" && ev.ctrlKey) {
+        ev.preventDefault?.();
+        this.multiCursorHelper(
+          (strict) =>
+            multiCursorMoveLeaf({
+              root: this.doc.root,
+              cursors: this.cursors,
+              direction: 1,
+              mode: CursorMoveLeafMode.ShrinkSelection,
+              strict,
+            }),
+          (result) => {
+            this.cursors = result.cursors;
+          },
+        );
+        this.onUpdate();
       } else if (ev.key === "h" && !hasAltLike(ev)) {
         this.multiCursorHelper(
           (strict) =>
@@ -432,6 +478,22 @@ export class DocManager {
             this.cursors = result.cursors;
           },
         );
+        this.onUpdate();
+      } else if (ev.key.toLowerCase() === "h" && hasAltLike(ev)) {
+        ev.preventDefault?.();
+        this.multiCursorHelper(
+          (strict) =>
+            multiCursorReduceWithin({
+              root: this.doc.root,
+              cursors: this.cursors,
+              side: CursorReduceWithinSide.First,
+              strict,
+            }),
+          (result) => {
+            this.cursors = result.cursors;
+          },
+        );
+        this.onUpdate();
       } else if (ev.key === "H" && !ev.ctrlKey) {
         this.multiCursorHelper(
           (strict) =>
@@ -446,6 +508,23 @@ export class DocManager {
             this.cursors = result.cursors;
           },
         );
+        this.onUpdate();
+      } else if (ev.key === "H" && ev.ctrlKey) {
+        ev.preventDefault?.();
+        this.multiCursorHelper(
+          (strict) =>
+            multiCursorMoveLeaf({
+              root: this.doc.root,
+              cursors: this.cursors,
+              direction: -1,
+              mode: CursorMoveLeafMode.ShrinkSelection,
+              strict,
+            }),
+          (result) => {
+            this.cursors = result.cursors;
+          },
+        );
+        this.onUpdate();
       } else if (ev.key === "k") {
         this.multiCursorHelper(
           (strict) =>
@@ -460,6 +539,7 @@ export class DocManager {
             this.cursors = result.cursors;
           },
         );
+        this.onUpdate();
       } else if (ev.key === "K") {
         this.multiCursorHelper(
           (strict) =>
@@ -474,6 +554,7 @@ export class DocManager {
             this.cursors = result.cursors;
           },
         );
+        this.onUpdate();
       } else if ([")", "]", "}", ">"].includes(ev.key)) {
         this.multiCursorHelper(
           (strict) =>
@@ -489,6 +570,7 @@ export class DocManager {
             this.cursors = result.cursors;
           },
         );
+        this.onUpdate();
       } else if (ev.key === "j") {
         this.multiCursorHelper(
           (strict) =>
@@ -503,6 +585,7 @@ export class DocManager {
             this.cursors = result.cursors;
           },
         );
+        this.onUpdate();
       } else if (["(", "[", "{", "<"].includes(ev.key)) {
         this.multiCursorHelper(
           (strict) =>
@@ -518,6 +601,7 @@ export class DocManager {
             this.cursors = result.cursors;
           },
         );
+        this.onUpdate();
       } else if (ev.key === " ") {
         ev.preventDefault?.();
         this.multiCursorHelper(
@@ -532,6 +616,7 @@ export class DocManager {
             this.cursors = result.cursors;
           },
         );
+        this.onUpdate();
       } else if (ev.key === "c") {
         this.cursors = this.cursors.map(
           (cursor) =>
@@ -540,6 +625,7 @@ export class DocManager {
               cursor: cursor,
             }).cursor,
         );
+        this.onUpdate();
       } else if (ev.key === "p" && !this.readOnly) {
         const result = multiCursorPaste({
           root: this.doc.root,
@@ -547,6 +633,7 @@ export class DocManager {
         });
         this.doc = { ...this.doc, root: result.root };
         this.cursors = result.cursors;
+        this.onUpdate();
       } else if (ev.key === "z") {
         while (this.cursorHistory.length) {
           const cursors = this.cursorHistory.pop()!;
@@ -557,6 +644,7 @@ export class DocManager {
           this.cursors = cursors;
           break;
         }
+        this.onUpdate();
       } else if (ev.key === "Z") {
         while (this.cursorRedoHistory.length) {
           const cursors = this.cursorRedoHistory.pop()!;
@@ -567,171 +655,101 @@ export class DocManager {
           this.cursors = cursors;
           break;
         }
+        this.onUpdate();
+      } else if (ev.key === "Escape") {
+        this.chordKey = undefined;
+        this.onUpdate();
       }
     } else if (this.mode === Mode.Insert) {
-      if (ev.key.length !== 1) {
-        return;
-      }
-      ev.preventDefault?.();
-      ev.stopPropagation?.();
-      if (!this.insertState) {
-        throw new Error("this.insertState was undefined in insert mode");
-      }
-      this.insertHistory.push({ insertState: this.insertState });
-      this.insertState = {
-        ...this.insertState,
-        text: this.insertState.text + ev.key,
-      };
-    }
-    this.onUpdate();
-  };
-  onKeyDown = (ev: MinimalKeyboardEvent) => {
-    if (
-      this.mode === Mode.Normal &&
-      ev.key.toLowerCase() === "h" &&
-      hasAltLike(ev)
-    ) {
-      ev.preventDefault?.();
-      this.multiCursorHelper(
-        (strict) =>
-          multiCursorReduceWithin({
-            root: this.doc.root,
-            cursors: this.cursors,
-            side: CursorReduceWithinSide.First,
-            strict,
-          }),
-        (result) => {
-          this.cursors = result.cursors;
-        },
-      );
-      this.onUpdate();
-    } else if (this.mode === Mode.Normal && ev.key === "H" && ev.ctrlKey) {
-      ev.preventDefault?.();
-      this.multiCursorHelper(
-        (strict) =>
-          multiCursorMoveLeaf({
-            root: this.doc.root,
-            cursors: this.cursors,
-            direction: -1,
-            mode: CursorMoveLeafMode.ShrinkSelection,
-            strict,
-          }),
-        (result) => {
-          this.cursors = result.cursors;
-        },
-      );
-      this.onUpdate();
-    } else if (
-      this.mode === Mode.Normal &&
-      ev.key.toLowerCase() === "l" &&
-      hasAltLike(ev)
-    ) {
-      ev.preventDefault?.();
-      this.multiCursorHelper(
-        (strict) =>
-          multiCursorReduceWithin({
-            root: this.doc.root,
-            cursors: this.cursors,
-            side: CursorReduceWithinSide.Last,
-            strict,
-          }),
-        (result) => {
-          this.cursors = result.cursors;
-        },
-      );
-      this.onUpdate();
-    } else if (this.mode === Mode.Normal && ev.key === "L" && ev.ctrlKey) {
-      ev.preventDefault?.();
-      this.multiCursorHelper(
-        (strict) =>
-          multiCursorMoveLeaf({
-            root: this.doc.root,
-            cursors: this.cursors,
-            direction: 1,
-            mode: CursorMoveLeafMode.ShrinkSelection,
-            strict,
-          }),
-        (result) => {
-          this.cursors = result.cursors;
-        },
-      );
-      this.onUpdate();
-    } else if (this.mode === Mode.Normal && ev.key === "Escape") {
-      this.chordKey = undefined;
-      this.onUpdate();
-    } else if (this.mode === Mode.Insert && ev.key === "Escape") {
-      const finalStuff = () => {
-        this.mode = Mode.Normal;
-        this.insertHistory = [];
-        this.insertState = undefined;
-        this.onUpdate();
-      };
-      if (!this.insertState) {
-        throw new Error("this.insertState was undefined in insert mode");
-      }
-      if (!this.insertState.text) {
+      if (ev.key === "Escape") {
+        const finalStuff = () => {
+          this.mode = Mode.Normal;
+          this.insertHistory = [];
+          this.insertState = undefined;
+          this.onUpdate();
+        };
+        if (!this.insertState) {
+          throw new Error("this.insertState was undefined in insert mode");
+        }
+        if (!this.insertState.text) {
+          finalStuff();
+          return;
+        }
+        const {
+          doc: oldDocWithoutPlaceholders,
+          cursorBeforePositions:
+            cursorBeforePositionsAdjustedForPlaceholderRemoval,
+        } = getDocWithoutPlaceholdersNearCursors(
+          this.doc,
+          this.insertState.beforePos,
+        );
+        const insertions: Insertion[] =
+          cursorBeforePositionsAdjustedForPlaceholderRemoval.map(
+            (beforePos, i) => ({
+              beforePos,
+              duplicateIndex: this.insertState!.duplicateIndices[i],
+              text: this.insertState!.text,
+            }),
+          );
+        const astWithInsertBeforeFormatting = astFromTypescriptFileContent(
+          getDocWithInsertions(oldDocWithoutPlaceholders, insertions).text,
+        );
+        if (astWithInsertBeforeFormatting.parseDiagnostics.length) {
+          console.warn(
+            "file has syntax errors",
+            astWithInsertBeforeFormatting.parseDiagnostics,
+            astWithInsertBeforeFormatting.text,
+          );
+          return;
+        }
+        const docWithInsertBeforeFormatting = docFromAst(
+          astWithInsertBeforeFormatting,
+        );
+        const checkedInsertion = checkInsertion({
+          oldDoc: oldDocWithoutPlaceholders,
+          newDoc: docWithInsertBeforeFormatting,
+          insertions,
+        });
+        if (!checkedInsertion.valid) {
+          console.warn(
+            "checkedInsertion is not valid:",
+            checkedInsertion.reason,
+          );
+          return;
+        }
+        for (const [
+          oldNode,
+          newNode,
+        ] of checkedInsertion.newNodesByOldTraceableNodes.entries()) {
+          newNode.isPlaceholder = oldNode.isPlaceholder;
+          newNode.id = oldNode.id;
+        }
+        this.cursors = this.cursors.map((cursor, i) => ({
+          ...cursor,
+          focus: checkedInsertion.insertionPathRanges[i],
+        }));
+        this.doc = docWithInsertBeforeFormatting;
         finalStuff();
-        return;
+      } else if (ev.key === "Backspace") {
+        const old = this.insertHistory.pop();
+        if (!old) {
+          return;
+        }
+        this.insertState = old.insertState;
+        this.onUpdate();
+      } else if (ev.key.length === 1) {
+        ev.preventDefault?.();
+        ev.stopPropagation?.();
+        if (!this.insertState) {
+          throw new Error("this.insertState was undefined in insert mode");
+        }
+        this.insertHistory.push({ insertState: this.insertState });
+        this.insertState = {
+          ...this.insertState,
+          text: this.insertState.text + ev.key,
+        };
+        this.onUpdate();
       }
-      const {
-        doc: oldDocWithoutPlaceholders,
-        cursorBeforePositions:
-          cursorBeforePositionsAdjustedForPlaceholderRemoval,
-      } = getDocWithoutPlaceholdersNearCursors(
-        this.doc,
-        this.insertState.beforePos,
-      );
-      const insertions: Insertion[] =
-        cursorBeforePositionsAdjustedForPlaceholderRemoval.map(
-          (beforePos, i) => ({
-            beforePos,
-            duplicateIndex: this.insertState!.duplicateIndices[i],
-            text: this.insertState!.text,
-          }),
-        );
-      const astWithInsertBeforeFormatting = astFromTypescriptFileContent(
-        getDocWithInsertions(oldDocWithoutPlaceholders, insertions).text,
-      );
-      if (astWithInsertBeforeFormatting.parseDiagnostics.length) {
-        console.warn(
-          "file has syntax errors",
-          astWithInsertBeforeFormatting.parseDiagnostics,
-          astWithInsertBeforeFormatting.text,
-        );
-        return;
-      }
-      const docWithInsertBeforeFormatting = docFromAst(
-        astWithInsertBeforeFormatting,
-      );
-      const checkedInsertion = checkInsertion({
-        oldDoc: oldDocWithoutPlaceholders,
-        newDoc: docWithInsertBeforeFormatting,
-        insertions,
-      });
-      if (!checkedInsertion.valid) {
-        console.warn("checkedInsertion is not valid:", checkedInsertion.reason);
-        return;
-      }
-      for (const [
-        oldNode,
-        newNode,
-      ] of checkedInsertion.newNodesByOldTraceableNodes.entries()) {
-        newNode.isPlaceholder = oldNode.isPlaceholder;
-        newNode.id = oldNode.id;
-      }
-      this.cursors = this.cursors.map((cursor, i) => ({
-        ...cursor,
-        focus: checkedInsertion.insertionPathRanges[i],
-      }));
-      this.doc = docWithInsertBeforeFormatting;
-      finalStuff();
-    } else if (this.mode === Mode.Insert && ev.key === "Backspace") {
-      const old = this.insertHistory.pop();
-      if (!old) {
-        return;
-      }
-      this.insertState = old.insertState;
-      this.onUpdate();
     }
   };
   onKeyUp = (ev: MinimalKeyboardEvent) => {

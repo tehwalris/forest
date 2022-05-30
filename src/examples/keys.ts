@@ -2,7 +2,7 @@ import { DocManager, MinimalKeyboardEvent } from "../logic/doc-manager";
 import { unreachable } from "../logic/util";
 import { EventCreator, EventCreatorKind } from "./interfaces";
 
-export type EventHandler = "onKeyUp" | "onKeyDown" | "onKeyPress";
+export type EventHandler = "onKeyUp" | "onKeyDown";
 export interface EventWithHandler {
   handler: EventHandler;
   event: MinimalKeyboardEvent;
@@ -73,7 +73,7 @@ export function parseKeyCombo(combo: string): EventWithHandler {
     throw new Error("combo contains multiple conflicting handlers");
   }
   const handler =
-    usedSpecialKeys.map((s) => s.handler).find((v) => v) || "onKeyPress";
+    usedSpecialKeys.map((s) => s.handler).find((v) => v) || "onKeyDown";
   let event: MinimalKeyboardEvent = { key: baseKey };
   for (const specialKey of usedSpecialKeys) {
     if (specialKey.addToEvent) {
@@ -89,7 +89,7 @@ export function eventsFromKeys(keys: string): EventWithHandler[] {
     .map((combo) => parseKeyCombo(combo));
 }
 export function eventsToTypeString(keys: string): EventWithHandler[] {
-  return [...keys].map((key) => ({ handler: "onKeyPress", event: { key } }));
+  return [...keys].map((key) => ({ handler: "onKeyDown", event: { key } }));
 }
 export function eventsFromEventCreator(
   c: EventCreator,

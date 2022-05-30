@@ -17,7 +17,8 @@ interface Props {
 }
 
 const initDocManager = (docManager: DocManager) => {
-  docManager.onKeyPress({ key: "i" });
+  docManager.onKeyDown({ key: "i" });
+  docManager.onKeyUp({ key: "i" });
 };
 
 export const WriteDocEditor = ({ state: _state, setState }: Props) => {
