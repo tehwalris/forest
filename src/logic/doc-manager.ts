@@ -129,16 +129,18 @@ export interface MinimalKeyboardEvent {
   preventDefault?: () => void;
   stopPropagation?: () => void;
 }
-function hasAltLike(ev: MinimalKeyboardEvent): ev is MinimalKeyboardEvent &
+export function hasCtrlLike(
+  ev: MinimalKeyboardEvent,
+): ev is MinimalKeyboardEvent &
   (
     | {
-        altKey: true;
+        ctrlKey: true;
       }
     | {
         metaKey: true;
       }
   ) {
-  return !!ev.altKey || !!ev.metaKey;
+  return !!ev.ctrlKey || !!ev.metaKey;
 }
 interface InsertHistoryEntry {
   insertState: InsertState;
@@ -417,7 +419,7 @@ export class DocManager {
         );
         this.queuedCursors = [];
         this.onUpdate();
-      } else if (ev.key === "l" && !hasAltLike(ev)) {
+      } else if (ev.key === "l" && !ev.altKey) {
         this.multiCursorHelper(
           (strict) =>
             multiCursorMoveLeaf({
@@ -432,7 +434,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
-      } else if (ev.key.toLowerCase() === "l" && hasAltLike(ev)) {
+      } else if (ev.key.toLowerCase() === "l" && ev.altKey) {
         ev.preventDefault?.();
         this.multiCursorHelper(
           (strict) =>
@@ -447,7 +449,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
-      } else if (ev.key === "L" && !ev.ctrlKey) {
+      } else if (ev.key === "L" && !hasCtrlLike(ev)) {
         this.multiCursorHelper(
           (strict) =>
             multiCursorMoveLeaf({
@@ -462,7 +464,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
-      } else if (ev.key === "L" && ev.ctrlKey) {
+      } else if (ev.key === "L" && hasCtrlLike(ev)) {
         ev.preventDefault?.();
         this.multiCursorHelper(
           (strict) =>
@@ -478,7 +480,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
-      } else if (ev.key === "h" && !hasAltLike(ev)) {
+      } else if (ev.key === "h" && !ev.altKey) {
         this.multiCursorHelper(
           (strict) =>
             multiCursorMoveLeaf({
@@ -493,7 +495,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
-      } else if (ev.key.toLowerCase() === "h" && hasAltLike(ev)) {
+      } else if (ev.key.toLowerCase() === "h" && ev.altKey) {
         ev.preventDefault?.();
         this.multiCursorHelper(
           (strict) =>
@@ -508,7 +510,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
-      } else if (ev.key === "H" && !ev.ctrlKey) {
+      } else if (ev.key === "H" && !hasCtrlLike(ev)) {
         this.multiCursorHelper(
           (strict) =>
             multiCursorMoveLeaf({
@@ -523,7 +525,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
-      } else if (ev.key === "H" && ev.ctrlKey) {
+      } else if (ev.key === "H" && hasCtrlLike(ev)) {
         ev.preventDefault?.();
         this.multiCursorHelper(
           (strict) =>

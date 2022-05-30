@@ -2,7 +2,7 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import { useAutofocus } from "../hooks/use-autofocus";
 import { useDocManager } from "../hooks/use-doc-manager";
-import { Mode } from "../logic/doc-manager";
+import { hasCtrlLike, Mode } from "../logic/doc-manager";
 import { Doc } from "../logic/interfaces";
 import { DocUi } from "./doc-ui";
 import { QueryEditor } from "./query-editor";
@@ -42,7 +42,7 @@ export const LinearEditor = ({ initialDoc, onSave }: Props) => {
           ev.preventDefault();
           ev.stopPropagation();
           setQueryState({ stage: Stage.WriteDoc });
-        } else if (mode === Mode.Normal && ev.key === "s" && ev.ctrlKey) {
+        } else if (mode === Mode.Normal && ev.key === "s" && hasCtrlLike(ev)) {
           ev.preventDefault();
           ev.stopPropagation();
           onSave(doc);
