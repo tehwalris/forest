@@ -125,6 +125,7 @@ export interface MinimalKeyboardEvent {
   altKey?: boolean;
   metaKey?: boolean;
   ctrlKey?: boolean;
+  shiftKey?: boolean;
   preventDefault?: () => void;
   stopPropagation?: () => void;
 }
@@ -211,6 +212,7 @@ export class DocManager {
       altKey: ev.altKey,
       ctrlKey: ev.ctrlKey,
       metaKey: ev.metaKey,
+      shiftKey: ev.shiftKey,
       preventDefault: ev.preventDefault?.bind(ev),
       stopPropagation: ev.stopPropagation?.bind(ev),
     };
@@ -223,6 +225,18 @@ export class DocManager {
         this.chordKey = ev.key;
         this.onUpdate();
         return;
+      }
+
+      const letterForArrow = {
+        ArrowUp: "k",
+        ArrowRight: "l",
+        ArrowDown: "j",
+        ArrowLeft: "h",
+      }[ev.key];
+      if (letterForArrow !== undefined) {
+        ev.key = ev.shiftKey ? letterForArrow.toUpperCase() : letterForArrow;
+        ev.preventDefault?.();
+        ev.stopPropagation?.();
       }
 
       if (ev.key === "i" && !this.readOnly) {
