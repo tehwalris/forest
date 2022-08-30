@@ -1,0 +1,199 @@
+- TODO `react-codemod`
+- `js-codemod`
+  - `arrow-function-arguments`
+    - create an array expression which represents all the arguments to an arrow function
+    - add spread to parameter list if necessary
+    - replace the usages of the variable `arguments` by that expression
+  - `arrow-function`
+    - replace normal functions with arrow functions with some exceptions
+    - except when binding anything except this
+    - except when this is referenced in the body without binding
+  - `expect`
+    - switch every assertion from one assertion library to another
+    - sometimes switching one function name for another
+    - sometimes replacing the whole expression and copying over some parts
+  - `flow-bool-to-boolean`
+    - replace references to one type by references to another type
+    - limit changes to references in type position
+  - `invalid-requires`
+    - same as `unchain-variables`, but limited to statements that contain `require`
+  - `jest-11-update`
+    - no example code
+  - `jest-arrow`
+    - replace normal functions with arrow functions with some exceptions
+    - only when used as arguments to calls to a specific library
+  - `jest-remove-describe`
+    - replace function calls by their body with some exceptions
+    - only if the function has a specific name
+    - only if the function is at the top level of the program
+  - `jest-remove-disable-automock`
+    - remove calls to a specific function
+    - preserve any calls which are chained from it
+  - `jest-rm-mock`
+    - no example code
+  - `jest-update`
+    - no example code
+  - `no-reassign-params`
+    - no example code
+  - `no-vars`
+    - replace var with let or const depending on usage
+  - `object-shorthand`
+    - convert properties where both sides are the same to shorthand syntax
+    - convert properties with function value to method syntax
+  - `outline-require`
+    - no example code
+  - `rm-copyProperties`
+    - replace calls to library function with `Object.assign` or object literals
+    - many checks and exceptions
+  - `rm-merge`
+    - replace calls to library function with object literals
+  - `rm-object-assign`
+    - replace calls to `Object.assign` with object literals
+    - except when first argument is not a literal
+    - except when any argument is spread
+  - `rm-requires`
+    - remove calls to specific function if their result is never used
+    - remove duplicate function calls and update references to their results
+  - `template-literals`
+    - replace additions of strings with template literals
+  - `touchable`
+    - replace JSX element by it's children
+    - only if it has a specific kind of parent
+    - only if it is the only child of it's parent
+  - `trailing-commas`
+    - formatting changes
+  - `unchain-variables`
+    - flatten variable declarations into multiple statements
+  - `underscore-to-lodash-native`
+    - replace calls to library with calls to other library or built in functions
+    - affects calls to many different functions
+  - `unquote-properties`
+    - remove quotes from property names if they are not necessary
+    - TODO you wrote "non-standard syntax", but it's actually standard and just crashes forest
+  - `update-computed-props`
+    - no example code
+  - `use-strict`
+    - add specific statement to start of each file
+- `js-transforms`
+  - `bind-this-to-bind-expression`
+    - replace specific function calls by non-standard syntax
+  - `call-expression-bind-this-to-arrow-function-expression`
+    - replace function expressions by arrow functions
+    - replace arrow function bodies containing single return by shorthand
+    - only when directly used with `.bind(this)`
+  - `function-expression-to-arrow-function-expression`
+    - replace function expressions by arrow functions
+    - replace arrow function bodies containing single return by shorthand
+    - only when `this` is not referenced in body
+  - `props-to-destructuring`
+    - replace property accesses by destructuring and variable references
+    - checks to not destructure if variable already exits
+    - checks to not use reserved words
+  - `pure-to-composite-component`
+    - replace expression and copy over some parts
+    - only if expression contains specific syntax
+    - replace reference to specific variable by property access
+- `rackt-codemod`
+  - `react-router/deprecate-Link-location-props`
+    - modify a prop if a prop from a specific set is present
+    - copies over expressions and deletes props
+  - `react-router/deprecate-context-history`
+    - multiple different structural find-replaces
+  - `deprecate-isActive-query`
+    - replace arguments to specific function by named arguments in object literal
+    - different handling depending on number of arguments
+  - `deprecate-createPath-createHref-query`
+    - replace arguments to specific function by named arguments in object literal
+    - replace strings by expressions created by parsing the strings
+  - `deprecate-pushState-replaceState`
+    - replace arguments to specific function by named arguments in object literal
+    - replace strings by expressions created by parsing the strings
+- TODO `coffee-to-es2015-codemod`
+- `5to6-codemod`
+  - `amd`
+    - compile AMD modules to ES6 modules
+  - `cjs`
+    - compile CommonJS modules to ES6 modules (imports only)
+  - `no strict`
+    - delete a specific statement
+  - `exports`
+    - compile CommonJS modules to ES6 modules (exports only)
+  - `named-export-generation`
+    - generates a named export for every property of the default export
+  - `let`
+    - replace var with let (independent of usage)
+  - `simple-arrow`
+    - replace function expressions with single return by shorthand arrow functions
+- `es5-function-to-class-codemod`
+  - `func-to-class`
+    - converts classes declared with functions and prototype to ES6 classes
+- `webpack-babel-codemod`
+  - `dynamic-require-import`
+    - replace properties whose value is a function call by shorthand properties
+    - hoist function calls to the top of the file
+- TODO `lodash-to-lodash-amd-codemods`
+- `rm-debugger`
+  - `rm-debugger`
+    - removes a specific statement
+- TODO `AMD Transformer`
+- `preact-codemod`
+  - `import-declarations`
+    - replace a specific import by another import
+    - add an import if a specific function is used
+  - `component`
+    - applies one of two other refactorings to calls to a specific function
+  - `component-sfc`
+    - replaces a function call by a function expression from one of the arguments
+    - only when the argument is an object with certain properties
+  - `component-class`
+    - replaces an function call with an object literal with functions by a class with methods
+  - `props`
+    - replaces property access by variable reference
+    - adds an argument to the containing function
+    - only if the containing function has no arguments
+  - `state`
+    - replaces property access by variable reference
+    - adds one argument to the containing function
+    - only if the containing function has no arguments
+    - adds another argument to the containing function
+    - only if the containing function has one argument
+  - `removePropTypes`
+    - removes specific import
+    - removes assignments to a specific property
+- `mocha2ava-codemod`
+  - `add-pass-test`
+    - modify functions used as an argument to a specific function
+    - applies to arrow functions, normal functions and functions wrapped in a call
+    - appends a statement to the end of the function
+    - only if a specific variable is never used
+  - `extractDescribes`
+    - flattens a set of nested functions and function calls
+    - concatenates strings used as arguments in each flattened level
+  - `it2test`
+    - add a property access before a function call
+    - add an argument to the callback (arrow function or function expression)
+    - only for calls to a specific set of functions
+    - replace calls to a specific function by calls to a different function
+  - `this2context`
+    - replace left hand side of a property access by another property access
+    - only if the left hand side is this
+  - `insertRequires`
+    - add an import statement or variable declaration with function call
+    - only if it does not already exist
+    - use an import statement if there are any other import statements in the file
+- `undecorate-codemod`
+  - `undecorate`
+    - removes a decorator from a class declaration and wraps it in a corresponding function call
+    - creates a temporary variable and export statement
+    - only if the class was not a default export
+- `vue-codemod`
+  - `sort_keys`
+    - sorts properties within an object literal according to multiple rules
+    - some properties are sorted according to a lookup table
+  - `uppercase_constants`
+    - rename variable names to upper case in const declarations
+    - rename all references to the renamed variable
+    - replace string constants by identifiers and create variable declarations
+    - only if the same constant appears multiple times
+  - `extract_non_instance_methods`
+    - replace methods in an object literal by functions at the top level of the file
