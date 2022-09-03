@@ -3,33 +3,35 @@
 - `js-codemod`
   - `arrow-function-arguments`
     - create an array expression which represents all the arguments to an arrow function
-    - add spread to parameter list if necessary
-    - replace the usages of the variable `arguments` by that expression
+    - add a spread to the parameter list if necessary
+    - replace all usages of the variable \texttt{arguments} by that expression
   - `arrow-function`
     - replace normal functions with arrow functions with some exceptions
-    - except when binding anything except this
-    - except when this is referenced in the body without binding
+    - the functions must be unbound when or bound only with \texttt{this}
+    - the body of unbound functions must not reference \texttt{this}
   - `expect`
     - switch every assertion from one assertion library to another
-    - sometimes switching one function name for another
-    - sometimes replacing the whole expression and copying over some parts
+    - replace certain function names
+    - sometimes replace the whole expression and copy over parts
   - `flow-bool-to-boolean`
     - replace references to one type by references to another type
-    - limit changes to references in type position
+    - only modify references that are type position
+    - this script uses non-standard syntax
   - `invalid-requires`
-    - same as `unchain-variables`, but limited to statements that contain `require`
+    - same as \texttt{unchain-variables}, but limited to statements that contain \texttt{require}
+    - this script was ignored, because it is too similar to the other script
   - `jest-11-update`
     - no example code
   - `jest-arrow`
     - replace normal functions with arrow functions with some exceptions
-    - only when used as arguments to calls to a specific library
+    - only modify function that are used as arguments to calls to a specific library
   - `jest-remove-describe`
     - replace function calls by their body with some exceptions
-    - only if the function has a specific name
-    - only if the function is at the top level of the program
+    - only modify functions that have a specific name
+    - only modify functions that are at the top level of the program
   - `jest-remove-disable-automock`
     - remove calls to a specific function
-    - preserve any calls which are chained from it
+    - preserve any calls that are chained from the removed call
   - `jest-rm-mock`
     - no example code
   - `jest-update`
@@ -37,21 +39,21 @@
   - `no-reassign-params`
     - no example code
   - `no-vars`
-    - replace var with let or const depending on usage
+    - replace \texttt{var} with \texttt{let} or \texttt{const} depending on usage
   - `object-shorthand`
     - convert properties where both sides are the same to shorthand syntax
-    - convert properties with function value to method syntax
+    - convert properties whose value is a function to method syntax
   - `outline-require`
     - no example code
   - `rm-copyProperties`
-    - replace calls to library function with `Object.assign` or object literals
-    - many checks and exceptions
+    - replace calls to a library function with \texttt{Object.assign} or object literals
+    - this script has many checks and exceptions
   - `rm-merge`
     - replace calls to library function with object literals
   - `rm-object-assign`
     - replace calls to `Object.assign` with object literals
-    - except when first argument is not a literal
-    - except when any argument is spread
+    - only modify calls where the first argument is a literal
+    - do not modify calls where any argument is spread
   - `rm-requires`
     - remove calls to specific function if their result is never used
     - remove duplicate function calls and update references to their results
@@ -59,54 +61,55 @@
     - replace additions of strings with template literals
   - `touchable`
     - replace JSX element by its children
-    - only if it has a specific kind of parent
-    - only if it is the only child of its parent
+    - only replace elements that have a specific kind of parent
+    - only replace elements that are the only child of their parent
   - `trailing-commas`
-    - formatting changes
+    - this script only affects code formatting
   - `unchain-variables`
     - flatten variable declarations into multiple statements
   - `underscore-to-lodash-native`
     - replace calls to library with calls to other library or built in functions
-    - affects calls to many different functions
+    - this script affects calls to many different functions
   - `unquote-properties`
     - remove quotes from property names if they are not necessary
+    - quoted properties are not supported by our prototype
   - `updated-computed-props`
     - no example code
   - `use-strict`
-    - add specific statement to start of each file
+    - add a specific statement to the start of each file
 - `js-transforms`
   - `bind-this-to-bind-expression`
     - replace specific function calls by non-standard syntax
   - `call-expression-bind-this-to-arrow-function-expression`
     - replace function expressions by arrow functions
     - replace arrow function bodies containing single return by shorthand
-    - only when directly used with `.bind(this)`
+    - only modify functions that are directly used with \texttt{.bind(this)}
   - `function-expression-to-arrow-function-expression`
     - replace function expressions by arrow functions
     - replace arrow function bodies containing single return by shorthand
-    - only when `this` is not referenced in body
+    - only modify functions whose body does not contain \texttt{this}
   - `props-to-destructuring`
     - replace property accesses by destructuring and variable references
-    - checks to not destructure if variable already exits
-    - checks to not use reserved words
+    - do not add a destructure if the variable already exits
+    - do not use any reserved words
   - `pure-to-composite-component`
-    - replace expression and copy over some parts
-    - only if expression contains specific syntax
-    - replace reference to specific variable by property access
+    - replace an expression and copy over some parts
+    - only modify expressions that contain specific syntax
+    - replace references to a specific variable by property access
 - `rackt-codemod`
   - `react-router/deprecate-Link-location-props`
-    - modify a prop if a prop from a specific set is present
-    - copies over expressions and deletes props
+    - modify a JSX prop if another prop from a specific set is present
+    - copy over expressions and delete old props
   - `react-router/deprecate-context-history`
     - multiple different structural find-replaces
   - `deprecate-isActive-query`
-    - replace arguments to specific function by named arguments in object literal
+    - replace arguments to a specific function by named arguments in an object literal
     - different handling depending on number of arguments
   - `deprecate-createPath-createHref-query`
-    - replace arguments to specific function by named arguments in object literal
+    - replace arguments to a specific function by named arguments in an object literal
     - replace strings by expressions created by parsing the strings
   - `deprecate-pushState-replaceState`
-    - replace arguments to specific function by named arguments in object literal
+    - replace arguments to specific function by named arguments in an object literal
     - replace strings by expressions created by parsing the strings
 - `coffee-to-es2015-codemod` (ignore)
   - This repository contains a decompiler written in the form of refactoring scripts. The scripts read the output of the CoffeeScript compiler, guess the high-level constructs which were likely used in the original CoffeeScript code, and replace them by their JavaScript equivalent.
@@ -120,14 +123,14 @@
   - `exports`
     - compile CommonJS modules to ES6 modules (exports only)
   - `named-export-generation`
-    - generates a named export for every property of the default export
+    - generate a named export for every property of a default-exported object literal
   - `let`
-    - replace var with let (independent of usage)
+    - replace \texttt{var} with \texttt{let}, independent of how the variable is used
   - `simple-arrow`
-    - replace function expressions with single return by shorthand arrow functions
+    - replace function expressions with a single return by arrow functions with shorthand returns
 - `es5-function-to-class-codemod`
   - `func-to-class`
-    - converts classes declared with functions and prototype to ES6 classes
+    - convert classes declared with functions and prototypes to ES6 classes
 - `webpack-babel-codemod`
   - `dynamic-require-import`
     - replace properties whose value is a function call by shorthand properties
@@ -136,7 +139,8 @@
   - The scripts in this repository modify the way that functions from a specific library are imported and called, in order for the final program to be efficiently processed by a build system. The repository did not contain sufficient examples to understand the scripts without knowledge of this specific module loading system.
 - `rm-debugger`
   - `rm-debugger`
-    - removes a specific statement
+    - remove a specific statement
+    - this script is unrealistically simple
 - `AMD Transformer` (ignore)
   - The scripts in this repository modify a codebase to use the AMD module system. We were not familiar enough with the AMD module system to work with these scripts.
 - `preact-codemod`
@@ -144,59 +148,56 @@
     - replace a specific import by another import
     - add an import if a specific function is used
   - `component`
-    - applies one of two other refactorings to calls to a specific function
+    - apply one of two other refactorings to calls to a specific function
   - `component-sfc`
-    - replaces a function call by a function expression from one of the arguments
-    - only when the argument is an object with certain properties
+    - replace a function call by a function expression from one of the arguments
+    - only modify function calls whose argument is an object with certain properties
   - `component-class`
-    - replaces a function call with an object literal with functions by a class with methods
+    - replace a function call with an object literal with functions by a class with methods
   - `props`
-    - replaces property access by variable reference
-    - adds an argument to the containing function
-    - only if the containing function has no arguments
+    - replace property accesses by variable references
+    - add an argument to the containing function
+    - only modify the containing function if it has no arguments
   - `state`
-    - replaces property access by variable reference
-    - adds one argument to the containing function
-    - only if the containing function has no arguments
-    - adds another argument to the containing function
-    - only if the containing function has one argument
+    - replace property accesses by variable references
+    - add an argument to the containing function
+    - only modify the containing function if it has no arguments
+    - add another argument to the containing function if it has one argument
   - `removePropTypes`
-    - removes specific import
-    - removes assignments to a specific property
+    - remove a specific import
+    - remove assignments to a specific property
 - `mocha2ava-codemod`
   - `add-pass-test`
-    - modify functions used as an argument to a specific function
+    - modify functions that are used as arguments to a specific function
     - applies to arrow functions, normal functions and functions wrapped in a call
-    - appends a statement to the end of the function
-    - only if a specific variable is never used
+    - append a statement to the end of the function
+    - only modify functions if a specific variable is never used inside their body
   - `extractDescribes`
-    - flattens a set of nested functions and function calls
-    - concatenates strings used as arguments in each flattened level
+    - flatten a set of nested functions and function calls
+    - concatenate strings used as arguments in each flattened level
   - `it2test`
     - add a property access before a function call
     - add an argument to the callback (arrow function or function expression)
-    - only for calls to a specific set of functions
+    - only modify calls to a specific set of functions
     - replace calls to a specific function by calls to a different function
   - `this2context`
-    - replace left hand side of a property access by another property access
-    - only if the left hand side is this
+    - replace the left hand side of a property access by another property access
+    - only modify property accesses whose left hand side is \texttt{this}
   - `insertRequires`
-    - add an import statement or variable declaration with function call
-    - only if it does not already exist
+    - add an import statement or a variable declaration with a function call
+    - do not add the statement if it already exists
     - use an import statement if there are any other import statements in the file
 - `undecorate-codemod`
   - `undecorate`
-    - removes a decorator from a class declaration and wraps it in a corresponding function call
-    - creates a temporary variable and export statement
-    - only if the class was not a default export
+    - remove decorators from class declarations and wrap them in a corresponding function call
+    - create a temporary variable and export statement if the class was not default-exported
 - `vue-codemods`
   - `sort_keys`
-    - sorts properties within an object literal according to multiple rules
-    - some properties are sorted according to a lookup table
+    - sort properties within an object literal according to multiple rules
+    - sort certain properties according to a lookup table
   - `uppercase_constants`
-    - rename variable names to upper case in const declarations
+    - rename variable names to upper case in \texttt{const} declarations
     - rename all references to the renamed variable
-    - replace string constants by identifiers and create variable declarations
-    - only if the same constant appears multiple times
+    - replace string constants by identifiers and create variable declarations if the same constant appears multiple times
   - `extract_non_instance_methods`
     - replace methods in an object literal by functions at the top level of the file
