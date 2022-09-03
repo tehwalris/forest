@@ -39,9 +39,14 @@ function notesToGroupedLines(notes) {
   return groupedLines;
 }
 
+function capitalizeFirst(s) {
+  return s.length ? s[0].toUpperCase() + s.slice(1) : "";
+}
+
 module.exports = {
   mapFromJson,
   invertMap,
   appendAtDepth,
   notesToGroupedLines,
+  capitalizeFirst,
 };

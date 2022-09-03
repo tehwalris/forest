@@ -133,10 +133,11 @@
     - `let` (yes)
     - `simple-arrow` (almost)
       - nested_copy_paste: has same nested copy-paste problem as `js-codemod/jest-arrow`
-- `es5-function-to-class-codemod` (no)
-  - general notes
-    - no support for classes
-    - likely other issues would arise (missing jump to definition?)
+- `es5-function-to-class-codemod`
+  - codemods
+    - `func-to-class` (no)
+      - syntax: no support for classes
+      - find_declarations: likely other issues would arise (missing jump to definition?)
 - `webpack-babel-codemod`
   - general notes
     - this just converts a very specific type of `require` to an `import`
@@ -201,14 +202,15 @@
         - can't collect path of ancestors to construct name from
         - can't write complex logic
     - `it2test` (maybe)
-    - `this2content` (yes)
+    - `this2context` (yes)
     - `insertRequires` (no)
       - syntax: import statements are not supported
       - recreate_cursors: can't check whether import statements are used an then branch on that
         - would require cursor snapshots
-- `undecorate-codemod` (no)
-  - general notes
-    - can't work with classes or decorators
+- `undecorate-codemod`
+  - codemods
+    - `undecorate` (no)
+      - syntax: can't work with classes or decorators
 - `vue-codemods`
   - general notes
     - obviously can't work with vue files directly, but could do some equivalent task with plain js

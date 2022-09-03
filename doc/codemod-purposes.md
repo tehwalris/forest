@@ -70,7 +70,7 @@
   - `unquote-properties`
     - remove quotes from property names if they are not necessary
     - TODO you wrote "non-standard syntax", but it's actually standard and just crashes forest
-  - `update-computed-props`
+  - `updated-computed-props`
     - no example code
   - `use-strict`
     - add specific statement to start of each file
@@ -146,7 +146,7 @@
     - replaces a function call by a function expression from one of the arguments
     - only when the argument is an object with certain properties
   - `component-class`
-    - replaces an function call with an object literal with functions by a class with methods
+    - replaces a function call with an object literal with functions by a class with methods
   - `props`
     - replaces property access by variable reference
     - adds an argument to the containing function
@@ -186,7 +186,7 @@
     - removes a decorator from a class declaration and wraps it in a corresponding function call
     - creates a temporary variable and export statement
     - only if the class was not a default export
-- `vue-codemod`
+- `vue-codemods`
   - `sort_keys`
     - sorts properties within an object literal according to multiple rules
     - some properties are sorted according to a lookup table
