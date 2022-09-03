@@ -2,11 +2,6 @@ const fs = require("fs");
 const path = require("path");
 const assert = require("assert");
 
-const mapFromJson = (filename) =>
-  new Map(JSON.parse(fs.readFileSync(path.join(__dirname, filename), "utf8")));
-
-const invertMap = (m) => new Map([...m.entries()].map(([k, v]) => [v, k]));
-
 function last(arr) {
   assert(Array.isArray(arr));
   assert(arr.length);
@@ -44,8 +39,6 @@ function capitalizeFirst(s) {
 }
 
 module.exports = {
-  mapFromJson,
-  invertMap,
   appendAtDepth,
   notesToGroupedLines,
   capitalizeFirst,

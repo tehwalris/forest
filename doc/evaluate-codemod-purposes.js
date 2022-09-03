@@ -28,17 +28,20 @@ function parseCodemod(lines) {
 
 function parseRepoNameLine(lines) {
   assert(typeof lines === "string");
-  const m = lines.match(/^(TODO )?`([^`]+)`$/);
+  console.log(JSON.stringify(lines));
+  const m = lines.match(/^`([^`]+)`( \(ignore\))?$/);
   assert(m);
-  return { name: m[2], todo: !!m[1] };
+  return { name: m[1], ignore: !!m[2] };
 }
 
 function parseResultsForRepo(lines) {
   assert(Array.isArray(lines) && lines.length >= 1);
-  const output = {
-    ...parseRepoNameLine(lines[0]),
-    codemods: lines.slice(1).map(parseCodemod),
-  };
+  const output = parseRepoNameLine(lines[0]);
+  if (output.ignore) {
+    output.ignoreReason = lines.slice(1);
+  } else {
+    output.codemods = lines.slice(1).map(parseCodemod);
+  }
   return output;
 }
 
@@ -53,17 +56,30 @@ function basicLatexEscape(s) {
 }
 
 function generateLatexScriptSummaryForCodemod({ name, purpose, support }) {
-  return String.raw`\paragraph{\texttt{${basicLatexEscape(
-    name,
-  )}}} (\emph{${capitalizeFirst(support.result)}}) ${purpose.description
-    .map((s) => {
-      assert(s.length === 1);
-      return `${capitalizeFirst(s[0])}.`;
-    })
-    .join(" ")}`;
+  const issuesString = support.issues.length
+    ? R.sortBy((v) => v.id, support.issues)
+        .map((v) => v.id)
+        .filter((v) => v)
+        .join(", ")
+    : "none";
+  return [
+    String.raw`\paragraph{\texttt{${basicLatexEscape(name)}}}`,
+    String.raw`\hangindent=\parindent`,
+    String.raw`\mbox{}\newline{}`,
+    support.result === "ignore"
+      ? String.raw`\emph{This script was ignored}`
+      : String.raw`Result: \emph{${support.result}}; Issues: ${issuesString}`,
+    String.raw`\newline{}`,
+    purpose.description
+      .map((s) => {
+        assert(s.length === 1);
+        return `${capitalizeFirst(s[0])}.`;
+      })
+      .join(" "),
+  ].join("");
 }
 
-function generateLatexScriptSummariesForRepo({ name, purpose, support }) {
+function generateLatexScriptSummariesForUsedRepo({ name, purpose, support }) {
   const grouped = purpose.codemods.map((purposeCodemod) => {
     const supportCodemod = support.codemods.find(
       (c) => c.name === purposeCodemod.name,
@@ -76,10 +92,17 @@ function generateLatexScriptSummariesForRepo({ name, purpose, support }) {
     };
   });
   return [
-    String.raw`\subsubsection{\texttt{${basicLatexEscape(name)}}}`,
+    String.raw`\subsubsection*{\texttt{${basicLatexEscape(name)}}}`,
     ...R.sortBy(({ name }) => name, grouped).map(
       generateLatexScriptSummaryForCodemod,
     ),
+  ].join("\n");
+}
+
+function generateLatexScriptSummariesForIgnoredRepo({ name, purpose }) {
+  return [
+    String.raw`\subsubsection*{\texttt{${basicLatexEscape(name)}}}`,
+    ...purpose.ignoreReason,
   ].join("\n");
 }
 
@@ -87,12 +110,20 @@ function generateLatexScriptSummaries(purposesResults, supportResults) {
   const grouped = purposesResults.repos.map((purpose) => {
     const support = supportResults.repos.find((r) => r.name === purpose.name);
     assert(!!support);
+    assert((support.result === "ignore") === purpose.ignore);
     return { name: purpose.name, purpose, support };
   });
-  return R.sortBy(({ name }) => name, grouped)
-    .filter(({ support }) => support.result !== "ignore")
-    .map(generateLatexScriptSummariesForRepo)
-    .join("\n");
+  return [
+    [true, generateLatexScriptSummariesForIgnoredRepo],
+    [false, generateLatexScriptSummariesForUsedRepo],
+  ]
+    .map(([ignore, generate]) =>
+      R.sortBy(({ name }) => name, grouped)
+        .filter((g) => g.purpose.ignore === ignore)
+        .map(generate)
+        .join("\n"),
+    )
+    .join("\n\n");
 }
 
 const supportResults = parseSupportResults(

@@ -1,8 +1,15 @@
 const assert = require("assert");
-const { invertMap, mapFromJson } = require("./util");
+const fs = require("fs");
+const path = require("path");
 
-const slugsByReason = mapFromJson("codemod-support-reason-slugs.json");
-const reasonsBySlug = invertMap(slugsByReason);
+const reasonsBySlug = new Map(
+  JSON.parse(
+    fs.readFileSync(
+      path.join(__dirname, "codemod-support-reason-slugs.json"),
+      "utf8",
+    ),
+  ).map(([reason, slug, id]) => [slug, { id: id || undefined, reason }]),
+);
 
 function parseRepoNotes(lines) {
   assert(
@@ -32,7 +39,7 @@ function parseIssueLine(lines) {
   assert(m);
   const slug = m[1];
   assert(reasonsBySlug.has(slug));
-  return { slug, exactReason: m[2] };
+  return { slug, id: reasonsBySlug.get(slug).id, exactReason: m[2] };
 }
 
 function parseCodemodBullet(lines) {
@@ -114,4 +121,4 @@ function parseResults(lines) {
   };
 }
 
-module.exports = { parseResults, slugsByReason, reasonsBySlug };
+module.exports = { parseResults, reasonsBySlug };

@@ -59,6 +59,7 @@
       - lookup_tables: lookup tables are possible but impractical
     - `unquote-properties` (ignore)
       - non-standard syntax
+      - TODO you wrote "non-standard syntax", but it's actually standard and just crashes forest
     - `updated-computed-props` (ignore)
       - no example code
     - `use-strict` (almost)
@@ -150,9 +151,10 @@
 - `lodash-to-lodash-amd-codemods` (ignore)
   - general notes
     - I don't get what this does
-- `rm-debugger` (ignore)
-  - general notes
-    - irrelevantly simple
+- `rm-debugger`
+  - codemods
+    - `rm-debugger` (ignore)
+      - irrelevantly simple
       - this really only removes `debugger` calls
 - `AMD Transformer` (ignore)
   - general notes

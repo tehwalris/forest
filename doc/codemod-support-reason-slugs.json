@@ -1,43 +1,51 @@
 [
   [
     "matching is different because of search in flattened AST",
-    "search_flat_ast"
+    "search_flat_ast",
+    "A8"
   ],
-  ["manual parenthesizing required", "manual_paren"],
-  ["have to recreate cursors multiple times", "recreate_cursors"],
-  ["nested copy-paste would be an issue", "nested_copy_paste"],
-  ["too complicated", "complicated"],
-  ["lookup tables are possible but impractical", "lookup_tables"],
-  ["cannot remove duplicate items", "duplicate_items"],
-  ["bug in paste", "bug_in_paste"],
-  ["none-one-many issue", "none_one_many"],
-  ["unsupported syntax", "syntax"],
-  ["cannot handle separately found locations together", "separately_found"],
-  ["cannot filter for exactly one item in list", "one_item_list"],
-  ["cannot filter for exactly one search match", "one_result_search"],
-  ["cannot create AST by parsing arbitrary string using JS", "using_js"],
-  ["no support for zipping lists of cursors", "zip"],
+  ["manual parenthesizing required", "manual_paren", "A4"],
+  ["have to recreate cursors multiple times", "recreate_cursors", "A1"],
+  ["nested copy-paste would be an issue", "nested_copy_paste", "A3"],
+  ["too complicated", "complicated", "C1"],
+  ["lookup tables are possible but impractical", "lookup_tables", "C2"],
+  ["cannot remove duplicate items", "duplicate_items", "B5"],
+  ["bug in paste", "bug_in_paste", "B2"],
+  ["none-one-many issue", "none_one_many", "A5"],
+  ["unsupported syntax", "syntax", "D1"],
+  [
+    "cannot handle separately found locations together",
+    "separately_found",
+    "A2"
+  ],
+  ["cannot filter for exactly one item in list", "one_item_list", "B8"],
+  ["cannot filter for exactly one search match", "one_result_search", "B9"],
+  ["cannot create AST by parsing arbitrary string using JS", "using_js", "C3"],
+  ["no support for zipping lists of cursors", "zip", "A9"],
   [
     "adding after first import \\emph{or} as first statement if no imports doesn't work",
-    "adding_after_first_import_or_as_first_statement"
+    "adding_after_first_import_or_as_first_statement",
+    "A6"
   ],
-  ["cannot edit multiple files", "multiple_files"],
-  ["adding `props` parameter if missing is hacky", ""],
-  ["no strict ``find usages of variable''", "find_usages"],
-  ["no strict ``find declarations of variable''", "find_declarations"],
+  ["cannot edit multiple files", "multiple_files", "B3"],
+  ["adding `props` parameter if missing is hacky", "", ""],
+  ["no strict ``find usages of variable''", "find_usages", "B1"],
+  ["no strict ``find declarations of variable''", "find_declarations", "B7"],
   [
     "can do the flatten sometimes, but not in the general case",
-    "general_flatten"
+    "general_flatten",
+    "A7"
   ],
-  ["cannot collect path of ancestors", "ancestor_path"],
+  ["cannot collect path of ancestors", "ancestor_path", ""],
   [
     "cannot check whether import statements are used an then branch on that",
+    "",
     ""
   ],
-  ["no sort feature", "sort"],
-  ["cannot filter top-level statements", "top_level"],
-  ["cannot search for dynamic query", "dynamic_query"],
-  ["cannot search up", "search_up"],
-  ["note", "note"],
-  ["ignore", "ignore"]
+  ["no sort feature", "sort", "B11"],
+  ["cannot filter top-level statements", "top_level", "B4"],
+  ["cannot search for dynamic query", "dynamic_query", "B6"],
+  ["cannot search up", "search_up", "B10"],
+  ["note", "note", ""],
+  ["ignore", "ignore", ""]
 ]

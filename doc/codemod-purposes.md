@@ -1,4 +1,5 @@
-- TODO `react-codemod`
+- `react-codemod` (ignore)
+  - The scripts in this repository perform changes which are helpful when migrating applications to newer versions of the React framework. To ensure that they work robustly in large codebases, most of the scripts handle multiple special cases and contain extensive checks. Handling this many special cases and checks is out of scope for our system.
 - `js-codemod`
   - `arrow-function-arguments`
     - create an array expression which represents all the arguments to an arrow function
@@ -57,9 +58,9 @@
   - `template-literals`
     - replace additions of strings with template literals
   - `touchable`
-    - replace JSX element by it's children
+    - replace JSX element by its children
     - only if it has a specific kind of parent
-    - only if it is the only child of it's parent
+    - only if it is the only child of its parent
   - `trailing-commas`
     - formatting changes
   - `unchain-variables`
@@ -69,7 +70,6 @@
     - affects calls to many different functions
   - `unquote-properties`
     - remove quotes from property names if they are not necessary
-    - TODO you wrote "non-standard syntax", but it's actually standard and just crashes forest
   - `updated-computed-props`
     - no example code
   - `use-strict`
@@ -108,7 +108,8 @@
   - `deprecate-pushState-replaceState`
     - replace arguments to specific function by named arguments in object literal
     - replace strings by expressions created by parsing the strings
-- TODO `coffee-to-es2015-codemod`
+- `coffee-to-es2015-codemod` (ignore)
+  - This repository contains a decompiler written in the form of refactoring scripts. The scripts read the output of the CoffeeScript compiler, guess the high-level constructs which were likely used in the original CoffeeScript code, and replace them by their JavaScript equivalent.
 - `5to6-codemod`
   - `amd`
     - compile AMD modules to ES6 modules
@@ -131,11 +132,13 @@
   - `dynamic-require-import`
     - replace properties whose value is a function call by shorthand properties
     - hoist function calls to the top of the file
-- TODO `lodash-to-lodash-amd-codemods`
+- `lodash-to-lodash-amd-codemods` (ignore)
+  - The scripts in this repository modify the way that functions from a specific library are imported and called, in order for the final program to be efficiently processed by a build system. The repository did not contain sufficient examples to understand the scripts without knowledge of this specific module loading system.
 - `rm-debugger`
   - `rm-debugger`
     - removes a specific statement
-- TODO `AMD Transformer`
+- `AMD Transformer` (ignore)
+  - The scripts in this repository modify a codebase to use the AMD module system. We were not familiar enough with the AMD module system to work with these scripts.
 - `preact-codemod`
   - `import-declarations`
     - replace a specific import by another import
