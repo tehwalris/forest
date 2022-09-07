@@ -4,17 +4,11 @@ import { ListKind, NodeKind } from "../logic/interfaces";
 import {
   DescribedGroup,
   EventCreator,
-  EventCreatorFromKeys,
   EventCreatorKind,
-  EventCreatorToTypeString,
   Example,
 } from "./interfaces";
-function fromKeys(keys: string): EventCreatorFromKeys {
-  return { kind: EventCreatorKind.FromKeys, keys };
-}
-function toTypeString(string: string): EventCreatorToTypeString {
-  return { kind: EventCreatorKind.ToTypeString, string };
-}
+import { fromKeys, toTypeString } from "./keys";
+import { examples5to6Codemod } from "./paper-evaluation/5to6-codemod";
 const eventCreatorSearchForJestCalls: EventCreator = {
   kind: EventCreatorKind.Function,
   description:
@@ -53,6 +47,7 @@ const eventCreatorSearchForJestCalls: EventCreator = {
     ),
 };
 export const examples: Example[] = [
+  ...examples5to6Codemod,
   {
     nameParts: ["multi-cursor-reduce-across"],
     describedGroups: [
