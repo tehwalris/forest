@@ -21,6 +21,7 @@
     "divetree-core": "link:../divetree/packages/divetree-core",
     "divetree-react": "link:../divetree/packages/divetree-react",
     "fs-remote": "^0.1.9",
+    "glob": "^8.0.3",
     "isomorphic-git": "^1.3.1",
     "prettier": "^2.3.2",
     "ramda": "^0.27.1",
