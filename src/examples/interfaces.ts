@@ -1,7 +1,7 @@
 import { DocManager } from "../logic/doc-manager";
 
 export interface Example {
-  name: string;
+  nameParts: string[];
   describedGroups: DescribedGroup[];
 }
 

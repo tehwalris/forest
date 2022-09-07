@@ -41,16 +41,19 @@ describe("DocManager", () => {
     skip: true,
   });
   const makeEditingTaskTest = (
-    taskName: string,
+    taskNameParts: string[],
     events: TestCase["events"],
   ): TestCase => {
     const loadText = (suffix: string) =>
       fs.readFileSync(
-        path.join(__dirname, `../../../tasks/editing/${taskName}.${suffix}.ts`),
+        path.join(
+          __dirname,
+          `../../../tasks/editing/${taskNameParts.join("/")}.${suffix}.ts`,
+        ),
         "utf8",
       );
     return {
-      label: `editing task: ${taskName}`,
+      label: `editing task: ${taskNameParts.join("/")}`,
       initialText: loadText("before"),
       events,
       expectedText: loadText("after"),
@@ -61,12 +64,12 @@ describe("DocManager", () => {
   ) => ({ ...makeEditingTaskTest(...args), skip: true });
   const testFromExample = (example: Example): TestCase => ({
     ...makeEditingTaskTest(
-      example.name,
+      example.nameParts,
       example.describedGroups
         .flatMap((g) => g.eventCreators)
         .flatMap((c) => eventsFromEventCreator(c)),
     ),
-    label: `example: ${example.name}`,
+    label: `example: ${example.nameParts.join("/")}`,
   });
   const cases: TestCase[] = [
     makeRoundTripTest('console.log("walrus")'),
@@ -552,45 +555,49 @@ describe("DocManager", () => {
       expectedText: "f(a.a.b.c)",
       skip: true,
     },
-    makeEditingTaskTest.skip("cpojer-js-codemod-rm-object-assign", [
-      ...eventsFromKeys("s ( alt-h y s"),
-      (docManager: DocManager) =>
-        docManager.search(
-          {
-            match: (node) =>
-              node.tsNode?.kind === ts.SyntaxKind.ObjectLiteralExpression,
-          },
-          { shallowSearchForRoot: true },
-        ),
-      ...eventsFromKeys("shift-y s k ctrl-shift-l"),
-      (docManager: DocManager) =>
-        docManager.search(
-          {
-            match: (node) => node.tsNode?.kind === ts.SyntaxKind.SpreadElement,
-          },
-          { shallowSearchForRoot: false },
-        ),
-      ...eventsFromKeys("shift-y f k a"),
-      ...eventsToTypeString(",{}"),
-      ...eventsFromKeys("escape k ctrl-shift-h s c ) alt-l { a"),
-      ...eventsToTypeString("...(x),"),
-      ...eventsFromKeys("escape ( p shift-s h } c ) k i"),
-      ...eventsToTypeString("(x)&&"),
-      ...eventsFromKeys("escape ( p ) k ctrl-shift-l d { s alt-l"),
-      (docManager: DocManager) =>
-        docManager.search(
-          {
-            match: (node) =>
-              node.tsNode?.kind === ts.SyntaxKind.ParenthesizedExpression &&
-              node.kind === NodeKind.List &&
-              node.content[0]?.tsNode?.kind ===
-                ts.SyntaxKind.ObjectLiteralExpression,
-          },
-          { shallowSearchForRoot: true },
-        ),
-      ...eventsFromKeys("shift-y f ( c ) p shift-s h"),
-      // TODO would need to save and restore cursors, because otherwise the object literals which did not contain a match for the last search can never be reached again
-    ]),
+    makeEditingTaskTest.skip(
+      ["cpojer-js-codemod-rm-object-assign"],
+      [
+        ...eventsFromKeys("s ( alt-h y s"),
+        (docManager: DocManager) =>
+          docManager.search(
+            {
+              match: (node) =>
+                node.tsNode?.kind === ts.SyntaxKind.ObjectLiteralExpression,
+            },
+            { shallowSearchForRoot: true },
+          ),
+        ...eventsFromKeys("shift-y s k ctrl-shift-l"),
+        (docManager: DocManager) =>
+          docManager.search(
+            {
+              match: (node) =>
+                node.tsNode?.kind === ts.SyntaxKind.SpreadElement,
+            },
+            { shallowSearchForRoot: false },
+          ),
+        ...eventsFromKeys("shift-y f k a"),
+        ...eventsToTypeString(",{}"),
+        ...eventsFromKeys("escape k ctrl-shift-h s c ) alt-l { a"),
+        ...eventsToTypeString("...(x),"),
+        ...eventsFromKeys("escape ( p shift-s h } c ) k i"),
+        ...eventsToTypeString("(x)&&"),
+        ...eventsFromKeys("escape ( p ) k ctrl-shift-l d { s alt-l"),
+        (docManager: DocManager) =>
+          docManager.search(
+            {
+              match: (node) =>
+                node.tsNode?.kind === ts.SyntaxKind.ParenthesizedExpression &&
+                node.kind === NodeKind.List &&
+                node.content[0]?.tsNode?.kind ===
+                  ts.SyntaxKind.ObjectLiteralExpression,
+            },
+            { shallowSearchForRoot: true },
+          ),
+        ...eventsFromKeys("shift-y f ( c ) p shift-s h"),
+        // TODO would need to save and restore cursors, because otherwise the object literals which did not contain a match for the last search can never be reached again
+      ],
+    ),
     ...examples.map((e) => testFromExample(e)),
   ];
   for (const c of cases) {

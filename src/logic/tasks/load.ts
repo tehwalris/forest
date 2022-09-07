@@ -11,7 +11,9 @@ import {
 } from "./util";
 export async function loadTasks(fsChoice: ChosenFs): Promise<Task[]> {
   const taskPaths: string[] = [];
-  const exampleNames = new Set(examples.map((e) => e.name));
+  const exampleNames = new Set(
+    examples.filter((e) => e.nameParts.length === 1).map((e) => e.nameParts[0]),
+  );
   for (const subdirName of ["creation", "editing"]) {
     const subdirPath = path.join(fsChoice.projectRootDir, "tasks", subdirName);
     for (const taskFilename of await promisify(fsChoice.fs.readdir)(

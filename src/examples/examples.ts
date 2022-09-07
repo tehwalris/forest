@@ -9,15 +9,12 @@ import {
   EventCreatorToTypeString,
   Example,
 } from "./interfaces";
-
 function fromKeys(keys: string): EventCreatorFromKeys {
   return { kind: EventCreatorKind.FromKeys, keys };
 }
-
 function toTypeString(string: string): EventCreatorToTypeString {
   return { kind: EventCreatorKind.ToTypeString, string };
 }
-
 const eventCreatorSearchForJestCalls: EventCreator = {
   kind: EventCreatorKind.Function,
   description:
@@ -55,10 +52,9 @@ const eventCreatorSearchForJestCalls: EventCreator = {
       { shallowSearchForRoot: false },
     ),
 };
-
 export const examples: Example[] = [
   {
-    name: "multi-cursor-reduce-across",
+    nameParts: ["multi-cursor-reduce-across"],
     describedGroups: [
       {
         description: "Split cursor (one per function)",
@@ -92,7 +88,7 @@ export const examples: Example[] = [
     ],
   },
   {
-    name: "multi-cursor-marks",
+    nameParts: ["multi-cursor-marks"],
     describedGroups: [
       {
         description: "Insert at start of function body",
@@ -150,7 +146,7 @@ export const examples: Example[] = [
     ],
   },
   {
-    name: "cpojer-js-codemod-unchain-variables",
+    nameParts: ["cpojer-js-codemod-unchain-variables"],
     describedGroups: [
       {
         description: "Deselect for loop. Split cursor (one per statement).",
@@ -194,7 +190,7 @@ export const examples: Example[] = [
     ],
   },
   {
-    name: "cpojer-js-codemod-jest-arrow-flat",
+    nameParts: ["cpojer-js-codemod-jest-arrow-flat"],
     describedGroups: [
       {
         description: "Search for function expressions",
@@ -230,7 +226,7 @@ export const examples: Example[] = [
     ],
   },
   {
-    name: "cpojer-js-codemod-jest-arrow-fail",
+    nameParts: ["cpojer-js-codemod-jest-arrow-fail"],
     describedGroups: [
       {
         description: "Search for ``it'' and ``describe'' calls",
@@ -253,7 +249,7 @@ export const examples: Example[] = [
     ],
   },
   {
-    name: "cpojer-js-codemod-jest-arrow",
+    nameParts: ["cpojer-js-codemod-jest-arrow"],
     describedGroups: [
       ...[1, 2, 3].flatMap((i): DescribedGroup[] => [
         {
@@ -284,7 +280,7 @@ export const examples: Example[] = [
     ],
   },
   {
-    name: "cpojer-js-codemod-rm-object-assign-basic",
+    nameParts: ["cpojer-js-codemod-rm-object-assign-basic"],
     describedGroups: [
       {
         description:
@@ -376,7 +372,7 @@ export const examples: Example[] = [
     ],
   },
   {
-    name: "wrap-handlers",
+    nameParts: ["wrap-handlers"],
     describedGroups: [
       {
         description:
