@@ -7,10 +7,8 @@ describe("describe", () => {
     xit("disabled one still count", () => {});
     xdescribe("disabled describe as well", () => {});
   });
-
   beforeEach(() => {});
   afterEach(() => {});
 });
-
 function containsit() {}
 containsit(function () {});

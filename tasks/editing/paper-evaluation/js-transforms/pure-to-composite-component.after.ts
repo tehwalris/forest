@@ -4,7 +4,6 @@ class HistoryItem extends Component {
     return <li>{item}</li>;
   }
 }
-
 class X extends Component {
   render() {
     return <div>foo</div>;

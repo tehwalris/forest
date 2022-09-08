@@ -3,7 +3,6 @@ const PureComponent = React.createClass({
     return <div>PureComponent Test</div>;
   },
 });
-
 const ImpureComponent = React.createClass({
   shouldComponentUpdate: function () {
     return true;
