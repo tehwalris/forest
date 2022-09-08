@@ -125,7 +125,7 @@
       - syntax: no support for imports
       - complicated: too complex
         - same basic task as ``webpack-babel-codemod/dynamic-require-import`, but way more complex and accurate
-    - `no strict` (yes)
+    - `no-strict` (yes)
       - note: just search for `ExpressionStatement` `"use strict"` and delete
     - `exports` (no)
       - complicated: too complex

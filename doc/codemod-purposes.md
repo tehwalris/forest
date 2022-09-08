@@ -118,7 +118,7 @@
     - compile AMD modules to ES6 modules
   - `cjs`
     - compile CommonJS modules to ES6 modules (imports only)
-  - `no strict`
+  - `no-strict`
     - delete a specific statement
   - `exports`
     - compile CommonJS modules to ES6 modules (exports only)
