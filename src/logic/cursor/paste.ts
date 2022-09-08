@@ -18,11 +18,7 @@ import {
   flipEvenPathRangeForward,
   uniqueByEvenPathRange,
 } from "../path-utils";
-import {
-  checkAllItemsAreEvenPathRange,
-  ListItemReplacement,
-  replaceMultiple,
-} from "../replace-multiple";
+import { ListItemReplacement, replaceMultiple } from "../replace-multiple";
 import { nodeGetByPath, resetIdsDeep } from "../tree-utils/access";
 import { checkAllItemsDefined } from "../util";
 import { Cursor } from "./interfaces";
@@ -135,6 +131,12 @@ function cursorPasteEquivalent({
 }: CursorPasteArgs): CursorPasteResult | undefined {
   const oldClipboard = oldCursor.clipboard;
   if (!oldClipboard) {
+    if (isFocusOnEmptyListContent(root, oldCursor.focus)) {
+      return {
+        replacement: { range: oldCursor.focus, content: [] },
+        cursor: adjustPostActionCursor(oldCursor, {}, undefined),
+      };
+    }
     return undefined;
   }
   const equivalentFocuses = getEquivalentFocuses(root, oldCursor.focus);
@@ -231,21 +233,24 @@ export function multiCursorPaste({
   if (
     replaceResult.ambiguousOverlap ||
     !replaceResult.replacementWasUsed.every((v) => v) ||
-    !checkAllItemsAreEvenPathRange(newContentRanges)
+    !checkAllItemsDefined(replaceResult.newContentRanges)
   ) {
-    console.warn(
-      "not pasting because some replacements overlap or have no content",
-    );
+    console.warn("not pasting because some replacements overlap");
     return failResult;
   }
   return {
     root: replaceResult.root,
-    cursors: oldCursors.map((c, i) =>
-      adjustPostActionCursor(
+    cursors: oldCursors.map((c, i) => {
+      const range = newContentRanges[i]!;
+      return adjustPostActionCursor(
         c,
-        { focus: newContentRanges[i].range },
+        {
+          focus: range.empty
+            ? { anchor: range.range.before, offset: 0 }
+            : range.range,
+        },
         undefined,
-      ),
-    ),
+      );
+    }),
   };
 }
