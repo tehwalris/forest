@@ -10,38 +10,49 @@ import {
   taskNameFromPath,
 } from "./util";
 export async function loadTasks(fsChoice: ChosenFs): Promise<Task[]> {
-  const taskPaths: string[] = [];
-  const exampleNames = new Set(
-    examples.filter((e) => e.nameParts.length === 1).map((e) => e.nameParts[0]),
-  );
-  for (const subdirName of ["creation", "editing"]) {
-    const subdirPath = path.join(fsChoice.projectRootDir, "tasks", subdirName);
-    for (const taskFilename of await promisify(fsChoice.fs.readdir)(
-      subdirPath,
-    )) {
-      if (
-        fsChoice.type === "demo" &&
-        !exampleNames.has(taskFilename.split(".")[0])
-      ) {
-        continue;
-      }
-      const taskPath = path.join(subdirPath, taskFilename);
-      if (!isExplicitBeforePath(taskPath)) {
-        taskPaths.push(taskPath);
+  const taskPaths = new Map<string, string>();
+  if (fsChoice.type !== "demo") {
+    for (const subdirName of ["creation", "editing"]) {
+      const subdirPath = path.join(
+        fsChoice.projectRootDir,
+        "tasks",
+        subdirName,
+      );
+      for (const taskFilename of await promisify(fsChoice.fs.readdir)(
+        subdirPath,
+      )) {
+        if (!taskFilename.endsWith(".ts")) {
+          continue;
+        }
+        const taskPath = path.join(subdirPath, taskFilename);
+        if (!isExplicitBeforePath(taskPath)) {
+          taskPaths.set(taskPath, taskNameFromPath(taskPath));
+        }
       }
     }
+  }
+  for (const example of examples) {
+    taskPaths.set(
+      path.join(
+        fsChoice.projectRootDir,
+        "tasks/editing",
+        ...example.nameParts.slice(0, -1),
+        example.nameParts[example.nameParts.length - 1] + ".after.ts",
+      ),
+      example.nameParts.join("/"),
+    );
   }
   const loadText = (path: string): Promise<string> =>
     promisify(fsChoice.fs.readFile)(path, { encoding: "utf8" });
   return await Promise.all(
-    taskPaths.map(async (afterPath) => {
+    [...taskPaths].map(async ([afterPath, name]) => {
       const contentAfter = await loadText(afterPath);
       let contentBefore = "";
       if (isExplicitAfterPath(afterPath)) {
         contentBefore = await loadText(beforePathFromAfterPath(afterPath));
       }
       return {
-        name: taskNameFromPath(afterPath),
+        name,
         afterPath,
         contentBefore,
         contentAfter,
