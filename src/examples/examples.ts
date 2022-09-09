@@ -9,6 +9,7 @@ import {
 } from "./interfaces";
 import { fromKeys, toTypeString } from "./keys";
 import { examples5to6Codemod } from "./paper-evaluation/5to6-codemod";
+import { examplesJsCodemod } from "./paper-evaluation/js-codemod";
 const eventCreatorSearchForJestCalls: EventCreator = {
   kind: EventCreatorKind.Function,
   description:
@@ -48,6 +49,7 @@ const eventCreatorSearchForJestCalls: EventCreator = {
 };
 export const examples: Example[] = [
   ...examples5to6Codemod,
+  ...examplesJsCodemod,
   {
     nameParts: ["multi-cursor-reduce-across"],
     describedGroups: [
