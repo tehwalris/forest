@@ -129,6 +129,7 @@ function makeCanPasteFlattenedFromCanPasteNested(
         firstIndex: 0,
         lastIndex: 0,
         isPartialCopy: false,
+        parent: args.parent,
       });
     });
   };
