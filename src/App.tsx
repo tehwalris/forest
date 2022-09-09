@@ -6,6 +6,8 @@ import { promisify } from "util";
 import { FileSearch } from "./components/file-search";
 import { LinearEditor } from "./components/linear-editor";
 import { RepoSwitcher } from "./components/repo-switcher";
+import { eventsFromEventCreator } from "./examples/keys";
+import { DocManager } from "./logic/doc-manager";
 import { Doc } from "./logic/interfaces";
 import { docFromAst } from "./logic/node-from-ts";
 import { astFromTypescriptFileContent } from "./logic/parse";
@@ -81,6 +83,7 @@ export const App = () => {
   const [initialDocInfo, setInitialDocInfo] = useState<{
     path?: string;
     text: string;
+    initDocManager?: (docManager: DocManager) => void;
   }>({ text: exampleFileText });
   const initialDoc = useMemo(
     () =>
@@ -98,7 +101,26 @@ export const App = () => {
   );
   useEffect(() => {
     if (selectedTask) {
-      setInitialDocInfo({ text: selectedTask.contentBefore });
+      setInitialDocInfo({
+        text: selectedTask.contentBefore,
+        initDocManager:
+          selectedTask.example &&
+          ((docManager) => {
+            const events = selectedTask
+              .example!.describedGroups.flatMap((g) => g.eventCreators)
+              .flatMap((c) => eventsFromEventCreator(c));
+
+            docManager.forceUpdate();
+            for (const eventOrFunction of events) {
+              if (typeof eventOrFunction === "function") {
+                eventOrFunction(docManager);
+              } else {
+                const { handler, event } = eventOrFunction;
+                docManager[handler](event);
+              }
+            }
+          }),
+      });
     } else {
       setInitialDocInfo({ text: exampleFileText });
     }
@@ -124,6 +146,7 @@ export const App = () => {
   const editor = (
     <LinearEditor
       initialDoc={initialDoc}
+      initDocManager={initialDocInfo.initDocManager}
       onSave={(doc: Doc) =>
         (async () => {
           if (!initialDocInfo.path) {

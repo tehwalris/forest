@@ -2,16 +2,17 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import { useAutofocus } from "../hooks/use-autofocus";
 import { useDocManager } from "../hooks/use-doc-manager";
-import { hasCtrlLike, Mode } from "../logic/doc-manager";
+import { DocManager, hasCtrlLike, Mode } from "../logic/doc-manager";
 import { Doc } from "../logic/interfaces";
 import { DocUi } from "./doc-ui";
 import { QueryEditor } from "./query-editor";
 import { Stage, State as QueryState } from "./query-editor/interfaces";
 interface Props {
   initialDoc: Doc;
+  initDocManager?: (docManager: DocManager) => void;
   onSave: (doc: Doc) => void;
 }
-export const LinearEditor = ({ initialDoc, onSave }: Props) => {
+export const LinearEditor = ({ initialDoc, onSave, initDocManager }: Props) => {
   const [codeDivRef, focusCodeDiv] = useAutofocus<HTMLDivElement>();
   useEffect(() => {
     focusCodeDiv();
@@ -19,7 +20,7 @@ export const LinearEditor = ({ initialDoc, onSave }: Props) => {
   const [docManager, docManagerState] = useDocManager(
     initialDoc,
     false,
-    undefined,
+    initDocManager,
   );
   const { doc, mode } = docManagerState;
   const [queryState, setQueryState] = useState<QueryState>();
