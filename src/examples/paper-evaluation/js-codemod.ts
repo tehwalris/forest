@@ -365,7 +365,7 @@ export const examplesJsCodemod: Example[] = [
           {
             kind: EventCreatorKind.Function,
             description:
-              "Use structural search UI (not shown) to search for for jest.disableAutomock() or jest.autoMockOff() used as a whole statement",
+              "Use structural search UI (not shown) to search for jest.disableAutomock() or jest.autoMockOff() used as a whole statement",
             function: (docManager: DocManager) =>
               docManager.search(
                 {
@@ -407,7 +407,7 @@ export const examplesJsCodemod: Example[] = [
           {
             kind: EventCreatorKind.Function,
             description:
-              "Use structural search UI (not shown) to search for for disableAutomock",
+              "Use structural search UI (not shown) to search for disableAutomock",
             function: (docManager: DocManager) =>
               docManager.search(
                 {
@@ -424,6 +424,188 @@ export const examplesJsCodemod: Example[] = [
       {
         description: "Delete the call while keeping chained calls",
         eventCreators: [fromKeys("shift-l d")],
+      },
+    ],
+  },
+  {
+    nameParts: ["paper-evaluation", "js-codemod", "rm-merge"],
+    describedGroups: [
+      {
+        description: "Search for calls to merge",
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for calls to merge",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) => {
+                    const isIdentifier = (node: Node, text: string) =>
+                      !!node.tsNode &&
+                      ts.isIdentifier(node.tsNode) &&
+                      node.tsNode.text === text;
+                    const isCall = (node: Node) =>
+                      node.kind === NodeKind.List &&
+                      node.listKind === ListKind.CallArguments;
+                    return (
+                      node.kind === NodeKind.List &&
+                      node.listKind === ListKind.TightExpression &&
+                      node.content.length === 2 &&
+                      isIdentifier(node.content[0], "merge") &&
+                      isCall(node.content[1])
+                    );
+                  },
+                },
+                { shallowSearchForRoot: false },
+              ),
+          },
+        ],
+      },
+      {
+        description: "Create an empty parenthesized object literal",
+        eventCreators: [
+          fromKeys("( i"),
+          toTypeString("({}),"),
+          fromKeys("escape"),
+        ],
+      },
+      {
+        description: "Select the original arguments of merge",
+        eventCreators: [fromKeys(") ( ctrl-shift-l")],
+      },
+      {
+        description: "Split cursor and copy",
+        eventCreators: [fromKeys("s c")],
+      },
+      {
+        description: "Insert SpreadAssignments for each cursor",
+        eventCreators: [
+          fromKeys("k alt-h { i"),
+          toTypeString("...x,"),
+          fromKeys("escape"),
+        ],
+      },
+      {
+        description: "Paste the copied expression",
+        eventCreators: [fromKeys("alt-l p")],
+      },
+      {
+        description: "Keep cursors which point at object literals",
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for object literals",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) =>
+                    !!node.tsNode && ts.isObjectLiteralExpression(node.tsNode),
+                },
+                { shallowSearchForRoot: true },
+              ),
+          },
+        ],
+      },
+      {
+        description:
+          "Replace the spread by the properties of the object literal",
+        eventCreators: [fromKeys("{ c } k p")],
+      },
+      {
+        description: "Reduce to first cursor and select whole file",
+        eventCreators: [fromKeys("shift-s h shift-s h ) ) k k")],
+      },
+      {
+        description: "Search for calls to merge",
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for calls to merge",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) => {
+                    const isIdentifier = (node: Node, text: string) =>
+                      !!node.tsNode &&
+                      ts.isIdentifier(node.tsNode) &&
+                      node.tsNode.text === text;
+                    const isCall = (node: Node) =>
+                      node.kind === NodeKind.List &&
+                      node.listKind === ListKind.CallArguments;
+                    return (
+                      node.kind === NodeKind.List &&
+                      node.listKind === ListKind.TightExpression &&
+                      node.content.length === 2 &&
+                      isIdentifier(node.content[0], "merge") &&
+                      isCall(node.content[1])
+                    );
+                  },
+                },
+                { shallowSearchForRoot: false },
+              ),
+          },
+        ],
+      },
+      {
+        description: "Replace the call by the newly created first argument",
+        eventCreators: [fromKeys("( alt-h c ) k p")],
+      },
+      {
+        description: "Reduce to first cursor",
+        eventCreators: [fromKeys("shift-s l")],
+        bugNote:
+          "Reduce to first cursor gives the wrong cursor. Using reduce to last cursor to work around that.",
+      },
+      {
+        description: "Remove parentheses",
+        eventCreators: [fromKeys("( c ) p")],
+      },
+      {
+        description: "Select whole file",
+        eventCreators: [fromKeys("k k k")],
+      },
+      {
+        description: 'Search for require("merge")',
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              'Use structural search UI (not shown) to search for require("merge")',
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) => {
+                    const isIdentifier = (node: Node, text: string) =>
+                      !!node.tsNode &&
+                      ts.isIdentifier(node.tsNode) &&
+                      node.tsNode.text === text;
+                    const isCallWithString = (node: Node, text: string) =>
+                      node.kind === NodeKind.List &&
+                      node.listKind === ListKind.CallArguments &&
+                      node.content.length === 1 &&
+                      !!node.content[0].tsNode &&
+                      ts.isStringLiteral(node.content[0].tsNode) &&
+                      node.content[0].tsNode.text === text;
+                    return (
+                      node.kind === NodeKind.List &&
+                      node.listKind === ListKind.TightExpression &&
+                      node.content.length === 2 &&
+                      isIdentifier(node.content[0], "require") &&
+                      isCallWithString(node.content[1], "merge")
+                    );
+                  },
+                },
+                { shallowSearchForRoot: false },
+              ),
+          },
+        ],
+      },
+      {
+        description: "Delete whole statement",
+        eventCreators: [fromKeys("k k d")],
       },
     ],
   },

@@ -9,6 +9,7 @@ export interface DescribedGroup {
   description: string;
   label?: string;
   hide?: boolean;
+  bugNote?: string;
   eventCreators: EventCreator[];
 }
 
