@@ -205,4 +205,139 @@ export const examplesPreactCodemod: Example[] = [
       },
     ],
   },
+  {
+    nameParts: [
+      "paper-evaluation",
+      "preact-codemod",
+      "removePropTypes.workaround",
+    ],
+    describedGroups: [
+      {
+        description: "Search for fake import statements",
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for fake import statements",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) => {
+                    const isIdentifier = (node: Node, text: string) =>
+                      !!node.tsNode &&
+                      ts.isIdentifier(node.tsNode) &&
+                      node.tsNode.text === text;
+                    const isCall = (node: Node) =>
+                      node.kind === NodeKind.List &&
+                      node.listKind === ListKind.CallArguments;
+                    return (
+                      node.kind === NodeKind.List &&
+                      node.listKind === ListKind.TightExpression &&
+                      node.content.length === 2 &&
+                      isIdentifier(node.content[0], "fakeImport") &&
+                      isCall(node.content[1])
+                    );
+                  },
+                },
+                { shallowSearchForRoot: false },
+              ),
+          },
+        ],
+      },
+      {
+        description: "Search for fake import specifiers named PropTypes",
+        eventCreators: [
+          fromKeys("["),
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for fake import specifiers named PropTypes",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) =>
+                    !!node.tsNode &&
+                    ts.isIdentifier(node.tsNode) &&
+                    node.tsNode.text === "PropTypes",
+                },
+                { shallowSearchForRoot: false },
+              ),
+          },
+        ],
+      },
+      {
+        description: "Delete selected import specifiers",
+        eventCreators: [fromKeys("d")],
+      },
+      {
+        description: "Delete overlapping cursors",
+        eventCreators: [fromKeys("shift-s f")],
+      },
+      {
+        description:
+          "Keep cursors pointing at an empty list of fake import specifiers",
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for an empty list of fake import specifiers",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) =>
+                    !!node.tsNode &&
+                    ts.isArrayLiteralExpression(node.tsNode) &&
+                    node.tsNode.elements.length === 0,
+                },
+                { shallowSearchForRoot: true },
+              ),
+          },
+        ],
+      },
+      {
+        description: "Delete fake import statement",
+        eventCreators: [fromKeys(") k d")],
+      },
+      {
+        description: "Select whole document and remove duplicate cursors",
+        eventCreators: [fromKeys("k k shift-s f")],
+      },
+      {
+        description: "Search for assignments to PropTypes",
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for assignments to PropTypes",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) => {
+                    const isPropTypesAccess = (node: Node) =>
+                      node.kind === NodeKind.List &&
+                      node.listKind === ListKind.TightExpression &&
+                      node.content.length === 2 &&
+                      !!node.content[1].tsNode &&
+                      ts.isIdentifier(node.content[1].tsNode) &&
+                      node.content[1].tsNode.text === "propTypes";
+                    return (
+                      node.kind === NodeKind.List &&
+                      node.listKind === ListKind.LooseExpression &&
+                      node.content.length === 3 &&
+                      isPropTypesAccess(node.content[0]) &&
+                      node.content[1].tsNode?.kind === ts.SyntaxKind.EqualsToken
+                    );
+                  },
+                },
+                { shallowSearchForRoot: false },
+              ),
+          },
+        ],
+      },
+      {
+        description: "Delete assignment",
+        eventCreators: [fromKeys("d")],
+      },
+    ],
+  },
 ];
