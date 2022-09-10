@@ -340,4 +340,149 @@ export const examplesPreactCodemod: Example[] = [
       },
     ],
   },
+  {
+    nameParts: ["paper-evaluation", "preact-codemod", "state.workaround"],
+    describedGroups: [
+      {
+        description: "Use multi-cursor strict mode",
+        eventCreators: [fromKeys("y d")],
+      },
+      {
+        description: "Search for functions",
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for functions",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) =>
+                    !!node.tsNode && ts.isFunctionExpression(node.tsNode),
+                },
+                { shallowSearchForRoot: false },
+              ),
+          },
+        ],
+      },
+      {
+        description: "Set a mark",
+        eventCreators: [fromKeys("m a")],
+      },
+      {
+        description: 'Search for the identifier "state"',
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              'Use structural search UI (not shown) to search for the identifier "state"',
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) =>
+                    !!node.tsNode &&
+                    ts.isIdentifier(node.tsNode) &&
+                    node.tsNode.text === "state",
+                },
+                { shallowSearchForRoot: false },
+              ),
+          },
+        ],
+      },
+      {
+        description: 'Keep cursors with "this" to the left of "state"',
+        eventCreators: [
+          fromKeys("shift-h space"),
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for ThisExpression",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) =>
+                    node.tsNode?.kind === ts.SyntaxKind.ThisKeyword,
+                },
+                { shallowSearchForRoot: true },
+              ),
+          },
+        ],
+      },
+      {
+        description: 'Delete "this"',
+        eventCreators: [fromKeys("d")],
+      },
+      {
+        description: "Select arguments of containing function",
+        eventCreators: [fromKeys("} k ( )")],
+      },
+      {
+        description: "Use multi-cursor strict mode",
+        eventCreators: [fromKeys("shift-y i y s")],
+      },
+      {
+        description: "Delete cursors with two arguments",
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for argument lists with two arguments",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) =>
+                    node.kind === NodeKind.List &&
+                    node.listKind === ListKind.UnknownTsNodeArray &&
+                    node.content.length === 2,
+                },
+                { shallowSearchForRoot: true },
+              ),
+          },
+          fromKeys("shift-y f"),
+        ],
+      },
+      {
+        description: "Add a state argument",
+        eventCreators: [
+          fromKeys("( i"),
+          toTypeString("x,"),
+          fromKeys("escape"),
+          fromKeys(") ( a"),
+          toTypeString(",state"),
+          fromKeys("escape"),
+          fromKeys(") ( alt-h d"),
+        ],
+      },
+      {
+        description: "Delete cursors with two arguments",
+        eventCreators: [
+          fromKeys(")"),
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for argument lists with two arguments",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) =>
+                    node.kind === NodeKind.List &&
+                    node.listKind === ListKind.UnknownTsNodeArray &&
+                    node.content.length === 2,
+                },
+                { shallowSearchForRoot: true },
+              ),
+          },
+          fromKeys("shift-y f"),
+        ],
+      },
+      {
+        description: "Add a props argument",
+        eventCreators: [
+          fromKeys("( i"),
+          toTypeString("props,"),
+          fromKeys("escape"),
+        ],
+      },
+    ],
+  },
 ];
