@@ -351,4 +351,80 @@ export const examplesJsCodemod: Example[] = [
       },
     ],
   },
+  {
+    nameParts: [
+      "paper-evaluation",
+      "js-codemod",
+      "jest-remove-disable-automock",
+    ],
+    describedGroups: [
+      {
+        description:
+          "Search for jest.disableAutomock() or jest.autoMockOff() used as a whole statement",
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for for jest.disableAutomock() or jest.autoMockOff() used as a whole statement",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) => {
+                    const isIdentifier = (node: Node, text: string) =>
+                      !!node.tsNode &&
+                      ts.isIdentifier(node.tsNode) &&
+                      node.tsNode.text === text;
+                    const isCall = (node: Node) =>
+                      node.kind === NodeKind.List &&
+                      node.listKind === ListKind.CallArguments;
+                    return (
+                      node.kind === NodeKind.List &&
+                      node.listKind === ListKind.TightExpression &&
+                      node.content.length === 3 &&
+                      isIdentifier(node.content[0], "jest") &&
+                      (isIdentifier(node.content[1], "disableAutomock") ||
+                        isIdentifier(node.content[1], "autoMockOff")) &&
+                      isCall(node.content[2])
+                    );
+                  },
+                },
+                { shallowSearchForRoot: false },
+              ),
+          },
+        ],
+      },
+      {
+        description: "Delete statement",
+        eventCreators: [fromKeys("d")],
+      },
+      {
+        description: "Reduce to first cursor and select whole file",
+        eventCreators: [fromKeys("shift-s h k")],
+      },
+      {
+        description: "Search for other uses of disableAutomock",
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for for disableAutomock",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) =>
+                    !!node.tsNode &&
+                    ts.isIdentifier(node.tsNode) &&
+                    node.tsNode.text === "disableAutomock",
+                },
+                { shallowSearchForRoot: false },
+              ),
+          },
+        ],
+      },
+      {
+        description: "Delete the call while keeping chained calls",
+        eventCreators: [fromKeys("shift-l d")],
+      },
+    ],
+  },
 ];
