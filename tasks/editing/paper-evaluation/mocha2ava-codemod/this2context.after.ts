@@ -2,7 +2,7 @@
 const foo = require("bar");
 before(function () {
   foo("before each");
-  this.bar = foo;
+  t.context.bar = foo;
 });
 it("bare it", () => {
   foo();
@@ -10,7 +10,7 @@ it("bare it", () => {
 describe("root", function () {
   beforeEach(function () {
     foo("before each");
-    this.bar = foo;
+    t.context.bar = foo;
   });
   describe("describe under root", function () {
     it("it under an describe", function () {
@@ -21,8 +21,8 @@ describe("root", function () {
     foo("it under root");
   });
   it("it with context", function () {
-    this.foo = foo;
-    this.foo(this.bar);
+    t.context.foo = foo;
+    t.context.foo(t.context.bar);
   });
   it("it with generator", function* () {
     yield foo("it with generator");
