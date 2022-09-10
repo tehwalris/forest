@@ -2,7 +2,7 @@ import ts from "typescript";
 import { DocManager } from "../../logic/doc-manager";
 import { ListKind, Node, NodeKind } from "../../logic/interfaces";
 import { EventCreatorKind, Example } from "../interfaces";
-import { fromKeys } from "../keys";
+import { fromKeys, toTypeString } from "../keys";
 
 export const examplesPreactCodemod: Example[] = [
   {
@@ -96,6 +96,112 @@ export const examplesPreactCodemod: Example[] = [
       {
         description: "Select the React.createClass call and paste over it",
         eventCreators: [fromKeys("shift-m a p")],
+      },
+    ],
+  },
+  {
+    nameParts: ["paper-evaluation", "preact-codemod", "props.workaround"],
+    describedGroups: [
+      {
+        description: "Use multi-cursor drop mode",
+        eventCreators: [fromKeys("y d")],
+      },
+      {
+        description: "Search for functions",
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for functions",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) =>
+                    !!node.tsNode && ts.isFunctionExpression(node.tsNode),
+                },
+                { shallowSearchForRoot: false },
+              ),
+          },
+        ],
+      },
+      {
+        description: "Set a mark",
+        eventCreators: [fromKeys("m a")],
+      },
+      {
+        description: 'Search for the identifier "props"',
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              'Use structural search UI (not shown) to search for the identifier "props"',
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) =>
+                    !!node.tsNode &&
+                    ts.isIdentifier(node.tsNode) &&
+                    node.tsNode.text === "props",
+                },
+                { shallowSearchForRoot: false },
+              ),
+          },
+        ],
+      },
+      {
+        description: 'Keep cursors with "this" to the left of "props"',
+        eventCreators: [
+          fromKeys("shift-h space"),
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for ThisExpression",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) =>
+                    node.tsNode?.kind === ts.SyntaxKind.ThisKeyword,
+                },
+                { shallowSearchForRoot: true },
+              ),
+          },
+        ],
+      },
+      {
+        description: 'Delete "this"',
+        eventCreators: [fromKeys("d")],
+      },
+      {
+        description: "Select arguments of containing function",
+        eventCreators: [fromKeys("} k ( )")],
+      },
+      {
+        description: "Keep cursors where argument list is empty",
+        eventCreators: [
+          {
+            kind: EventCreatorKind.Function,
+            description:
+              "Use structural search UI (not shown) to search for empty argument lists",
+            function: (docManager: DocManager) =>
+              docManager.search(
+                {
+                  match: (node) =>
+                    node.kind === NodeKind.List &&
+                    node.listKind === ListKind.UnknownTsNodeArray &&
+                    node.content.length === 0,
+                },
+                { shallowSearchForRoot: true },
+              ),
+          },
+        ],
+      },
+      {
+        description: "Add a props argument",
+        eventCreators: [
+          fromKeys("( i"),
+          toTypeString("props"),
+          fromKeys("escape"),
+        ],
       },
     ],
   },
