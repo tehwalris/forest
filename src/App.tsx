@@ -110,14 +110,18 @@ export const App = () => {
               .example!.describedGroups.flatMap((g) => g.eventCreators)
               .flatMap((c) => eventsFromEventCreator(c));
 
-            docManager.forceUpdate();
-            for (const eventOrFunction of events) {
-              if (typeof eventOrFunction === "function") {
-                eventOrFunction(docManager);
-              } else {
-                const { handler, event } = eventOrFunction;
-                docManager[handler](event);
+            try {
+              docManager.forceUpdate();
+              for (const eventOrFunction of events) {
+                if (typeof eventOrFunction === "function") {
+                  eventOrFunction(docManager);
+                } else {
+                  const { handler, event } = eventOrFunction;
+                  docManager[handler](event);
+                }
               }
+            } catch (err) {
+              console.warn("failed to run example", err);
             }
           }),
       });

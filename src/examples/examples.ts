@@ -143,50 +143,6 @@ export const examples: Example[] = [
     ],
   },
   {
-    nameParts: ["cpojer-js-codemod-unchain-variables"],
-    describedGroups: [
-      {
-        description: "Deselect for loop. Split cursor (one per statement).",
-        eventCreators: [fromKeys("ctrl-shift-h s")],
-      },
-      {
-        description:
-          "Deselect keyword. Split cursor (one per declaration). Mark and copy declaration.",
-        eventCreators: [fromKeys("ctrl-shift-l s m a c")],
-      },
-      {
-        description: "Move up to statement (cursors overlap)",
-        label: "statement-overlap",
-        eventCreators: [fromKeys("k")],
-      },
-      {
-        description:
-          "Insert new statements (multiple copies inserted due to overlapping cursors)",
-        label: "insert",
-        eventCreators: [
-          fromKeys("i"),
-          toTypeString("var x;"),
-          fromKeys("escape"),
-        ],
-      },
-      {
-        description:
-          "Paste declaration into new statement and mark the paste location",
-        eventCreators: [fromKeys("alt-l p m b")],
-      },
-      {
-        description: "Go to old keyword, copy it, and jump back, and paste it.",
-        label: "keyword-overlap",
-        eventCreators: [fromKeys("shift-m a k alt-h c shift-m b h p")],
-      },
-      {
-        description:
-          "Delete all cursors except the first (per old statement). Delete the old statement.",
-        eventCreators: [fromKeys("shift-s h shift-m a k d")],
-      },
-    ],
-  },
-  {
     nameParts: ["cpojer-js-codemod-jest-arrow-flat"],
     describedGroups: [
       {
