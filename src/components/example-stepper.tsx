@@ -171,6 +171,7 @@ export const ExampleStepper = ({
               onClick={() => {
                 setIsPlaying(true);
               }}
+              disabled={currentStep + 1 >= statesByStep.length}
             >
               Play
             </Button>
@@ -194,6 +195,7 @@ export const ExampleStepper = ({
             setCurrentStep(Math.max(0, currentStep - 1));
             setIsPlaying(false);
           }}
+          disabled={currentStep <= 0}
         >
           <IconPlayerTrackPrev />
         </ActionIcon>
@@ -205,6 +207,7 @@ export const ExampleStepper = ({
             setCurrentStep(Math.min(statesByStep.length - 1, currentStep + 1));
             setIsPlaying(false);
           }}
+          disabled={currentStep + 1 >= statesByStep.length}
         >
           <IconPlayerTrackNext />
         </ActionIcon>
