@@ -1,12 +1,7 @@
 import ts from "typescript";
 import { DocManager } from "../logic/doc-manager";
 import { ListKind, NodeKind } from "../logic/interfaces";
-import {
-  DescribedGroup,
-  EventCreator,
-  EventCreatorKind,
-  Example,
-} from "./interfaces";
+import { EventCreator, EventCreatorKind, Example } from "./interfaces";
 import { fromKeys, toTypeString } from "./keys";
 import { examples5to6Codemod } from "./paper-evaluation/5to6-codemod";
 import { examplesJsCodemod } from "./paper-evaluation/js-codemod";
@@ -55,7 +50,7 @@ export const examples: Example[] = [
   ...examplesMocha2AvaCodemod,
   ...examplesPreactCodemod,
   {
-    nameParts: ["multi-cursor-reduce-across"],
+    nameParts: ["paper-examples", "multi-cursor-reduce-across"],
     describedGroups: [
       {
         description: "Split cursor (one per function)",
@@ -89,101 +84,7 @@ export const examples: Example[] = [
     ],
   },
   {
-    nameParts: ["multi-cursor-marks"],
-    describedGroups: [
-      {
-        description: "Insert at start of function body",
-        eventCreators: [
-          fromKeys("{ i"),
-          toTypeString("if(debug){console.log({})}"),
-          fromKeys("escape"),
-        ],
-      },
-      {
-        description: "Select and mark empty object literal",
-        eventCreators: [fromKeys("{ { } m a")],
-      },
-      {
-        description: "Append function parameter",
-        eventCreators: [
-          fromKeys("} } shift-h space j a"),
-          toTypeString(",debug:boolean=false"),
-          fromKeys("escape"),
-        ],
-      },
-      {
-        description: "Select parameters except debug and split cursor",
-        eventCreators: [fromKeys("k ctrl-shift-h s")],
-      },
-      {
-        description: "Mark parameter and copy parameter name",
-        eventCreators: [fromKeys("m b alt-h c")],
-      },
-      {
-        description: "Insert inside marked empty object literal",
-        eventCreators: [
-          fromKeys("shift-m a j a"),
-          toTypeString("x: {current: x, default: x},"),
-          fromKeys("escape"),
-        ],
-      },
-      {
-        description: 'Paste name over first two "x"s',
-        eventCreators: [fromKeys("alt-h p l l p")],
-      },
-      {
-        description: 'Move to last "x" and mark it',
-        eventCreators: [fromKeys("l l m c")],
-      },
-      {
-        description:
-          "Jump to marked parameter declaration and copy initializer",
-        eventCreators: [fromKeys("shift-m b alt-l c")],
-      },
-      {
-        description: 'Jump to last "x" and paste initializer',
-        eventCreators: [fromKeys("shift-m c p")],
-      },
-    ],
-  },
-  {
-    nameParts: ["cpojer-js-codemod-jest-arrow-flat"],
-    describedGroups: [
-      {
-        description: "Search for function expressions",
-        eventCreators: [
-          {
-            kind: EventCreatorKind.Function,
-            description:
-              "Use structural search UI (not shown) to search for function expressions (with any content)",
-            function: (docManager: DocManager) =>
-              docManager.search(
-                {
-                  match: (node) =>
-                    node.tsNode?.kind === ts.SyntaxKind.FunctionExpression,
-                },
-                { shallowSearchForRoot: false },
-              ),
-          },
-        ],
-      },
-      { description: "Copy function body", eventCreators: [fromKeys("{ } c")] },
-      {
-        description: "Create arrow function and paste body",
-        eventCreators: [
-          fromKeys("k i"),
-          toTypeString("()=>{},"),
-          fromKeys("escape { } p"),
-        ],
-      },
-      {
-        description: "Delete function expression",
-        eventCreators: [fromKeys("shift-l space d")],
-      },
-    ],
-  },
-  {
-    nameParts: ["cpojer-js-codemod-jest-arrow-fail"],
+    nameParts: ["paper-examples", "cpojer-js-codemod-jest-arrow-fail"],
     describedGroups: [
       {
         description: "Search for ``it'' and ``describe'' calls",
@@ -206,38 +107,7 @@ export const examples: Example[] = [
     ],
   },
   {
-    nameParts: ["cpojer-js-codemod-jest-arrow"],
-    describedGroups: [
-      ...[1, 2, 3].flatMap((i): DescribedGroup[] => [
-        {
-          description: `Pass ${i}: Search for ${"``it`` and ``describe''"} calls. Delete all cursors except innermost.`,
-          eventCreators: [
-            eventCreatorSearchForJestCalls,
-            fromKeys("shift-s j"),
-          ],
-        },
-        {
-          description: `Pass ${i}: Copy function body. Create arrow function. Paste body. Delete function expression.`,
-          eventCreators: [
-            fromKeys("{ } c k i"),
-            toTypeString("()=>{},"),
-            fromKeys("escape { } p shift-l space d"),
-          ],
-        },
-        ...(i === 3
-          ? []
-          : [
-              {
-                description:
-                  "Select whole document and remove duplicate cursors.",
-                eventCreators: [fromKeys(") ) ) k k shift-s f")],
-              },
-            ]),
-      ]),
-    ],
-  },
-  {
-    nameParts: ["cpojer-js-codemod-rm-object-assign-basic"],
+    nameParts: ["paper-examples", "cpojer-js-codemod-rm-object-assign-basic"],
     describedGroups: [
       {
         description:
@@ -329,7 +199,7 @@ export const examples: Example[] = [
     ],
   },
   {
-    nameParts: ["wrap-handlers"],
+    nameParts: ["paper-examples", "wrap-handlers"],
     describedGroups: [
       {
         description:

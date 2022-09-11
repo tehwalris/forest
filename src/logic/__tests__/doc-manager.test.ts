@@ -1,7 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
 import { repeat } from "ramda";
-import ts from "typescript";
 import { examples } from "../../examples/examples";
 import { Example } from "../../examples/interfaces";
 import {
@@ -11,7 +10,7 @@ import {
   EventWithHandler,
 } from "../../examples/keys";
 import { DocManager, initialDocManagerPublicState, Mode } from "../doc-manager";
-import { Doc, NodeKind } from "../interfaces";
+import { Doc } from "../interfaces";
 import { docFromAst } from "../node-from-ts";
 import { astFromTypescriptFileContent } from "../parse";
 import { defaultPrettierOptions, prettyPrintTsString } from "../print";
@@ -48,7 +47,7 @@ describe("DocManager", () => {
       fs.readFileSync(
         path.join(
           __dirname,
-          `../../../tasks/editing/${taskNameParts.join("/")}.${suffix}.ts`,
+          `../../../tasks/${taskNameParts.join("/")}.${suffix}.ts`,
         ),
         "utf8",
       );
@@ -555,49 +554,6 @@ describe("DocManager", () => {
       expectedText: "f(a.a.b.c)",
       skip: true,
     },
-    makeEditingTaskTest.skip(
-      ["cpojer-js-codemod-rm-object-assign"],
-      [
-        ...eventsFromKeys("s ( alt-h y s"),
-        (docManager: DocManager) =>
-          docManager.search(
-            {
-              match: (node) =>
-                node.tsNode?.kind === ts.SyntaxKind.ObjectLiteralExpression,
-            },
-            { shallowSearchForRoot: true },
-          ),
-        ...eventsFromKeys("shift-y s k ctrl-shift-l"),
-        (docManager: DocManager) =>
-          docManager.search(
-            {
-              match: (node) =>
-                node.tsNode?.kind === ts.SyntaxKind.SpreadElement,
-            },
-            { shallowSearchForRoot: false },
-          ),
-        ...eventsFromKeys("shift-y f k a"),
-        ...eventsToTypeString(",{}"),
-        ...eventsFromKeys("escape k ctrl-shift-h s c ) alt-l { a"),
-        ...eventsToTypeString("...(x),"),
-        ...eventsFromKeys("escape ( p shift-s h } c ) k i"),
-        ...eventsToTypeString("(x)&&"),
-        ...eventsFromKeys("escape ( p ) k ctrl-shift-l d { s alt-l"),
-        (docManager: DocManager) =>
-          docManager.search(
-            {
-              match: (node) =>
-                node.tsNode?.kind === ts.SyntaxKind.ParenthesizedExpression &&
-                node.kind === NodeKind.List &&
-                node.content[0]?.tsNode?.kind ===
-                  ts.SyntaxKind.ObjectLiteralExpression,
-            },
-            { shallowSearchForRoot: true },
-          ),
-        ...eventsFromKeys("shift-y f ( c ) p shift-s h"),
-        // TODO would need to save and restore cursors, because otherwise the object literals which did not contain a match for the last search can never be reached again
-      ],
-    ),
     ...examples.map((e) => testFromExample(e)),
   ];
   for (const c of cases) {
