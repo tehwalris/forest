@@ -157,7 +157,7 @@ export const App = () => {
       <Grid style={{ height: "100%", overflow: "hidden" }}>
         <Grid.Col span={6}>
           {selectedTask ? (
-            <DocUi state={stepperDocManagerState} />
+            <DocUi state={stepperDocManagerState} alwaysStyleLikeFocused />
           ) : (
             <LinearEditor
               initialDoc={initialDoc}

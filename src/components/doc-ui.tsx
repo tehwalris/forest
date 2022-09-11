@@ -23,6 +23,7 @@ interface Props {
   codeDivRef?: React.RefObject<HTMLDivElement>;
   onKeyDown?: KeyboardEventHandler;
   onKeyUp?: KeyboardEventHandler;
+  alwaysStyleLikeFocused?: boolean;
 }
 const defaultKeyboardEventHandler: KeyboardEventHandler = (
   _ev,
@@ -41,7 +42,8 @@ const styles = {
     flex: 1 1 100px;
     overflow: hidden;
     margin: 5px;
-
+  `,
+  docDependentFocusStyles: css`
     &:focus {
       outline: 1px dotted black;
     }
@@ -86,6 +88,7 @@ export const DocUi = ({
   codeDivRef,
   onKeyDown = defaultKeyboardEventHandler,
   onKeyUp = defaultKeyboardEventHandler,
+  alwaysStyleLikeFocused,
 }: Props) => {
   let lines: DocRenderLine[];
   if (multiCursorFailure?.visualize) {
@@ -122,7 +125,12 @@ export const DocUi = ({
     <div className={styles.wrapper}>
       <div
         ref={codeDivRef}
-        className={styles.doc}
+        className={[
+          styles.doc,
+          !alwaysStyleLikeFocused && styles.docDependentFocusStyles,
+        ]
+          .filter((v) => v)
+          .join(" ")}
         tabIndex={0}
         onKeyDown={(ev) => {
           onKeyDown(
