@@ -13,9 +13,10 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import {
-  IconPlayerSkipBack,
-  IconPlayerSkipForward,
-  IconPlayerStop,
+  IconPlayerPause,
+  IconPlayerPlay,
+  IconPlayerTrackNext,
+  IconPlayerTrackPrev,
   IconRefresh,
 } from "@tabler/icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -158,37 +159,54 @@ export const ExampleStepper = ({
       <Group>
         {isPlaying ? (
           <Button
-            leftIcon={<IconPlayerStop />}
+            leftIcon={<IconPlayerPause />}
             onClick={() => setIsPlaying(false)}
           >
-            Stop replay
+            Pause
           </Button>
         ) : (
-          <Button
-            leftIcon={<IconRefresh />}
-            onClick={() => {
-              setCurrentStep(0);
-              setIsPlaying(true);
-            }}
-          >
-            Replay edit
-          </Button>
+          <>
+            <Button
+              leftIcon={<IconPlayerPlay />}
+              onClick={() => {
+                setIsPlaying(true);
+              }}
+            >
+              Play
+            </Button>
+            <Button
+              variant="light"
+              leftIcon={<IconRefresh />}
+              onClick={() => {
+                setCurrentStep(0);
+                setIsPlaying(true);
+              }}
+            >
+              Replay from start
+            </Button>
+          </>
         )}
         <ActionIcon
+          color="blue"
+          size={36}
+          variant="light"
           onClick={() => {
             setCurrentStep(Math.max(0, currentStep - 1));
             setIsPlaying(false);
           }}
         >
-          <IconPlayerSkipBack />
+          <IconPlayerTrackPrev />
         </ActionIcon>
         <ActionIcon
+          color="blue"
+          size={36}
+          variant="light"
           onClick={() => {
             setCurrentStep(Math.min(statesByStep.length - 1, currentStep + 1));
             setIsPlaying(false);
           }}
         >
-          <IconPlayerSkipForward />
+          <IconPlayerTrackNext />
         </ActionIcon>
       </Group>
       <div
