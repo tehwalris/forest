@@ -1,5 +1,4 @@
 import { css } from "@emotion/css";
-import { sortBy } from "ramda";
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { promisify } from "util";
@@ -15,7 +14,6 @@ import { defaultPrettierOptions, prettyPrintTsString } from "./logic/print";
 import { ChosenFs, configureFs } from "./logic/tasks/fs";
 import { Task } from "./logic/tasks/interfaces";
 import { loadTasks } from "./logic/tasks/load";
-import { isBrowseTask, isCreationTask } from "./logic/tasks/util";
 const exampleFileText = `
         if (Date.now() % 100 == 0) {
           console.log("lucky you");
@@ -68,16 +66,7 @@ export const App = () => {
       return;
     }
     (async () => {
-      const tasks = await loadTasks(fsChoice);
-      setTasks(
-        sortBy(
-          (t) =>
-            `${isBrowseTask(t) ? "3" : isCreationTask(t) ? "2" : "1"}:${
-              t.name
-            }`,
-          tasks,
-        ),
-      );
+      setTasks(await loadTasks(fsChoice));
     })().catch((err) => console.error("failed to load tasks", err));
   }, [fsChoice]);
   const [initialDocInfo, setInitialDocInfo] = useState<{
@@ -94,10 +83,10 @@ export const App = () => {
       ),
     [initialDocInfo],
   );
-  const [_selectedTaskName, setSelectedTaskName] = useState("");
+  const [_selectedTaskKey, setSelectedTaskKey] = useState("");
   const selectedTask = useMemo(
-    () => tasks.find((t) => t.name === _selectedTaskName),
-    [tasks, _selectedTaskName],
+    () => tasks.find((t) => t.key === _selectedTaskKey),
+    [tasks, _selectedTaskKey],
   );
   useEffect(() => {
     if (selectedTask) {
@@ -129,45 +118,9 @@ export const App = () => {
       setInitialDocInfo({ text: exampleFileText });
     }
   }, [selectedTask]);
-  const prettySelectedTaskContentAfter = useMemo(() => {
-    if (!selectedTask) {
-      return undefined;
-    }
-    try {
-      return prettyPrintTsString(
-        selectedTask.contentAfter,
-        defaultPrettierOptions,
-      );
-    } catch (err) {
-      console.warn("failed to pretty print selectedTask.contentAfter", err);
-      return selectedTask.contentAfter;
-    }
-  }, [selectedTask]);
-  const [showTargetView, setShowTargetView] = useState(false);
   if (!fsChoice) {
     return <div>Connecting to remote filesystem...</div>;
   }
-  const editor = (
-    <LinearEditor
-      initialDoc={initialDoc}
-      initDocManager={initialDocInfo.initDocManager}
-      onSave={(doc: Doc) =>
-        (async () => {
-          if (!initialDocInfo.path) {
-            console.warn("open file has no save path");
-            return;
-          }
-          await promisify(fsChoice.fs.writeFile)(
-            initialDocInfo.path,
-            doc.text,
-            {
-              encoding: "utf8",
-            },
-          );
-        })().catch((err) => console.warn("failed to save file", err))
-      }
-    />
-  );
   return (
     <div className={styles.outerWrapper}>
       <div>
@@ -175,24 +128,20 @@ export const App = () => {
       </div>
       {!fsChoice.probablyEmpty && (
         <div>
-          Examples from{" "}
-          <a href="https://doi.org/10.3929/ethz-b-000526812">thesis</a>:{" "}
+          Examples:{" "}
           <select
-            value={selectedTask?.name || ""}
-            onChange={(ev) => setSelectedTaskName(ev.target.value)}
+            value={selectedTask?.key || ""}
+            onChange={(ev) => setSelectedTaskKey(ev.target.value)}
           >
             <option key="" value="">
               Select example...
             </option>
             {tasks.map((t) => (
-              <option key={t.name} value={t.name}>
-                {isBrowseTask(t) ? "b" : isCreationTask(t) ? "c" : "e"}:{t.name}
+              <option key={t.key} value={t.key}>
+                {t.example.nameParts.join("/")}
               </option>
             ))}
           </select>
-          <button onClick={() => setShowTargetView((v) => !v)}>
-            Toggle target view
-          </button>
         </div>
       )}
       {!fsChoice.probablyEmpty && (
@@ -202,16 +151,25 @@ export const App = () => {
         </div>
       )}
       <div className={styles.contentWrapper}>
-        {showTargetView ? (
-          <div className={styles.splitView}>
-            {editor}
-            <div className={styles.afterDoc}>
-              {prettySelectedTaskContentAfter}
-            </div>
-          </div>
-        ) : (
-          editor
-        )}
+        <LinearEditor
+          initialDoc={initialDoc}
+          initDocManager={initialDocInfo.initDocManager}
+          onSave={(doc: Doc) =>
+            (async () => {
+              if (!initialDocInfo.path) {
+                console.warn("open file has no save path");
+                return;
+              }
+              await promisify(fsChoice.fs.writeFile)(
+                initialDocInfo.path,
+                doc.text,
+                {
+                  encoding: "utf8",
+                },
+              );
+            })().catch((err) => console.warn("failed to save file", err))
+          }
+        />
       </div>
     </div>
   );
