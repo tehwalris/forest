@@ -1,6 +1,21 @@
-import { Breadcrumbs, ScrollArea, Stack, Text, Timeline } from "@mantine/core";
+import {
+  ActionIcon,
+  Breadcrumbs,
+  Button,
+  Group,
+  ScrollArea,
+  Stack,
+  Text,
+  Timeline,
+} from "@mantine/core";
+import {
+  IconPlayerSkipBack,
+  IconPlayerSkipForward,
+  IconPlayerStop,
+  IconRefresh,
+} from "@tabler/icons";
 import { useEffect, useMemo, useState } from "react";
-import { eventsFromEventCreator } from "../examples/keys";
+import { eventsFromEventCreator, splitEventCreator } from "../examples/keys";
 import {
   DocManager,
   DocManagerPublicState,
@@ -16,7 +31,28 @@ interface Props {
   onStateChange: (state: DocManagerPublicState) => void;
 }
 
-export const ExampleStepper = ({ task, onStateChange }: Props) => {
+export const ExampleStepper = ({
+  task: originalTask,
+  onStateChange,
+}: Props) => {
+  const task = useMemo(
+    () => ({
+      ...originalTask,
+      example: {
+        ...originalTask.example,
+        describedGroups: originalTask.example.describedGroups.map(
+          (describedGroup) => ({
+            ...describedGroup,
+            eventCreators: describedGroup.eventCreators.flatMap((c) =>
+              splitEventCreator(c),
+            ),
+          }),
+        ),
+      },
+    }),
+    [originalTask],
+  );
+
   const [statesByStep, stepIndices] = useMemo(() => {
     const initialDoc = docFromAst(
       astFromTypescriptFileContent(
@@ -58,12 +94,31 @@ export const ExampleStepper = ({ task, onStateChange }: Props) => {
   }, [task]);
 
   const [currentStep, setCurrentStep] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   useEffect(() => {
     setCurrentStep(0);
+    setIsPlaying(true);
   }, [statesByStep]);
+  useEffect(() => {
+    if (!isPlaying) {
+      return;
+    }
+    if (currentStep + 1 < statesByStep.length) {
+      const handle = setInterval(() => {
+        setCurrentStep(currentStep + 1);
+      }, 500);
+      return () => {
+        clearInterval(handle);
+      };
+    } else {
+      setIsPlaying(false);
+    }
+  }, [currentStep, isPlaying, statesByStep]);
 
   useEffect(() => {
-    onStateChange(statesByStep[currentStep]);
+    if (currentStep < statesByStep.length) {
+      onStateChange(statesByStep[currentStep]);
+    }
   }, [currentStep, statesByStep, onStateChange]);
 
   const timelineActive =
@@ -72,26 +127,68 @@ export const ExampleStepper = ({ task, onStateChange }: Props) => {
   return (
     <Stack style={{ height: "100%" }}>
       <Breadcrumbs>
-        {task.example.nameParts.map((p) => (
-          <Text>{p}</Text>
+        {task.example.nameParts.map((p, i) => (
+          <Text key={i}>{p}</Text>
         ))}
       </Breadcrumbs>
+      <Group>
+        {isPlaying ? (
+          <Button
+            leftIcon={<IconPlayerStop />}
+            onClick={() => setIsPlaying(false)}
+          >
+            Stop replay
+          </Button>
+        ) : (
+          <Button
+            leftIcon={<IconRefresh />}
+            onClick={() => {
+              setCurrentStep(0);
+              setIsPlaying(true);
+            }}
+          >
+            Replay edit
+          </Button>
+        )}
+        <ActionIcon
+          onClick={() => {
+            setCurrentStep(Math.max(0, currentStep - 1));
+            setIsPlaying(false);
+          }}
+        >
+          <IconPlayerSkipBack />
+        </ActionIcon>
+        <ActionIcon
+          onClick={() => {
+            setCurrentStep(Math.min(statesByStep.length - 1, currentStep + 1));
+            setIsPlaying(false);
+          }}
+        >
+          <IconPlayerSkipForward />
+        </ActionIcon>
+      </Group>
       <ScrollArea style={{ flex: "1 1 100px" }}>
         <Timeline active={timelineActive}>
-          <Timeline.Item onClick={() => setCurrentStep(0)}>
+          <Timeline.Item
+            onClick={() => {
+              setIsPlaying(false);
+              setCurrentStep(0);
+            }}
+          >
             Initial state
           </Timeline.Item>
           {task.example.describedGroups.map(
             (describedGroup, iDescribedGroup) => (
               <Timeline.Item
                 key={iDescribedGroup}
-                onClick={() =>
+                onClick={() => {
+                  setIsPlaying(false);
                   setCurrentStep(
                     stepIndices[iDescribedGroup][
                       stepIndices[iDescribedGroup].length - 1
                     ],
-                  )
-                }
+                  );
+                }}
               >
                 <Text>{describedGroup.description}</Text>
                 {describedGroup.bugNote && (

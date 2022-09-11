@@ -87,6 +87,17 @@ export function parseKeyCombo(combo: string): EventWithHandler {
   }
   return { handler, event };
 }
+export function splitEventCreator(c: EventCreator): EventCreator[] {
+  switch (c.kind) {
+    case EventCreatorKind.FromKeys:
+      return c.keys
+        .trim()
+        .split(/\s+/)
+        .map((keys) => ({ kind: EventCreatorKind.FromKeys, keys }));
+    default:
+      return [c];
+  }
+}
 export function eventsFromKeys(keys: string): EventWithHandler[] {
   return keys
     .trim()
