@@ -1,12 +1,16 @@
 import {
   ActionIcon,
+  Box,
   Breadcrumbs,
   Button,
+  Code,
   Group,
+  Kbd,
   ScrollArea,
   Stack,
   Text,
   Timeline,
+  useMantineTheme,
 } from "@mantine/core";
 import {
   IconPlayerSkipBack,
@@ -14,7 +18,8 @@ import {
   IconPlayerStop,
   IconRefresh,
 } from "@tabler/icons";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { EventCreatorKind } from "../examples/interfaces";
 import { eventsFromEventCreator, splitEventCreator } from "../examples/keys";
 import {
   DocManager,
@@ -25,6 +30,7 @@ import { docFromAst } from "../logic/node-from-ts";
 import { astFromTypescriptFileContent } from "../logic/parse";
 import { defaultPrettierOptions, prettyPrintTsString } from "../logic/print";
 import { Task } from "../logic/tasks/interfaces";
+import { unreachable } from "../logic/util";
 
 interface Props {
   task: Task;
@@ -121,8 +127,26 @@ export const ExampleStepper = ({
     }
   }, [currentStep, statesByStep, onStateChange]);
 
+  const timelineWrapperRef: React.Ref<HTMLDivElement> = useRef(null);
+  useEffect(() => {
+    if (isPlaying && timelineWrapperRef.current !== null) {
+      const target = timelineWrapperRef.current.querySelector(
+        `.ExampleStepper-step-${currentStep}`,
+      );
+      if (target) {
+        target.scrollIntoView({ block: "center" });
+      }
+    }
+  }, [isPlaying, currentStep, timelineWrapperRef]);
+
+  const theme = useMantineTheme();
+
   const timelineActive =
     1 + stepIndices.findIndex((g) => g.includes(currentStep));
+
+  const pointerBullet = (
+    <Box style={{ width: "100%", height: "100%", cursor: "pointer" }} />
+  );
 
   return (
     <Stack style={{ height: "100%" }}>
@@ -167,39 +191,111 @@ export const ExampleStepper = ({
           <IconPlayerSkipForward />
         </ActionIcon>
       </Group>
-      <ScrollArea style={{ flex: "1 1 100px" }}>
-        <Timeline active={timelineActive}>
-          <Timeline.Item
-            onClick={() => {
-              setIsPlaying(false);
-              setCurrentStep(0);
-            }}
-          >
-            Initial state
-          </Timeline.Item>
-          {task.example.describedGroups.map(
-            (describedGroup, iDescribedGroup) => (
-              <Timeline.Item
-                key={iDescribedGroup}
-                onClick={() => {
-                  setIsPlaying(false);
-                  setCurrentStep(
-                    stepIndices[iDescribedGroup][
-                      stepIndices[iDescribedGroup].length - 1
-                    ],
-                  );
-                }}
-              >
-                <Text>{describedGroup.description}</Text>
-                {describedGroup.bugNote && (
-                  <Text>{describedGroup.bugNote}</Text>
-                )}
-                {JSON.stringify(describedGroup.eventCreators)}
-              </Timeline.Item>
-            ),
-          )}
-        </Timeline>
-      </ScrollArea>
+      <div
+        ref={timelineWrapperRef}
+        style={{ flex: "1 1 100px", overflow: "hidden" }}
+      >
+        <ScrollArea style={{ height: "100%", width: "100%" }}>
+          <Timeline active={timelineActive}>
+            <Timeline.Item
+              bullet={pointerBullet}
+              style={{ cursor: "pointer" }}
+              onClick={() => {
+                setIsPlaying(false);
+                setCurrentStep(0);
+              }}
+            >
+              Initial state
+            </Timeline.Item>
+            {task.example.describedGroups.map(
+              (describedGroup, iDescribedGroup) => (
+                <Timeline.Item
+                  bullet={pointerBullet}
+                  key={iDescribedGroup}
+                  onClick={() => {
+                    setIsPlaying(false);
+                    setCurrentStep(
+                      stepIndices[iDescribedGroup][
+                        stepIndices[iDescribedGroup].length - 1
+                      ],
+                    );
+                  }}
+                >
+                  <Text style={{ cursor: "pointer" }}>
+                    {describedGroup.description}
+                  </Text>
+                  {describedGroup.bugNote && (
+                    <Text>{describedGroup.bugNote}</Text>
+                  )}
+                  <Group spacing="xs">
+                    {describedGroup.eventCreators
+                      .map((eventCreator) => {
+                        switch (eventCreator.kind) {
+                          case EventCreatorKind.FromKeys:
+                            return (
+                              <Kbd style={{ padding: "1px 5px 0 5px" }}>
+                                {eventCreator.keys
+                                  .split("-")
+                                  .map((s) => {
+                                    // HACK This is not always correct with cords, but doesn't matter in any of the examples that we actually have.
+                                    const lookup: {
+                                      [key: string]: string | undefined;
+                                    } = { k: "↑", l: "→", j: "↓", h: "←" };
+                                    return lookup[s] || s;
+                                  })
+                                  .map((s) => s[0].toUpperCase() + s.slice(1))
+                                  .join(" + ")}
+                              </Kbd>
+                            );
+                          case EventCreatorKind.ToTypeString:
+                            return (
+                              <Group spacing={5} align="flex-end">
+                                <Text italic>Type</Text>{" "}
+                                <Code>{eventCreator.string}</Code>
+                              </Group>
+                            );
+                          case EventCreatorKind.Function:
+                            return (
+                              <Text italic>{eventCreator.description}</Text>
+                            );
+                          default:
+                            return unreachable(eventCreator);
+                        }
+                      })
+                      .map((element, iEventCreator) => {
+                        const step =
+                          stepIndices[iDescribedGroup][iEventCreator];
+                        return (
+                          <Group
+                            key={iEventCreator}
+                            className={`ExampleStepper-step-${step}`}
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              setIsPlaying(false);
+                              setCurrentStep(step);
+                            }}
+                            style={{
+                              paddingBottom: "3px",
+                              borderBottom: "3px solid",
+                              borderBottomColor:
+                                step === currentStep
+                                  ? theme.colors.blue[6]
+                                  : "transparent",
+                              marginBottom: "-3px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {element}
+                          </Group>
+                        );
+                      })}
+                  </Group>
+                </Timeline.Item>
+              ),
+            )}
+          </Timeline>
+        </ScrollArea>
+      </div>
     </Stack>
   );
 };
