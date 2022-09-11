@@ -1,4 +1,12 @@
-import { AppShell, Grid, Navbar, ScrollArea, Title } from "@mantine/core";
+import {
+  AppShell,
+  Grid,
+  Navbar,
+  NavLink,
+  ScrollArea,
+  Title,
+} from "@mantine/core";
+import { sortBy } from "ramda";
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { promisify } from "util";
@@ -119,25 +127,29 @@ export const App = () => {
             )}
           </Navbar.Section>
           <Navbar.Section grow component={ScrollArea} mx="-xs" px="xs">
-            {!fsChoice.probablyEmpty && (
-              <div>
-                Examples:{" "}
-                <select
-                  value={selectedTask?.key || ""}
-                  onChange={(ev) => setSelectedTaskKey(ev.target.value)}
-                  style={{ width: "100%" }}
-                >
-                  <option key="" value="">
-                    Select example...
-                  </option>
-                  {tasks.map((t) => (
-                    <option key={t.key} value={t.key}>
-                      {t.example.nameParts.join("/")}
-                    </option>
+            <NavLink label="Free editing">
+              <NavLink label="Blank file" />
+              <NavLink label="Forest source code" />
+            </NavLink>
+            {!fsChoice.probablyEmpty &&
+              [
+                ["paper-evaluation", "Paper evaluation"],
+                ["paper-examples", "Paper examples"],
+              ].map(([sectionKey, sectionLabel]) => (
+                <NavLink key={sectionKey} label={sectionLabel}>
+                  {sortBy(
+                    (t) => t.key,
+                    tasks.filter((t) => t.example.nameParts[0] === sectionKey),
+                  ).map((t) => (
+                    <NavLink
+                      label={t.example.nameParts.slice(1).join("/")}
+                      key={t.key}
+                      active={selectedTask?.key === t.key}
+                      onClick={() => setSelectedTaskKey(t.key)}
+                    />
                   ))}
-                </select>
-              </div>
-            )}
+                </NavLink>
+              ))}
           </Navbar.Section>
         </Navbar>
       }
