@@ -61,6 +61,7 @@ export const FileSearch = ({ fsChoice, onSelect }: Props) => {
     <select
       value={selectedPath}
       onChange={(ev) => setSelectedPath(ev.target.value)}
+      style={{ width: "100%" }}
     >
       <option value="">Select real file...</option>
       {paths.map((p) => (

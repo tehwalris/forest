@@ -1,12 +1,14 @@
-import { css } from "@emotion/css";
+import { AppShell, Grid, Navbar, ScrollArea, Title } from "@mantine/core";
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { promisify } from "util";
+import { DocUi } from "./components/doc-ui";
+import { ExampleStepper } from "./components/example-stepper";
 import { FileSearch } from "./components/file-search";
 import { LinearEditor } from "./components/linear-editor";
 import { RepoSwitcher } from "./components/repo-switcher";
 import { eventsFromEventCreator } from "./examples/keys";
-import { DocManager } from "./logic/doc-manager";
+import { DocManager, initialDocManagerPublicState } from "./logic/doc-manager";
 import { Doc } from "./logic/interfaces";
 import { docFromAst } from "./logic/node-from-ts";
 import { astFromTypescriptFileContent } from "./logic/parse";
@@ -21,33 +23,6 @@ const exampleFileText = `
           console.log("even better");
         }
 `;
-const styles = {
-  outerWrapper: css`
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    overflow: hidden;
-  `,
-  contentWrapper: css`
-    flex: 1 1 100px;
-    overflow: hidden;
-  `,
-  splitView: css`
-    height: 100%;
-    overflow: hidden;
-    display: flex;
-    flex-direction: row;
-    & > div {
-      width: 50%;
-    }
-  `,
-  afterDoc: css`
-    overflow: auto scroll;
-    margin: 5px;
-    white-space: pre;
-    opacity: 0.5;
-  `,
-};
 export const App = () => {
   const [fsChoice, setFsChoice] = useState<ChosenFs>();
   useEffect(() => {
@@ -118,59 +93,92 @@ export const App = () => {
       setInitialDocInfo({ text: exampleFileText });
     }
   }, [selectedTask]);
+  const [stepperDocManagerState, setStepperDocManagerState] = useState(
+    initialDocManagerPublicState,
+  );
   if (!fsChoice) {
     return <div>Connecting to remote filesystem...</div>;
   }
   return (
-    <div className={styles.outerWrapper}>
-      <div>
-        <RepoSwitcher fsChoice={fsChoice} />
-      </div>
-      {!fsChoice.probablyEmpty && (
-        <div>
-          Examples:{" "}
-          <select
-            value={selectedTask?.key || ""}
-            onChange={(ev) => setSelectedTaskKey(ev.target.value)}
-          >
-            <option key="" value="">
-              Select example...
-            </option>
-            {tasks.map((t) => (
-              <option key={t.key} value={t.key}>
-                {t.example.nameParts.join("/")}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-      {!fsChoice.probablyEmpty && (
-        <div>
-          Real files:{" "}
-          <FileSearch fsChoice={fsChoice} onSelect={setInitialDocInfo} />
-        </div>
-      )}
-      <div className={styles.contentWrapper}>
-        <LinearEditor
-          initialDoc={initialDoc}
-          initDocManager={initialDocInfo.initDocManager}
-          onSave={(doc: Doc) =>
-            (async () => {
-              if (!initialDocInfo.path) {
-                console.warn("open file has no save path");
-                return;
+    <AppShell
+      padding="md"
+      navbar={
+        <Navbar p="xs" width={{ base: 300 }}>
+          <Navbar.Section mt="xs">
+            <Title order={3}>Forest</Title>
+          </Navbar.Section>
+          <Navbar.Section mt="xs">
+            <div>
+              <RepoSwitcher fsChoice={fsChoice} />
+            </div>
+            {!fsChoice.probablyEmpty && (
+              <div>
+                Real files:{" "}
+                <FileSearch fsChoice={fsChoice} onSelect={setInitialDocInfo} />
+              </div>
+            )}
+          </Navbar.Section>
+          <Navbar.Section grow component={ScrollArea} mx="-xs" px="xs">
+            {!fsChoice.probablyEmpty && (
+              <div>
+                Examples:{" "}
+                <select
+                  value={selectedTask?.key || ""}
+                  onChange={(ev) => setSelectedTaskKey(ev.target.value)}
+                  style={{ width: "100%" }}
+                >
+                  <option key="" value="">
+                    Select example...
+                  </option>
+                  {tasks.map((t) => (
+                    <option key={t.key} value={t.key}>
+                      {t.example.nameParts.join("/")}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </Navbar.Section>
+        </Navbar>
+      }
+    >
+      <Grid style={{ height: "100%", overflow: "hidden" }}>
+        <Grid.Col span={6}>
+          {selectedTask ? (
+            <DocUi state={stepperDocManagerState} />
+          ) : (
+            <LinearEditor
+              initialDoc={initialDoc}
+              initDocManager={initialDocInfo.initDocManager}
+              onSave={(doc: Doc) =>
+                (async () => {
+                  if (!initialDocInfo.path) {
+                    console.warn("open file has no save path");
+                    return;
+                  }
+                  await promisify(fsChoice.fs.writeFile)(
+                    initialDocInfo.path,
+                    doc.text,
+                    {
+                      encoding: "utf8",
+                    },
+                  );
+                })().catch((err) => console.warn("failed to save file", err))
               }
-              await promisify(fsChoice.fs.writeFile)(
-                initialDocInfo.path,
-                doc.text,
-                {
-                  encoding: "utf8",
-                },
-              );
-            })().catch((err) => console.warn("failed to save file", err))
-          }
-        />
-      </div>
-    </div>
+            />
+          )}
+        </Grid.Col>
+        <Grid.Col span={6}>
+          {selectedTask ? (
+            <ExampleStepper
+              task={selectedTask}
+              onStateChange={setStepperDocManagerState}
+            />
+          ) : (
+            "No example selected"
+          )}
+        </Grid.Col>
+      </Grid>
+    </AppShell>
   );
 };

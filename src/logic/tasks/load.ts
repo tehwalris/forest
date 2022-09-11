@@ -10,7 +10,7 @@ export async function loadTasks(fsChoice: ChosenFs): Promise<Task[]> {
     examples.map(async (example): Promise<Task> => {
       const beforePath = path.join(
         fsChoice.projectRootDir,
-        "tasks/editing",
+        "tasks",
         ...example.nameParts.slice(0, -1),
         example.nameParts[example.nameParts.length - 1] + ".before.ts",
       );

@@ -18,7 +18,7 @@ type KeyboardEventHandler = (
   handleWithDocManager: () => void,
 ) => void;
 interface Props {
-  docManager: DocManager;
+  docManager?: DocManager;
   state: DocManagerPublicState;
   codeDivRef?: React.RefObject<HTMLDivElement>;
   onKeyDown?: KeyboardEventHandler;
@@ -127,17 +127,21 @@ export const DocUi = ({
         onKeyDown={(ev) => {
           onKeyDown(
             ev,
-            wrapThrowRestore(docManager, () =>
-              docManager.onKeyDown(ev.nativeEvent),
-            ),
+            docManager
+              ? wrapThrowRestore(docManager, () =>
+                  docManager.onKeyDown(ev.nativeEvent),
+                )
+              : () => {},
           );
         }}
         onKeyUp={(ev) => {
           onKeyUp(
             ev,
-            wrapThrowRestore(docManager, () =>
-              docManager.onKeyUp(ev.nativeEvent),
-            ),
+            docManager
+              ? wrapThrowRestore(docManager, () =>
+                  docManager.onKeyUp(ev.nativeEvent),
+                )
+              : () => {},
           );
         }}
       >

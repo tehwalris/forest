@@ -1,3 +1,4 @@
+import { MantineProvider } from "@mantine/core";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { App } from "./App";
@@ -6,6 +7,8 @@ window.onbeforeunload = function () {
   return false;
 };
 ReactDOM.render(
-  <App />,
+  <MantineProvider withGlobalStyles withNormalizeCSS>
+    <App />
+  </MantineProvider>,
   document.getElementById("sceneContainer") as HTMLElement,
 );
