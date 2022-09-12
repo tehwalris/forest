@@ -1,5 +1,6 @@
+import { Alert, Badge, Group, Loader, Text } from "@mantine/core";
 import * as React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChosenFs, configureFs } from "../logic/tasks/fs";
 
 interface Props {
@@ -24,47 +25,32 @@ export const RepoSwitcher = ({ fsChoice }: Props) => {
       setCloneState("failed");
     }
   }
-  if (fsChoice.type === "remote") {
-    return <div>Using remote filesystem</div>;
-  }
-  let extraContent = (
-    <>
-      <button
-        tabIndex={-1}
-        onClick={() => switchRepo("https://github.com/tehwalris/forest")}
-      >
-        Load Forest repo (required for examples)
-      </button>
-      <button
-        tabIndex={-1}
-        onClick={() => {
-          const url = prompt(
-            "Enter a git repo URL",
-            "https://github.com/tehwalris/forest",
-          );
-          if (url) {
-            switchRepo(url);
-          }
-        }}
-      >
-        Load custom repo (must have src folder)
-      </button>
-    </>
-  );
+  useEffect(() => {
+    if (fsChoice.type === "demo" && fsChoice.probablyEmpty) {
+      switchRepo("https://github.com/tehwalris/forest");
+    }
+  }, [fsChoice.type]);
   if (cloneState === "working") {
-    extraContent = <b>(switching repo...)</b>;
-  }
-  if (cloneState === "failed") {
-    extraContent = (
-      <>
-        <b>(clone failed, see console)</b> {extraContent}
-      </>
+    return (
+      <Group position="center">
+        <Loader />
+        <Text>Loading examples</Text>
+      </Group>
     );
   }
-  return (
-    <div>
-      Using{fsChoice.probablyEmpty ? " empty" : ""} demo filesystem{" "}
-      {extraContent}
-    </div>
-  );
+  if (cloneState === "failed") {
+    return (
+      <Alert color="red" title="Failed to load examples">
+        Try reloading the page. See the developer console for more information.
+      </Alert>
+    );
+  }
+  if (fsChoice.type === "remote") {
+    return (
+      <Group position="center">
+        <Badge color="green">Remote filesystem</Badge>
+      </Group>
+    );
+  }
+  return null;
 };

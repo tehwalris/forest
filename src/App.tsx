@@ -1,11 +1,14 @@
 import {
   AppShell,
+  Box,
+  FocusTrap,
   Grid,
   Navbar,
   NavLink,
   ScrollArea,
   Title,
 } from "@mantine/core";
+import { closeAllModals, openModal } from "@mantine/modals";
 import { sortBy } from "ramda";
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -24,13 +27,6 @@ import { defaultPrettierOptions, prettyPrintTsString } from "./logic/print";
 import { ChosenFs, configureFs } from "./logic/tasks/fs";
 import { Task } from "./logic/tasks/interfaces";
 import { loadTasks } from "./logic/tasks/load";
-const exampleFileText = `
-        if (Date.now() % 100 == 0) {
-          console.log("lucky you");
-        } else if (walrus) {
-          console.log("even better");
-        }
-`;
 export const App = () => {
   const [fsChoice, setFsChoice] = useState<ChosenFs>();
   useEffect(() => {
@@ -56,7 +52,7 @@ export const App = () => {
     path?: string;
     text: string;
     initDocManager?: (docManager: DocManager) => void;
-  }>({ text: exampleFileText });
+  }>({ text: "" });
   const initialDoc = useMemo(
     () =>
       docFromAst(
@@ -97,8 +93,6 @@ export const App = () => {
             }
           }),
       });
-    } else {
-      setInitialDocInfo({ text: exampleFileText });
     }
   }, [selectedTask]);
   const [stepperDocManagerState, setStepperDocManagerState] = useState(
@@ -115,21 +109,39 @@ export const App = () => {
           <Navbar.Section mt="xs">
             <Title order={3}>Forest</Title>
           </Navbar.Section>
-          <Navbar.Section mt="xs">
-            <div>
-              <RepoSwitcher fsChoice={fsChoice} />
-            </div>
-            {!fsChoice.probablyEmpty && (
-              <div>
-                Real files:{" "}
-                <FileSearch fsChoice={fsChoice} onSelect={setInitialDocInfo} />
-              </div>
-            )}
-          </Navbar.Section>
-          <Navbar.Section grow component={ScrollArea} mx="-xs" px="xs">
+          <Navbar.Section grow component={ScrollArea} mx="-xs" px="xs" mt="md">
             <NavLink label="Free editing">
-              <NavLink label="Blank file" />
-              <NavLink label="Forest source code" />
+              <NavLink
+                label="Blank file"
+                onClick={() => {
+                  setInitialDocInfo({ text: "" });
+                  setSelectedTaskKey("");
+                }}
+              />
+              {!fsChoice.probablyEmpty && (
+                <NavLink
+                  label="Forest source code"
+                  onClick={() => {
+                    openModal({
+                      title: "Select file",
+                      children: (
+                        <FocusTrap active>
+                          <div>
+                            <FileSearch
+                              fsChoice={fsChoice}
+                              onSelect={(docInfo) => {
+                                setInitialDocInfo(docInfo);
+                                setSelectedTaskKey("");
+                                closeAllModals();
+                              }}
+                            />
+                          </div>
+                        </FocusTrap>
+                      ),
+                    });
+                  }}
+                />
+              )}
             </NavLink>
             {!fsChoice.probablyEmpty &&
               [
@@ -150,6 +162,9 @@ export const App = () => {
                   ))}
                 </NavLink>
               ))}
+            <Box mt="md">
+              <RepoSwitcher fsChoice={fsChoice} />
+            </Box>
           </Navbar.Section>
         </Navbar>
       }

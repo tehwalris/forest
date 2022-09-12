@@ -1,3 +1,4 @@
+import { Select } from "@mantine/core";
 import * as path from "path";
 import { join as pathJoin } from "path";
 import { sortBy } from "ramda";
@@ -58,17 +59,14 @@ export const FileSearch = ({ fsChoice, onSelect }: Props) => {
     };
   }, [selectedPath, onSelect, fsChoice.fs]);
   return (
-    <select
+    <Select
       value={selectedPath}
-      onChange={(ev) => setSelectedPath(ev.target.value)}
+      onChange={(p) => setSelectedPath(p || "")}
       style={{ width: "100%" }}
-    >
-      <option value="">Select real file...</option>
-      {paths.map((p) => (
-        <option key={p} value={p}>
-          {p}
-        </option>
-      ))}
-    </select>
+      placeholder="Select real file..."
+      data={paths.map((p) => ({ value: p, label: p }))}
+      searchable
+      data-autofocus
+    />
   );
 };
