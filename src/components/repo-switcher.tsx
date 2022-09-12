@@ -29,7 +29,7 @@ export const RepoSwitcher = ({ fsChoice }: Props) => {
     if (fsChoice.type === "demo" && fsChoice.probablyEmpty) {
       switchRepo("https://github.com/tehwalris/forest");
     }
-  }, [fsChoice.type]);
+  }, [fsChoice.type, fsChoice.probablyEmpty]);
   if (cloneState === "working") {
     return (
       <Group position="center">

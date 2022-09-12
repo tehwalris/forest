@@ -138,6 +138,15 @@ export const ExampleStepper = ({
     }
   }, [currentStep, statesByStep, onStateChange]);
 
+  const [recentlySwitchedStep, setRecentlySwitchedStep] = useState(false);
+  useEffect(() => {
+    setRecentlySwitchedStep(true);
+    const handle = setTimeout(() => setRecentlySwitchedStep(false), 1000);
+    return () => {
+      clearTimeout(handle);
+    };
+  }, [currentStep]);
+
   const timelineWrapperRef: React.Ref<HTMLDivElement> = useRef(null);
   useEffect(() => {
     if (isPlaying && timelineWrapperRef.current !== null) {
@@ -296,14 +305,21 @@ export const ExampleStepper = ({
                       .map((element, iEventCreator) => {
                         const step =
                           stepIndices[iDescribedGroup][iEventCreator];
+                        const commandLabel =
+                          commandsByStep[step] === undefined
+                            ? undefined
+                            : DocManagerCommand[commandsByStep[step]!];
                         return (
                           <Tooltip
-                            label={
-                              commandsByStep[step] === undefined
-                                ? undefined
-                                : DocManagerCommand[commandsByStep[step]!]
+                            label={commandLabel}
+                            disabled={commandLabel === undefined}
+                            position="bottom"
+                            opened={
+                              ((isPlaying || recentlySwitchedStep) &&
+                                commandLabel !== undefined &&
+                                step === currentStep) ||
+                              undefined
                             }
-                            disabled={commandsByStep[step] === undefined}
                           >
                             <Group
                               key={iEventCreator}
