@@ -145,6 +145,42 @@ export function hasCtrlLike(
 interface InsertHistoryEntry {
   insertState: InsertState;
 }
+export enum DocManagerCommand {
+  TextInput,
+  MoveToParent,
+  MoveToPreviousLeaf,
+  MoveToNextLeaf,
+  ExtendUntilPreviousLeaf,
+  ExtendUntilNextLeaf,
+  ReduceToJustExtended,
+  ReduceToFirst,
+  ReduceToLast,
+  SelectInsideDelimitedList,
+  SelectOutsideDelimitedList,
+  UndoSelectionChange,
+  RedoSelectionChange,
+  RemoveLastElementFromSelection,
+  RemoveFirstElementFromSelection,
+  InsertTextBeforeCursor,
+  InsertTextAfterCursor,
+  DeleteSelectedNode,
+  Copy,
+  Paste,
+  SplitCursor,
+  QueueSelection,
+  CreateCursorsFromQueued,
+  RemoveCursorsExceptFirst,
+  RemoveCursorsExceptLast,
+  RemoveCursorsExceptOutermost,
+  RemoveCursorsExceptInnermost,
+  RemoveOverlappingCursors,
+  SetMark,
+  JumpToMark,
+  RenameUsingJavaScript,
+  OpenStructuralSearch,
+  ChangeMultiCursorMode,
+  HandleFailure,
+}
 export class DocManager {
   public readonly initialDoc: Doc;
   private cursors: Cursor[] = [initialCursor];
@@ -208,7 +244,7 @@ export class DocManager {
   disableUpdates() {
     this._onUpdate = () => {};
   }
-  onKeyDown = (ev: MinimalKeyboardEvent) => {
+  onKeyDown = (ev: MinimalKeyboardEvent): DocManagerCommand | undefined => {
     ev = {
       key: ev.key,
       altKey: ev.altKey,
@@ -253,6 +289,7 @@ export class DocManager {
           this.cursors = result.cursors;
         }
         this.onUpdate();
+        return DocManagerCommand.InsertTextBeforeCursor;
       } else if (ev.key === "a" && !this.readOnly) {
         const result = multiCursorStartInsert({
           root: this.doc.root,
@@ -265,6 +302,7 @@ export class DocManager {
           this.cursors = result.cursors;
         }
         this.onUpdate();
+        return DocManagerCommand.InsertTextAfterCursor;
       } else if (ev.key === "d" && !this.readOnly) {
         this.multiCursorHelper(
           (strict) =>
@@ -279,6 +317,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
+        return DocManagerCommand.DeleteSelectedNode;
       } else if (ev.key === "r" && !this.readOnly) {
         const renameFunctionBody = prompt(
           'Enter an JS expression to perform renaming with. "s" is the old name. Example: "s.toLowerCase()"',
@@ -305,6 +344,7 @@ export class DocManager {
         this.doc = { ...this.doc, root: result.root };
         this.cursors = result.cursors;
         this.onUpdate();
+        return DocManagerCommand.RenameUsingJavaScript;
       } else if (ev.key.match(/^y [rds]$/)) {
         this.multiCursorMode = {
           r: MultiCursorMode.Relaxed,
@@ -312,6 +352,7 @@ export class DocManager {
           s: MultiCursorMode.Strict,
         }[ev.key.split(" ")[1]]!;
         this.onUpdate();
+        return DocManagerCommand.ChangeMultiCursorMode;
       } else if (ev.key.match(/^Y [isfa]$/)) {
         const failure = this.multiCursorFailure;
         if (!failure) {
@@ -345,6 +386,7 @@ export class DocManager {
           this.cursors = newCursors;
         }
         this.onUpdate();
+        return DocManagerCommand.HandleFailure;
       } else if (ev.key.match(/^m [a-z]$/)) {
         const markKey = ev.key.split(" ")[1];
         this.cursors = this.cursors.map((c) => ({
@@ -355,6 +397,7 @@ export class DocManager {
           ],
         }));
         this.onUpdate();
+        return DocManagerCommand.SetMark;
       } else if (ev.key.match(/^M [a-z]$/)) {
         const markKey = ev.key.split(" ")[1];
         this.cursors = this.cursors.map((c) => ({
@@ -362,6 +405,7 @@ export class DocManager {
           focus: c.marks.find((m) => m.key === markKey)?.focus || c.focus,
         }));
         this.onUpdate();
+        return DocManagerCommand.JumpToMark;
       } else if (ev.key === "s") {
         this.cursors = this.cursors.flatMap((cursor): Cursor[] => {
           const focus = flipEvenPathRangeForward(cursor.focus);
@@ -393,23 +437,43 @@ export class DocManager {
             );
         });
         this.onUpdate();
+        return DocManagerCommand.SplitCursor;
       } else if (ev.key.match(/^S [hljkf]$/)) {
-        const side = {
-          h: CursorReduceAcrossSide.First,
-          l: CursorReduceAcrossSide.Last,
-          j: CursorReduceAcrossSide.Inner,
-          k: CursorReduceAcrossSide.Outer,
-          f: CursorReduceAcrossSide.FixOverlap,
-        }[ev.key.split(" ")[1]]!;
+        const [side, command] = (
+          {
+            h: [
+              CursorReduceAcrossSide.First,
+              DocManagerCommand.RemoveCursorsExceptFirst,
+            ],
+            l: [
+              CursorReduceAcrossSide.Last,
+              DocManagerCommand.RemoveCursorsExceptLast,
+            ],
+            j: [
+              CursorReduceAcrossSide.Inner,
+              DocManagerCommand.RemoveCursorsExceptInnermost,
+            ],
+            k: [
+              CursorReduceAcrossSide.Outer,
+              DocManagerCommand.RemoveCursorsExceptOutermost,
+            ],
+            f: [
+              CursorReduceAcrossSide.FixOverlap,
+              DocManagerCommand.RemoveOverlappingCursors,
+            ],
+          } as const
+        )[ev.key.split(" ")[1]]!;
         const result = multiCursorReduceAcross({ cursors: this.cursors, side });
         this.cursors = result.cursors;
         this.onUpdate();
+        return command;
       } else if (ev.key === "q") {
         this.queuedCursors = uniqueByEvenPathRange(
           [...this.cursors, ...this.queuedCursors],
           (c) => flipEvenPathRangeForward(c.focus),
         );
         this.onUpdate();
+        return DocManagerCommand.QueueSelection;
       } else if (ev.key === "Q") {
         if (!this.queuedCursors.length) {
           return;
@@ -419,6 +483,7 @@ export class DocManager {
         );
         this.queuedCursors = [];
         this.onUpdate();
+        return DocManagerCommand.CreateCursorsFromQueued;
       } else if (ev.key === "l" && !ev.altKey) {
         this.multiCursorHelper(
           (strict) =>
@@ -434,6 +499,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
+        return DocManagerCommand.MoveToPreviousLeaf;
       } else if (ev.key.toLowerCase() === "l" && ev.altKey) {
         ev.preventDefault?.();
         this.multiCursorHelper(
@@ -449,6 +515,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
+        return DocManagerCommand.ReduceToFirst;
       } else if (ev.key === "L" && !hasCtrlLike(ev)) {
         this.multiCursorHelper(
           (strict) =>
@@ -464,6 +531,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
+        return DocManagerCommand.ExtendUntilPreviousLeaf;
       } else if (ev.key === "L" && hasCtrlLike(ev)) {
         ev.preventDefault?.();
         this.multiCursorHelper(
@@ -480,6 +548,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
+        return DocManagerCommand.RemoveLastElementFromSelection;
       } else if (ev.key === "h" && !ev.altKey) {
         this.multiCursorHelper(
           (strict) =>
@@ -495,6 +564,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
+        return DocManagerCommand.MoveToNextLeaf;
       } else if (ev.key.toLowerCase() === "h" && ev.altKey) {
         ev.preventDefault?.();
         this.multiCursorHelper(
@@ -510,6 +580,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
+        return DocManagerCommand.ReduceToLast;
       } else if (ev.key === "H" && !hasCtrlLike(ev)) {
         this.multiCursorHelper(
           (strict) =>
@@ -525,6 +596,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
+        return DocManagerCommand.ExtendUntilNextLeaf;
       } else if (ev.key === "H" && hasCtrlLike(ev)) {
         ev.preventDefault?.();
         this.multiCursorHelper(
@@ -541,6 +613,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
+        return DocManagerCommand.RemoveFirstElementFromSelection;
       } else if (ev.key === "k") {
         this.multiCursorHelper(
           (strict) =>
@@ -556,6 +629,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
+        return DocManagerCommand.MoveToParent;
       } else if (ev.key === "K") {
         this.multiCursorHelper(
           (strict) =>
@@ -571,6 +645,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
+        return DocManagerCommand.SelectOutsideDelimitedList;
       } else if ([")", "]", "}", ">"].includes(ev.key)) {
         this.multiCursorHelper(
           (strict) =>
@@ -587,6 +662,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
+        return DocManagerCommand.SelectOutsideDelimitedList;
       } else if (ev.key === "j") {
         this.multiCursorHelper(
           (strict) =>
@@ -602,6 +678,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
+        return DocManagerCommand.SelectInsideDelimitedList;
       } else if (["(", "[", "{", "<"].includes(ev.key)) {
         this.multiCursorHelper(
           (strict) =>
@@ -618,6 +695,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
+        return DocManagerCommand.SelectInsideDelimitedList;
       } else if (ev.key === " ") {
         ev.preventDefault?.();
         this.multiCursorHelper(
@@ -633,6 +711,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
+        return DocManagerCommand.ReduceToJustExtended;
       } else if (ev.key === "c") {
         this.cursors = this.cursors.map(
           (cursor) =>
@@ -642,6 +721,7 @@ export class DocManager {
             }).cursor,
         );
         this.onUpdate();
+        return DocManagerCommand.Copy;
       } else if (ev.key === "p" && !this.readOnly) {
         const result = multiCursorPaste({
           root: this.doc.root,
@@ -650,6 +730,7 @@ export class DocManager {
         this.doc = { ...this.doc, root: result.root };
         this.cursors = result.cursors;
         this.onUpdate();
+        return DocManagerCommand.Paste;
       } else if (ev.key === "z") {
         while (this.cursorHistory.length) {
           const cursors = this.cursorHistory.pop()!;
@@ -661,6 +742,7 @@ export class DocManager {
           break;
         }
         this.onUpdate();
+        return DocManagerCommand.UndoSelectionChange;
       } else if (ev.key === "Z") {
         while (this.cursorRedoHistory.length) {
           const cursors = this.cursorRedoHistory.pop()!;
@@ -672,6 +754,7 @@ export class DocManager {
           break;
         }
         this.onUpdate();
+        return DocManagerCommand.RedoSelectionChange;
       } else if (ev.key === "Escape") {
         this.chordKey = undefined;
         this.onUpdate();
@@ -753,6 +836,7 @@ export class DocManager {
         }
         this.insertState = old.insertState;
         this.onUpdate();
+        return DocManagerCommand.TextInput;
       } else if (ev.key.length === 1) {
         ev.preventDefault?.();
         ev.stopPropagation?.();
@@ -765,6 +849,7 @@ export class DocManager {
           text: this.insertState.text + ev.key,
         };
         this.onUpdate();
+        return DocManagerCommand.TextInput;
       }
     }
   };
