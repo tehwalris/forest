@@ -10,6 +10,7 @@ import {
   Stack,
   Text,
   Timeline,
+  Tooltip,
   useMantineTheme,
 } from "@mantine/core";
 import {
@@ -24,6 +25,7 @@ import { EventCreatorKind } from "../examples/interfaces";
 import { eventsFromEventCreator, splitEventCreator } from "../examples/keys";
 import {
   DocManager,
+  DocManagerCommand,
   DocManagerPublicState,
   initialDocManagerPublicState,
 } from "../logic/doc-manager";
@@ -60,7 +62,7 @@ export const ExampleStepper = ({
     [originalTask],
   );
 
-  const [statesByStep, stepIndices] = useMemo(() => {
+  const [statesByStep, commandsByStep, stepIndices] = useMemo(() => {
     const initialDoc = docFromAst(
       astFromTypescriptFileContent(
         prettyPrintTsString(task.contentBefore, defaultPrettierOptions),
@@ -75,29 +77,37 @@ export const ExampleStepper = ({
     );
     docManager.forceUpdate();
 
-    const stepIndices: number[][] = [];
     const statesByStep = [state];
+    const commandsByStep: (DocManagerCommand | undefined)[] = [undefined];
+    const stepIndices: number[][] = [];
 
     for (const describedGroup of task.example.describedGroups) {
       const stepIndicesThisGroup: number[] = [];
       stepIndices.push(stepIndicesThisGroup);
       for (const eventCreator of describedGroup.eventCreators) {
         const events = eventsFromEventCreator(eventCreator);
+        const commands = new Set<DocManagerCommand>();
         for (const eventOrFunction of events) {
           if (typeof eventOrFunction === "function") {
             eventOrFunction(docManager);
           } else {
             const { handler, event } = eventOrFunction;
-            docManager[handler](event);
+            const command = docManager[handler](event);
+            if (command !== undefined) {
+              commands.add(command);
+            }
           }
         }
 
         stepIndicesThisGroup.push(statesByStep.length);
         statesByStep.push(state);
+        commandsByStep.push(
+          commands.size === 1 ? commands.values().next().value : undefined,
+        );
       }
     }
 
-    return [statesByStep, stepIndices];
+    return [statesByStep, commandsByStep, stepIndices];
   }, [task]);
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -287,27 +297,36 @@ export const ExampleStepper = ({
                         const step =
                           stepIndices[iDescribedGroup][iEventCreator];
                         return (
-                          <Group
-                            key={iEventCreator}
-                            className={`ExampleStepper-step-${step}`}
-                            onClick={(ev) => {
-                              ev.stopPropagation();
-                              setIsPlaying(false);
-                              setCurrentStep(step);
-                            }}
-                            style={{
-                              paddingBottom: "3px",
-                              borderBottom: "3px solid",
-                              borderBottomColor:
-                                step === currentStep
-                                  ? theme.colors.blue[6]
-                                  : "transparent",
-                              marginBottom: "-3px",
-                              cursor: "pointer",
-                            }}
+                          <Tooltip
+                            label={
+                              commandsByStep[step] === undefined
+                                ? undefined
+                                : DocManagerCommand[commandsByStep[step]!]
+                            }
+                            disabled={commandsByStep[step] === undefined}
                           >
-                            {element}
-                          </Group>
+                            <Group
+                              key={iEventCreator}
+                              className={`ExampleStepper-step-${step}`}
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                setIsPlaying(false);
+                                setCurrentStep(step);
+                              }}
+                              style={{
+                                paddingBottom: "3px",
+                                borderBottom: "3px solid",
+                                borderBottomColor:
+                                  step === currentStep
+                                    ? theme.colors.blue[6]
+                                    : "transparent",
+                                marginBottom: "-3px",
+                                cursor: "pointer",
+                              }}
+                            >
+                              {element}
+                            </Group>
+                          </Tooltip>
                         );
                       })}
                   </Group>

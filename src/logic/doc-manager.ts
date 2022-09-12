@@ -147,6 +147,8 @@ interface InsertHistoryEntry {
 }
 export enum DocManagerCommand {
   TextInput,
+  StartChord,
+  ExitInsertMode,
   MoveToParent,
   MoveToPreviousLeaf,
   MoveToNextLeaf,
@@ -262,7 +264,7 @@ export class DocManager {
       } else if (["S", "m", "M", "y", "Y"].includes(ev.key)) {
         this.chordKey = ev.key;
         this.onUpdate();
-        return;
+        return DocManagerCommand.StartChord;
       }
 
       const letterForArrow = {
@@ -772,7 +774,7 @@ export class DocManager {
         }
         if (!this.insertState.text) {
           finalStuff();
-          return;
+          return DocManagerCommand.ExitInsertMode;
         }
         const {
           doc: oldDocWithoutPlaceholders,
@@ -829,6 +831,7 @@ export class DocManager {
         }));
         this.doc = docWithInsertBeforeFormatting;
         finalStuff();
+        return DocManagerCommand.ExitInsertMode;
       } else if (ev.key === "Backspace") {
         const old = this.insertHistory.pop();
         if (!old) {
