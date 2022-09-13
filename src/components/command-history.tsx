@@ -287,8 +287,9 @@ export const CommandHistory = ({ commandHistory, onClear }: Props) => {
           })}
         >
           {[
-            eventCreatorsFromCommandHistory(commandHistory).map(
-              ({ eventCreator, description, partOfChord }, i) => (
+            eventCreatorsFromCommandHistory(commandHistory.slice(-150))
+              .slice(-50)
+              .map(({ eventCreator, description, partOfChord }, i) => (
                 <Fragment key={i}>
                   {i > 0 && <Divider />}
                   <Group px="md" py="xs" style={{ display: "inline-flex" }}>
@@ -302,8 +303,7 @@ export const CommandHistory = ({ commandHistory, onClear }: Props) => {
                     <Text inline>{description}</Text>
                   </Group>
                 </Fragment>
-              ),
-            ),
+              )),
           ]}
         </Box>
         <Group position="center" my="md">
