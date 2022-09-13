@@ -13,6 +13,10 @@ import { sortBy } from "ramda";
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { promisify } from "util";
+import {
+  CommandHistory,
+  CommandHistoryEntry,
+} from "./components/command-history";
 import { DocUi } from "./components/doc-ui";
 import { ExampleStepper } from "./components/example-stepper";
 import { FileSearch } from "./components/file-search";
@@ -98,14 +102,20 @@ export const App = () => {
   const [stepperDocManagerState, setStepperDocManagerState] = useState(
     initialDocManagerPublicState,
   );
+  const [commandHistory, setCommandHistory] = useState<CommandHistoryEntry[]>(
+    [],
+  );
+  useEffect(() => {
+    setCommandHistory([]);
+  }, [selectedTask, initialDoc]);
   if (!fsChoice) {
     return <div>Connecting to remote filesystem...</div>;
   }
   return (
     <AppShell
-      padding="md"
+      padding={0}
       navbar={
-        <Navbar p="xs" width={{ base: 300 }}>
+        <Navbar p="md" width={{ base: 300 }}>
           <Navbar.Section mt="xs">
             <Title order={3}>Forest</Title>
           </Navbar.Section>
@@ -169,8 +179,16 @@ export const App = () => {
         </Navbar>
       }
     >
-      <Grid style={{ height: "100%", overflow: "hidden" }}>
-        <Grid.Col span={6}>
+      <Grid style={{ height: "100vh", overflow: "hidden", margin: 0 }}>
+        <Grid.Col
+          span={6}
+          p={0}
+          sx={(theme) => ({
+            borderRight: `1px solid ${theme.colors.gray[2]}`,
+            background: theme.colors.gray[0],
+            height: "100%",
+          })}
+        >
           {selectedTask ? (
             <DocUi state={stepperDocManagerState} alwaysStyleLikeFocused />
           ) : (
@@ -192,17 +210,23 @@ export const App = () => {
                   );
                 })().catch((err) => console.warn("failed to save file", err))
               }
+              onCommand={(event, command) =>
+                setCommandHistory((h) => [...h, { event, command }])
+              }
             />
           )}
         </Grid.Col>
-        <Grid.Col span={6}>
+        <Grid.Col span={6} p={0} style={{ height: "100%" }}>
           {selectedTask ? (
             <ExampleStepper
               task={selectedTask}
               onStateChange={setStepperDocManagerState}
             />
           ) : (
-            "No example selected"
+            <CommandHistory
+              commandHistory={commandHistory}
+              onClear={() => setCommandHistory([])}
+            />
           )}
         </Grid.Col>
       </Grid>

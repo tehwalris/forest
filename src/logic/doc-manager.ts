@@ -501,7 +501,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
-        return DocManagerCommand.MoveToPreviousLeaf;
+        return DocManagerCommand.MoveToNextLeaf;
       } else if (ev.key.toLowerCase() === "l" && ev.altKey) {
         ev.preventDefault?.();
         this.multiCursorHelper(
@@ -517,7 +517,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
-        return DocManagerCommand.ReduceToFirst;
+        return DocManagerCommand.ReduceToLast;
       } else if (ev.key === "L" && !hasCtrlLike(ev)) {
         this.multiCursorHelper(
           (strict) =>
@@ -533,7 +533,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
-        return DocManagerCommand.ExtendUntilPreviousLeaf;
+        return DocManagerCommand.ExtendUntilNextLeaf;
       } else if (ev.key === "L" && hasCtrlLike(ev)) {
         ev.preventDefault?.();
         this.multiCursorHelper(
@@ -550,7 +550,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
-        return DocManagerCommand.RemoveLastElementFromSelection;
+        return DocManagerCommand.RemoveFirstElementFromSelection;
       } else if (ev.key === "h" && !ev.altKey) {
         this.multiCursorHelper(
           (strict) =>
@@ -566,7 +566,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
-        return DocManagerCommand.MoveToNextLeaf;
+        return DocManagerCommand.MoveToPreviousLeaf;
       } else if (ev.key.toLowerCase() === "h" && ev.altKey) {
         ev.preventDefault?.();
         this.multiCursorHelper(
@@ -582,7 +582,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
-        return DocManagerCommand.ReduceToLast;
+        return DocManagerCommand.ReduceToFirst;
       } else if (ev.key === "H" && !hasCtrlLike(ev)) {
         this.multiCursorHelper(
           (strict) =>
@@ -598,7 +598,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
-        return DocManagerCommand.ExtendUntilNextLeaf;
+        return DocManagerCommand.ExtendUntilPreviousLeaf;
       } else if (ev.key === "H" && hasCtrlLike(ev)) {
         ev.preventDefault?.();
         this.multiCursorHelper(
@@ -615,7 +615,7 @@ export class DocManager {
           },
         );
         this.onUpdate();
-        return DocManagerCommand.RemoveFirstElementFromSelection;
+        return DocManagerCommand.RemoveLastElementFromSelection;
       } else if (ev.key === "k") {
         this.multiCursorHelper(
           (strict) =>

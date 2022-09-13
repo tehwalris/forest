@@ -1,3 +1,4 @@
+import { useMantineTheme } from "@mantine/core";
 import * as React from "react";
 import { useLayoutEffect, useRef } from "react";
 import { CharSelection, DocRenderLine } from "../logic/render";
@@ -152,6 +153,7 @@ export const FollowLines = ({ lines }: Props) => {
     });
     oldOffsetRef.current = offset;
   });
+  const theme = useMantineTheme();
   return (
     <div
       ref={wrapperDivRef}
@@ -159,6 +161,7 @@ export const FollowLines = ({ lines }: Props) => {
         whiteSpace: "pre",
         height: "100%",
         overflow: "auto scroll",
+        padding: theme.spacing.md,
       }}
     >
       {lines.map((line, iLine) => (

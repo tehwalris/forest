@@ -1,9 +1,12 @@
 import { css } from "@emotion/css";
+import { useMantineTheme } from "@mantine/core";
 import * as React from "react";
 import {
   CursorOverlapKind,
   DocManager,
+  DocManagerCommand,
   DocManagerPublicState,
+  MinimalKeyboardEvent,
   Mode,
   MultiCursorMode,
 } from "../logic/doc-manager";
@@ -23,6 +26,10 @@ interface Props {
   codeDivRef?: React.RefObject<HTMLDivElement>;
   onKeyDown?: KeyboardEventHandler;
   onKeyUp?: KeyboardEventHandler;
+  onCommand?: (
+    ev: MinimalKeyboardEvent,
+    command: DocManagerCommand | undefined,
+  ) => void;
   alwaysStyleLikeFocused?: boolean;
 }
 const defaultKeyboardEventHandler: KeyboardEventHandler = (
@@ -41,7 +48,6 @@ const styles = {
   doc: css`
     flex: 1 1 100px;
     overflow: hidden;
-    margin: 5px;
   `,
   docDependentFocusStyles: css`
     &:focus {
@@ -51,9 +57,6 @@ const styles = {
     &:not(:focus) {
       filter: grayscale(1);
     }
-  `,
-  statusArea: css`
-    margin: 5px;
   `,
 };
 function wrapThrowRestore<A extends any[]>(
@@ -88,6 +91,7 @@ export const DocUi = ({
   codeDivRef,
   onKeyDown = defaultKeyboardEventHandler,
   onKeyUp = defaultKeyboardEventHandler,
+  onCommand = () => {},
   alwaysStyleLikeFocused,
 }: Props) => {
   let lines: DocRenderLine[];
@@ -121,6 +125,7 @@ export const DocUi = ({
       })),
     );
   }
+  const theme = useMantineTheme();
   return (
     <div className={styles.wrapper}>
       <div
@@ -137,7 +142,16 @@ export const DocUi = ({
             ev,
             docManager
               ? wrapThrowRestore(docManager, () =>
-                  docManager.onKeyDown(ev.nativeEvent),
+                  onCommand(
+                    {
+                      key: ev.key,
+                      altKey: ev.altKey,
+                      ctrlKey: ev.ctrlKey,
+                      metaKey: ev.metaKey,
+                      shiftKey: ev.shiftKey,
+                    },
+                    docManager.onKeyDown(ev.nativeEvent),
+                  ),
                 )
               : () => {},
           );
@@ -156,12 +170,18 @@ export const DocUi = ({
         {doc.text.trim() ? (
           <FollowLines lines={lines} />
         ) : (
-          <div style={{ opacity: 0.5, userSelect: "none" }}>
+          <div
+            style={{
+              opacity: 0.5,
+              userSelect: "none",
+              padding: theme.spacing.md,
+            }}
+          >
             (empty document)
           </div>
         )}
       </div>
-      <div className={styles.statusArea}>
+      <div style={{ margin: `${theme.spacing.xs}px ${theme.spacing.md}px ` }}>
         <div>
           <span>
             {Mode[mode]}-{MultiCursorMode[multiCursorMode]}

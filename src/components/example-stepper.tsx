@@ -3,9 +3,7 @@ import {
   Box,
   Breadcrumbs,
   Button,
-  Code,
   Group,
-  Kbd,
   ScrollArea,
   Stack,
   Text,
@@ -21,7 +19,6 @@ import {
   IconRefresh,
 } from "@tabler/icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { EventCreatorKind } from "../examples/interfaces";
 import { eventsFromEventCreator, splitEventCreator } from "../examples/keys";
 import {
   DocManager,
@@ -33,7 +30,7 @@ import { docFromAst } from "../logic/node-from-ts";
 import { astFromTypescriptFileContent } from "../logic/parse";
 import { defaultPrettierOptions, prettyPrintTsString } from "../logic/print";
 import { Task } from "../logic/tasks/interfaces";
-import { unreachable } from "../logic/util";
+import { EventCreatorDisplay } from "./event-creator-display";
 
 interface Props {
   task: Task;
@@ -169,7 +166,7 @@ export const ExampleStepper = ({
   );
 
   return (
-    <Stack style={{ height: "100%" }}>
+    <Stack style={{ height: "100%" }} p="md">
       <Breadcrumbs>
         {task.example.nameParts.map((p, i) => (
           <Text key={i}>{p}</Text>
@@ -269,39 +266,9 @@ export const ExampleStepper = ({
                   )}
                   <Group spacing="xs">
                     {describedGroup.eventCreators
-                      .map((eventCreator) => {
-                        switch (eventCreator.kind) {
-                          case EventCreatorKind.FromKeys:
-                            return (
-                              <Kbd style={{ padding: "1px 5px 0 5px" }}>
-                                {eventCreator.keys
-                                  .split("-")
-                                  .map((s) => {
-                                    // HACK This is not always correct with cords, but doesn't matter in any of the examples that we actually have.
-                                    const lookup: {
-                                      [key: string]: string | undefined;
-                                    } = { k: "↑", l: "→", j: "↓", h: "←" };
-                                    return lookup[s] || s;
-                                  })
-                                  .map((s) => s[0].toUpperCase() + s.slice(1))
-                                  .join(" + ")}
-                              </Kbd>
-                            );
-                          case EventCreatorKind.ToTypeString:
-                            return (
-                              <Group spacing={5} align="flex-end">
-                                <Text italic>Type</Text>{" "}
-                                <Code>{eventCreator.string}</Code>
-                              </Group>
-                            );
-                          case EventCreatorKind.Function:
-                            return (
-                              <Text italic>{eventCreator.description}</Text>
-                            );
-                          default:
-                            return unreachable(eventCreator);
-                        }
-                      })
+                      .map((eventCreator) => (
+                        <EventCreatorDisplay eventCreator={eventCreator} />
+                      ))
                       .map((element, iEventCreator) => {
                         const step =
                           stepIndices[iDescribedGroup][iEventCreator];
@@ -311,6 +278,7 @@ export const ExampleStepper = ({
                             : DocManagerCommand[commandsByStep[step]!];
                         return (
                           <Tooltip
+                            key={iEventCreator}
                             label={commandLabel}
                             disabled={commandLabel === undefined}
                             position="bottom"
@@ -322,7 +290,6 @@ export const ExampleStepper = ({
                             }
                           >
                             <Group
-                              key={iEventCreator}
                               className={`ExampleStepper-step-${step}`}
                               onClick={(ev) => {
                                 ev.stopPropagation();
