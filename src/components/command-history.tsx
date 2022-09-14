@@ -278,6 +278,10 @@ export const CommandHistory = ({ commandHistory, onClear }: Props) => {
     }
   }, [commandHistory]);
 
+  const displayedEventCreators = eventCreatorsFromCommandHistory(
+    commandHistory.slice(-150),
+  ).slice(-50);
+
   return (
     <div ref={wrapperRef} style={{ height: "100%", overflow: "hidden" }}>
       <ScrollArea style={{ height: "100%", width: "100%" }}>
@@ -287,9 +291,8 @@ export const CommandHistory = ({ commandHistory, onClear }: Props) => {
           })}
         >
           {[
-            eventCreatorsFromCommandHistory(commandHistory.slice(-150))
-              .slice(-50)
-              .map(({ eventCreator, description, partOfChord }, i) => (
+            displayedEventCreators.map(
+              ({ eventCreator, description, partOfChord }, i) => (
                 <Fragment key={i}>
                   {i > 0 && <Divider />}
                   <Group px="md" py="xs" style={{ display: "inline-flex" }}>
@@ -303,12 +306,13 @@ export const CommandHistory = ({ commandHistory, onClear }: Props) => {
                     <Text inline>{description}</Text>
                   </Group>
                 </Fragment>
-              )),
+              ),
+            ),
           ]}
         </Box>
         <Group position="center" my="md">
           <Button
-            disabled={!commandHistory.length}
+            disabled={!displayedEventCreators.length}
             onClick={onClear}
             variant="light"
           >
