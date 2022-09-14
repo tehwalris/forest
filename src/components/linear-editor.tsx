@@ -54,7 +54,9 @@ export const LinearEditor = ({
       state={docManagerState}
       codeDivRef={codeDivRef}
       onKeyDown={(ev, handleWithDocManager) => {
-        if (mode === Mode.Normal && ev.key === "/") {
+        if (ev.key === "l" && ev.ctrlKey) {
+          return;
+        } else if (mode === Mode.Normal && ev.key === "/") {
           ev.preventDefault();
           ev.stopPropagation();
           setQueryState({ stage: Stage.WriteDoc });

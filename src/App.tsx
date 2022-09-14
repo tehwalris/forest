@@ -108,6 +108,19 @@ export const App = () => {
   useEffect(() => {
     setCommandHistory([]);
   }, [selectedTask, initialDoc]);
+  useEffect(() => {
+    const handler = (ev: KeyboardEvent) => {
+      if (ev.key === "l" && ev.ctrlKey) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        setCommandHistory([]);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => {
+      document.removeEventListener("keydown", handler);
+    };
+  }, []);
   if (!fsChoice) {
     return <div>Connecting to remote filesystem...</div>;
   }
