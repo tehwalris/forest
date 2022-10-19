@@ -1,11 +1,14 @@
 import {
   AppShell,
   Box,
+  Center,
   FocusTrap,
   Grid,
+  Loader,
   Navbar,
   NavLink,
   ScrollArea,
+  Stack,
   Title,
 } from "@mantine/core";
 import { closeAllModals, openModal } from "@mantine/modals";
@@ -36,8 +39,8 @@ export const App = () => {
   useEffect(() => {
     (async () => {
       const _fs = await configureFs(
-        false,
-        undefined,
+        true,
+        "/demo.zip",
         window.location.hash === "#demo",
       );
       setFsChoice(_fs);
@@ -122,7 +125,14 @@ export const App = () => {
     };
   }, []);
   if (!fsChoice) {
-    return <div>Connecting to remote filesystem...</div>;
+    return (
+      <Center sx={{ height: "100vh" }}>
+        <Stack align="center">
+          <Loader />
+          Loading examples...
+        </Stack>
+      </Center>
+    );
   }
   return (
     <AppShell

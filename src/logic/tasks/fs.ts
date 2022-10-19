@@ -1,8 +1,9 @@
 import * as LightningFS from "@isomorphic-git/lightning-fs";
+import AdmZip from "adm-zip";
+import { Buffer } from "buffer";
 import * as _fsType from "fs";
 import createFsRemoteClient from "fs-remote/createClient";
-import * as git from "isomorphic-git";
-import gitHttp from "isomorphic-git/http/web";
+import path from "path";
 import { promisify } from "util";
 
 export type Fs = typeof _fsType;
@@ -14,37 +15,31 @@ export interface ChosenFs {
   probablyEmpty: boolean;
 }
 
-async function loadGitRepo(
-  cloneUrl: string,
-  fsClonePath: string,
-  fs: typeof _fsType,
-): Promise<void> {
-  return git.clone({
-    fs,
-    http: gitHttp,
-    dir: fsClonePath,
-    corsProxy: "https://cors.isomorphic-git.org",
-    url: cloneUrl,
-    ref: "master",
-    singleBranch: true,
-    depth: 1,
-  });
-}
-
 async function configureDemoFs(
   wipe: boolean,
-  cloneGitUrl?: string,
+  zipUrl: string,
 ): Promise<ChosenFs> {
   const demoFs = new LightningFS("forest-demo-fs", { wipe });
   const empty = !(await demoFs.promises.readdir("/")).length;
-  if (cloneGitUrl && empty) {
-    await loadGitRepo(cloneGitUrl, "/", demoFs);
+  if (zipUrl && empty) {
+    const zipArrayBuffer = await fetch("/demo.zip").then((r) =>
+      r.arrayBuffer(),
+    );
+    const zipEntries = new AdmZip(Buffer.from(zipArrayBuffer)).getEntries();
+    for (const entry of zipEntries) {
+      const entryPath = path.join("/", entry.entryName);
+      if (entry.isDirectory) {
+        await demoFs.promises.mkdir(entryPath);
+      } else {
+        await demoFs.promises.writeFile(entryPath, entry.getData());
+      }
+    }
   }
   return {
     type: "demo",
     fs: demoFs,
     projectRootDir: "/",
-    probablyEmpty: empty,
+    probablyEmpty: false,
   };
 }
 
@@ -63,7 +58,7 @@ async function configureRemoteFs(): Promise<ChosenFs> {
 
 export async function configureFs(
   wipeDemo: boolean,
-  cloneGitUrl?: string,
+  demoZipUrl: string,
   forceDemo?: boolean,
 ): Promise<ChosenFs> {
   if (!forceDemo) {
@@ -73,5 +68,5 @@ export async function configureFs(
       console.warn("Remote FS not working. Falling back to demo FS.", err);
     }
   }
-  return configureDemoFs(wipeDemo, cloneGitUrl);
+  return configureDemoFs(wipeDemo, demoZipUrl);
 }
