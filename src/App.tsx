@@ -12,6 +12,7 @@ import {
   Title,
 } from "@mantine/core";
 import { closeAllModals, openModal } from "@mantine/modals";
+import { IconBrandGithub, IconFileDescription } from "@tabler/icons";
 import { sortBy } from "ramda";
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -198,6 +199,22 @@ export const App = () => {
             <Box mt="md">
               <RepoSwitcher fsChoice={fsChoice} />
             </Box>
+          </Navbar.Section>
+          <Navbar.Section mt="md" my={0}>
+            <NavLink
+              component="a"
+              icon={<IconBrandGithub />}
+              label="GitHub repository"
+              href="https://github.com/tehwalris/forest"
+              target="_blank"
+            />
+            <NavLink
+              component="a"
+              icon={<IconFileDescription />}
+              label="Published paper"
+              href="https://doi.org/10.1145/3563835.3567663"
+              target="_blank"
+            />
           </Navbar.Section>
         </Navbar>
       }
