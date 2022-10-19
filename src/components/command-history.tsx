@@ -53,7 +53,10 @@ function keysFromEvent(originalEvent: MinimalKeyboardEvent): string {
     .join("-");
 }
 
-function describeCommand(command: DocManagerCommand, key: string): ReactChild {
+export function describeCommand(
+  command: DocManagerCommand,
+  key: string,
+): ReactChild {
   const keyIsDelimiter = "()[]{}<>".split("").includes(key);
   switch (command) {
     case DocManagerCommand.TextInput:

@@ -19,6 +19,7 @@ import {
   IconRefresh,
 } from "@tabler/icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { EventCreatorKind } from "../examples/interfaces";
 import { eventsFromEventCreator, splitEventCreator } from "../examples/keys";
 import {
   DocManager,
@@ -30,6 +31,7 @@ import { docFromAst } from "../logic/node-from-ts";
 import { astFromTypescriptFileContent } from "../logic/parse";
 import { defaultPrettierOptions, prettyPrintTsString } from "../logic/print";
 import { Task } from "../logic/tasks/interfaces";
+import { describeCommand } from "./command-history";
 import { EventCreatorDisplay } from "./event-creator-display";
 
 interface Props {
@@ -59,53 +61,64 @@ export const ExampleStepper = ({
     [originalTask],
   );
 
-  const [statesByStep, commandsByStep, stepIndices] = useMemo(() => {
-    const initialDoc = docFromAst(
-      astFromTypescriptFileContent(
-        prettyPrintTsString(task.contentBefore, defaultPrettierOptions),
-      ),
-    );
-    let state = initialDocManagerPublicState;
-    const docManager = new DocManager(
-      initialDoc,
-      (newState) => (state = newState),
-      false,
-      defaultPrettierOptions,
-    );
-    docManager.forceUpdate();
+  const [statesByStep, commandsByStep, descriptionsByStep, stepIndices] =
+    useMemo(() => {
+      const initialDoc = docFromAst(
+        astFromTypescriptFileContent(
+          prettyPrintTsString(task.contentBefore, defaultPrettierOptions),
+        ),
+      );
+      let state = initialDocManagerPublicState;
+      const docManager = new DocManager(
+        initialDoc,
+        (newState) => (state = newState),
+        false,
+        defaultPrettierOptions,
+      );
+      docManager.forceUpdate();
 
-    const statesByStep = [state];
-    const commandsByStep: (DocManagerCommand | undefined)[] = [undefined];
-    const stepIndices: number[][] = [];
+      const statesByStep = [state];
+      const commandsByStep: (DocManagerCommand | undefined)[] = [undefined];
+      const descriptionsByStep: (React.ReactNode | undefined)[] = [undefined];
+      const stepIndices: number[][] = [];
 
-    for (const describedGroup of task.example.describedGroups) {
-      const stepIndicesThisGroup: number[] = [];
-      stepIndices.push(stepIndicesThisGroup);
-      for (const eventCreator of describedGroup.eventCreators) {
-        const events = eventsFromEventCreator(eventCreator);
-        const commands = new Set<DocManagerCommand>();
-        for (const eventOrFunction of events) {
-          if (typeof eventOrFunction === "function") {
-            eventOrFunction(docManager);
-          } else {
-            const { handler, event } = eventOrFunction;
-            const command = docManager[handler](event);
-            if (command !== undefined) {
-              commands.add(command);
+      for (const describedGroup of task.example.describedGroups) {
+        const stepIndicesThisGroup: number[] = [];
+        stepIndices.push(stepIndicesThisGroup);
+        for (const eventCreator of describedGroup.eventCreators) {
+          const events = eventsFromEventCreator(eventCreator);
+          const commands = new Set<DocManagerCommand>();
+          for (const eventOrFunction of events) {
+            if (typeof eventOrFunction === "function") {
+              eventOrFunction(docManager);
+            } else {
+              const { handler, event } = eventOrFunction;
+              const command = docManager[handler](event);
+              if (command !== undefined) {
+                commands.add(command);
+              }
             }
           }
+
+          stepIndicesThisGroup.push(statesByStep.length);
+          statesByStep.push(state);
+          if (commands.size === 1) {
+            const command = commands.values().next().value;
+            commandsByStep.push(command);
+            descriptionsByStep.push(
+              eventCreator.kind === EventCreatorKind.FromKeys
+                ? describeCommand(command, eventCreator.keys)
+                : undefined,
+            );
+          } else {
+            commandsByStep.push(undefined);
+            descriptionsByStep.push(undefined);
+          }
         }
-
-        stepIndicesThisGroup.push(statesByStep.length);
-        statesByStep.push(state);
-        commandsByStep.push(
-          commands.size === 1 ? commands.values().next().value : undefined,
-        );
       }
-    }
 
-    return [statesByStep, commandsByStep, stepIndices];
-  }, [task]);
+      return [statesByStep, commandsByStep, descriptionsByStep, stepIndices];
+    }, [task]);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -272,10 +285,7 @@ export const ExampleStepper = ({
                       .map((element, iEventCreator) => {
                         const step =
                           stepIndices[iDescribedGroup][iEventCreator];
-                        const commandLabel =
-                          commandsByStep[step] === undefined
-                            ? undefined
-                            : DocManagerCommand[commandsByStep[step]!];
+                        const commandLabel = descriptionsByStep[step];
                         return (
                           <Tooltip
                             key={iEventCreator}
