@@ -215,6 +215,13 @@ export const App = () => {
               href="https://doi.org/10.1145/3563835.3567663"
               target="_blank"
             />
+            <NavLink
+              component="a"
+              icon={<IconFileDescription />}
+              label="Preprint"
+              href="https://arxiv.org/abs/2210.11124"
+              target="_blank"
+            />
           </Navbar.Section>
         </Navbar>
       }
