@@ -9,14 +9,15 @@ import {
   NavLink,
   ScrollArea,
   Stack,
+  Tabs,
   Title,
 } from "@mantine/core";
 import { closeAllModals, openModal } from "@mantine/modals";
 import { IconBrandGithub, IconFileDescription } from "@tabler/icons";
 import { sortBy } from "ramda";
-import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { promisify } from "util";
+import { CommandDocumentation } from "./components/command-documentation";
 import {
   CommandHistory,
   CommandHistoryEntry,
@@ -270,10 +271,37 @@ export const App = () => {
               onStateChange={setStepperDocManagerState}
             />
           ) : (
-            <CommandHistory
-              commandHistory={commandHistory}
-              onClear={() => setCommandHistory([])}
-            />
+            <Tabs
+              defaultValue="CommandDocumentation"
+              keepMounted={false}
+              style={{
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <Tabs.List>
+                <Tabs.Tab value="CommandDocumentation">
+                  Command reference
+                </Tabs.Tab>
+                <Tabs.Tab value="CommandHistory">Command history</Tabs.Tab>
+              </Tabs.List>
+              <Tabs.Panel
+                value="CommandDocumentation"
+                style={{ flexGrow: 1, overflow: "hidden" }}
+              >
+                <CommandDocumentation />
+              </Tabs.Panel>
+              <Tabs.Panel
+                value="CommandHistory"
+                style={{ flexGrow: 1, overflow: "hidden" }}
+              >
+                <CommandHistory
+                  commandHistory={commandHistory}
+                  onClear={() => setCommandHistory([])}
+                />
+              </Tabs.Panel>
+            </Tabs>
           )}
         </Grid.Col>
       </Grid>
