@@ -1,21 +1,6 @@
-import {
-  AppShell,
-  Box,
-  Center,
-  FocusTrap,
-  Grid,
-  Loader,
-  Navbar,
-  NavLink,
-  ScrollArea,
-  Stack,
-  Tabs,
-  Title,
-} from "@mantine/core";
-import { closeAllModals, openModal } from "@mantine/modals";
-import { IconBrandGithub, IconFileDescription } from "@tabler/icons";
-import { sortBy } from "ramda";
-import { useEffect, useMemo, useState } from "react";
+import { AppShell, Center, Grid, Loader, Stack, Tabs } from "@mantine/core";
+import { closeAllModals } from "@mantine/modals";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { promisify } from "util";
 import { CommandDocumentation } from "./components/command-documentation";
 import {
@@ -24,9 +9,8 @@ import {
 } from "./components/command-history";
 import { DocUi } from "./components/doc-ui";
 import { ExampleStepper } from "./components/example-stepper";
-import { FileSearch } from "./components/file-search";
 import { LinearEditor } from "./components/linear-editor";
-import { RepoSwitcher } from "./components/repo-switcher";
+import { Nav } from "./components/nav";
 import { eventsFromEventCreator } from "./examples/keys";
 import { DocManager, initialDocManagerPublicState } from "./logic/doc-manager";
 import { Doc } from "./logic/interfaces";
@@ -126,6 +110,16 @@ export const App = () => {
       document.removeEventListener("keydown", handler);
     };
   }, []);
+  const openDoc = useCallback((doc: { text: string; path?: string }) => {
+    setInitialDocInfo(doc);
+    setSelectedTaskKey("");
+    closeAllModals();
+  }, []);
+  const openTask = useCallback((taskKey: string) => {
+    setInitialDocInfo({ text: "" });
+    setSelectedTaskKey(taskKey);
+    closeAllModals();
+  }, []);
   if (!fsChoice) {
     return (
       <Center sx={{ height: "100vh" }}>
@@ -140,91 +134,13 @@ export const App = () => {
     <AppShell
       padding={0}
       navbar={
-        <Navbar p="md" width={{ base: 300 }}>
-          <Navbar.Section mt="xs">
-            <Title order={3}>Forest</Title>
-          </Navbar.Section>
-          <Navbar.Section grow component={ScrollArea} mx="-xs" px="xs" mt="md">
-            <NavLink label="Free editing">
-              <NavLink
-                label="Blank file"
-                onClick={() => {
-                  setInitialDocInfo({ text: "" });
-                  setSelectedTaskKey("");
-                }}
-              />
-              {!fsChoice.probablyEmpty && (
-                <NavLink
-                  label="Forest source code"
-                  onClick={() => {
-                    openModal({
-                      title: "Select file",
-                      children: (
-                        <FocusTrap active>
-                          <div>
-                            <FileSearch
-                              fsChoice={fsChoice}
-                              onSelect={(docInfo) => {
-                                setInitialDocInfo(docInfo);
-                                setSelectedTaskKey("");
-                                closeAllModals();
-                              }}
-                            />
-                          </div>
-                        </FocusTrap>
-                      ),
-                    });
-                  }}
-                />
-              )}
-            </NavLink>
-            {!fsChoice.probablyEmpty &&
-              [
-                ["paper-evaluation", "Paper evaluation"],
-                ["paper-examples", "Paper examples"],
-              ].map(([sectionKey, sectionLabel]) => (
-                <NavLink key={sectionKey} label={sectionLabel}>
-                  {sortBy(
-                    (t) => t.key,
-                    tasks.filter((t) => t.example.nameParts[0] === sectionKey),
-                  ).map((t) => (
-                    <NavLink
-                      label={t.example.nameParts.slice(1).join("/")}
-                      key={t.key}
-                      active={selectedTask?.key === t.key}
-                      onClick={() => setSelectedTaskKey(t.key)}
-                    />
-                  ))}
-                </NavLink>
-              ))}
-            <Box mt="md">
-              <RepoSwitcher fsChoice={fsChoice} />
-            </Box>
-          </Navbar.Section>
-          <Navbar.Section mt="md" my={0}>
-            <NavLink
-              component="a"
-              icon={<IconBrandGithub />}
-              label="GitHub repository"
-              href="https://github.com/tehwalris/forest"
-              target="_blank"
-            />
-            <NavLink
-              component="a"
-              icon={<IconFileDescription />}
-              label="Published paper"
-              href="https://doi.org/10.1145/3563835.3567663"
-              target="_blank"
-            />
-            <NavLink
-              component="a"
-              icon={<IconFileDescription />}
-              label="Preprint"
-              href="https://arxiv.org/abs/2210.11124"
-              target="_blank"
-            />
-          </Navbar.Section>
-        </Navbar>
+        <Nav
+          openDoc={openDoc}
+          openTask={openTask}
+          fsChoice={fsChoice}
+          tasks={tasks}
+          selectedTaskKey={selectedTask?.key}
+        />
       }
     >
       <Grid style={{ height: "100vh", overflow: "hidden", margin: 0 }}>
